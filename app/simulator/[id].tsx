@@ -1193,24 +1193,23 @@ export default function ScenarioDetailScreen() {
                   </Text>
                   <Chevron open={expandFulfilled} size={14} color={colors.textSecondary} />
                 </View>
-                {fulfilledSummary && fulfilledSummary.entries.length > 0 && (
-                  <View className="flex-row justify-between mt-2">
-                    <View>
-                      <Text className="text-label" style={{ color: colors.textSecondary }}>Planned</Text>
-                      <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalPlanned)}</Text>
-                    </View>
-                    <View className="items-center">
-                      <Text className="text-label" style={{ color: colors.textSecondary }}>Actual</Text>
-                      <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalActual)}</Text>
-                    </View>
-                    <View className="items-end">
-                      <Text className="text-label" style={{ color: colors.textSecondary }}>Variance</Text>
-                      <Text className="text-sm font-bold" style={{ color: fulfilledSummary.variance > 0 ? theme.danger : fulfilledSummary.variance < 0 ? theme.success : colors.textSecondary }}>
-                        {fulfilledSummary.variance > 0 ? "+" : ""}{formatAmount(fulfilledSummary.variance)}
+                {fulfilledSummary && (["out", "in"] as const).map((direction) => {
+                  const totals = direction === "out" ? fulfilledSummary.moneyOut : fulfilledSummary.moneyIn;
+                  if (totals.count === 0) return null;
+                  return (
+                    <View key={direction} className="mt-2 pt-2 border-t border-border">
+                      <View className="flex-row items-center justify-between">
+                        <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                          {direction === "out" ? "Money out" : "Money in"}
+                        </Text>
+                        <VarianceTag variance={totals.variance} direction={direction} />
+                      </View>
+                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                        Planned {formatAmount(totals.planned)} · Actual {formatAmount(totals.actual)}
                       </Text>
                     </View>
-                  </View>
-                )}
+                  );
+                })}
               </Pressable>
             </Card>
             {expandFulfilled && entries.fulfilled.map((e) => {
@@ -1254,10 +1253,11 @@ export default function ScenarioDetailScreen() {
                         <Text className="text-xs" style={{ color: colors.textSecondary }}>
                           Planned: {formatAmount(e.amount)}
                         </Text>
-                        {entryVariance !== null && entryVariance !== 0 && (
-                          <Text className="text-xs ml-2" style={{ color: entryVariance > 0 ? theme.danger : theme.success }}>
-                            {entryVariance > 0 ? "+" : ""}{formatAmount(entryVariance)}
-                          </Text>
+                        {/* No actual means nothing is linked, which says nothing about the plan. */}
+                        {entryVariance !== null && !!actualTotal && (
+                          <View className="ml-2">
+                            <VarianceTag variance={entryVariance} direction={e.direction} />
+                          </View>
                         )}
                       </View>
                     </View>
@@ -1655,5 +1655,22 @@ function RenameScenarioModal({
         </Pressable>
       </Pressable>
     </Modal>
+  );
+}
+
+/** Over, under or on plan. Spending more than planned is bad; receiving more than planned is good. */
+function VarianceTag({ variance, direction }: { variance: number; direction: "in" | "out" }) {
+  const theme = useTheme();
+  const { colors } = useColorScheme();
+  const onPlan = Math.abs(variance) < 0.005;
+  const over = variance > 0;
+  const good = direction === "in" ? over : !over;
+  const color = onPlan ? colors.textSecondary : good ? theme.success : theme.danger;
+  return (
+    <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: color + "1A" }}>
+      <Text className="text-label font-bold" style={{ color }}>
+        {onPlan ? "On plan" : `${formatAmount(Math.abs(variance))} ${over ? "over" : "under"}`}
+      </Text>
+    </View>
   );
 }

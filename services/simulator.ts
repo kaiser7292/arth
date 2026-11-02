@@ -1166,12 +1166,31 @@ export async function getEntryFulfillments(entryId: string): Promise<EntryFulfil
   return results;
 }
 
-export interface FulfilledSummary {
-  totalPlanned: number;
-  totalActual: number;
+export interface FulfilledTotals {
+  planned: number;
+  actual: number;
   variance: number;
+  count: number;
+}
+
+/**
+ * Planned against actual for one direction. An entry with nothing linked has no actual to compare,
+ * so it isn't counted. Money in and money out never share a total: earning ₹500 extra and overspending
+ * ₹500 would otherwise look like the same number, or cancel out.
+ */
+export function fulfilledTotals(entries: { planned: number; actual: number }[]): FulfilledTotals {
+  const linked = entries.filter((e) => e.actual > 0);
+  const planned = linked.reduce((s, e) => s + e.planned, 0);
+  const actual = linked.reduce((s, e) => s + e.actual, 0);
+  return { planned, actual, variance: actual - planned, count: linked.length };
+}
+
+export interface FulfilledSummary {
+  moneyOut: FulfilledTotals;
+  moneyIn: FulfilledTotals;
   entries: Array<{
     entryId: string;
+    direction: SimulationEntry["direction"];
     planned: number;
     actual: number;
     variance: number;
@@ -1186,16 +1205,13 @@ export async function getFulfilledSummary(scenarioId: string): Promise<Fulfilled
     `SELECT * FROM simulation_entries WHERE scenario_id = ? AND status = 'fulfilled';`,
     scenarioId,
   );
-  let totalPlanned = 0;
-  let totalActual = 0;
   const entries: FulfilledSummary["entries"] = [];
   for (const entry of fulfilled) {
     const fulfillments = await getEntryFulfillments(entry.id);
     const actual = fulfillments.reduce((s, f) => s + f.amount, 0);
-    totalPlanned += entry.amount;
-    totalActual += actual;
     entries.push({
       entryId: entry.id,
+      direction: entry.direction,
       planned: entry.amount,
       actual,
       variance: actual - entry.amount,
@@ -1203,7 +1219,11 @@ export async function getFulfilledSummary(scenarioId: string): Promise<Fulfilled
       merchant_name: entry.merchant_name,
     });
   }
-  return { totalPlanned, totalActual, variance: totalActual - totalPlanned, entries };
+  return {
+    moneyOut: fulfilledTotals(entries.filter((e) => e.direction === "out")),
+    moneyIn: fulfilledTotals(entries.filter((e) => e.direction === "in")),
+    entries,
+  };
 }
 
 export async function dismissEntry(entryId: string): Promise<void> {

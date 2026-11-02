@@ -171,6 +171,7 @@ These show up inside the Incoming / Outgoing lists with the sublabel "Collect fr
   - If a matching real transaction exists (same account, date within ±3 days, **exact amount to the paise**) → the entry auto-links and moves to "Already happened".
   - If nothing matches → the entry moves to **Stale** and appears in a dedicated card. You resolve via three actions:
     - **It happened · Link** - pick the real transaction from the recent ledger; the entry marks as fulfilled.
+- **Already happened.** Entries linked to real transactions move into this closed drawer. It compares planned and actual separately for money out and money in, and each entry is tagged as over, under or on plan.
 - **Wrong link?** Expand a fulfilled entry and tap **Unlink transaction** next to the one that doesn't belong. Removing the last link puts the entry back to upcoming (or stale, if its date has passed).
     - **Reschedule** - pick a new future date; the entry re-enters the simulation.
     - **Remove** - discard.
