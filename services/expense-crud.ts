@@ -1,4 +1,5 @@
 import { getDatabase } from "@/database";
+import { FILL_MODE_FROM_ACCOUNT_SQL, FOLLOW_CATEGORY_SQL } from "@/services/expense-defaults";
 import { syncSettlementLinkedHisaabEntry } from "@/services/account-credit";
 import { findPaymentModeByType } from "@/services/account-master";
 import { learnMerchantAlias } from "@/services/merchant-alias";
@@ -75,6 +76,19 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     }
   } catch (e) {
     logger.warn("Smart rule application failed in createExpense (non-fatal):", e);
+  }
+
+  // Nobody chose: a spend follows its category's discretionary / unavoidable setting.
+  if (isRightSpend === null && categoryId && (input.nature ?? "realized") === "realized") {
+    try {
+      const category = await db.getFirstAsync<{ is_unavoidable: number }>(
+        `SELECT is_unavoidable FROM categories WHERE id = ?;`,
+        categoryId,
+      );
+      if (category) isRightSpend = category.is_unavoidable;
+    } catch (e) {
+      logger.warn("Discretionary setting from category failed (non-fatal):", e);
+    }
   }
 
   // If a smart rule requested a split, delegate to splitNewExpense which creates
@@ -243,6 +257,10 @@ export async function updateExpense(
   if (input.category_id !== undefined) {
     fields.push("category_id = ?");
     values.push(input.category_id);
+    if (input.category_id && input.is_right_spend === undefined) {
+      fields.push(FOLLOW_CATEGORY_SQL);
+      values.push(input.category_id);
+    }
   }
   if (input.payment_mode_id !== undefined) {
     fields.push("payment_mode_id = ?");
@@ -263,6 +281,10 @@ export async function updateExpense(
   if (input.account_id !== undefined) {
     fields.push("account_id = ?");
     values.push(input.account_id);
+    if (input.account_id && input.payment_mode_id === undefined) {
+      fields.push(FILL_MODE_FROM_ACCOUNT_SQL);
+      values.push(input.account_id, input.account_id);
+    }
   }
   if (input.credit_kind !== undefined) {
     fields.push("credit_kind = ?");
@@ -1321,7 +1343,8 @@ export async function bulkAssignCategory(
   const db = getDatabase();
   const placeholders = expenseIds.map(() => "?").join(",");
   const result = await db.runAsync(
-    `UPDATE expenses SET category_id = ?, updated_at = datetime('now') WHERE id IN (${placeholders});`,
+    `UPDATE expenses SET category_id = ?, ${FOLLOW_CATEGORY_SQL}, updated_at = datetime('now') WHERE id IN (${placeholders});`,
+    categoryId,
     categoryId,
     ...expenseIds,
   );
@@ -1368,7 +1391,8 @@ export async function remapExpenses(
       const result = await categorizeByMerchant(userId, row.merchant_name);
       if (result.categoryId && result.source !== "fallback") {
         await db.runAsync(
-          "UPDATE expenses SET category_id = ?, updated_at = datetime('now') WHERE id = ?;",
+          `UPDATE expenses SET category_id = ?, ${FOLLOW_CATEGORY_SQL}, updated_at = datetime('now') WHERE id = ?;`,
+          result.categoryId,
           result.categoryId,
           row.id,
         );

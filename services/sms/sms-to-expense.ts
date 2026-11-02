@@ -13,6 +13,7 @@
  */
 
 import { cleanDueLabel } from "@/services/sms/due-description";
+import { FILL_MODE_FROM_ACCOUNT_SQL } from "@/services/expense-defaults";
 import { createTransfer } from "@/services/account-transfer";
 import { getDatabase } from "@/database";
 import { autoPopulateAccountMode, findPaymentModeByType } from "@/services/account-master";
@@ -546,6 +547,19 @@ export async function createExpenseFromSms(
         logger.warn("Smart rule application failed in SMS realize path (non-fatal):", e);
       }
 
+      // Unless a rule decided, a spend follows its category's discretionary / unavoidable setting.
+      if ((ruleIsRightSpend === null || ruleIsRightSpend === undefined) && categoryId) {
+        try {
+          const category = await db.getFirstAsync<{ is_unavoidable: number }>(
+            `SELECT is_unavoidable FROM categories WHERE id = ?;`,
+            categoryId,
+          );
+          if (category) ruleIsRightSpend = category.is_unavoidable;
+        } catch (e) {
+          logger.warn("Discretionary setting from category failed (non-fatal):", e);
+        }
+      }
+
       // Create the realized expense — always create, never auto-realize forecasts
       const expenseId = generateUUID();
       const now = new Date().toISOString(); // Local time in ISO format
@@ -575,6 +589,23 @@ export async function createExpenseFromSms(
       }
       // Link expense to its financial account
       await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
+
+      // Nothing detected a payment mode: the account's only linked one, if it has one.
+      if (!paymentModeId) {
+        try {
+          const linked = await db.getFirstAsync<{ account_id: string | null }>(`SELECT account_id FROM expenses WHERE id = ?;`, expenseId);
+          if (linked?.account_id) {
+            await db.runAsync(
+              `UPDATE expenses SET ${FILL_MODE_FROM_ACCOUNT_SQL} WHERE id = ?;`,
+              linked.account_id,
+              linked.account_id,
+              expenseId,
+            );
+          }
+        } catch (e) {
+          logger.warn("Payment mode from account failed (non-fatal):", e);
+        }
+      }
 
       await applyRuleTags(expenseId, ruleTagIds);
 

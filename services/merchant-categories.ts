@@ -14,6 +14,7 @@
  * Rules point at a category by NAME. renameCategoryInMerchantRules keeps them pointing at a
  * renamed category; rules whose category is gone show `categoryMissing` so the user can move them.
  */
+import { FOLLOW_CATEGORY_SQL } from "@/services/expense-defaults";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getDatabase } from "@/database";
 import { BUILT_IN_MERCHANT_MAPPINGS } from "@/database/defaults/merchant-mappings";
@@ -267,7 +268,8 @@ export async function applyRulesToPastTransactions(
     for (let i = 0; i < ids.length; i += 500) {
       const chunk = ids.slice(i, i + 500);
       await db.runAsync(
-        `UPDATE expenses SET category_id = ?, updated_at = datetime('now') WHERE id IN (${chunk.map(() => "?").join(",")});`,
+        `UPDATE expenses SET category_id = ?, ${FOLLOW_CATEGORY_SQL}, updated_at = datetime('now') WHERE id IN (${chunk.map(() => "?").join(",")});`,
+        target,
         target,
         ...chunk,
       );
@@ -286,7 +288,8 @@ export async function applyRuleToPastTransactions(keyword: string, categoryName:
   for (let i = 0; i < ids.length; i += 500) {
     const chunk = ids.slice(i, i + 500);
     await db.runAsync(
-      `UPDATE expenses SET category_id = ?, updated_at = datetime('now') WHERE id IN (${chunk.map(() => "?").join(",")});`,
+      `UPDATE expenses SET category_id = ?, ${FOLLOW_CATEGORY_SQL}, updated_at = datetime('now') WHERE id IN (${chunk.map(() => "?").join(",")});`,
+      categoryId,
       categoryId,
       ...chunk,
     );
