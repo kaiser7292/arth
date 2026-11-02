@@ -4,7 +4,10 @@ import { getBudgetsForMonth } from "@/services/budget";
 import { getCategories } from "@/services/category";
 import { effectiveAmountSql } from "@/services/expense-effective-amount";
 import { getActiveAccounts } from "@/services/financial-account";
-import { invested, moneyIn, salaryIn } from "@/services/reports/year-review";
+import { getFlag } from "@/services/feature-flags";
+import { getHisaabSummary } from "@/services/hisaab";
+import { getStatement } from "@/services/household/statement";
+import { invested, moneyIn, repaymentsIn, salaryIn } from "@/services/reports/year-review";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 
 /**
@@ -14,6 +17,11 @@ import { getMonthDateRange } from "@/utils/budget-helpers";
  * Money put away isn't spending, so a fixed deposit or SIP counts once, under saved. That includes
  * ones Arth has spotted but nobody has set up yet (money_event still on the debit). Loan payments
  * stay in spent: unlike a deposit, that money isn't coming back as savings.
+ *
+ * Money with people isn't income or spending. On a bill you paid, spent is your share, so the rest
+ * is shown as money out to them; a repayment is shown as money back, not income. Both count towards
+ * what's left, because both really moved. A bill someone else paid ("Paid by …") moved nothing yet,
+ * so only your share counts, as spent.
  */
 export interface MyMonth {
   salary: number;
@@ -23,6 +31,8 @@ export interface MyMonth {
   categories: { categoryId: string | null; name: string; total: number }[];
   saved: { label: string; amount: number }[];
   savedTotal: number;
+  /** People: others' share of bills you paid this month, and repayments that reached an account. */
+  people: { billsShare: number; repaid: number };
   leftOver: number;
   /** What the budget leaves over. Null when no budget is set for this month. */
   afterBudget: { setAside: number; free: number } | null;
@@ -39,8 +49,9 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
   const { startDate, endDate } = getMonthDateRange(month);
   const amount = effectiveAmountSql("expenses");
 
-  const [totalIn, salary, put, byCategory, spotted, waiting, categories] = await Promise.all([
+  const [allIn, repaid, salary, put, byCategory, spotted, waiting, categories, others] = await Promise.all([
     moneyIn(userId, startDate, endDate),
+    repaymentsIn(userId, startDate, endDate),
     salaryIn(userId, startDate, endDate),
     invested(userId, startDate, endDate),
     db.getAllAsync<{ category_id: string | null; total: number }>(
@@ -64,7 +75,16 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
       userId, startDate, endDate,
     ),
     getCategories(userId),
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT SUM(split_original_amount - amount) AS total FROM expenses
+       WHERE user_id = ? AND date >= ? AND date <= ? AND ${NOT_PUT_AWAY}
+         AND household_ref IS NULL AND split_original_amount > amount;`,
+      userId, startDate, endDate,
+    ),
   ]);
+  const totalIn = Math.max(0, allIn - repaid);
+  const billsShare = others?.total ?? 0;
+  const peopleNet = repaid - billsShare;
   const budgets = await getBudgetsForMonth(userId, month);
 
   const names = new Map(categories.map((c) => [c.id, c.name]));
@@ -94,8 +114,9 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
     categories: spentRows,
     saved,
     savedTotal,
-    leftOver: totalIn - spent - savedTotal,
-    afterBudget: budgetLeaves(totalIn, savedTotal, budgets, spentRows),
+    people: { billsShare, repaid },
+    leftOver: totalIn + peopleNet - spent - savedTotal,
+    afterBudget: budgetLeaves(totalIn + peopleNet, savedTotal, budgets, spentRows),
     waitingForReview: waiting?.n ?? 0,
   };
 }
@@ -105,7 +126,7 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
  * more: money already overspent isn't free, and neither is spending with no budget against it.
  */
 function budgetLeaves(
-  moneyInTotal: number,
+  available: number,
   savedTotal: number,
   budgets: { category_id: string; amount: number }[],
   spentRows: { categoryId: string | null; total: number }[],
@@ -115,7 +136,7 @@ function budgetLeaves(
   for (const b of budgets) held.set(b.category_id, b.amount);
   for (const r of spentRows) held.set(r.categoryId, Math.max(held.get(r.categoryId) ?? 0, r.total));
   const setAside = [...held.values()].reduce((s, v) => s + v, 0);
-  return { setAside, free: moneyInTotal - setAside - savedTotal };
+  return { setAside, free: available - setAside - savedTotal };
 }
 
 export interface MonthAccount {
@@ -143,4 +164,16 @@ export async function getMonthAccounts(userId: string, month: string): Promise<M
     }),
   );
   return rows.filter((r): r is MonthAccount => r !== null);
+}
+
+/**
+ * Where you stand with people right now, and the household's shared total for the month. For reading
+ * only, none of it is in the sums above. Each part fails alone, so the page still shows the rest.
+ */
+export async function getMonthPeople(userId: string, month: string): Promise<{ owedToYou: number; youOwe: number; together: number | null }> {
+  const [hisaab, statement] = await Promise.all([
+    getHisaabSummary(userId).catch(() => null),
+    getFlag("household") ? getStatement(month).catch(() => null) : Promise.resolve(null),
+  ]);
+  return { owedToYou: hisaab?.totalOwedToYou ?? 0, youOwe: hisaab?.totalYouOwe ?? 0, together: statement?.together ?? null };
 }

@@ -144,6 +144,52 @@ describe("getMyMonth", () => {
   });
 });
 
+describe("money with people", () => {
+  function repayment(amount: number) {
+    const credit = tx({ nature: "credit", amount, account_id: "bank" });
+    insert("hisaab_persons", { id: `p${seq}`, owner_user_id: USER, name: "Friend" });
+    insert("hisaab_entries", { id: `h${seq}`, hisaab_person_id: `p${seq}`, amount, date: "2026-10-20", type: "settlement", linked_expense_id: credit });
+  }
+
+  it("a repayment isn't income, but does count towards what's left", async () => {
+    tx({ nature: "credit", credit_kind: "salary", amount: 1000, account_id: "bank" });
+    repayment(500);
+    const m = await getMyMonth(USER, MONTH);
+    expect(m).toMatchObject({ salary: 1000, otherIncome: 0, moneyIn: 1000, leftOver: 1500 });
+    expect(m.people).toEqual({ billsShare: 0, repaid: 500 });
+  });
+
+  it("left over matches the bank when you pay a split bill and get repaid", async () => {
+    tx({ nature: "credit", credit_kind: "salary", amount: 10000, account_id: "bank" });
+    tx({ amount: 500, split_original_amount: 1000, category_id: "food", account_id: "bank" });
+    repayment(500);
+    const m = await getMyMonth(USER, MONTH);
+    expect(m.spent).toBe(500);
+    expect(m.people).toEqual({ billsShare: 500, repaid: 500 });
+    expect(m.leftOver).toBe(10000 - 1000 + 500);
+  });
+
+  it("before the repayment, the other share is still money that left", async () => {
+    tx({ nature: "credit", credit_kind: "salary", amount: 10000, account_id: "bank" });
+    tx({ amount: 500, split_original_amount: 1000, category_id: "food", account_id: "bank" });
+    expect((await getMyMonth(USER, MONTH)).leftOver).toBe(9000);
+  });
+
+  it("a bill someone else paid moved none of your money: only your share counts", async () => {
+    tx({ amount: 400, split_original_amount: 1000, category_id: "food", household_ref: "hh:1" });
+    const m = await getMyMonth(USER, MONTH);
+    expect(m.people.billsShare).toBe(0);
+    expect(m.leftOver).toBe(-400);
+  });
+
+  it("what the budget leaves counts money with people too", async () => {
+    tx({ nature: "credit", credit_kind: "salary", amount: 10000, account_id: "bank" });
+    insert("budgets", { id: "b-food", user_id: USER, category_id: "food", month: MONTH, amount: 2000 });
+    tx({ amount: 500, split_original_amount: 1000, category_id: "food", account_id: "bank" });
+    expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ setAside: 2000, free: 7500 });
+  });
+});
+
 describe("after the budget", () => {
   const budget = (category: string, amount: number) => insert("budgets", { id: `b-${category}`, user_id: USER, category_id: category, month: MONTH, amount });
 

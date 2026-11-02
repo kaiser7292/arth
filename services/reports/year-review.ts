@@ -135,6 +135,15 @@ export async function moneyIn(userId: string, startDate: string, endDate: string
   return row?.total ?? 0;
 }
 
+/** The part of moneyIn that's someone repaying you: credits linked to a Hisaab settlement. */
+export async function repaymentsIn(userId: string, startDate: string, endDate: string): Promise<number> {
+  const row = await getDatabase().getFirstAsync<{ total: number | null }>(
+    `${MONEY_IN_SQL} AND EXISTS (SELECT 1 FROM hisaab_entries h WHERE h.linked_expense_id = e.id AND h.type = 'settlement');`,
+    userId, startDate, endDate,
+  );
+  return row?.total ?? 0;
+}
+
 /** The part of moneyIn marked as salary. */
 export async function salaryIn(userId: string, startDate: string, endDate: string): Promise<number> {
   const row = await getDatabase().getFirstAsync<{ total: number | null }>(

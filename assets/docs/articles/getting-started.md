@@ -51,6 +51,8 @@ Arth has **five bottom tabs**, in this order from left to right. **Swipe left or
 
 **My month** on Home is the month in one place: money in, what you spent, what you saved or invested, and what's left. Tap it for the categories, your bank and wallet balances, what your budget leaves you free to save or spend, or to look at another month. A salary credit counts as salary once its type is set to Salary.
 
+**With people** in My month keeps money with others apart from income and spending. On a bill you paid, your share is spending and the rest shows as others' share. A repayment linked to its Hisaab entry shows as repaid, not income. It also shows what you're owed, what you owe and your household's shared total.
+
 **Finish setting up** on Home lists what's left to do. Steps tick themselves as you do them, and the card goes away once they're all done. You can also dismiss it.
 
 ## Your first week (in order)

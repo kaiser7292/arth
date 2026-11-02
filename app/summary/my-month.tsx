@@ -7,7 +7,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getCurrentMonth } from "@/services/budget";
-import { getMonthAccounts, getMyMonth, type MonthAccount, type MyMonth } from "@/services/my-month";
+import { getMonthAccounts, getMonthPeople, getMyMonth, type MonthAccount, type MyMonth } from "@/services/my-month";
 import { formatAmount } from "@/utils/expense-validation";
 
 const TOP_CATEGORIES = 5;
@@ -16,12 +16,12 @@ function Heading({ children }: { children: string }) {
   return <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{children}</Text>;
 }
 
-function Row({ label, amount }: { label: string; amount: number }) {
+function Row({ label, amount, sign = "", onPress }: { label: string; amount: number; sign?: string; onPress?: () => void }) {
   return (
-    <View className="flex-row justify-between py-1.5">
+    <Pressable disabled={!onPress} onPress={onPress} className="flex-row justify-between py-1.5" accessibilityRole={onPress ? "button" : undefined}>
       <Text className="text-sm text-foreground flex-1 mr-3">{label}</Text>
-      <Text className="text-sm font-semibold text-foreground">{formatAmount(amount)}</Text>
-    </View>
+      <Text className="text-sm font-semibold text-foreground">{sign}{formatAmount(amount)}</Text>
+    </Pressable>
   );
 }
 
@@ -33,6 +33,7 @@ export default function MyMonthScreen() {
   const [month, setMonth] = useState(params.month ?? getCurrentMonth());
   const [data, setData] = useState<MyMonth | null>(null);
   const [accounts, setAccounts] = useState<MonthAccount[]>([]);
+  const [people, setPeople] = useState<{ owedToYou: number; youOwe: number; together: number | null } | null>(null);
   const [failed, setFailed] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
@@ -46,6 +47,7 @@ export default function MyMonthScreen() {
       }
       // Separate from the sums above, so a balance problem can't blank the page.
       setAccounts(await getMonthAccounts(DEFAULT_USER_ID, month).catch(() => []));
+      setPeople(await getMonthPeople(DEFAULT_USER_ID, month).catch(() => null));
     }, [month]),
   );
 
@@ -122,6 +124,26 @@ export default function MyMonthScreen() {
             )}
           </Card>
 
+          {(data.people.billsShare > 0 || data.people.repaid > 0 || !!people?.owedToYou || !!people?.youOwe || !!people?.together) && (
+            <Card className="mb-3">
+              <Heading>With people</Heading>
+              {data.people.billsShare > 0 && <Row label="Others' share of bills you paid" amount={data.people.billsShare} sign="−" />}
+              {data.people.repaid > 0 && <Row label="Repaid to you" amount={data.people.repaid} sign="+" />}
+              {(data.people.billsShare > 0 || data.people.repaid > 0) && (!!people?.owedToYou || !!people?.youOwe || !!people?.together) && (
+                <View className="border-t border-border my-1" />
+              )}
+              {!!people?.owedToYou && <Row label="Owed to you now" amount={people.owedToYou} onPress={() => router.push("/hisaab/persons")} />}
+              {!!people?.youOwe && <Row label="You owe now" amount={people.youOwe} onPress={() => router.push("/hisaab/persons")} />}
+              {!!people?.together && (
+                <Row
+                  label="Your household spent together"
+                  amount={people.together}
+                  onPress={() => router.push({ pathname: "/together/transactions", params: { month } })}
+                />
+              )}
+            </Card>
+          )}
+
           <Card className="mb-3">
             <View className="flex-row justify-between items-center">
               <Text className="text-base font-semibold" style={{ color: leftColor }}>
@@ -129,7 +151,7 @@ export default function MyMonthScreen() {
               </Text>
               <Text className="text-xl font-bold" style={{ color: leftColor }}>{formatAmount(Math.abs(data.leftOver))}</Text>
             </View>
-            <Text className="text-xs text-muted-foreground mt-1">Money in, minus spent, minus saved</Text>
+            <Text className="text-xs text-muted-foreground mt-1">{data.people.billsShare > 0 || data.people.repaid > 0 ? "Money in, minus spent and saved, with money to and from people" : "Money in, minus spent, minus saved"}</Text>
           </Card>
 
           <Card className="mb-3">
@@ -143,8 +165,15 @@ export default function MyMonthScreen() {
             ) : (
               <>
                 <Row label="Money in" amount={data.moneyIn} />
-                <Row label="Budget for the month" amount={data.afterBudget.setAside} />
-                {data.savedTotal > 0 && <Row label="Already saved" amount={data.savedTotal} />}
+                {data.people.repaid !== data.people.billsShare && (
+                  <Row
+                    label="With people"
+                    amount={Math.abs(data.people.repaid - data.people.billsShare)}
+                    sign={data.people.repaid > data.people.billsShare ? "+" : "−"}
+                  />
+                )}
+                <Row label="Budget for the month" amount={data.afterBudget.setAside} sign="−" />
+                {data.savedTotal > 0 && <Row label="Already saved" amount={data.savedTotal} sign="−" />}
                 <View className="flex-row justify-between items-center pt-2 mt-1 border-t border-border">
                   <Text className="text-sm font-semibold flex-1 mr-3" style={{ color: data.afterBudget.free < 0 ? theme.danger : theme.success }}>
                     {data.afterBudget.free < 0 ? "Budget is more than your money in, by" : "You can still save or spend"}
