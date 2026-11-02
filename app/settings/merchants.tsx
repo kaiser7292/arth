@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { FilterChip, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { compareUnicode } from "@/utils/unicode-sort";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { dismissMerchantUndo, undoMerchantChange, usePendingMerchantUndo } from "@/services/merchant-undo";
@@ -25,10 +26,17 @@ export default function MerchantsScreen() {
   // A change made on a merchant's page can still be undone from here.
   const pendingUndo = usePendingMerchantUndo();
 
+  // The merchant whose page was opened from here.
+  const opened = useRef<string | null>(null);
+
   useDataRefresh(
     useCallback(async () => {
       try {
-        setMerchants(await listMerchants(DEFAULT_USER_ID));
+        const list = await listMerchants(DEFAULT_USER_ID);
+        setMerchants(list);
+        // Back from a merchant that was renamed or merged away: the search that found it is stale.
+        if (opened.current && !list.some((m) => m.name === opened.current)) setQuery("");
+        opened.current = null;
       } catch {
         setMerchants([]);
       }
@@ -51,7 +59,7 @@ export default function MerchantsScreen() {
       if (filter === "several" && m.names.length < 2) return false;
       if (!q) return true;
       return m.name.toLowerCase().includes(q) || m.names.some((n) => n.smsName.toLowerCase().includes(q));
-    });
+    }).sort((a, b) => compareUnicode(a.name, b.name));
   }, [merchants, query, filter]);
 
   if (!merchants) {
@@ -101,7 +109,10 @@ export default function MerchantsScreen() {
         }
         renderItem={({ item: m }) => (
           <Pressable
-            onPress={() => router.push({ pathname: "/settings/merchant-detail", params: { name: m.name } })}
+            onPress={() => {
+              opened.current = m.name;
+              router.push({ pathname: "/settings/merchant-detail", params: { name: m.name } });
+            }}
             className="flex-row items-center mx-4 px-3 border-b border-border"
             style={{ minHeight: 64, paddingVertical: 10 }}
             accessibilityRole="button"

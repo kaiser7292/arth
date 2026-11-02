@@ -316,7 +316,7 @@ function SingleExpenseBody({
           icon="people-outline"
           text={splitPerson ? `Split · ${splitPerson.name}` : "Split"}
           set={isSplit}
-          onPress={splitOnCard ? onEditSplit : () => onOpen(expense.id)}
+          onPress={splitOnCard ? (editingSplit ? onCancelSplit : onEditSplit) : () => onOpen(expense.id)}
           accessibilityLabel={isSplit ? "Split, tap to change" : "Split with someone"}
         />
       )}

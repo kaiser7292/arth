@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, TextInput, View } from "react-native";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
@@ -46,7 +46,13 @@ export default function MerchantDetailScreen() {
   const [mergePicker, setMergePicker] = useState(false);
   const pendingUndo = usePendingMerchantUndo();
 
-  const merchant = useMemo(() => all?.find((m) => m.name.toLowerCase() === name.toLowerCase()) ?? null, [all, name]);
+  const [renaming, setRenaming] = useState(false);
+  const found = useMemo(() => all?.find((m) => m.name.toLowerCase() === name.toLowerCase()) ?? null, [all, name]);
+  // A rename saves in steps and each one refreshes this page, which looks for the old name and finds
+  // nothing part way through. Until it's done, keep showing the merchant as it was.
+  const lastFound = useRef(found);
+  if (found) lastFound.current = found;
+  const merchant = found ?? (renaming ? lastFound.current : null);
 
   const load = useCallback(async () => {
     const [list, cats] = await Promise.all([listMerchants(DEFAULT_USER_ID), getCategories(DEFAULT_USER_ID)]);
@@ -70,13 +76,26 @@ export default function MerchantDetailScreen() {
     setEditing(false);
     if (!merchant || !next || next === merchant.name) return;
     const from = merchant.name;
+    // Renaming to a name another merchant already has merges the two.
+    const into = all?.find((m) => m.name !== from && m.name.toLowerCase() === next.toLowerCase()) ?? null;
+    const finalName = into?.name ?? next;
+    setRenaming(true);
     void run(async () => {
-      await renameCanonical(DEFAULT_USER_ID, from, next);
-      // Names with no alias row yet get one, so their future messages show under the new name too.
-      for (const n of merchant.names) if (!n.aliasId) await learnMerchantAlias(DEFAULT_USER_ID, n.smsName, next);
-      const moved = await propagateMerchantRename(DEFAULT_USER_ID, from, next);
-      setName(next);
-      return `Renamed ${from} to ${next}${moved > 0 ? ` on ${s(moved, "transaction")}` : ""}`;
+      try {
+        await renameCanonical(DEFAULT_USER_ID, from, finalName);
+        // Names with no alias row yet get one, so their future messages show under the new name too.
+        for (const n of merchant.names) if (!n.aliasId) await learnMerchantAlias(DEFAULT_USER_ID, n.smsName, finalName);
+        const moved = await propagateMerchantRename(DEFAULT_USER_ID, from, finalName);
+        // The finished list and the new name together, so the page goes straight to the result.
+        setAll(await listMerchants(DEFAULT_USER_ID));
+        setName(finalName);
+        const count = moved > 0 ? `${s(moved, "transaction")}` : "";
+        return into
+          ? `Merged ${from} into ${finalName}${count ? ` (${count})` : ""}`
+          : `Renamed ${from} to ${finalName}${count ? ` on ${count}` : ""}`;
+      } finally {
+        setRenaming(false);
+      }
     });
   };
 
@@ -199,14 +218,21 @@ export default function MerchantDetailScreen() {
                 <Text className="text-lg font-semibold text-foreground">{merchant.name}</Text>
                 <Text className="text-xs text-muted-foreground mt-0.5">{s(merchant.txCount, "transaction")}</Text>
               </View>
-              <BigAction
-                icon="pencil-outline"
-                label="Rename"
-                onPress={() => {
-                  setDraft(merchant.name);
-                  setEditing(true);
-                }}
-              />
+              {renaming ? (
+                <View className="flex-row items-center" accessibilityLabel="Saving">
+                  <ActivityIndicator size="small" color={theme.primary} />
+                  <Text className="text-xs text-muted-foreground ml-2">Saving…</Text>
+                </View>
+              ) : (
+                <BigAction
+                  icon="pencil-outline"
+                  label="Rename"
+                  onPress={() => {
+                    setDraft(merchant.name);
+                    setEditing(true);
+                  }}
+                />
+              )}
             </View>
           )}
         </Card>
