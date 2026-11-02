@@ -1,3 +1,4 @@
+import { statementShares } from "@/utils/statement-view";
 import { getBalances, type Balance } from "./settle";
 import { getActiveHousehold, getItems, getMembers } from "./store";
 import type { Household, HouseholdItem, HouseholdMember } from "./types";
@@ -17,6 +18,8 @@ export interface StatementRow {
   /** From my side. */
   relation: { kind: "you_owe" | "owes_you" | "shared" | "personal" | "settle"; amount: number; with?: string };
   split: string | null;
+  /** Who owes the payer what on a shared bill. */
+  shares: { name: string; amount: number }[];
   /** My own transaction: its expense, to open it. */
   expenseId: string | null;
 }
@@ -91,6 +94,7 @@ export async function getStatement(month: string): Promise<Statement | null> {
         paid,
         relation,
         split: (x.split as string) ?? null,
+        shares: x.shared ? statementShares(x.owes, (id) => byId.get(id)?.name, me) : [],
         expenseId: i.member_id === me ? i.local_ref : null,
       });
     } else if (i.kind === "settle") {
@@ -106,6 +110,7 @@ export async function getStatement(month: string): Promise<Statement | null> {
         paid: x.amount ?? i.paid ?? 0,
         relation: { kind: "settle", amount: x.amount ?? 0 },
         split: null,
+        shares: [],
         expenseId: null,
       });
     }

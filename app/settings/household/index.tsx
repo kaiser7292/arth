@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, ScreenContainer, Text, useToast } from "@/components/ui";
+import { Button, Card, Input, ScreenContainer, Text, useToast } from "@/components/ui";
 import { Avatar, ago } from "@/components/household/HouseholdBits";
 import { useAlert } from "@/hooks/use-alert";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -18,6 +18,7 @@ import {
   getPendingJoin,
   leaveHousehold,
   removeMember,
+  renameHousehold,
   type JoinRequest,
 } from "@/services/household/household";
 import { getEvents, getHousehold, getItems, getMembers } from "@/services/household/store";
@@ -95,6 +96,10 @@ export default function HouseholdScreen() {
     setLoaded(true);
   }, []);
   useDataRefresh(load);
+
+  // Inline rather than a sheet, so the keyboard can't cover the field.
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState("");
 
   const syncNow = async () => {
     setSyncing(true);
@@ -212,7 +217,23 @@ export default function HouseholdScreen() {
               ))}
             </View>
             <View className="flex-1">
-              <Text className="text-base font-semibold text-foreground">{h.name}</Text>
+              <View className="flex-row items-center">
+                <Text className="text-base font-semibold text-foreground shrink" numberOfLines={1}>{h.name}</Text>
+                {h.role === "creator" && !renaming && (
+                  <Pressable
+                    onPress={() => {
+                      setNewName(h.name);
+                      setRenaming(true);
+                    }}
+                    hitSlop={10}
+                    className="ml-2"
+                    accessibilityRole="button"
+                    accessibilityLabel="Rename household"
+                  >
+                    <Ionicons name="pencil-outline" size={15} color={theme.primary} />
+                  </Pressable>
+                )}
+              </View>
               <Text className="text-xs text-muted-foreground mt-0.5">
                 {h.last_sync_error
                   ? h.last_sync_error === "offline"
@@ -225,6 +246,24 @@ export default function HouseholdScreen() {
               {syncing ? <ActivityIndicator /> : <Ionicons name="refresh" size={20} color={theme.primary} />}
             </Pressable>
           </View>
+          {renaming && (
+            <View className="mt-3 pt-3 border-t border-border">
+              <Input label="Household name" value={newName} onChangeText={setNewName} maxLength={40} autoFocus containerClassName="mb-3" />
+              <View className="flex-row gap-2">
+                <Button title="Cancel" variant="outline" className="flex-1" onPress={() => setRenaming(false)} />
+                <Button
+                  title="Save"
+                  className="flex-1"
+                  disabled={!newName.trim()}
+                  loading={busy === "rename"}
+                  onPress={() => run("rename", async () => {
+                    await renameHousehold(newName);
+                    setRenaming(false);
+                  }, "Renamed for everyone in the household")}
+                />
+              </View>
+            </View>
+          )}
         </Card>
 
         {requests.map((r) => (

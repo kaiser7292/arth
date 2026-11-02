@@ -64,7 +64,9 @@ If you split a bill as **paid by** another member (you used their card, or they 
 
 ## Together
 
-Home shows your household's month: spent together, each person's part, who owes whom and the latest shared spends. Tap it for **Together**: every shared transaction from everyone, newest first, with what it means between you ("you owe ₹1,150"). Personal spending only shows if its owner shares every transaction. **All transactions** has search and a **Filter** for who paid, what it means for you and category.
+Home shows your household's month: spent together, each person's part, who owes whom and the latest shared spends. Tap it for **Together**: every shared transaction from everyone, newest first, with what it means between you ("you owe ₹1,150"). Personal spending only shows if its owner shares every transaction. **All transactions** looks like your Transactions list: each day with its total, a summary you can break down by category, person or merchant, search by name or amount, and a **Filter** where you can pick several people, categories or merchants at once. Tap your own transaction to open it, or anyone else's to see what was shared: who paid, the split and who owes what.
+
+Whoever started the household can rename it: tap the pencil beside its name in Settings. The new name reaches everyone.
 
 ## Hisaab, on both phones
 

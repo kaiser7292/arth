@@ -6,26 +6,31 @@ import { Card, ProgressBar, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/expense-validation";
-import type { FilteredSummary } from "@/services/expense";
 import { useTheme } from "@/hooks/use-theme";
 
-interface FilterSummaryCardProps {
-  summary: FilteredSummary;
+type DefaultGroupBy = "category" | "account" | "payment_mode" | "merchant";
+const DEFAULT_GROUP_BYS: readonly DefaultGroupBy[] = ["category", "account", "payment_mode", "merchant"];
+const DEFAULT_GROUP_LABELS: Record<string, string> = { category: "Category", account: "Account", payment_mode: "Payment", merchant: "Merchant" };
+
+interface FilterSummaryCardProps<G extends string> {
+  summary: { total: number; count: number; groupBy: G; groups: { key: string | null; total: number; count: number }[] };
   resolveGroupLabel: (key: string | null) => string;
   groupLabelHeader: string;
-  onChangeGroupBy?: (groupBy: "category" | "account" | "payment_mode" | "merchant") => void;
+  onChangeGroupBy?: (groupBy: G) => void;
   allowGroupByChange?: boolean;
   /** Total for the previous same-length period. When provided, renders a trend % delta. */
   previousTotal?: number | null;
   /** 'realized' = expenses (default), 'credit' = incoming money. Changes row labels and trend color semantics (more credit = better). */
   natureKind?: "realized" | "credit" | "all";
   /** Which groupBy options to offer. Defaults to all four. Credits mode typically omits 'category' since credits rarely carry a category. */
-  availableGroupBys?: ReadonlyArray<"category" | "account" | "payment_mode" | "merchant">;
+  availableGroupBys?: ReadonlyArray<G>;
+  /** Names for groupings other than the default four. */
+  groupByLabels?: Partial<Record<G, string>>;
 }
 
 const MAX_VISIBLE_GROUPS = 5;
 
-export function FilterSummaryCard({
+export function FilterSummaryCard<G extends string = DefaultGroupBy>({
   summary,
   resolveGroupLabel,
   groupLabelHeader,
@@ -33,8 +38,9 @@ export function FilterSummaryCard({
   allowGroupByChange = false,
   previousTotal,
   natureKind = "realized",
-  availableGroupBys = ["category", "account", "payment_mode", "merchant"] as const,
-}: FilterSummaryCardProps) {
+  availableGroupBys = DEFAULT_GROUP_BYS as unknown as ReadonlyArray<G>,
+  groupByLabels,
+}: FilterSummaryCardProps<G>) {
   
   const theme = useTheme();
   const [collapsed, setCollapsed] = useState(true);
@@ -104,7 +110,7 @@ export function FilterSummaryCard({
               <View className="flex-row mb-3">
                 {availableGroupBys.map((gb) => {
                   const isActive = summary.groupBy === gb;
-                  const label = gb === "category" ? "Category" : gb === "account" ? "Account" : gb === "merchant" ? "Merchant" : "Payment";
+                  const label = groupByLabels?.[gb] ?? DEFAULT_GROUP_LABELS[gb];
                   return (
                     <Pressable
                       key={gb}

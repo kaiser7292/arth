@@ -4,6 +4,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { parseNLQuery } from "@/utils/nl-search";
 import { matchesSearch } from "@/utils/amount-search";
+import { transactionDayLabel } from "@/utils/day-label";
 import { isSpeechRecognitionAvailable, SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
 import { View, FlatList, Pressable, TextInput, ScrollView, Platform } from "react-native";
 import Animated from "react-native-reanimated";
@@ -730,40 +731,13 @@ export default function ExpensesScreen() {
 
   const groupedExpenses = useMemo<DateGroupRow[]>(() => {
     if (expenses.length === 0) return [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const currentYear = today.getFullYear();
-
-    function dateLabel(dateStr: string): string {
-      const d = new Date(dateStr + "T00:00:00");
-      if (d.getTime() === today.getTime()) {
-        return `Today · ${d.getDate()} ${MONTHS[d.getMonth()]}`;
-      }
-      if (d.getTime() === yesterday.getTime()) {
-        return `Yesterday · ${d.getDate()} ${MONTHS[d.getMonth()]}`;
-      }
-      if (d >= sevenDaysAgo) {
-        return `${WEEKDAYS[d.getDay()]} · ${d.getDate()} ${MONTHS[d.getMonth()]}`;
-      }
-      if (d.getFullYear() === currentYear) {
-        return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
-      }
-      return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
-    }
-
     const rows: DateGroupRow[] = [];
     let lastDate = "";
     let currentHeader: Extract<DateGroupRow, { _type: "header" }> | null = null;
     for (const expense of expenses) {
       const expDate = expense.date?.slice(0, 10) ?? "";
       if (expDate !== lastDate) {
-        currentHeader = { _type: "header", date: expDate, label: dateLabel(expDate), total: 0 };
+        currentHeader = { _type: "header", date: expDate, label: transactionDayLabel(expDate), total: 0 };
         rows.push(currentHeader);
         lastDate = expDate;
       }
