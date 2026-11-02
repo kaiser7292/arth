@@ -1,3 +1,4 @@
+import { Chevron } from "@/components/motion/Chevron";
 import { HisaabInclusionSheet } from "@/components/simulator/HisaabInclusionSheet";
 import { StaleEntryResolveSheet } from "@/components/simulator/StaleEntryResolveSheet";
 import { Badge, Card, FAB, ScreenContainer, Sheet, Text } from "@/components/ui";
@@ -113,7 +114,7 @@ export default function ScenarioDetailScreen() {
   // accounts with their remaining balance till horizon date.
   const [expandProjected, setExpandProjected] = useState(false);
   const [fulfilledSummary, setFulfilledSummary] = useState<FulfilledSummary | null>(null);
-  const [expandSummary, setExpandSummary] = useState(false);
+  const [expandFulfilled, setExpandFulfilled] = useState(false);
   const [expandedFulfilledId, setExpandedFulfilledId] = useState<string | null>(null);
   const [fulfillmentDetails, setFulfillmentDetails] = useState<Record<string, EntryFulfillment[]>>({});
   // v16.0.8 — incoming/outgoing entry sections collapsible.
@@ -1176,70 +1177,49 @@ export default function ScenarioDetailScreen() {
           </>
         )}
 
-        {/* Planned vs Actual summary card */}
-        {fulfilledSummary && fulfilledSummary.entries.length > 0 && (
-          <Card className="mx-4 mt-4">
-            <Text className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: colors.textSecondary }}>
-              Planned vs Actual
-            </Text>
-            <View className="flex-row justify-between">
-              <View>
-                <Text className="text-label" style={{ color: colors.textSecondary }}>Planned</Text>
-                <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalPlanned)}</Text>
-              </View>
-              <View className="items-center">
-                <Text className="text-label" style={{ color: colors.textSecondary }}>Actual</Text>
-                <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalActual)}</Text>
-              </View>
-              <View className="items-end">
-                <Text className="text-label" style={{ color: colors.textSecondary }}>Variance</Text>
-                <Text className="text-sm font-bold" style={{ color: fulfilledSummary.variance > 0 ? theme.danger : fulfilledSummary.variance < 0 ? theme.success : colors.textSecondary }}>
-                  {fulfilledSummary.variance > 0 ? "+" : ""}{formatAmount(fulfilledSummary.variance)}
-                </Text>
-              </View>
-            </View>
-            <Pressable onPress={() => setExpandSummary(!expandSummary)} className="mt-2 pt-2 border-t border-border items-center">
-              <Text className="text-xs font-medium" style={{ color: theme.primary }}>
-                {expandSummary ? "Hide breakdown" : "Show breakdown"}
-              </Text>
-            </Pressable>
-            {expandSummary && (
-              <View className="mt-2">
-                {fulfilledSummary.entries.map((item) => (
-                  <View key={item.entryId} className="flex-row items-center py-1.5 border-t border-border">
-                    <Text className="text-xs flex-1 mr-1" style={{ color: colors.text }} numberOfLines={1}>
-                      {item.description || item.merchant_name || "Entry"}
-                    </Text>
-                    {/*
-                      Fixed-width amount columns, one line each. The variance column carries a sign
-                      and paise ("-₹1,537.01"), so it's the widest; at 64px it wrapped onto a second
-                      line. Every amount shrinks a little rather than wrap if it's still too long.
-                    */}
-                    <Text className="text-label w-[74px] ml-1.5 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: colors.textSecondary }}>{formatAmount(item.planned)}</Text>
-                    <Text className="text-label w-[74px] ml-1.5 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: colors.text }}>{formatAmount(item.actual)}</Text>
-                    <Text className="text-label w-[84px] ml-1.5 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: item.variance > 0 ? theme.danger : item.variance < 0 ? theme.success : colors.textSecondary }}>
-                      {item.variance > 0 ? "+" : ""}{formatAmount(item.variance)}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </Card>
-        )}
-
-        {/* Fulfilled entries */}
+        {/* Already happened: closed by default, so linked entries don't lengthen the page. */}
         {entries.fulfilled.length > 0 && (
           <View className="mt-4">
-            <Text
-              className="mx-4 text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
-            >
-              Already happened · {entries.fulfilled.length}
-            </Text>
-            {entries.fulfilled.map((e) => {
+            <Card className="mx-4 mb-2">
+              <Pressable
+                onPress={() => setExpandFulfilled((v) => !v)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: expandFulfilled }}
+                accessibilityLabel={expandFulfilled ? "Hide entries that already happened" : "Show entries that already happened"}
+              >
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-xs font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                    Already happened · {entries.fulfilled.length}
+                  </Text>
+                  <Chevron open={expandFulfilled} size={14} color={colors.textSecondary} />
+                </View>
+                {fulfilledSummary && fulfilledSummary.entries.length > 0 && (
+                  <View className="flex-row justify-between mt-2">
+                    <View>
+                      <Text className="text-label" style={{ color: colors.textSecondary }}>Planned</Text>
+                      <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalPlanned)}</Text>
+                    </View>
+                    <View className="items-center">
+                      <Text className="text-label" style={{ color: colors.textSecondary }}>Actual</Text>
+                      <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(fulfilledSummary.totalActual)}</Text>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-label" style={{ color: colors.textSecondary }}>Variance</Text>
+                      <Text className="text-sm font-bold" style={{ color: fulfilledSummary.variance > 0 ? theme.danger : fulfilledSummary.variance < 0 ? theme.success : colors.textSecondary }}>
+                        {fulfilledSummary.variance > 0 ? "+" : ""}{formatAmount(fulfilledSummary.variance)}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </Pressable>
+            </Card>
+            {expandFulfilled && entries.fulfilled.map((e) => {
               const isExpanded = expandedFulfilledId === e.id;
               const details = fulfillmentDetails[e.id];
-              const actualTotal = details ? details.reduce((s, f) => s + f.amount, 0) : null;
+              // The summary already knows each entry's actual, so a row shows its variance without being opened.
+              const actualTotal = details
+                ? details.reduce((s, f) => s + f.amount, 0)
+                : fulfilledSummary?.entries.find((item) => item.entryId === e.id)?.actual ?? null;
               const entryVariance = actualTotal !== null ? actualTotal - e.amount : null;
               return (
                 <View key={e.id}>

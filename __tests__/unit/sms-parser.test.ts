@@ -664,10 +664,16 @@ describe("Axis savings messages that name the bank (made-up numbers)", () => {
       bank: "Axis Bank",
       cardLast4: "1234",
       date: "2026-10-30",
-      merchant: "MOB-TD/123456789012345/ABC",
+      merchant: "Fixed deposit",
       transactionTime: "11:38:51",
       accountType: "savings",
+      fdEvent: "open",
     });
+  });
+
+  it("any other narration stays the merchant and isn't a deposit", () => {
+    const r = parseBankSMS(debit.replace("MOB-TD/123456789012345/ABC", "NEFT/ACME STORES"));
+    expect(r).toMatchObject({ merchant: "NEFT/ACME STORES", fdEvent: null });
   });
 
   it("a debit with no narration has no merchant, not the WhatsApp line", () => {

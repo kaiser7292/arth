@@ -21,6 +21,8 @@ const FD_OPEN_PATTERNS: RegExp[] = [
   /\bfixed\s+deposit\b[\s\S]{0,40}?\b(?:opened|created|booked)\b/i,
   /\b(?:TD|FD|term\s+deposit)\b[\s\S]{0,20}?\bopened\b/i,
   /\bRD\s+instal/i,
+  // Axis mobile banking: "MOB-TD/123456789012345/ABC" on the debit that opens a term deposit.
+  /\bMOB-TD\//i,
 ];
 
 const FD_CLOSURE_PATTERNS: RegExp[] = [

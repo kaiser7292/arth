@@ -12,6 +12,7 @@ import {
 describe("detectFdEvent", () => {
   it.each([
     ["Info: FD through MOBILE-XXXX1234:RAHUL", "debit", "open"],
+    ["Debit INR 2500.00\nAxis Bank A/c XX1234\nMOB-TD/123456789012345/ABC", "debit", "open"],
     ["Rs 5000 debited towards FD", "debit", "open"],
     ["transferred to TD A/c XXXX12345", "debit", "open"],
     ["e-TDR created for Rs 10000", "debit", "open"],

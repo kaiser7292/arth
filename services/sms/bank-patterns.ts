@@ -881,9 +881,10 @@ export const BANK_PATTERNS: BankPattern[] = [
       );
       if (!m) return null;
       const narration = (m[5] ?? "").trim();
+      const named = narration && !/^(?:whatsapp|not\s+you)/i.test(narration) ? narration : null;
       return {
         amount: parseAmount(m[1]),
-        merchant: narration && !/^(?:whatsapp|not\s+you)/i.test(narration) ? narration : null,
+        merchant: named && /^MOB-TD\//i.test(named) ? "Fixed deposit" : named,
         cardLast4: m[2],
         date: parseDDMMYY(m[3]),
         bank: "Axis Bank",
