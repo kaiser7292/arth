@@ -748,6 +748,7 @@ export function LoanPaymentPickerSheet({
                       value={chargeOverride}
                       onChangeText={setChargeOverride}
                       keyboardType="decimal-pad"
+                      formula
                       placeholder={String(Math.round(impact.charge))}
                       containerClassName="mb-2"
                     />
@@ -756,6 +757,7 @@ export function LoanPaymentPickerSheet({
                       value={gstOverride}
                       onChangeText={setGstOverride}
                       keyboardType="decimal-pad"
+                      formula
                       placeholder={String(Math.round(impact.gst))}
                       containerClassName="mb-1"
                     />

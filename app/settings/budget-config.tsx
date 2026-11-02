@@ -1,3 +1,4 @@
+import { FormulaTextInput } from "@/components/ui";
 import { useState, useCallback, useMemo } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, FlatList, TextInput, Pressable } from "react-native";
@@ -260,7 +261,7 @@ export default function BudgetConfigScreen() {
         <Text className="text-sm text-faint-foreground mr-1">
           {"\u20B9"}
         </Text>
-        <TextInput
+        <FormulaTextInput
           value={item.editAmount}
           onChangeText={(text) => handleAmountChange(item.category.id, text)}
           keyboardType="numeric"

@@ -301,6 +301,7 @@ export function CompleteFDDetailsSheet({
             onChangeText={setMaturityOverride}
             placeholder="Use if your bank's actual figure differs"
             keyboardType="numeric"
+            formula
             containerClassName="mb-3"
           />
 

@@ -52,7 +52,7 @@ export function OldRegimeDeductions({
             label="Section 80C (max 1.5L)"
             value={deductions80C}
             onChangeText={onDeductions80CChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -60,7 +60,7 @@ export function OldRegimeDeductions({
             label="Section 80D (max 75K)"
             value={deductions80D}
             onChangeText={onDeductions80DChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -69,7 +69,7 @@ export function OldRegimeDeductions({
               label="HRA Exemption (Annual)"
               value={hraExemption}
               onChangeText={onHraExemptionChange}
-              keyboardType="numeric"
+              keyboardType="numeric" formula
               placeholder="0"
               containerClassName="mb-2"
             />
@@ -78,7 +78,7 @@ export function OldRegimeDeductions({
             label="Own Home Loan Interest (max 2L)"
             value={homeLoan}
             onChangeText={onHomeLoanChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -86,7 +86,7 @@ export function OldRegimeDeductions({
             label="Other Deductions"
             value={otherDeductions}
             onChangeText={onOtherDeductionsChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
           />
         </View>
@@ -206,7 +206,7 @@ export function AdditionalIncome({
             label="Expected Annual Bonus"
             value={expectedBonus}
             onChangeText={onExpectedBonusChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="e.g. 200000"
             containerClassName="mb-1"
           />
@@ -239,7 +239,7 @@ export function AdditionalIncome({
             label="Equity LTCG (12.5%, Rs 1.25L exempt)"
             value={cgEquityLtcg}
             onChangeText={onCgEquityLtcgChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -247,7 +247,7 @@ export function AdditionalIncome({
             label="Equity STCG (20%)"
             value={cgEquityStcg}
             onChangeText={onCgEquityStcgChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -255,7 +255,7 @@ export function AdditionalIncome({
             label="Debt MF (at slab rate)"
             value={cgDebt}
             onChangeText={onCgDebtChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -263,7 +263,7 @@ export function AdditionalIncome({
             label="FD Interest (at slab rate)"
             value={cgFd}
             onChangeText={onCgFdChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -271,7 +271,7 @@ export function AdditionalIncome({
             label="Gold LTCG (12.5%)"
             value={cgGold}
             onChangeText={onCgGoldChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -279,7 +279,7 @@ export function AdditionalIncome({
             label="Real Estate LTCG (12.5%)"
             value={cgRealEstate}
             onChangeText={onCgRealEstateChange}
-            keyboardType="numeric"
+            keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-1"
           />

@@ -1,3 +1,4 @@
+import { FormulaTextInput } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
@@ -493,7 +494,7 @@ function SplitPanel({
       {mode === "exact" && (
         <View className="flex-row items-center mt-2 rounded-lg border border-border px-3" style={{ minHeight: 44 }}>
           <Text className="text-sm text-muted-foreground mr-1">{"\u20B9"}</Text>
-          <TextInput
+          <FormulaTextInput
             value={exact}
             onChangeText={setExact}
             placeholder="How much do they owe?"

@@ -152,6 +152,7 @@ export function SalaryInputForm({
             value={directMonthly}
             onChangeText={onDirectMonthlyChange}
             keyboardType="numeric"
+            formula
             placeholder="e.g. 150000"
           />
 
@@ -235,6 +236,7 @@ export function SalaryInputForm({
                           onMonthlyOverridesChange?.(next);
                         }}
                         keyboardType="numeric"
+                        formula
                         placeholder={directMonthly || "0"}
                         containerClassName="mb-0"
                       />
@@ -338,6 +340,7 @@ export function SalaryInputForm({
           value={ctc}
           onChangeText={onCtcChange}
           keyboardType="numeric"
+          formula
           placeholder="e.g. 2000000"
           containerClassName="mb-3"
         />
@@ -383,6 +386,7 @@ export function SalaryInputForm({
               value={manualBasic}
               onChangeText={onManualBasicChange}
               keyboardType="numeric"
+              formula
               placeholder="e.g. 800000"
               containerClassName="mb-2"
             />
@@ -391,6 +395,7 @@ export function SalaryInputForm({
               value={manualHra}
               onChangeText={onManualHraChange}
               keyboardType="numeric"
+              formula
               placeholder="e.g. 400000"
               containerClassName="mb-2"
             />
@@ -399,6 +404,7 @@ export function SalaryInputForm({
               value={manualSpecial}
               onChangeText={onManualSpecialChange}
               keyboardType="numeric"
+              formula
               placeholder="auto from remainder"
               containerClassName="mb-2"
             />
@@ -407,6 +413,7 @@ export function SalaryInputForm({
               value={manualEmployerEPF}
               onChangeText={onManualEmployerEPFChange}
               keyboardType="numeric"
+              formula
               placeholder="e.g. 21600"
               containerClassName="mb-2"
             />
@@ -415,6 +422,7 @@ export function SalaryInputForm({
               value={manualGratuity}
               onChangeText={onManualGratuityChange}
               keyboardType="numeric"
+              formula
               placeholder="e.g. 38480"
             />
           </View>
@@ -483,6 +491,7 @@ export function SalaryInputForm({
           value={vpfMonthly}
           onChangeText={onVpfMonthlyChange}
           keyboardType="numeric"
+          formula
           placeholder="0"
           containerClassName="mb-3"
         />

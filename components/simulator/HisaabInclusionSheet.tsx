@@ -1,3 +1,4 @@
+import { FormulaTextInput } from "@/components/ui";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable,  TextInput, ScrollView,  Platform, ActivityIndicator } from "react-native";
@@ -366,7 +367,7 @@ export function HisaabInclusionSheet({
                         style={{ borderColor: colors.border }}
                       >
                         <Text className="text-sm mr-1" style={{ color: colors.textSecondary }}>₹</Text>
-                        <TextInput
+                        <FormulaTextInput
                           value={r.amt}
                           onChangeText={(v) => handleAmtChange(idx, v)}
                           keyboardType="numeric"

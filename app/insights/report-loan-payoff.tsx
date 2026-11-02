@@ -1,3 +1,4 @@
+import { FormulaTextInput } from "@/components/ui";
 import { useState } from "react";
 
 import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
@@ -169,7 +170,7 @@ export default function LoanPayoffReportScreen() {
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             Extra amount per month
           </Text>
-          <TextInput
+          <FormulaTextInput
             className="bg-card border border-border rounded-xl px-4 py-3 text-base text-foreground"
             value={extraText}
             onChangeText={setExtraText}

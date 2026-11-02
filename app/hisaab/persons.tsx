@@ -217,6 +217,7 @@ export default function HisaabPersonsScreen() {
                   value={formInitialBalance}
                   onChangeText={setFormInitialBalance}
                   keyboardType="numeric"
+                  formula
                   placeholder="e.g. 5000 or -2000"
                   containerClassName="mb-3"
                 />

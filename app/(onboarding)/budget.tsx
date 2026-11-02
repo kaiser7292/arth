@@ -78,7 +78,7 @@ export default function OnboardingBudget() {
               placeholder="₹ per month"
               value={amounts[c.id] ?? ""}
               onChangeText={(v) => setAmounts((prev) => ({ ...prev, [c.id]: v }))}
-              keyboardType="numeric"
+              keyboardType="numeric" formula
             />
           </View>
         </View>

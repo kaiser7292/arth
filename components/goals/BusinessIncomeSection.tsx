@@ -100,6 +100,7 @@ export function BusinessInputs({
         value={receipts}
         onChangeText={onReceiptsChange}
         keyboardType="numeric"
+        formula
         placeholder="e.g. 1800000"
         containerClassName="mb-3"
       />
@@ -108,6 +109,7 @@ export function BusinessInputs({
         value={expenses}
         onChangeText={onExpensesChange}
         keyboardType="numeric"
+        formula
         placeholder="0"
         containerClassName="mb-3"
       />

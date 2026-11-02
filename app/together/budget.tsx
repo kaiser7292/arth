@@ -109,7 +109,7 @@ export default function HouseholdBudgetScreen() {
                     <Input
                       value={amounts[c] ?? ""}
                       onChangeText={(v) => setAmounts((a) => ({ ...a, [c]: v.replace(/[^0-9]/g, "") }))}
-                      keyboardType="numeric"
+                      keyboardType="numeric" formula
                       placeholder="0"
                     />
                   </View>

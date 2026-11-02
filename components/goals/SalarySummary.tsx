@@ -86,6 +86,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
               value={manualInHand ?? ""}
               onChangeText={onManualInHandChange ?? (() => {})}
               keyboardType="numeric"
+              formula
               placeholder="Enter actual amount"
               containerClassName="mb-1"
             />

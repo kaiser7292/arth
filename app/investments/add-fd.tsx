@@ -149,6 +149,7 @@ export default function AddFDScreen() {
             onChangeText={setPrincipal}
             placeholder="e.g. 100000"
             keyboardType="numeric"
+            formula
           />
           <Input
             label="Interest rate (% per year)"

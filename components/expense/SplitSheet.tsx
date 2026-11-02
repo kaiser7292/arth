@@ -5,6 +5,7 @@
  * Used from: expense add, expense detail, review queue.
  */
 
+import { FormulaTextInput } from "@/components/ui";
 import { useState, useEffect, useCallback } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -353,7 +354,7 @@ export function SplitSheet({
                   <Text className="text-xs font-medium text-muted-foreground mb-1">
                     {paidBy === "me" ? "How much do they owe?" : "How much do you owe?"}
                   </Text>
-                  <TextInput
+                  <FormulaTextInput
                     className="border border-border rounded-xl px-4 py-3 text-foreground text-lg"
                     placeholder="0"
                     placeholderTextColor={colors.tabIconDefault}

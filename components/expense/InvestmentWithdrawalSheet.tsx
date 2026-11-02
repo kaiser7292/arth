@@ -189,6 +189,7 @@ export function InvestmentWithdrawalSheet({
               value={leftAfter}
               onChangeText={setLeftAfter}
               keyboardType="numeric"
+              formula
               placeholder="0 if you took everything out"
               containerClassName="mb-1"
             />

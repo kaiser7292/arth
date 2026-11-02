@@ -68,7 +68,7 @@ export default function GoalScreen() {
           </Text>
           <Input label="What for" value={name} onChangeText={setName} placeholder="Goa trip" maxLength={40} />
           <View className="h-3" />
-          <Input label="Amount" value={target} onChangeText={(v) => setTarget(v.replace(/[^0-9]/g, ""))} keyboardType="numeric" placeholder="150000" />
+          <Input label="Amount" value={target} onChangeText={(v) => setTarget(v.replace(/[^0-9]/g, ""))} keyboardType="numeric" formula placeholder="150000" />
           <View className="h-3" />
           <Input label="By (optional)" value={by} onChangeText={setBy} placeholder="2027-01-31" maxLength={10} />
           <Button
@@ -148,7 +148,7 @@ export default function GoalScreen() {
           })}
           <View className="flex-row items-end gap-2 mt-2">
             <View className="flex-1">
-              <Input label="Or an amount" value={amount} onChangeText={(v) => setAmount(v.replace(/[^0-9]/g, ""))} keyboardType="numeric" placeholder="48000" />
+              <Input label="Or an amount" value={amount} onChangeText={(v) => setAmount(v.replace(/[^0-9]/g, ""))} keyboardType="numeric" formula placeholder="48000" />
             </View>
             <Button title="Save" variant="outline" loading={busy} onPress={() => void run(() => setMyGoalPart(goal.id, { amount: Number(amount) || 0 }))} />
           </View>

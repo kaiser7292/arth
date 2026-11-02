@@ -1,3 +1,4 @@
+import { FormulaTextInput } from "@/components/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
@@ -591,7 +592,7 @@ export default function RecurringRuleDetailScreen() {
                 <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Expected amount (optional)
                 </Text>
-                <TextInput
+                <FormulaTextInput
                   value={editAmount}
                   onChangeText={setEditAmount}
                   keyboardType="decimal-pad"

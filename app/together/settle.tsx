@@ -94,7 +94,7 @@ export default function SettleScreen() {
           <Choice value="me" label={`I paid ${balance.name}`} />
           <Choice value="them" label={`${balance.name} paid me`} />
         </View>
-        <Input label="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" />
+        <Input label="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" formula />
 
         {paidBy === "me" && payments.length > 0 && (
           <Card className="mt-3">

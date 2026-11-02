@@ -305,6 +305,7 @@ export function MarkAsFDSheet({
                     onChangeText={setMaturityOverride}
                     placeholder={`e.g. ${computedMaturity.toFixed(0)} if your bank's figure differs`}
                     keyboardType="numeric"
+                    formula
                     containerClassName="mt-3"
                   />
                 </View>

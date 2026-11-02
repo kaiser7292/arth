@@ -66,7 +66,7 @@ export default function OnboardingIncome() {
       <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
         Take-home pay per month
       </Text>
-      <Input placeholder="e.g. 85000" value={monthly} onChangeText={setMonthly} keyboardType="numeric" />
+      <Input placeholder="e.g. 85000" value={monthly} onChangeText={setMonthly} keyboardType="numeric" formula />
       <View className="h-4" />
       <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
         Day it usually arrives

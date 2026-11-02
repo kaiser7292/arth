@@ -1,3 +1,4 @@
+import { FormulaTextInput } from "@/components/ui";
 import { useState } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable, ScrollView, TextInput } from "react-native";
@@ -119,7 +120,7 @@ export function PatternEditSheet({ visible, pattern, onSave, onNotBill, onClose 
           <View className="flex-row items-center mb-1" style={{ gap: 8 }}>
             <View className="flex-1 flex-row items-center bg-background rounded-xl px-3 py-2.5">
               <Text className="text-sm text-muted-foreground mr-1">{"₹"}</Text>
-              <TextInput
+              <FormulaTextInput
                 value={low}
                 onChangeText={(t) => { setLow(t); setError(null); }}
                 keyboardType="numeric"
@@ -130,7 +131,7 @@ export function PatternEditSheet({ visible, pattern, onSave, onNotBill, onClose 
             <Text className="text-sm text-muted-foreground">to</Text>
             <View className="flex-1 flex-row items-center bg-background rounded-xl px-3 py-2.5">
               <Text className="text-sm text-muted-foreground mr-1">{"₹"}</Text>
-              <TextInput
+              <FormulaTextInput
                 value={high}
                 onChangeText={(t) => { setHigh(t); setError(null); }}
                 keyboardType="numeric"

@@ -97,6 +97,7 @@ export function OtherIncomeSection({
             value={rentalRent}
             onChangeText={onRentalRentChange}
             keyboardType="numeric"
+            formula
             placeholder="0"
             containerClassName="mb-2"
           />
@@ -107,6 +108,7 @@ export function OtherIncomeSection({
                 value={rentalMunicipalTax}
                 onChangeText={onRentalMunicipalTaxChange}
                 keyboardType="numeric"
+                formula
                 placeholder="0"
               />
             </View>
@@ -116,6 +118,7 @@ export function OtherIncomeSection({
                 value={rentalLoanInterest}
                 onChangeText={onRentalLoanInterestChange}
                 keyboardType="numeric"
+                formula
                 placeholder="0"
               />
             </View>

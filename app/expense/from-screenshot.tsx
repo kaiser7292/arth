@@ -1,3 +1,4 @@
+import { FormulaTextInput } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -570,7 +571,7 @@ export default function FromScreenshotScreen() {
             {TEMPLATE_FIELDS.filter((d) => picks[d.field] != null).map((d) => (
               <View key={d.field} className="flex-row items-center py-1.5 border-b border-border">
                 <Text className="text-sm text-muted-foreground" style={{ width: 120 }}>{fieldLabel(d.field)}</Text>
-                <TextInput
+                <FormulaTextInput formula={d.field === "amount"}
                   value={edits[d.field] ?? shown(d.field)}
                   onChangeText={(t) => setEdits((e) => ({ ...e, [d.field]: t }))}
                   placeholder="Not read - type it"

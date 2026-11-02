@@ -916,6 +916,7 @@ export default function MilestoneDetailScreen() {
                   value={contribAmount}
                   onChangeText={setContribAmount}
                   keyboardType="numeric"
+                  formula
                   placeholder="e.g. 15000"
                   containerClassName="mb-3"
                 />

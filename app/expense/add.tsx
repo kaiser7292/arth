@@ -1120,7 +1120,7 @@ export default function AddExpenseScreen() {
                       value={otherPersonRefundShare}
                       onChangeText={setOtherPersonRefundShare}
                       placeholder="0.00"
-                      keyboardType="decimal-pad"
+                      keyboardType="decimal-pad" formula
                     />
                     <Text className="text-label text-faint-foreground mt-1">
                       Leave at 0 if the other person doesn't get any of this refund.

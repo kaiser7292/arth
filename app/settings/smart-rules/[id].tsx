@@ -1,3 +1,4 @@
+import { FormulaTextInput } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -760,7 +761,7 @@ export default function SmartRuleDetailScreen() {
                         );
                       })() : condition.operator === "between" ? (
                         <View className="flex-row">
-                          <TextInput
+                          <FormulaTextInput
                             placeholder="Min"
                             placeholderTextColor={colors.tabIconDefault}
                             keyboardType="numeric"
@@ -771,7 +772,7 @@ export default function SmartRuleDetailScreen() {
                             }}
                             className="flex-1 mr-2 rounded-lg border border-border px-3 py-2.5 text-sm text-foreground"
                           />
-                          <TextInput
+                          <FormulaTextInput
                             placeholder="Max"
                             placeholderTextColor={colors.tabIconDefault}
                             keyboardType="numeric"
@@ -1221,7 +1222,7 @@ export default function SmartRuleDetailScreen() {
                             )}
                             {splitMode === "exact" && (
                               <View className="mb-2">
-                                <TextInput
+                                <FormulaTextInput
                                   value={String(a.split_exact_amount ?? "")}
                                   onChangeText={(v) => {
                                     const n = parseFloat(v);

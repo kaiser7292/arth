@@ -1,3 +1,4 @@
+import { forwardRef, useRef, useState } from "react";
 import { Platform, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { fadeIn } from "@/components/motion/motion";
@@ -24,11 +25,84 @@ interface InputProps extends TextInputProps {
   /**
    * When true, typing "=" as the first character activates formula mode.
    * The field accepts a BODMAS expression (e.g. =5000+2500*(1+18%)).
-   * A live preview is shown below. On blur, the expression is evaluated
-   * and onChangeText is called with the numeric result string.
+   * A live preview is shown below. See useFormulaText for what the parent receives.
    */
   formula?: boolean;
 }
+
+/**
+ * Lets an amount box take "=5000+2500*2". The box shows what's typed, while the parent is handed the
+ * worked-out number on every keystroke ("" while it doesn't work out), so a Save tapped with the
+ * keyboard still up reads the right amount. Leaving the box replaces the expression with the number.
+ */
+function useFormulaText({
+  enabled,
+  value,
+  onChangeText,
+  onFocus,
+  onBlur,
+}: Pick<TextInputProps, "value" | "onChangeText" | "onFocus" | "onBlur"> & { enabled: boolean }) {
+  const [typed, setTyped] = useState<string | null>(null);
+  const focused = useRef(false);
+  const sent = useRef<string | undefined>(undefined);
+
+  // Once out of the box, a new value from the parent (a reset, a re-fill) replaces what was typed.
+  const expression = typed !== null && (focused.current || value === sent.current) ? typed : null;
+  const shown = expression ?? value;
+  const inFormula = enabled && typeof shown === "string" && isFormulaMode(shown);
+  const expr = inFormula ? getFormulaExpr(shown as string) : "";
+  const hasExpr = expr.trim().length > 0;
+  const result = hasExpr ? evaluateFormula(expr) : null;
+
+  const handleChange = (text: string) => {
+    if (enabled && isFormulaMode(text)) {
+      const worked = getFormulaExpr(text).trim() ? evaluateFormula(getFormulaExpr(text)) : null;
+      sent.current = worked === null ? "" : String(worked);
+      focused.current = true;
+      setTyped(text);
+      onChangeText?.(sent.current);
+      return;
+    }
+    setTyped(null);
+    onChangeText?.(text);
+  };
+
+  const handleFocus: NonNullable<TextInputProps["onFocus"]> = (e) => {
+    focused.current = true;
+    onFocus?.(e);
+  };
+
+  const handleBlur: NonNullable<TextInputProps["onBlur"]> = (e) => {
+    focused.current = false;
+    if (inFormula && result !== null) {
+      // A saved "=..." handed in by the parent hasn't been worked out yet.
+      if (expression === null) onChangeText?.(String(result));
+      setTyped(null);
+    }
+    onBlur?.(e);
+  };
+
+  return { shown, inFormula, hasExpr, result, handleChange, handleFocus, handleBlur };
+}
+
+/** A bare TextInput for amounts in custom layouts: formulas work, with no label or preview line. */
+export const FormulaTextInput = forwardRef<TextInput, TextInputProps & { formula?: boolean }>(function FormulaTextInput(
+  { formula = true, value, onChangeText, onFocus, onBlur, keyboardType, ...props },
+  ref,
+) {
+  const f = useFormulaText({ enabled: formula, value, onChangeText, onFocus, onBlur });
+  return (
+    <TextInput
+      ref={ref}
+      value={f.shown}
+      onChangeText={f.handleChange}
+      onFocus={f.handleFocus}
+      onBlur={f.handleBlur}
+      keyboardType={formula ? FORMULA_KEYBOARD : keyboardType}
+      {...props}
+    />
+  );
+});
 
 export function Input({
   label,
@@ -38,6 +112,7 @@ export function Input({
   formula = false,
   value,
   onChangeText,
+  onFocus,
   onBlur,
   keyboardType,
   ...props
@@ -45,18 +120,14 @@ export function Input({
   const theme = useTheme();
   const { colors } = useColorScheme();
 
-  const inFormula = formula && typeof value === "string" && isFormulaMode(value);
-  const formulaExpr = inFormula ? getFormulaExpr(value as string) : "";
-  const hasExpr = formulaExpr.trim().length > 0;
-  const formulaResult = hasExpr ? evaluateFormula(formulaExpr) : null;
+  const { shown, inFormula, hasExpr, result: formulaResult, handleChange, handleFocus, handleBlur } = useFormulaText({
+    enabled: formula,
+    value,
+    onChangeText,
+    onFocus,
+    onBlur,
+  });
   const formulaValid = formulaResult !== null;
-
-  const handleBlur: NonNullable<TextInputProps["onBlur"]> = (e) => {
-    if (inFormula && formulaValid && onChangeText) {
-      onChangeText(String(formulaResult));
-    }
-    onBlur?.(e as Parameters<NonNullable<TextInputProps["onBlur"]>>[0]);
-  };
 
   return (
     <View className={containerClassName}>
@@ -66,8 +137,9 @@ export function Input({
         </Text>
       )}
       <TextInput
-        value={value}
-        onChangeText={onChangeText}
+        value={shown}
+        onChangeText={handleChange}
+        onFocus={handleFocus}
         onBlur={handleBlur}
         keyboardType={formula ? FORMULA_KEYBOARD : keyboardType}
         accessibilityLabel={label || props.placeholder}

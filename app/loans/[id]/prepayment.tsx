@@ -344,6 +344,7 @@ export default function PrepaymentForm() {
                       value={chargeOverride}
                       onChangeText={setChargeOverride}
                       keyboardType="decimal-pad"
+                      formula
                       placeholder={String(Math.round(impact.charge))}
                       containerClassName="mb-2"
                     />
@@ -352,6 +353,7 @@ export default function PrepaymentForm() {
                       value={gstOverride}
                       onChangeText={setGstOverride}
                       keyboardType="decimal-pad"
+                      formula
                       placeholder={String(Math.round(impact.gst))}
                     />
                     <Text
