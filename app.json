@@ -2,7 +2,7 @@
   "expo": {
     "name": "Arth",
     "slug": "artha",
-    "version": "4.30.1",
+    "version": "4.31.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "artha",
@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "android": {
       "package": "com.souravbaid.arth",
-      "versionCode": 43001,
+      "versionCode": 43100,
       "adaptiveIcon": {
         "backgroundColor": "#134E4A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -283,7 +283,7 @@
     "owner": "kaiser7292",
     "ios": {
       "bundleIdentifier": "com.souravbaid.arth",
-      "buildNumber": "43001",
+      "buildNumber": "43100",
       "supportsTablet": false,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Arth reads a payment screenshot you choose, on this phone, to fill in a transaction.",
