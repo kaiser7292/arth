@@ -2,9 +2,10 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, SectionList, TextInput, View } from "react-native";
+import { Pressable, SectionList, TextInput, View } from "react-native";
 import { ListSeparator, LoadingState, Text } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
+import { Chevron } from "@/components/motion/Chevron";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
@@ -12,12 +13,17 @@ import {
   VAULT_CATEGORY_GROUPS,
   VAULT_CATEGORY_ICONS,
   VAULT_CATEGORY_LABELS,
+  VaultCategory,
   VaultEntry,
   getVaultEntries,
-  searchVaultEntries,
+  vaultEntryMatches,
 } from "@/services/vault";
 import { consumeVaultPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
+
+const LINK_CATEGORIES = ["banking", "card", "demat", "statement_pwd"];
+// statement_pwd isn't offered for new entries, but older ones still need to be reachable.
+const ALL_CATEGORIES: VaultCategory[] = [...VAULT_CATEGORY_GROUPS.flatMap((g) => g.categories), "statement_pwd"];
 
 /**
  * The Vault list.
@@ -35,8 +41,9 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
   const theme = useTheme();
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [query, setQuery] = useState("");
-  const [searching, setSearching] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // Drawers start closed, so opening the Vault doesn't show every login at once.
+  const [openCategories, setOpenCategories] = useState<Set<VaultCategory>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -51,35 +58,37 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
 
   useDataRefresh(load);
 
-  const handleSearch = useCallback(async (text: string) => {
-    setQuery(text);
-    if (!text.trim()) {
-      setSearching(false);
-      load();
-      return;
-    }
-    setSearching(true);
-    try {
-      const results = await searchVaultEntries(text.trim());
-      setEntries(results);
-    } catch {
-      // ignore
-    }
-  }, [load]);
+  const toggle = useCallback((category: VaultCategory) => {
+    setOpenCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
+      return next;
+    });
+  }, []);
 
-  const sections = useMemo(() =>
-    VAULT_CATEGORY_GROUPS.flatMap((group) =>
-      group.categories
-        .map((cat) => ({
-          title: VAULT_CATEGORY_LABELS[cat],
-          icon: VAULT_CATEGORY_ICONS[cat],
-          data: entries.filter((e) => e.category === cat),
-        }))
-        .filter((s) => s.data.length > 0),
-    ),
-  [entries]);
-
-  const LINK_CATEGORIES = ["banking", "card", "demat", "statement_pwd"];
+  const sections = useMemo(() => {
+    const searching = query.trim().length > 0;
+    const grouped = ALL_CATEGORIES.map((category) => ({
+      category,
+      matches: entries.filter((e) => e.category === category && vaultEntryMatches(e, query)),
+    })).filter((g) => g.matches.length > 0);
+    // Searching opens the drawers with matches. With only one drawer there is nothing to choose.
+    const locked = searching || grouped.length === 1;
+    return grouped.map(({ category, matches }) => {
+      const open = locked || openCategories.has(category);
+      return {
+        category,
+        title: VAULT_CATEGORY_LABELS[category],
+        icon: VAULT_CATEGORY_ICONS[category],
+        total: matches.length,
+        needsLink: matches.some((e) => LINK_CATEGORIES.includes(e.category) && !e.linked_account_id),
+        locked,
+        open,
+        data: open ? matches : [],
+      };
+    });
+  }, [entries, query, openCategories]);
 
   const renderEntry = ({ item }: { item: VaultEntry }) => {
     const needsLink = LINK_CATEGORIES.includes(item.category) && !item.linked_account_id;
@@ -120,7 +129,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
         <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
         <TextInput
           value={query}
-          onChangeText={handleSearch}
+          onChangeText={setQuery}
           placeholder="Search vault..."
           placeholderTextColor={colors.textSecondary}
           className="flex-1 ml-2 text-sm text-foreground"
@@ -128,7 +137,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
           autoCorrect={false}
         />
         {query.length > 0 && (
-          <Pressable onPress={() => handleSearch("")} hitSlop={8}>
+          <Pressable onPress={() => setQuery("")} hitSlop={8}>
             <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
           </Pressable>
         )}
@@ -144,7 +153,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
         </Pressable>
       )}
 
-      {empty && !query ? (
+      {empty ? (
         <View className="flex-1 items-center justify-center pb-16">
           <VaultIcon size={48} color={colors.textSecondary} />
           <Text className="text-lg font-semibold text-foreground mt-4">
@@ -154,16 +163,39 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
             Store your banking logins, card PINs, subscriptions, and any other credentials here — all encrypted on your device.
           </Text>
         </View>
-      ) : searching || query.length > 0 ? (
-        <FlatList
-          initialNumToRender={12}
-          maxToRenderPerBatch={10}
-          windowSize={7}
-          data={entries}
+      ) : (
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.id}
           renderItem={renderEntry}
           ItemSeparatorComponent={ListSeparator}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
+          keyboardShouldPersistTaps="handled"
+          renderSectionHeader={({ section }) => (
+            <Pressable
+              onPress={() => toggle(section.category)}
+              disabled={section.locked}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: section.open }}
+              accessibilityLabel={`${section.title}, ${section.total} ${section.total === 1 ? "entry" : "entries"}`}
+              className="flex-row items-center py-3 mt-2 border-b border-border"
+            >
+              <View
+                className="w-6 h-6 rounded-md items-center justify-center mr-2"
+                style={{ backgroundColor: theme.primary + "22" }}
+              >
+                <Ionicons name={section.icon as any} size={13} color={theme.primary} />
+              </View>
+              <Text className="text-sm font-semibold text-foreground flex-1" numberOfLines={1}>
+                {section.title}
+              </Text>
+              {/* An account still to link would otherwise be hidden inside a closed drawer. */}
+              {!section.open && section.needsLink && (
+                <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: theme.warning }} />
+              )}
+              <Text className="text-xs text-muted-foreground mr-2">{section.total}</Text>
+              {!section.locked && <Chevron open={section.open} size={16} color={colors.textSecondary} />}
+            </Pressable>
+          )}
           ListEmptyComponent={
             <View className="items-center py-12">
               <Text className="text-sm text-muted-foreground">
@@ -171,29 +203,6 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
               </Text>
             </View>
           }
-        />
-      ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderEntry}
-          ItemSeparatorComponent={ListSeparator}
-          renderSectionHeader={({ section }) => (
-            <View className="flex-row items-center px-4 pt-5 pb-1">
-              <View
-                className="w-5 h-5 rounded-md items-center justify-center mr-2"
-                style={{ backgroundColor: theme.primary + "22" }}
-              >
-                <Ionicons name={section.icon as any} size={11} color={theme.primary} />
-              </View>
-              <Text
-                className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: theme.primary }}
-              >
-                {section.title}
-              </Text>
-            </View>
-          )}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
           stickySectionHeadersEnabled={false}
         />

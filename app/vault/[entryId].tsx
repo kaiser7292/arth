@@ -52,18 +52,10 @@ export default function VaultEntryScreen() {
     try {
       const e = await getVaultEntry(entryId);
       setEntry(e);
-      if (e?.password_enc) {
-        const p = await decryptField(e.password_enc);
-        setPassword(p);
-      }
-      if (e?.pin_enc) {
-        const p = await decryptField(e.pin_enc);
-        setPinVal(p);
-      }
-      if (e?.custom_fields) {
-        const cf = await decryptCustomFields(e.custom_fields);
-        setCustomFields(normalizeCustomFields(cf));
-      }
+      // Reloads on return from Edit, so a removed secret has to clear here too.
+      setPassword(e?.password_enc ? await decryptField(e.password_enc) : null);
+      setPinVal(e?.pin_enc ? await decryptField(e.pin_enc) : null);
+      setCustomFields(e?.custom_fields ? normalizeCustomFields(await decryptCustomFields(e.custom_fields)) : {});
     } finally {
       setLoading(false);
     }

@@ -80,7 +80,15 @@ When you add a savings, credit card or loan account, Arth also offers **Add cred
 
 ## Finding a saved entry
 
-Use the **search bar** at the top of the Vault screen to filter entries by name, username, or note text. Entries are also grouped by category so you can browse by type.
+Entries sit in closed drawers, one for each category, with a count on each. Tap a drawer to open it, then tap an entry.
+
+The **search bar** at the top looks through names, usernames, emails, phone numbers, websites and notes, and you can also search for a category or login type. Only drawers with matches stay, opened to show just those matches. Search never looks inside passwords or other secret fields.
+
+## Changing a password
+
+Open the entry and tap **Edit**. Your saved password and PINs are already in their fields, hidden until you tap the eye. Type over one to change it. If you clear a saved secret, Arth asks before removing it, because it can't be brought back.
+
+If a saved secret can't be read on this phone (for example after restoring without the key that unlocks your Vault), its field stays blank. Leave it blank and the stored value is kept.
 
 ## Security
 

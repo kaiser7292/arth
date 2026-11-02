@@ -225,9 +225,11 @@ export async function updateVaultEntry(
         : null
       : undefined;
   const custom_fields_enc =
-    input.custom_fields_data !== undefined && Object.keys(input.custom_fields_data).length > 0
-      ? await encryptField(JSON.stringify(input.custom_fields_data))
-      : undefined; // empty or absent → skip update (preserve existing encrypted blob)
+    input.custom_fields_data === undefined
+      ? undefined // absent → skip update (preserve existing encrypted blob)
+      : Object.keys(input.custom_fields_data).length > 0
+        ? await encryptField(JSON.stringify(input.custom_fields_data))
+        : null; // empty → the last field was cleared
 
   const sets: string[] = ["updated_at = ?"];
   const vals: (string | null)[] = [now];
@@ -298,6 +300,46 @@ export async function hardDeleteVaultEntry(id: string): Promise<void> {
 export async function purgeAllDeletedVaultEntries(): Promise<void> {
   const db = getDatabase();
   await db.runAsync(`DELETE FROM vault_entries WHERE deleted_at IS NOT NULL`);
+}
+
+/**
+ * Does this entry match a Vault search? Reads what's stored in the clear, plus the names of its type
+ * and login method, so "gaming" or "phone otp" work. Passwords and other secrets are never searched.
+ */
+export function vaultEntryMatches(entry: VaultEntry, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return [
+    entry.title,
+    entry.username,
+    entry.email,
+    entry.phone,
+    entry.url,
+    entry.notes,
+    VAULT_CATEGORY_LABELS[entry.category as VaultCategory],
+    LOGIN_METHOD_LABELS[entry.login_method as LoginMethod],
+  ].some((text) => text?.toLowerCase().includes(q));
+}
+
+const SECRET_NAMES: Record<string, string> = {
+  password: "password",
+  pin: "PIN",
+  card_number: "card number",
+  cvv: "CVV",
+  secondary_password: "transaction password",
+  mpin: "MPIN",
+  tpin: "TPIN",
+  totp_secret: "TOTP secret",
+  statement_password: "statement password",
+  api_key: "API key",
+  api_secret: "API secret",
+};
+
+/** Names of the secrets an edit is about to erase: saved before, blank now. */
+export function removedVaultSecrets(saved: Record<string, string>, current: Record<string, string>): string[] {
+  return Object.keys(SECRET_NAMES)
+    .filter((key) => saved[key] && !current[key]?.trim())
+    .map((key) => SECRET_NAMES[key]);
 }
 
 export async function searchVaultEntries(query: string): Promise<VaultEntry[]> {

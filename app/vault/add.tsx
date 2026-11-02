@@ -1,7 +1,7 @@
 import { normalizeCustomFields } from "@/services/broker-vault";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
@@ -18,7 +18,9 @@ import {
   VaultCategory,
   createVaultEntry,
   decryptCustomFields,
+  decryptField,
   getVaultEntry,
+  removedVaultSecrets,
   updateVaultEntry,
 } from "@/services/vault";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
@@ -116,6 +118,13 @@ export default function VaultAddScreen() {
   const [statementPwd, setStatementPwd] = useState("");
   const [showStatementPwd, setShowStatementPwd] = useState(false);
 
+  // What the entry held when opened, to spot a secret being erased by this edit.
+  const savedSecrets = useRef<Record<string, string>>({});
+  const renewalDate = useRef<string | null>(null);
+  // A saved secret that wouldn't decrypt looks blank here (a restore without the Vault key does this).
+  // Blank then has to mean "keep it", or saving would erase something still recoverable.
+  const [secretsUnreadable, setSecretsUnreadable] = useState(false);
+
   useEffect(() => {
     getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => {});
   }, []);
@@ -136,9 +145,24 @@ export default function VaultAddScreen() {
         setPhone(entry.phone ?? "");
         setUrl(entry.url ?? "");
         setNotes(entry.notes ?? "");
+        renewalDate.current = entry.renewal_date ?? null;
+        const saved: Record<string, string> = {};
+        let unreadable = false;
+        if (entry.password_enc) {
+          saved.password = await decryptField(entry.password_enc);
+          if (saved.password) setPassword(saved.password);
+          else unreadable = true;
+        }
+        if (entry.pin_enc) {
+          saved.pin = await decryptField(entry.pin_enc);
+          if (saved.pin) setPin(saved.pin);
+          else unreadable = true;
+        }
         let expandMore = !!(entry.url || entry.notes);
         if (entry.custom_fields) {
           const fields = normalizeCustomFields(await decryptCustomFields(entry.custom_fields));
+          if (Object.keys(fields).length === 0) unreadable = true;
+          Object.assign(saved, fields);
           setOtherFields(Object.fromEntries(Object.entries(fields).filter(([k]) => !FORM_FIELDS.has(k))));
           setApiKey(fields.api_key ?? "");
           setApiSecret(fields.api_secret ?? "");
@@ -157,7 +181,8 @@ export default function VaultAddScreen() {
           }
         }
         if (expandMore) setShowMore(true);
-        // passwords stay blank on edit — user must re-enter to change
+        savedSecrets.current = saved;
+        setSecretsUnreadable(unreadable);
       } finally {
         setLoading(false);
       }
@@ -189,78 +214,98 @@ export default function VaultAddScreen() {
       alert("Missing title", "Please enter a title for this entry.");
       return;
     }
-    setSaving(true);
-    try {
-      let resolvedMethod: LoginMethod = loginMethod;
-      let customFieldsData: Record<string, string> | undefined;
+    let resolvedMethod: LoginMethod = loginMethod;
+    let customFieldsData: Record<string, string> | undefined;
 
-      if (category === "card") {
-        resolvedMethod = pin ? "pin" : "none";
-        const cf: Record<string, string> = {};
-        if (cardNumber.trim()) cf.card_number = cardNumber.trim();
-        if (cardHolder.trim()) cf.card_holder = cardHolder.trim();
-        if (cardExpiry.trim()) cf.expiry = cardExpiry.trim();
-        if (cardCvv.trim()) cf.cvv = cardCvv.trim();
-        if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
-        customFieldsData = cf;
-      } else if (category === "upi") {
-        resolvedMethod = "pin";
-        customFieldsData = {};
-      } else if (category === "banking") {
-        const cf: Record<string, string> = {};
-        if (secondaryPassword.trim()) cf.secondary_password = secondaryPassword.trim();
-        if (mpin.trim()) cf.mpin = mpin.trim();
-        if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
-        customFieldsData = cf;
-      } else if (category === "demat") {
-        const cf: Record<string, string> = {};
-        if (tpin.trim()) cf.tpin = tpin.trim();
-        const secret = totpSecret.replace(/[\s=]/g, "").toUpperCase();
-        if (secret) {
-          if (!isValidTotpSecret(secret)) {
-            alert(
-              "Invalid TOTP secret",
-              "Paste the text key shown when you set up TOTP (letters A–Z and digits 2–7), not a 6-digit code.",
-            );
-            return;
-          }
-          cf.totp_secret = secret;
+    if (category === "card") {
+      resolvedMethod = pin || (secretsUnreadable && loginMethod === "pin") ? "pin" : "none";
+      const cf: Record<string, string> = {};
+      if (cardNumber.trim()) cf.card_number = cardNumber.trim();
+      if (cardHolder.trim()) cf.card_holder = cardHolder.trim();
+      if (cardExpiry.trim()) cf.expiry = cardExpiry.trim();
+      if (cardCvv.trim()) cf.cvv = cardCvv.trim();
+      if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
+      customFieldsData = cf;
+    } else if (category === "upi") {
+      resolvedMethod = "pin";
+      customFieldsData = {};
+    } else if (category === "banking") {
+      const cf: Record<string, string> = {};
+      if (secondaryPassword.trim()) cf.secondary_password = secondaryPassword.trim();
+      if (mpin.trim()) cf.mpin = mpin.trim();
+      if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
+      customFieldsData = cf;
+    } else if (category === "demat") {
+      const cf: Record<string, string> = {};
+      if (tpin.trim()) cf.tpin = tpin.trim();
+      const secret = totpSecret.replace(/[\s=]/g, "").toUpperCase();
+      if (secret) {
+        if (!isValidTotpSecret(secret)) {
+          alert(
+            "Invalid TOTP secret",
+            "Paste the text key shown when you set up TOTP (letters A–Z and digits 2–7), not a 6-digit code.",
+          );
+          return;
         }
-        if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
-        if (apiKey.trim()) cf.api_key = apiKey.trim();
-        if (apiSecret.trim()) cf.api_secret = apiSecret.trim();
-        customFieldsData = cf;
+        cf.totp_secret = secret;
       }
-      // Never drop a saved field the form doesn't show.
-      if (Object.keys(otherFields).length > 0) customFieldsData = { ...otherFields, ...(customFieldsData ?? {}) };
-
-      const input = {
-        title,
-        category,
-        login_method: resolvedMethod,
-        username: username || undefined,
-        email: email || undefined,
-        phone: phone || undefined,
-        password: password || undefined,
-        pin: pin || undefined,
-        url: url || undefined,
-        notes: notes || undefined,
-        linked_account_id: linkedAccountId,
-        custom_fields_data: customFieldsData,
-      };
-      if (editId) {
-        await updateVaultEntry(editId, input);
-      } else {
-        await createVaultEntry(input);
-      }
-      router.back();
-    } catch (e) {
-      alert("Couldn't save", getErrorMessage(e, "Failed to save entry."));
-    } finally {
-      setSaving(false);
+      if (statementPwd.trim()) cf.statement_password = statementPwd.trim();
+      if (apiKey.trim()) cf.api_key = apiKey.trim();
+      if (apiSecret.trim()) cf.api_secret = apiSecret.trim();
+      customFieldsData = cf;
     }
+    // Never drop a saved field the form doesn't show.
+    if (Object.keys(otherFields).length > 0) customFieldsData = { ...otherFields, ...(customFieldsData ?? {}) };
+    // Nothing was typed over secrets that couldn't be read: leave what's stored alone.
+    if (secretsUnreadable && customFieldsData && Object.keys(customFieldsData).length === 0) customFieldsData = undefined;
+    // On an edit a blank field means remove; undefined means leave the stored value.
+    const eraseBlank = !!editId && !secretsUnreadable;
+
+    const input = {
+      title,
+      category,
+      login_method: resolvedMethod,
+      username: username || undefined,
+      email: email || undefined,
+      phone: phone || undefined,
+      password: eraseBlank ? password : password || undefined,
+      pin: eraseBlank ? pin : pin || undefined,
+      url: url || undefined,
+      notes: notes || undefined,
+      renewal_date: renewalDate.current ?? undefined,
+      linked_account_id: linkedAccountId,
+      custom_fields_data: customFieldsData,
+    };
+
+    const persist = async () => {
+      setSaving(true);
+      try {
+        if (editId) {
+          await updateVaultEntry(editId, input);
+        } else {
+          await createVaultEntry(input);
+        }
+        router.back();
+      } catch (e) {
+        alert("Couldn't save", getErrorMessage(e, "Failed to save entry."));
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    const removed = eraseBlank
+      ? removedVaultSecrets(savedSecrets.current, { ...(customFieldsData ?? savedSecrets.current), password, pin })
+      : [];
+    if (removed.length > 0) {
+      alert(`Remove ${removed.join(", ")}?`, "Saving erases what's stored. Arth can't bring it back.", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Remove", style: "destructive", onPress: persist },
+      ]);
+      return;
+    }
+    await persist();
   }, [title, category, loginMethod, username, email, phone, password, pin, url, notes,
-      cardNumber, cardHolder, cardExpiry, cardCvv, editId, linkedAccountId,
+      cardNumber, cardHolder, cardExpiry, cardCvv, editId, linkedAccountId, secretsUnreadable,
       secondaryPassword, mpin, tpin, totpSecret, statementPwd, apiKey, apiSecret, otherFields]);
 
   if (loading) {
@@ -469,7 +514,7 @@ export default function VaultAddScreen() {
               />
             </Field>
 
-            <Field label={editId ? "Card Number (leave blank to keep current)" : "Card Number"} colors={colors}>
+            <Field label="Card Number" colors={colors}>
               <TextInput
                 value={cardNumber}
                 onChangeText={handleCardNumberChange}
@@ -502,7 +547,7 @@ export default function VaultAddScreen() {
               />
             </Field>
 
-            <Field label={editId ? "CVV (leave blank to keep current)" : "CVV"} colors={colors}>
+            <Field label="CVV" colors={colors}>
               <TextInput
                 value={cardCvv}
                 onChangeText={setCardCvv}
@@ -522,7 +567,7 @@ export default function VaultAddScreen() {
               </Pressable>
             </Field>
 
-            <Field label={editId ? "ATM / Card PIN (leave blank to keep current)" : "ATM / Card PIN (optional)"} colors={colors}>
+            <Field label="ATM / Card PIN (optional)" colors={colors}>
               <TextInput
                 value={pin}
                 onChangeText={setPin}
@@ -570,7 +615,7 @@ export default function VaultAddScreen() {
               />
             </Field>
 
-            <Field label={editId ? "UPI PIN (leave blank to keep current)" : "UPI PIN"} colors={colors}>
+            <Field label="UPI PIN" colors={colors}>
               <TextInput
                 value={pin}
                 onChangeText={setPin}
@@ -668,11 +713,11 @@ export default function VaultAddScreen() {
         )}
 
         {showPassword_ && (
-          <Field label={editId ? "New Password (leave blank to keep current)" : "Password"} colors={colors}>
+          <Field label="Password" colors={colors}>
             <TextInput
               value={password}
               onChangeText={setPassword}
-              placeholder={editId ? "Enter new password to change" : "Password"}
+              placeholder="Password"
               placeholderTextColor={colors.textSecondary}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
@@ -691,7 +736,7 @@ export default function VaultAddScreen() {
 
         {showGenericPin && (
           <Field
-            label={editId ? "New PIN (leave blank to keep current)" : "PIN"}
+            label="PIN"
             colors={colors}>
             <TextInput
               value={pin}
@@ -734,7 +779,7 @@ export default function VaultAddScreen() {
             {/* Banking extras */}
             {category === "banking" && (
               <>
-                <Field label={editId ? "Transaction / Profile Password (leave blank to keep current)" : "Transaction / Profile Password (optional)"} colors={colors}>
+                <Field label="Transaction / Profile Password (optional)" colors={colors}>
                   <TextInput
                     value={secondaryPassword}
                     onChangeText={setSecondaryPassword}
@@ -750,7 +795,7 @@ export default function VaultAddScreen() {
                   </Pressable>
                 </Field>
 
-                <Field label={editId ? "MPIN (leave blank to keep current)" : "MPIN (optional)"} colors={colors}>
+                <Field label="MPIN (optional)" colors={colors}>
                   <TextInput
                     value={mpin}
                     onChangeText={setMpin}
@@ -766,7 +811,7 @@ export default function VaultAddScreen() {
                   </Pressable>
                 </Field>
 
-                <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
+                <Field label="Statement PDF Password (optional)" colors={colors}>
                   <TextInput
                     value={statementPwd}
                     onChangeText={setStatementPwd}
@@ -786,7 +831,7 @@ export default function VaultAddScreen() {
 
             {/* Card statement PDF password */}
             {isCard && (
-              <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
+              <Field label="Statement PDF Password (optional)" colors={colors}>
                 <TextInput
                   value={statementPwd}
                   onChangeText={setStatementPwd}
@@ -806,7 +851,7 @@ export default function VaultAddScreen() {
             {/* Demat extras */}
             {category === "demat" && (
               <>
-                <Field label={editId ? "Trading PIN / TPIN (leave blank to keep current)" : "Trading PIN / TPIN (optional)"} colors={colors}>
+                <Field label="Trading PIN / TPIN (optional)" colors={colors}>
                   <TextInput
                     value={tpin}
                     onChangeText={setTpin}
@@ -869,7 +914,7 @@ export default function VaultAddScreen() {
                   </Pressable>
                 </Field>
 
-                <Field label={editId ? "Statement PDF Password (leave blank to keep current)" : "Statement PDF Password (optional)"} colors={colors}>
+                <Field label="Statement PDF Password (optional)" colors={colors}>
                   <TextInput
                     value={statementPwd}
                     onChangeText={setStatementPwd}

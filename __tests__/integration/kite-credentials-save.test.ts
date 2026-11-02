@@ -136,6 +136,30 @@ describe("Zerodha credentials save over existing Vault data", () => {
   });
 });
 
+describe("editing a Vault entry", () => {
+  const { createVaultEntry, decryptCustomFields, decryptField, getVaultEntry, updateVaultEntry } = require("../../services/vault");
+  const base = { title: "Sample", category: "banking", login_method: "password" };
+
+  it("removes a password and PIN when given blank, keeps them when not given", async () => {
+    const id = await createVaultEntry({ ...base, password: "old", pin: "1234" });
+    await updateVaultEntry(id, { ...base, password: "" });
+    let e = await getVaultEntry(id);
+    expect(e.password_enc).toBeNull();
+    await expect(decryptField(e.pin_enc)).resolves.toBe("1234");
+    await updateVaultEntry(id, { ...base, pin: "" });
+    e = await getVaultEntry(id);
+    expect(e.pin_enc).toBeNull();
+  });
+
+  it("clearing the last extra field saves; not passing extras leaves them", async () => {
+    const id = await createVaultEntry({ ...base, custom_fields_data: { mpin: "1234" } });
+    await updateVaultEntry(id, { ...base });
+    await expect(decryptCustomFields((await getVaultEntry(id)).custom_fields)).resolves.toEqual({ mpin: "1234" });
+    await updateVaultEntry(id, { ...base, custom_fields_data: {} });
+    expect((await getVaultEntry(id)).custom_fields).toBeNull();
+  });
+});
+
 describe("Kite secure storage that can't be read", () => {
   it("treats an unreadable API key or session as not saved instead of throwing", async () => {
     const SecureStore = require("expo-secure-store");
