@@ -17,6 +17,7 @@ export type HomeCardId =
   | "upcoming_dues"
   | "review_queue"
   | "check_ins"
+  | "my_month"
   | "total_spent"
   | "hisaab"
   | "household"
@@ -66,6 +67,12 @@ export const HOME_CARDS: HomeCardMeta[] = [
     id: "check_ins",
     label: "Check-ins",
     description: "Month-end check, settle-up, subscriptions and rule suggestions when there's something to swipe through",
+    defaultVisible: true,
+  },
+  {
+    id: "my_month",
+    label: "My month",
+    description: "Money in, spent, saved and what's left this month",
     defaultVisible: true,
   },
   {

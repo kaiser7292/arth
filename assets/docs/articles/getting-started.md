@@ -47,6 +47,12 @@ Arth has **five bottom tabs**, in this order from left to right. **Swipe left or
 
 > Insights is one of the Home tab's swipe pages — swipe right from Overview or tap the "Insights" label at the top.
 
+## My month and setting up
+
+**My month** on Home is the month in one place: money in, what you spent, what you saved or invested, and what's left. Tap it for the categories, your bank and wallet balances, what your budget leaves you free to save or spend, or to look at another month. A salary credit counts as salary once its type is set to Salary.
+
+**Finish setting up** on Home lists what's left to do. Steps tick themselves as you do them, and the card goes away once they're all done. You can also dismiss it.
+
 ## Your first week (in order)
 
 1. **Onboarding** - set your region and financial year (default: April for India), choose your categories, add your monthly take-home pay, allow SMS reading if you want auto-detection, set a few budgets, and turn on app lock and notifications. Every step can be skipped. Moving phones? Tap **Restore from a backup** on the first screen.

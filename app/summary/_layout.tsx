@@ -9,6 +9,10 @@ export default function SummaryLayout() {
       screenOptions={screenOptions}
     >
       <Stack.Screen
+        name="my-month"
+        options={{ title: "My month" }}
+      />
+      <Stack.Screen
         name="[month]"
         options={{ title: "Monthly Summary" }}
       />

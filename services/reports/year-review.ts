@@ -119,10 +119,7 @@ export async function categoryNames(userId: string): Promise<Map<string, { name:
 }
 
 /** Credits that are real money in: not refunds, not your own transfers, not credit-card payments. */
-export async function moneyIn(userId: string, startDate: string, endDate: string): Promise<number> {
-  const db = getDatabase();
-  const row = await db.getFirstAsync<{ total: number | null }>(
-    `SELECT COALESCE(SUM(e.amount), 0) AS total
+const MONEY_IN_SQL = `SELECT COALESCE(SUM(e.amount), 0) AS total
      FROM expenses e
      LEFT JOIN financial_accounts fa ON fa.id = e.account_id
      WHERE e.user_id = ? AND e.date >= ? AND e.date <= ?
@@ -131,13 +128,23 @@ export async function moneyIn(userId: string, startDate: string, endDate: string
        AND e.refund_of_expense_id IS NULL
        AND COALESCE(e.credit_kind, '') <> 'refund'
        AND COALESCE(e.money_event, '') NOT IN ('self_transfer', 'fd_closure')
-       AND COALESCE(fa.account_type, '') <> 'credit_card';`,
+       AND COALESCE(fa.account_type, '') <> 'credit_card'`;
+
+export async function moneyIn(userId: string, startDate: string, endDate: string): Promise<number> {
+  const row = await getDatabase().getFirstAsync<{ total: number | null }>(`${MONEY_IN_SQL};`, userId, startDate, endDate);
+  return row?.total ?? 0;
+}
+
+/** The part of moneyIn marked as salary. */
+export async function salaryIn(userId: string, startDate: string, endDate: string): Promise<number> {
+  const row = await getDatabase().getFirstAsync<{ total: number | null }>(
+    `${MONEY_IN_SQL} AND e.credit_kind = 'salary';`,
     userId, startDate, endDate,
   );
   return row?.total ?? 0;
 }
 
-export async function invested(userId: string, startDate: string, endDate: string): Promise<{ amount: number; fdsOpened: number }> {
+export async function invested(userId: string, startDate: string, endDate: string): Promise<{ amount: number; linked: number; transfers: number; fdsOpened: number }> {
   const db = getDatabase();
   const [links, transfers, fds] = await Promise.all([
     db.getFirstAsync<{ total: number | null }>(
@@ -167,7 +174,12 @@ export async function invested(userId: string, startDate: string, endDate: strin
       userId, startDate, endDate,
     ),
   ]);
-  return { amount: (links?.total ?? 0) + (transfers?.total ?? 0), fdsOpened: fds?.n ?? 0 };
+  return {
+    amount: (links?.total ?? 0) + (transfers?.total ?? 0),
+    linked: links?.total ?? 0,
+    transfers: transfers?.total ?? 0,
+    fdsOpened: fds?.n ?? 0,
+  };
 }
 
 async function hisaabSettlements(userId: string, startDate: string, endDate: string) {
