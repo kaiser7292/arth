@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { View, ScrollView, Pressable, KeyboardAvoidingView, Platform, RefreshControl } from "react-native";
+import { View, ScrollView, Pressable, KeyboardAvoidingView, Modal, Platform, RefreshControl } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -45,6 +45,11 @@ function formatSnapshotDate(dateStr: string): string {
   return `${d} ${months[m - 1]} ${y}`;
 }
 
+function readAmount(text: string): number | null {
+  const n = parseFloat(text.replace(/,/g, ""));
+  return isNaN(n) ? null : n;
+}
+
 function getDefaultDate(selectedMonth: string): string {
   const today = new Date().toISOString().slice(0, 10);
   const todayMonth = today.slice(0, 7);
@@ -72,11 +77,11 @@ export default function DematSnapshotsScreen() {
   const [gains, setGains] = useState<AccountGains | null>(null);
   const [taxType, setTaxType] = useState<TaxType>("equity");
 
-  // Inline edit state
-  const [editingPortfolioId, setEditingPortfolioId] = useState<string | null>(null);
+  // The day open in the edit pop-up
+  const [editingDate, setEditingDate] = useState<string | null>(null);
   const [editingPortfolioValue, setEditingPortfolioValue] = useState("");
-  const [editingFundId, setEditingFundId] = useState<string | null>(null);
   const [editingFundValue, setEditingFundValue] = useState("");
+  const [editError, setEditError] = useState<string | undefined>(undefined);
 
   // Inline add form state
   const [showAddForm, setShowAddForm] = useState(false);
@@ -164,22 +169,6 @@ export default function DematSnapshotsScreen() {
     }
   }, [id, addDate, addPortfolio, addFund, latestFund, loadData]);
 
-  const handleSavePortfolioEdit = useCallback(async (snap: PortfolioSnapshot) => {
-    const val = parseFloat(editingPortfolioValue.replace(/,/g, ""));
-    if (isNaN(val) || val < 0) return;
-    await addOrUpdateSnapshot(id, snap.snapshot_date, val);
-    setEditingPortfolioId(null);
-    loadData();
-  }, [id, editingPortfolioValue, loadData]);
-
-  const handleSaveFundEdit = useCallback(async (snap: FundSnapshot) => {
-    const val = parseFloat(editingFundValue.replace(/,/g, ""));
-    if (isNaN(val)) return;
-    await addOrUpdateFundSnapshot(id, snap.snapshot_date, val);
-    setEditingFundId(null);
-    loadData();
-  }, [id, editingFundValue, loadData]);
-
   const handleDeletePortfolio = useCallback((snap: PortfolioSnapshot) => {
     alert(
       "Delete Snapshot",
@@ -212,6 +201,26 @@ export default function DematSnapshotsScreen() {
 
   const portfolioByDate = new Map(snapshots.map((s) => [s.snapshot_date, s]));
   const fundByDate = new Map(fundSnapshots.map((f) => [f.snapshot_date, f]));
+  const editingPortfolio = editingDate ? portfolioByDate.get(editingDate) : undefined;
+  const editingFund = editingDate ? fundByDate.get(editingDate) : undefined;
+  const editedPortfolio = readAmount(editingPortfolioValue);
+  const editedFund = readAmount(editingFundValue);
+
+  const handleSaveEdit = async () => {
+    if (!editingDate) return;
+    if (editingPortfolio && (editedPortfolio === null || editedPortfolio < 0)) {
+      setEditError("Enter a portfolio value");
+      return;
+    }
+    if (editingFund && editedFund === null) {
+      setEditError("Enter the idle cash");
+      return;
+    }
+    if (editingPortfolio) await addOrUpdateSnapshot(id, editingDate, editedPortfolio as number);
+    if (editingFund) await addOrUpdateFundSnapshot(id, editingDate, editedFund as number);
+    setEditingDate(null);
+    loadData();
+  };
 
   const accountLabel = account
     ? (account.account_label || `${account.bank_name} ****${account.account_identifier}`)
@@ -397,8 +406,6 @@ export default function DematSnapshotsScreen() {
               mode="month"
               value={selectedMonth}
               onChange={(m) => {
-                setEditingPortfolioId(null);
-                setEditingFundId(null);
                 setSelectedMonth(m);
               }}
               variant="inline"
@@ -434,8 +441,6 @@ export default function DematSnapshotsScreen() {
                 const date = day.date;
                 const portSnap = portfolioByDate.get(date);
                 const fundSnap = fundByDate.get(date);
-                const isEditingPort = editingPortfolioId === portSnap?.id;
-                const isEditingFund = editingFundId === fundSnap?.id;
                 const isLast = idx === days.length - 1;
                 const hasSnap = portSnap != null || fundSnap != null;
 
@@ -449,78 +454,33 @@ export default function DematSnapshotsScreen() {
 
                     {/* Portfolio value */}
                     <View className="w-28 items-end">
-                      {isEditingPort ? (
-                        <Input
-                          value={editingPortfolioValue}
-                          onChangeText={setEditingPortfolioValue}
-                          keyboardType="numeric"
-                          formula
-                          containerClassName="w-24"
-                          className="text-xs py-0.5 text-right"
-                        />
-                      ) : (
-                        <Text className="text-xs font-semibold text-foreground">
-                          {portSnap ? formatAmount(portSnap.portfolio_value) : "—"}
-                        </Text>
-                      )}
+                      <Text className="text-xs font-semibold text-foreground">
+                        {portSnap ? formatAmount(portSnap.portfolio_value) : "—"}
+                      </Text>
                     </View>
 
                     {/* Fund value */}
                     <View className="w-24 items-end">
-                      {isEditingFund ? (
-                        <Input
-                          value={editingFundValue}
-                          onChangeText={setEditingFundValue}
-                          keyboardType="numeric"
-                          formula
-                          containerClassName="w-20"
-                          className="text-xs py-0.5 text-right"
-                        />
-                      ) : (
-                        <Text className="text-xs font-semibold text-foreground">
-                          {fundSnap ? formatAmount(fundSnap.fund_value) : "—"}
-                        </Text>
-                      )}
+                      <Text className="text-xs font-semibold text-foreground">
+                        {fundSnap ? formatAmount(fundSnap.fund_value) : "—"}
+                      </Text>
                     </View>
 
                     {/* Actions */}
                     <View className="w-16 flex-row items-center justify-end gap-1">
-                      {!hasSnap ? null : (isEditingPort || isEditingFund) ? (
-                        <>
-                          <Pressable
-                            onPress={async () => {
-                              if (isEditingPort && portSnap) await handleSavePortfolioEdit(portSnap);
-                              if (isEditingFund && fundSnap) await handleSaveFundEdit(fundSnap);
-                            }}
-                            hitSlop={6}
-                          >
-                            <Ionicons name="checkmark-circle" size={20} color={theme.success} />
-                          </Pressable>
-                          <Pressable
-                            onPress={() => {
-                              setEditingPortfolioId(null);
-                              setEditingFundId(null);
-                            }}
-                            hitSlop={6}
-                          >
-                            <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-                          </Pressable>
-                        </>
-                      ) : (
+                      {!hasSnap ? null : (
                         <>
                           <Pressable
                             onPress={() => {
-                              if (portSnap) {
-                                setEditingPortfolioId(portSnap.id);
-                                setEditingPortfolioValue(String(portSnap.portfolio_value));
-                              }
-                              if (fundSnap) {
-                                setEditingFundId(fundSnap.id);
-                                setEditingFundValue(String(fundSnap.fund_value));
-                              }
+                              setEditingPortfolioValue(portSnap ? String(portSnap.portfolio_value) : "");
+                              setEditingFundValue(fundSnap ? String(fundSnap.fund_value) : "");
+                              setEditError(undefined);
+                              setEditingDate(date);
                             }}
                             hitSlop={6}
                             className="mr-1"
+                            accessibilityRole="button"
+                            accessibilityLabel={`Edit ${formatDay(date)}`}
                           >
                             <Ionicons name="create-outline" size={16} color={colors.blue} />
                           </Pressable>
@@ -530,6 +490,8 @@ export default function DematSnapshotsScreen() {
                               else if (fundSnap) handleDeleteFund(fundSnap);
                             }}
                             hitSlop={6}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Delete ${formatDay(date)}`}
                           >
                             <Ionicons name="trash-outline" size={16} color={theme.danger} />
                           </Pressable>
@@ -545,6 +507,65 @@ export default function DematSnapshotsScreen() {
           </Card>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal visible={editingDate !== null} transparent animationType="fade" onRequestClose={() => setEditingDate(null)}>
+        {/* Sits high on the screen, so the keyboard can't reach it. */}
+        <Pressable
+          onPress={() => setEditingDate(null)}
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "flex-start", paddingTop: 100, paddingHorizontal: 16 }}
+        >
+          <Pressable onPress={() => {}}>
+            <Card>
+              <Text className="text-base font-semibold text-foreground mb-3">
+                {editingDate ? formatSnapshotDate(editingDate) : ""}
+              </Text>
+              {editingPortfolio && (
+                <Input
+                  label="Portfolio value"
+                  value={editingPortfolioValue}
+                  onChangeText={(t) => {
+                    setEditingPortfolioValue(t);
+                    setEditError(undefined);
+                  }}
+                  keyboardType="numeric"
+                  formula
+                  autoFocus
+                  containerClassName="mb-3"
+                />
+              )}
+              {editingFund && (
+                <Input
+                  label="Idle cash"
+                  value={editingFundValue}
+                  onChangeText={(t) => {
+                    setEditingFundValue(t);
+                    setEditError(undefined);
+                  }}
+                  keyboardType="numeric"
+                  formula
+                  autoFocus={!editingPortfolio}
+                  containerClassName="mb-3"
+                />
+              )}
+              {editingPortfolio && editingFund && editedPortfolio !== null && editedFund !== null && (
+                <View className="flex-row justify-between mb-3">
+                  <Text className="text-sm text-muted-foreground">Total</Text>
+                  <Text className="text-sm font-semibold text-foreground">{formatAmount(editedPortfolio + editedFund)}</Text>
+                </View>
+              )}
+              {editError && <Text className="text-xs mb-3" style={{ color: theme.danger }}>{editError}</Text>}
+              <View className="flex-row">
+                <Pressable onPress={() => setEditingDate(null)} className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border">
+                  <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
+                </Pressable>
+                <Pressable onPress={handleSaveEdit} className="flex-1 py-2.5 rounded-lg items-center" style={{ backgroundColor: theme.primary }}>
+                  <Text className="text-sm font-semibold text-primary-foreground">Save</Text>
+                </Pressable>
+              </View>
+            </Card>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* FAB — hidden while add form is open */}
       {!showAddForm && (

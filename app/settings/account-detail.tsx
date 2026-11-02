@@ -947,8 +947,8 @@ export default function AccountDetailScreen() {
                             onChangeText={setEditingOpeningValue}
                             keyboardType="numeric"
                             formula
-                            className="text-xs py-1"
-                            containerClassName="w-28"
+                            className="text-sm py-2"
+                            containerClassName="w-40"
                           />
                           <Pressable
                             onPress={() => handleOverrideOpening(ledgerMonth)}
