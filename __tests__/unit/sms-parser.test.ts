@@ -652,6 +652,56 @@ describe("Axis Account Credit", () => {
   });
 });
 
+describe("Axis savings messages that name the bank (made-up numbers)", () => {
+  const debit =
+    "Debit INR 2500.00\nAxis Bank A/c XX1234\n30-10-26 11:38:51\nMOB-TD/123456789012345/ABC\nWhatsApp BAL to 910000000000\nNot You? SMS BLOCKALL CustID to 910000000001";
+
+  it("reads a debit that isn't a loan EMI", () => {
+    const r = parseBankSMS(debit);
+    expect(r).toMatchObject({
+      amount: 2500,
+      type: "debit",
+      bank: "Axis Bank",
+      cardLast4: "1234",
+      date: "2026-10-30",
+      merchant: "MOB-TD/123456789012345/ABC",
+      transactionTime: "11:38:51",
+      accountType: "savings",
+    });
+  });
+
+  it("a debit with no narration has no merchant, not the WhatsApp line", () => {
+    const r = parseBankSMS("Debit INR 100\nAxis Bank A/c XX1234\n30-10-26 11:38:51\nWhatsApp BAL to 910000000000");
+    expect(r).toMatchObject({ amount: 100, merchant: null });
+  });
+
+  it("a loan EMI debit is still read as the EMI", () => {
+    const r = parseBankSMS("Debit INR 22717.00\nAxis Bank A/c XX1234\n11-09-25 15:03:48\nPPR000810877249_EMI_11-09-");
+    expect(r?.merchant).toContain("Loan EMI");
+    expect(r?.paymentMode).toBe("auto_debit");
+  });
+
+  it("reads a credit with a Ref and a link", () => {
+    const r = parseBankSMS(
+      "INR 5000.00 credited to Axis Bank A/c XX1234 on 30-10-26 at 04:31:39 IST. Ref: NEFT/AB123456789/XYZ.View bal: https://example.com/abc",
+    );
+    expect(r).toMatchObject({
+      amount: 5000,
+      type: "credit",
+      bank: "Axis Bank",
+      cardLast4: "1234",
+      date: "2026-10-30",
+      merchant: "NEFT/AB123456789/XYZ",
+      transactionTime: "04:31:39",
+    });
+  });
+
+  it("a credit worded the older way still takes the older reader", () => {
+    const r = parseBankSMS("INR 145260.00 credited to A/c no. XX1234 on 31-03-26 at 01:31:45 IST. Info - NEFT/AB1234/Coup.");
+    expect(r).toMatchObject({ amount: 145260, type: "credit", cardLast4: "1234" });
+  });
+});
+
 describe("Axis Refund", () => {
   it("parses refund to Axis card", () => {
     const result = parseBankSMS(

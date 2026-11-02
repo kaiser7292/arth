@@ -151,8 +151,8 @@ enum BankMessageInbox {
     var parts: [String] = []
     if let amount = firstMatch(#"(?:₹|rs\.?|inr)\s*([0-9][0-9,]*(?:\.[0-9]{1,2})?)"#, in: text) {
       let tidy = amount.hasSuffix(".00") ? String(amount.dropLast(3)) : amount
-      let credit = firstMatch(#"\b(credited|received|deposited|refund)"#, in: text) != nil
-      let debit = firstMatch(#"\b(debited|spent|paid|sent|withdrawn|purchase)"#, in: text) != nil
+      let credit = firstMatch(#"\b(credited|received|deposited|refund|credit\s+(?:₹|rs\.?|inr))"#, in: text) != nil
+      let debit = firstMatch(#"\b(debited|spent|paid|sent|withdrawn|purchase|debit\s+(?:₹|rs\.?|inr))"#, in: text) != nil
       parts.append("₹\(tidy)" + (debit ? " debited" : credit ? " credited" : ""))
     }
     if let last4 = firstMatch(#"(?:x{2,}|\*{2,}|ending\s*(?:with\s*)?|a/c\s*(?:no\.?)?\s*[x*]*)\s*([0-9]{4})\b"#, in: text) {
@@ -170,6 +170,9 @@ enum BankMessageInbox {
     let text = message.replacingOccurrences(of: "\n", with: " ")
     guard firstMatch(#"(?:₹|rs\.?|inr)\s*([0-9][0-9,]*)"#, in: text) != nil else { return false }
     if firstMatch(#"\b(otp|one[\s-]?time\s+password|verification\s+code)\b"#, in: text) != nil { return false }
+    // "Debit INR 2500.00" (Axis): the bare word only counts right before an amount, so "debit card"
+    // and "credit card" offers still don't pass.
+    if firstMatch(#"\b(debit|credit)\s+(?:₹|rs\.?|inr)"#, in: text) != nil { return true }
     return firstMatch(
       #"\b(debited|credited|spent|paid|sent|received|withdrawn|deposited|transferred|purchase|refund(?:ed)?|txn|transaction)\b"#,
       in: text

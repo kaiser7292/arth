@@ -867,6 +867,37 @@ export const BANK_PATTERNS: BankPattern[] = [
     },
   },
 
+  // ═══ Axis Account Debit (any other debit from savings: mobile transfers, NEFT...) ═══
+  // After the Loan EMI pattern, which is the same shape with a loan narration.
+  // "Debit INR 2500.00\nAxis Bank A/c XX1234\n30-10-26 11:38:51\nMOB-TD/123456789012345/ABC\nWhatsApp BAL to ..."
+  {
+    name: "Axis Account Debit",
+    bank: "Axis Bank",
+    type: "debit",
+    test: /Debit\s+INR\s+[\d,.]+\s+Axis\s+Bank\s+A\/c\s+XX\d+/i,
+    parse: (body) => {
+      const m = body.match(
+        /Debit\s+INR\s+([\d,.]+)\s+Axis\s+Bank\s+A\/c\s+XX(\d+)\s+(\d{2}-\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2})(?:[^\S\n]*\n[^\S\n]*(.*))?/i,
+      );
+      if (!m) return null;
+      const narration = (m[5] ?? "").trim();
+      return {
+        amount: parseAmount(m[1]),
+        merchant: narration && !/^(?:whatsapp|not\s+you)/i.test(narration) ? narration : null,
+        cardLast4: m[2],
+        date: parseDDMMYY(m[3]),
+        bank: "Axis Bank",
+        type: "debit",
+        skip: false,
+        dueDate: null,
+        isForecast: false,
+        confidence: 0.85,
+        accountType: "savings" as const,
+        transactionTime: m[4],
+      };
+    },
+  },
+
   // ═══════════════════════════════════════════════════════════════
   // EXPANDED PATTERNS (Task 11.4)
   // ═══════════════════════════════════════════════════════════════
@@ -1390,6 +1421,36 @@ export const BANK_PATTERNS: BankPattern[] = [
         upiRef: m[4],
         upiSubtype: subtype,
         accountType: "savings" as const,
+      };
+    },
+  },
+
+  // ═══ Axis Account Credit (names the bank in the sentence) ═══
+  // "INR 5000.00 credited to Axis Bank A/c XX1234 on 30-10-26 at 04:31:39 IST. Ref: NEFT/AB123456789/XYZ.View bal: https://..."
+  {
+    name: "Axis Account Credit (Ref)",
+    bank: "Axis Bank",
+    type: "credit",
+    test: /INR\s+[\d,.]+\s+credited\s+to\s+Axis\s+Bank\s+A\/c\s+XX\d+/i,
+    parse: (body) => {
+      const m = body.match(
+        /INR\s+([\d,.]+)\s+credited\s+to\s+Axis\s+Bank\s+A\/c\s+XX(\d+)\s+on\s+(\d{2}-\d{2}-\d{2})(?:\s+at\s+(\d{2}:\d{2}:\d{2}))?/i,
+      );
+      if (!m) return null;
+      const ref = body.match(/Ref:\s*(.+?)(?:\.\s*View\b|\.\s*$|\s*$)/im);
+      return {
+        amount: parseAmount(m[1]),
+        merchant: ref ? ref[1].trim() : null,
+        cardLast4: m[2],
+        date: parseDDMMYY(m[3]),
+        bank: "Axis Bank",
+        type: "credit",
+        skip: false,
+        dueDate: null,
+        isForecast: false,
+        confidence: 0.9,
+        accountType: "savings" as const,
+        ...(m[4] ? { transactionTime: m[4] } : {}),
       };
     },
   },
