@@ -132,4 +132,4 @@ Open the credit → **Unlink** on the settlement badge. The hisaab entry goes aw
 
 A credit that's a settlement, whether you recorded it into an account or linked it, gets the type **Hisaab settlement** by itself. It isn't counted as income. You can't choose this type by hand, because a settlement needs a person. Unlink the credit and its type goes back to Other, ready for you to choose another.
 
-In a person's ledger, **Group by** sorts their entries by month, type, category or merchant.
+In a person's ledger, the bar above the entries searches, filters by dates, type, category or merchant, sorts, and groups by month, type, category or merchant.

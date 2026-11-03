@@ -4,7 +4,9 @@ import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ScreenContainer, Text } from "@/components/ui";
+import { ListToolbar, ScreenContainer, Text } from "@/components/ui";
+import { useListTools } from "@/hooks/use-list-tools";
+import type { ListField, ListSort } from "@/utils/list-tools";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -62,6 +64,22 @@ const FILTER_OPTIONS: { key: SectionFilter; label: string; icon: keyof typeof Io
   { key: "smart_rules", label: "Rules", icon: "flash-outline" },
   { key: "sms_templates", label: "Templates", icon: "code-slash-outline" },
 ];
+
+const NO_FIELDS: ListField<any>[] = [];
+const binName = (item: any): string => item.name ?? item.title ?? item.merchant_name ?? item.description ?? item.bank_name ?? item.sender ?? "";
+const binDate = (item: any): string => String(item.deleted_at ?? item.date ?? item.updated_at ?? item.created_at ?? "");
+const BIN_SORTS: ListSort<any>[] = [
+  { id: "listed", label: "As listed" },
+  { id: "newest", label: "Newest first", compare: (a, b) => binDate(b).localeCompare(binDate(a)) },
+  { id: "oldest", label: "Oldest first", compare: (a, b) => binDate(a).localeCompare(binDate(b)) },
+  { id: "name", label: "Name (A–Z)", compare: (a, b) => binName(a).localeCompare(binName(b)) },
+  { id: "amount", label: "Amount (highest first)", compare: (a, b) => (b.amount ?? 0) - (a.amount ?? 0) },
+];
+// Named fields only: a vault entry's username and password stay out of this.
+const binSearch = (item: any) => ({
+  texts: [item.name, item.title, item.merchant_name, item.description, item.bank_name, item.account_label, item.sender, item.address, item.body],
+  amounts: item.amount != null ? [item.amount] : [],
+});
 
 function daysAgo(dateStr: string): string {
   const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000);
@@ -543,11 +561,20 @@ export default function RecycleBinScreen() {
     sms_templates: { data: deletedSmsTemplates, renderItem: renderSmsTemplateItem, emptyTitle: "No Deleted Templates", emptySubtitle: "Deleted SMS parsing templates will appear here.", emptyIcon: "code-slash-outline" },
   }), [deletedExpenses, rejectedExpenses, inactiveCategories, inactivePaymentModes, inactiveAccounts, inactivePersons, deletedCredits, dismissedRecurring, smsRecords, deletedVaultEntries, deletedSmartRules, deletedSmsTemplates, renderDeletedItem, renderRejectedItem, renderCategoryItem, renderPaymentModeItem, renderAccountItem, renderPersonItem, renderCreditItem, renderRecurringItem, renderSmsItem, renderVaultItem, renderSmartRuleItem, renderSmsTemplateItem]);
 
+  const section = sectionConfig[activeFilter];
+  const tools = useListTools<any>({
+    screen: "recycle_bin",
+    rows: section.data,
+    fields: NO_FIELDS,
+    sorts: BIN_SORTS,
+    searchPlaceholder: "Search this list",
+    search: binSearch,
+  });
+
   if (loading) {
     return <ScreenContainer padTop={false} centered><ActivityIndicator size="large" color={colors.blue} /></ScreenContainer>;
   }
 
-  const section = sectionConfig[activeFilter];
 
   return (
     <ScreenContainer padTop={false}>
@@ -568,7 +595,7 @@ export default function RecycleBinScreen() {
             const isActive = activeFilter === opt.key;
             const count = counts[opt.key];
             return (
-              <Pressable key={opt.key} onPress={() => setActiveFilter(opt.key)}
+              <Pressable key={opt.key} onPress={() => { setActiveFilter(opt.key); tools.reset(); }}
                 className={`flex-row items-center px-3 py-1.5 rounded-full ${isActive ? "border" : "bg-card"}`}
                 style={isActive ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary } : undefined}>
                 <Ionicons name={opt.icon} size={14}
@@ -666,6 +693,8 @@ export default function RecycleBinScreen() {
         </View>
       )}
 
+      {section.data.length > 0 && <ListToolbar {...tools.toolbar} />}
+
       {/* List */}
       {section.data.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
@@ -682,8 +711,10 @@ export default function RecycleBinScreen() {
           initialNumToRender={12}
           maxToRenderPerBatch={10}
           windowSize={7}
-          data={section.data}
+          data={tools.rows}
           keyExtractor={(item: any) => item.id}
+          keyboardShouldPersistTaps="handled"
+          ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
           renderItem={section.renderItem}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}

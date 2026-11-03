@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
-import { View, TextInput, FlatList, Pressable, ActivityIndicator, BackHandler } from "react-native";
+import { View, FlatList, Pressable, ActivityIndicator, BackHandler } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Card, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { useListTools } from "@/hooks/use-list-tools";
+import type { ListField, ListSort } from "@/utils/list-tools";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -20,6 +22,23 @@ import { formatDate } from "@/utils/date";
 import { useTheme } from "@/hooks/use-theme";
 
 type ViewMode = "list" | "drilldown" | "category";
+
+const SCAN_FIELDS: ListField<ScanDetailRow>[] = [
+  { id: "sender", label: "Sender", keyOf: (d) => d.sms_address, noneLabel: "No sender", filter: true, group: true, searchable: true },
+  { id: "merchant", label: "Merchant", keyOf: (d) => d.parsed_merchant?.trim(), noneLabel: "No merchant", filter: true, group: true, searchable: true },
+  { id: "type", label: "Type", keyOf: (d) => d.parsed_type, noneLabel: "No type", filter: true, group: true },
+];
+const SCAN_SORTS: ListSort<ScanDetailRow>[] = [
+  { id: "logged", label: "As logged" },
+  { id: "newest", label: "Newest first", compare: (a, b) => (b.sms_date ?? 0) - (a.sms_date ?? 0) },
+  { id: "oldest", label: "Oldest first", compare: (a, b) => (a.sms_date ?? 0) - (b.sms_date ?? 0) },
+  { id: "amount", label: "Amount (highest first)", compare: (a, b) => (b.parsed_amount ?? 0) - (a.parsed_amount ?? 0) },
+];
+const SCAN_SEARCH = (d: ScanDetailRow) => ({
+  texts: [d.sms_body_preview, d.sms_address, d.parsed_merchant],
+  amounts: d.parsed_amount != null ? [d.parsed_amount] : [],
+});
+const SCAN_AMOUNT = (d: ScanDetailRow) => d.parsed_amount ?? 0;
 
 const CATEGORY_META: Record<
   ScanDetailCategory,
@@ -45,9 +64,18 @@ export default function SmsScanRunsScreen() {
   const [details, setDetails] = useState<ScanDetailRow[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ScanDetailCategory | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [reportSms, setReportSms] = useState<{ body: string; address: string } | null>(null);
   const [ruleNameMap, setRuleNameMap] = useState<Record<string, string>>({});
+  const categoryDetails = useMemo(() => details.filter((d) => d.category === selectedCategory), [details, selectedCategory]);
+  const tools = useListTools<ScanDetailRow>({
+    screen: "sms_scan_details",
+    rows: categoryDetails,
+    fields: SCAN_FIELDS,
+    sorts: SCAN_SORTS,
+    searchPlaceholder: "Search SMS, sender, merchant",
+    search: SCAN_SEARCH,
+    amountOf: SCAN_AMOUNT,
+  });
 
   useEffect(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -94,12 +122,12 @@ export default function SmsScanRunsScreen() {
     if (viewMode === "category") {
       setViewMode("drilldown");
       setSelectedCategory(null);
-      setSearchQuery("");
+      tools.reset();
     } else if (viewMode === "drilldown") {
       setViewMode("list");
       setSelectedRun(null);
       setDetails([]);
-      setSearchQuery("");
+      tools.reset();
     } else {
       router.back();
     }
@@ -320,16 +348,8 @@ export default function SmsScanRunsScreen() {
     if (!selectedCategory) return null;
 
     const meta = CATEGORY_META[selectedCategory];
-    const categoryDetails = details.filter((d) => d.category === selectedCategory);
-    const query = searchQuery.toLowerCase().trim();
-    const filtered = query
-      ? categoryDetails.filter(
-          (d) =>
-            (d.sms_body_preview ?? "").toLowerCase().includes(query) ||
-            (d.sms_address ?? "").toLowerCase().includes(query) ||
-            (d.parsed_merchant ?? "").toLowerCase().includes(query),
-        )
-      : categoryDetails;
+    const filtered = tools.rows;
+    const narrowed = tools.narrowed;
 
     return (
       <View className="flex-1 px-4">
@@ -352,40 +372,30 @@ export default function SmsScanRunsScreen() {
             />
           </View>
           <Text className="text-base font-bold text-foreground">
-            {meta.label} ({filtered.length}{query ? ` of ${categoryDetails.length}` : ""})
+            {meta.label} ({filtered.length}{narrowed ? ` of ${categoryDetails.length}` : ""})
           </Text>
         </View>
 
-        {/* Search */}
-        <View className="flex-row items-center mb-3 border rounded-lg px-3 py-2" style={{ borderColor: colors.border }}>
-          <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search SMS body, sender, merchant..."
-            placeholderTextColor={colors.textSecondary}
-            className="flex-1 ml-2 text-sm text-foreground"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-          {searchQuery.length > 0 && (
-            <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
-              <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
-            </Pressable>
-          )}
-        </View>
+        <ListToolbar {...tools.toolbar} inset={false} />
+        {tools.filterSheet}
 
         <FlatList
           initialNumToRender={12}
           maxToRenderPerBatch={10}
           windowSize={7}
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item: detail }) => <SmsDetailCard detail={detail} ruleNameMap={ruleNameMap} />}
+          data={tools.grouped}
+          keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
+          renderItem={({ item: row }) =>
+            row.type === "heading" ? (
+              <GroupHeading label={row.label} count={row.count} total={row.total} signed={false} inset={false} />
+            ) : (
+              <SmsDetailCard detail={row.item} ruleNameMap={ruleNameMap} />
+            )
+          }
           ListEmptyComponent={
             <View className="items-center py-8">
               <Text className="text-sm text-muted-foreground">
-                {query ? "No SMS matching your search" : "No details recorded for this category"}
+                {narrowed ? "No SMS matching your search" : "No details recorded for this category"}
               </Text>
             </View>
           }

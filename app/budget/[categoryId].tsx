@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, EmptyState, GroupByBar, GroupHeading, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
-import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
+import { Card, EmptyState, GroupHeading, ListToolbar, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import type { GroupedRow } from "@/utils/group-rows";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -66,7 +65,6 @@ export default function CategoryDetailScreen() {
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
     () => (settingsStorage.getString(CATEGORY_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
   );
-  const [showSortSheet, setShowSortSheet] = useState(false);
 
   // Sync when navigating to this screen with new params
   useEffect(() => {
@@ -118,13 +116,21 @@ export default function CategoryDetailScreen() {
 
   const paymentModeMap = useMemo(() => new Map(paymentModes.map((p) => [p.id, p])), [paymentModes]);
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
-  const grouping = useExpenseGrouping({
+  const tools = useExpenseTools({
     screen: "budget_category",
     kind: "spend",
     available: GROUPS,
-    fallback: "none",
     expenses,
     names: { categoryMap: NO_CATEGORIES, accountMap, paymentModeMap },
+    sort: {
+      value: sortBy,
+      defaultValue: "date_desc",
+      options: EXPENSE_SORT_OPTIONS,
+      onChange: (v) => {
+        setSortBy(v as ExpenseSortBy);
+        settingsStorage.set(CATEGORY_SORT_KEY, v);
+      },
+    },
   });
 
   if (!category) {
@@ -191,13 +197,6 @@ export default function CategoryDetailScreen() {
             {monthLabel}
           </Text>
         </View>
-        <Pressable onPress={() => setShowSortSheet(true)} className="p-2" hitSlop={8}>
-          <Ionicons
-            name="swap-vertical-outline"
-            size={22}
-            color={sortBy !== "date_desc" ? category.color : colors.textSecondary}
-          />
-        </Pressable>
       </View>
 
       {/* Summary card */}
@@ -266,14 +265,17 @@ export default function CategoryDetailScreen() {
         </Text>
       </View>
 
+      {expenses.length > 0 && <ListToolbar {...tools.toolbar} />}
+      {tools.filterSheet}
+
       {/* Transactions */}
       <FlatList
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}
-        data={grouping.rows}
+        data={tools.grouped}
+        keyboardShouldPersistTaps="handled"
         keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
-        ListHeaderComponent={expenses.length > 0 ? <GroupByBar value={grouping.groupBy} options={grouping.options} onChange={grouping.setGroupBy} /> : null}
         renderItem={renderExpense}
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={
@@ -287,27 +289,19 @@ export default function CategoryDetailScreen() {
           />
         }
         ListEmptyComponent={
-          <EmptyState
-            icon="receipt-outline"
-            title="Nothing here yet"
-            subtitle={`No expenses in this category for ${monthLabel}.`}
-          />
+          tools.narrowed ? (
+            <Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>
+          ) : (
+            <EmptyState
+              icon="receipt-outline"
+              title="Nothing here yet"
+              subtitle={`No expenses in this category for ${monthLabel}.`}
+            />
+          )
         }
       />
     </ScreenContainer>
 
-      {/* Sort sheet */}
-      <SelectSheet
-        visible={showSortSheet}
-        title="Sort by"
-        options={EXPENSE_SORT_OPTIONS}
-        value={sortBy}
-        onChange={(v) => {
-          setSortBy(v);
-          settingsStorage.set(CATEGORY_SORT_KEY, v);
-        }}
-        onClose={() => setShowSortSheet(false)}
-      />
     </>
   );
 }

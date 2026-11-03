@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { FAB, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { FAB, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { useListTools } from "@/hooks/use-list-tools";
+import type { ListField, ListSort } from "@/utils/list-tools";
 import { Card } from "@/components/ui/Card";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -18,6 +20,17 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 import { creditLook } from "@/services/expense-types";
+
+const APPLIES_LABELS: Record<string, string> = { expense: "Expenses", credit: "Credits", any: "All transactions" };
+const RULE_FIELDS: ListField<SmartRule>[] = [
+  { id: "applies", label: "Applies to", keyOf: (r) => r.applies_to, labelOf: (k) => APPLIES_LABELS[k] ?? k, filter: true, group: true },
+  { id: "status", label: "Status", keyOf: (r) => (r.is_active ? "Active" : "Paused"), filter: true, group: true },
+];
+const RULE_SORTS: ListSort<SmartRule>[] = [
+  { id: "priority", label: "Priority (the order they run)" },
+  { id: "name", label: "Name (A–Z)", compare: (a, b) => a.name.localeCompare(b.name) },
+  { id: "applied", label: "Most applied", compare: (a, b) => b.apply_count - a.apply_count },
+];
 
 export default function SmartRulesListScreen() {
   const router = useRouter();
@@ -219,6 +232,15 @@ export default function SmartRulesListScreen() {
     return parts.length > 0 ? parts.join(" · ") : "No actions";
   };
 
+  const tools = useListTools<SmartRule>({
+    screen: "smart_rules",
+    rows: rules,
+    fields: RULE_FIELDS,
+    sorts: RULE_SORTS,
+    searchPlaceholder: "Search rules",
+    search: (r) => ({ texts: [r.name, summarizeConditions(r), summarizeActions(r)] }),
+  });
+
   const deletedSection = deletedRules.length > 0 ? (
     <View className="mt-4">
       <Pressable
@@ -285,8 +307,14 @@ export default function SmartRulesListScreen() {
             {deletedSection}
           </ScrollView>
         ) : (
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }}>
-            {rules.map((item) => (
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled">
+            <ListToolbar {...tools.toolbar} inset={false} />
+            {tools.filterSheet}
+            {tools.rows.length === 0 && <Text className="text-sm text-muted-foreground text-center py-8">Nothing matches.</Text>}
+            {tools.grouped.map((row) => {
+              if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} />;
+              const item = row.item;
+              return (
               <Card key={item.id} className="mb-3">
                 <Pressable onPress={() => router.push(`/settings/smart-rules/${item.id}`)}>
                   <View className="flex-row items-center mb-2">
@@ -346,7 +374,8 @@ export default function SmartRulesListScreen() {
                   </Pressable>
                 </View>
               </Card>
-            ))}
+              );
+            })}
             {deletedSection}
           </ScrollView>
         )}

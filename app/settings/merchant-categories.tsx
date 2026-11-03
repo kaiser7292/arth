@@ -1,8 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, Switch, View } from "react-native";
-import { Button, Card, FAB, FilterChip, Input, LearnMoreChip, ScreenContainer, SelectSheet, Sheet, Text } from "@/components/ui";
+import { FlatList, Pressable, Switch, View } from "react-native";
+import { Button, Card, FAB, Input, LearnMoreChip, ListToolbar, ScreenContainer, SelectSheet, Sheet, Text } from "@/components/ui";
+import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -26,8 +27,7 @@ import { getErrorMessage } from "@/utils/error-message";
 
 type Filter = "all" | "mine" | "off" | "attention" | "learned";
 
-const FILTERS: Array<{ id: Filter; label: string }> = [
-  { id: "all", label: "All" },
+const FILTERS: Array<{ id: Exclude<Filter, "all">; label: string }> = [
   { id: "mine", label: "Changed by you" },
   { id: "off", label: "Turned off" },
   { id: "attention", label: "Needs attention" },
@@ -51,6 +51,7 @@ export default function MerchantCategoriesScreen() {
   const [newMerchant, setNewMerchant] = useState("");
   const [picker, setPicker] = useState<null | "edit" | "add">(null);
   const [addCategory, setAddCategory] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   useDataRefresh(
     useCallback(async () => {
@@ -118,17 +119,13 @@ export default function MerchantCategoriesScreen() {
           <LearnMoreChip contextKey="settings-merchant-categories" />
         </View>
       </Card>
-      <Input placeholder="Search merchants or categories" value={query} onChangeText={setQuery} containerClassName="mb-2" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 8 }}>
-        {FILTERS.map((f) => (
-          <FilterChip
-            key={f.id}
-            label={f.id === "attention" && attentionCount ? `${f.label} (${attentionCount})` : f.label}
-            active={filter === f.id}
-            onPress={() => setFilter(f.id)}
-          />
-        ))}
-      </ScrollView>
+      <ListToolbar
+        inset={false}
+        search={{ value: query, onChangeText: setQuery, placeholder: "Search merchants or categories" }}
+        filter={{ onPress: () => setFilterOpen(true), activeCount: filter === "all" ? 0 : 1 }}
+        chips={filter === "all" ? [] : [{ key: filter, label: FILTERS.find((f) => f.id === filter)?.label ?? filter, onRemove: () => setFilter("all") }]}
+        onClearAll={() => setFilter("all")}
+      />
       {filter === "learned" ? (
         <Text className="text-xs text-muted-foreground mb-2 leading-4">
           When you change a merchant's category {LEARNED_THRESHOLD} times, Arth starts filing it that way. Forget one
@@ -140,6 +137,19 @@ export default function MerchantCategoriesScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      <FullScreenFilter
+        visible={filterOpen}
+        sections={[{
+          key: "show",
+          label: "Show",
+          type: "single",
+          options: FILTERS.map((f) => ({ id: f.id, label: f.id === "attention" && attentionCount ? `${f.label} (${attentionCount})` : f.label })),
+          selectedIds: filter === "all" ? [] : [filter],
+        }]}
+        onApply={(selections) => setFilter((selections.show?.[0] as Filter | undefined) ?? "all")}
+        onReset={() => setFilter("all")}
+        onClose={() => setFilterOpen(false)}
+      />
       {filter === "learned" ? (
         <FlatList
           data={visibleLearned}

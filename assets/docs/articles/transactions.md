@@ -25,6 +25,9 @@ phrasings:
   - Undo delete
   - Search with plain English
   - Group by category
+  - Where is the sort button?
+  - Where are saved views?
+  - What do the icons next to search do?
   - Group transactions by person
   - Group by month
   - Change the type of many credits
@@ -114,13 +117,19 @@ Split expenses don't offer Undo (restoring one wouldn't bring back its Hisaab en
 - [Auto-categorize with smart rules](smart-rules)
 - [Voice input](voice-input)
 
-## Group by
+## The toolbar: search, filter, sort, group by
 
-Tap **Group by** above the list to put rows under headings, each with how many there are and what they add up to. Transactions can group by date, month, category, merchant, account, payment mode or person. On the Credits tab, category becomes **Type**. Transfers group by date, month, from account or to account.
+Long lists all have the same bar: a search box, then icons for **Filter**, **Sort** and **Group by**. An icon turns coloured with a dot when it's in use, and the line under the bar says what's on. Tap × on anything there to undo just that, or **Clear all**. A list leaves out a tool it has no use for, and the others stay in the same order.
 
-Each list remembers how you left it. The same control is on Together's transactions, a person's Hisaab, an account's ledger, the transactions behind My Month, and the lists you open from Budget and Insights.
+**Group by** puts rows under headings, each with how many there are and what they add up to. Transactions can group by date, month, category, merchant, account, payment mode or person. On the Credits tab, category becomes **Type**. Transfers group by date, month, from account or to account. Each list remembers how you sorted and grouped it.
 
-The summary card at the top has its own breakdown, and it doesn't change with the list.
+You'll find the bar on Transactions, Together, a person's Hisaab, an account's ledger, the lists behind My Month, Budget and Insights, and in Settings on merchants, keyword rules, accounts, Smart Rules, the recycle bin, the audit log and SMS scan runs.
+
+The summary card at the top of Transactions has its own breakdown, and it doesn't change with the list.
+
+### Saved views
+
+Filter a list and tap **Save view** under the bar to keep it. Your saved views are in the **Filter** screen under **Saved views**: tap one to apply it, tap the star to open Transactions with it, or delete it.
 
 ## Change the type of many credits
 

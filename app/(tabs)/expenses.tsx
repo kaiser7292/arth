@@ -1,6 +1,6 @@
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
-import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, CREDIT_KINDS, creditLook, PICKABLE_CREDIT_KINDS, type CreditKind } from "@/services/expense-types";
+import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, CREDIT_KINDS, PICKABLE_CREDIT_KINDS, creditLook, type CreditKind } from "@/services/expense-types";
 import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
 import { useGroupBy } from "@/hooks/use-group-by";
 import { formatMonthLabel } from "@/utils/date";
@@ -19,8 +19,8 @@ import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, GroupByBar, GroupHeading, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
-import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListToolbar, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
+import type { FABMenuItem, SwipePagerPage, ToolbarChip } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -172,14 +172,12 @@ export default function ExpensesScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [savedViews, setSavedViews] = useState<SavedFilterView[]>(() => getSavedFilterViews());
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
-  const [showViewsPicker, setShowViewsPicker] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<Set<string>>(new Set());
 
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
     () => (settingsStorage.getString(SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
   );
-  const [showSortSheet, setShowSortSheet] = useState(false);
 
   // Preset: navigate to a specific tab after save (refund → credits, etc.)
   const params = useLocalSearchParams<{ preset?: string; filterMonth?: string; filterAvoidability?: string; search?: string; select?: string; show?: string; hint?: string; request?: string }>();
@@ -916,6 +914,46 @@ export default function ExpensesScreen() {
     [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, colors],
   );
 
+  const chooseSort = (v: ExpenseSortBy) => {
+    setSortBy(v);
+    settingsStorage.set(SORT_KEY, v);
+  };
+
+  // What's on, each with its own ×. A name that's gone (a deleted category) just isn't listed.
+  const toolbarChips: ToolbarChip[] = [
+    ...filterCreditKinds.map((k) => ({ key: `kind-${k}`, label: creditLook(k).name, onRemove: () => setFilterCreditKinds((p) => p.filter((x) => x !== k)) })),
+    ...filterCategoryIds.flatMap((id) => {
+      const label = id === NOT_SET ? NOT_SET_LABELS.category : categoryMap.get(id)?.name;
+      return label ? [{ key: `cat-${id}`, label, onRemove: () => setFilterCategoryIds((p) => p.filter((x) => x !== id)) }] : [];
+    }),
+    ...filterPaymentModeIds.flatMap((id) => {
+      const label = id === NOT_SET ? NOT_SET_LABELS.paymentMode : paymentModeMap.get(id)?.name;
+      return label ? [{ key: `pm-${id}`, label, onRemove: () => setFilterPaymentModeIds((p) => p.filter((x) => x !== id)) }] : [];
+    }),
+    ...filterAccountIds.flatMap((id) => {
+      const label = id === NOT_SET ? NOT_SET_LABELS.account : accountMap.get(id)?.bank_name;
+      return label ? [{ key: `acct-${id}`, label, onRemove: () => setFilterAccountIds((p) => p.filter((x) => x !== id)) }] : [];
+    }),
+    ...filterTagIds.flatMap((id) => {
+      const label = id === NOT_SET ? NOT_SET_LABELS.tags : allTags.find((t) => t.id === id)?.name;
+      return label ? [{ key: `tag-${id}`, label, onRemove: () => setFilterTagIds((p) => p.filter((x) => x !== id)) }] : [];
+    }),
+    ...filterMerchantNames.map((name) => ({
+      key: `merchant-${name}`,
+      label: name === NOT_SET ? NOT_SET_LABELS.merchant : name,
+      onRemove: () => setFilterMerchantNames((p) => p.filter((x) => x !== name)),
+    })),
+    ...filterRuleIds.flatMap((id) => {
+      const rule = allRules.find((r) => r.id === id);
+      return rule ? [{ key: `rule-${id}`, label: `Rule: ${rule.name}`, onRemove: () => setFilterRuleIds((p) => p.filter((x) => x !== id)) }] : [];
+    }),
+    ...(filterRefundedStatus ? [{ key: "refund", label: filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded", onRemove: () => setFilterRefundedStatus("") }] : []),
+    ...(filterStatus ? [{ key: "status", label: filterStatus === "pending_review" ? "Pending Review" : "Approved", onRemove: () => setFilterStatus("") }] : []),
+    ...(filterAvoidability
+      ? [{ key: "avoid", label: filterAvoidability === "avoidable" ? "Avoidable" : filterAvoidability === "unavoidable" ? "Unavoidable" : "Not classified", onRemove: () => setFilterAvoidability("") }]
+      : []),
+  ];
+
   return (
     <ScreenContainer>
       <ContextualHeader
@@ -926,157 +964,7 @@ export default function ExpensesScreen() {
           variant: "warning",
           onPress: () => router.push("/expense/review-queue"),
         } : undefined}
-        rightActions={[{
-          icon: "swap-vertical-outline",
-          color: sortBy !== "date_desc" ? theme.primary : undefined,
-          onPress: () => setShowSortSheet(true),
-        }]}
       />
-      {/* Search bar */}
-      <View className="px-4 pt-3 pb-2">
-        <View className="flex-row items-center rounded-lg bg-card px-3 py-2">
-          <Ionicons name="search" size={18} color={colors.textSecondary} />
-          <TextInput
-            value={search}
-            onChangeText={handleSearchChange}
-            onSubmitEditing={applyNLSearch}
-            placeholder="Try 'food last month' or '>5000'"
-            placeholderTextColor={colors.tabIconDefault}
-            maxLength={100}
-            accessibilityLabel="Search expenses"
-            className="flex-1 ml-2 text-base text-foreground"
-            returnKeyType="go"
-            blurOnSubmit={false}
-          />
-          {search !== "" && (
-            <Pressable onPress={() => setSearch("")} accessibilityLabel="Clear search" accessibilityRole="button">
-              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
-            </Pressable>
-          )}
-          {/* Apply button — only shown for typed input; voice auto-applies */}
-          {search.trim() !== "" && !isVoiceSearching && (
-            <Pressable
-              onPress={applyNLSearch}
-              accessibilityLabel="Apply smart search"
-              accessibilityRole="button"
-              className="ml-2 px-2 py-1 rounded-md"
-              style={{ backgroundColor: theme.primary }}
-            >
-              <Text className="text-xs font-semibold text-primary-foreground">Apply</Text>
-            </Pressable>
-          )}
-          {/* Voice search mic (only when the build has speech recognition) */}
-          {isSpeechRecognitionAvailable && (
-            <Pressable
-              onPress={isVoiceSearching ? cancelVoiceSearch : startVoiceSearch}
-              accessibilityLabel={isVoiceSearching ? "Cancel voice search" : "Voice search"}
-              accessibilityRole="button"
-              className="ml-2 p-1"
-            >
-              <Ionicons
-                name={isVoiceSearching ? "radio-button-on" : "mic-outline"}
-                size={18}
-                color={isVoiceSearching ? theme.danger : colors.textSecondary}
-              />
-            </Pressable>
-          )}
-          <Pressable
-            onPress={() => setShowFilters(!showFilters)}
-            accessibilityLabel={showFilters ? "Hide filters" : "Show filters"}
-            accessibilityRole="button"
-            className="ml-2 p-1"
-          >
-            {/*
-              A funnel, not sliders. options-outline is the icon for settings, which is why
-              this did not read as a filter. It fills when filters are on, so the active
-              state survives being glanced at rather than depending on colour alone, and it
-              matches the mic beside it at 18px instead of standing 2px taller.
-            */}
-            <Ionicons
-              name={hasActiveFilters ? "funnel" : "funnel-outline"}
-              size={18}
-              color={hasActiveFilters ? theme.primary : colors.textSecondary}
-            />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Save view inline input */}
-      {showSaveViewInput && (
-        <View className="px-4 pb-2 flex-row items-center">
-          <TextInput
-            value={saveViewName}
-            onChangeText={setSaveViewName}
-            placeholder="View name..."
-            placeholderTextColor={colors.tabIconDefault}
-            autoFocus
-            maxLength={30}
-            onSubmitEditing={confirmSaveView}
-            returnKeyType="done"
-            className="flex-1 text-sm text-foreground bg-card rounded-lg px-3 py-2 mr-2"
-          />
-          <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: theme.primary }}>
-            <Text className="text-xs font-medium text-primary-foreground">Save</Text>
-          </Pressable>
-          <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2">
-            <Ionicons name="close" size={18} color={colors.textSecondary} />
-          </Pressable>
-        </View>
-      )}
-
-      {/* Saved filter views — dropdown */}
-      {savedViews.length > 0 && (
-        <View className="px-4 pb-2">
-          <Pressable
-            onPress={() => setShowViewsPicker(!showViewsPicker)}
-            className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
-          >
-            <View className="flex-row items-center">
-              <Ionicons name="bookmark-outline" size={14} color={theme.primary} style={{ marginRight: 6 }} />
-              <Text className="text-sm font-medium" style={{ color: activeViewId ? theme.primary : colors.textSecondary }}>
-                {activeViewId ? savedViews.find((v) => v.id === activeViewId)?.name ?? "Saved Views" : "Saved Views"}
-              </Text>
-            </View>
-            <Ionicons name={showViewsPicker ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />
-          </Pressable>
-
-          {showViewsPicker && (
-            <View className="mt-1 rounded-lg bg-card overflow-hidden">
-              {savedViews.map((view) => {
-                const isActive = activeViewId === view.id;
-                const isDefault = getDefaultFilterViewId() === view.id;
-                return (
-                  <View key={view.id} className="flex-row items-center border-b border-border">
-                    <Pressable
-                      onPress={() => { applyFilterView(view); setShowViewsPicker(false); }}
-                      className="flex-1 flex-row items-center px-3 py-2.5"
-                    >
-                      {isDefault && <Ionicons name="star" size={11} color={theme.warning} style={{ marginRight: 5 }} />}
-                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-foreground"}`} style={isActive ? { color: theme.primary } : undefined}>
-                        {view.name}
-                      </Text>
-                      {isActive && <Ionicons name="checkmark" size={14} color={theme.primary} />}
-                    </Pressable>
-                    <Pressable
-                      onPress={() => handleSetDefault(view.id)}
-                      className="px-2 py-2.5"
-                    >
-                      <Ionicons name={isDefault ? "star" : "star-outline"} size={14} color={theme.warning} />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => { handleDeleteView(view.id, view.name); }}
-                      className="px-2 py-2.5 mr-1"
-                    >
-                      <Ionicons name="trash-outline" size={14} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </View>
-      )}
-
       {/* Date preset selector */}
       <View className="px-4 pb-2">
         <Pressable
@@ -1145,10 +1033,130 @@ export default function ExpensesScreen() {
         )}
       </View>
 
+      <ListToolbar<ExpenseSortBy, string>
+        search={{
+          value: search,
+          onChangeText: handleSearchChange,
+          onClear: () => setSearch(""),
+          placeholder: "Try 'food last month'",
+          input: {
+            onSubmitEditing: applyNLSearch,
+            returnKeyType: "go",
+            blurOnSubmit: false,
+            accessibilityLabel: "Search expenses",
+          },
+          accessory: isVoiceSearching ? (
+            <Pressable onPress={cancelVoiceSearch} accessibilityLabel="Cancel voice search" accessibilityRole="button" className="ml-2 p-1">
+              <Ionicons name="radio-button-on" size={18} color={theme.danger} />
+            </Pressable>
+          ) : search.trim() !== "" ? (
+            // Reads plain English ('food last month') once it's typed; voice applies by itself.
+            <Pressable
+              onPress={applyNLSearch}
+              accessibilityLabel="Apply smart search"
+              accessibilityRole="button"
+              className="ml-2 px-2 py-1 rounded-md"
+              style={{ backgroundColor: theme.primary }}
+            >
+              <Text className="text-xs font-semibold text-primary-foreground">Apply</Text>
+            </Pressable>
+          ) : isSpeechRecognitionAvailable ? (
+            <Pressable onPress={startVoiceSearch} accessibilityLabel="Voice search" accessibilityRole="button" className="ml-2 p-1">
+              <Ionicons name="mic-outline" size={18} color={colors.textSecondary} />
+            </Pressable>
+          ) : null,
+        }}
+        filter={{ onPress: () => setShowFilters(true), activeCount: toolbarChips.length }}
+        sort={filterNature === "transfers" ? undefined : {
+          value: sortBy,
+          defaultValue: "date_desc",
+          options: EXPENSE_SORT_OPTIONS,
+          onChange: chooseSort,
+        }}
+        group={filterNature === "transfers"
+          ? { value: transferGroupBy, defaultValue: "date", options: TRANSFER_GROUP_OPTIONS, onChange: (v) => setTransferGroupBy(v as TransferGroupBy) }
+          : { value: grouping.groupBy, defaultValue: "date", options: grouping.options, onChange: (v) => grouping.setGroupBy(v as ExpenseGroupBy) }}
+        chips={toolbarChips}
+        onClearAll={() => {
+          // Stays on the tab it's on: clearing what's narrowing the list isn't leaving it.
+          const tab = filterNature;
+          clearFilters();
+          setFilterNature(tab);
+          setActiveViewId(null);
+        }}
+        action={hasActiveFilters ? { label: "Save view", onPress: handleSaveView } : undefined}
+      />
+
+      {/* Save view inline input */}
+      {showSaveViewInput && (
+        <View className="px-4 pb-2 flex-row items-center">
+          <TextInput
+            value={saveViewName}
+            onChangeText={setSaveViewName}
+            placeholder="View name..."
+            placeholderTextColor={colors.tabIconDefault}
+            autoFocus
+            maxLength={30}
+            onSubmitEditing={confirmSaveView}
+            returnKeyType="done"
+            className="flex-1 text-sm text-foreground bg-card rounded-lg px-3 py-2 mr-2"
+          />
+          <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: theme.primary }}>
+            <Text className="text-xs font-medium text-primary-foreground">Save</Text>
+          </Pressable>
+          <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2">
+            <Ionicons name="close" size={18} color={colors.textSecondary} />
+          </Pressable>
+        </View>
+      )}
+
       {/* Full-screen filter modal */}
       <FullScreenFilter
         visible={showFilters}
         sections={[
+          ...(savedViews.length > 0
+            ? [{
+                key: "savedViews",
+                label: "Saved views",
+                type: "custom" as const,
+                options: [],
+                selectedIds: [],
+                render: () => (
+                  <View className="rounded-lg bg-card overflow-hidden">
+              {savedViews.map((view) => {
+                const isActive = activeViewId === view.id;
+                const isDefault = getDefaultFilterViewId() === view.id;
+                return (
+                  <View key={view.id} className="flex-row items-center border-b border-border">
+                    <Pressable
+                      onPress={() => { applyFilterView(view); setShowFilters(false); }}
+                      className="flex-1 flex-row items-center px-3 py-2.5"
+                    >
+                      {isDefault && <Ionicons name="star" size={11} color={theme.warning} style={{ marginRight: 5 }} />}
+                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-foreground"}`} style={isActive ? { color: theme.primary } : undefined}>
+                        {view.name}
+                      </Text>
+                      {isActive && <Ionicons name="checkmark" size={14} color={theme.primary} />}
+                    </Pressable>
+                    <Pressable
+                      onPress={() => handleSetDefault(view.id)}
+                      className="px-2 py-2.5"
+                    >
+                      <Ionicons name={isDefault ? "star" : "star-outline"} size={14} color={theme.warning} />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => { handleDeleteView(view.id, view.name); }}
+                      className="px-2 py-2.5 mr-1"
+                    >
+                      <Ionicons name="trash-outline" size={14} color={colors.textSecondary} />
+                    </Pressable>
+                  </View>
+                );
+              })}
+                  </View>
+                ),
+              }]
+            : []),
           // Each list starts with "No ..." (NOT_SET): transactions with nothing set there.
           ...(filterNature === "credit"
             ? [{ key: "creditKind", label: "Type", type: "multi" as const, options: CREDIT_KINDS.map((k) => ({ id: k as string, label: CREDIT_KIND_LABELS[k] })), selectedIds: filterCreditKinds }]
@@ -1194,110 +1202,11 @@ export default function ExpensesScreen() {
         onClose={() => setShowFilters(false)}
       />
 
-      {/* Active filters — subtle inline text with × */}
-      {hasNonDateFilters && !showFilters && (
-        <View className="px-4 pb-2 flex-row flex-wrap">
-          {filterCreditKinds.map((k) => (
-            <Pressable key={`kind-${k}`} onPress={() => setFilterCreditKinds((prev) => prev.filter((x) => x !== k))} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-label text-faint-foreground">{creditLook(k).name}</Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          ))}
-          {filterCategoryIds.map((id) => {
-            const name = id === NOT_SET ? NOT_SET_LABELS.category : categoryMap.get(id)?.name;
-            if (!name) return null;
-            return (
-              <Pressable key={`cat-${id}`} onPress={() => setFilterCategoryIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-label text-faint-foreground">{name}</Text>
-                <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-              </Pressable>
-            );
-          })}
-          {filterPaymentModeIds.map((id) => {
-            const name = id === NOT_SET ? NOT_SET_LABELS.paymentMode : paymentModeMap.get(id)?.name;
-            if (!name) return null;
-            return (
-              <Pressable key={`pm-${id}`} onPress={() => setFilterPaymentModeIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-label text-faint-foreground">{name}</Text>
-                <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-              </Pressable>
-            );
-          })}
-          {filterAccountIds.map((id) => {
-            const name = id === NOT_SET ? NOT_SET_LABELS.account : accountMap.get(id)?.bank_name;
-            if (!name) return null;
-            return (
-              <Pressable key={`acct-${id}`} onPress={() => setFilterAccountIds((prev) => prev.filter((x) => x !== id))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-label text-faint-foreground">{name}</Text>
-                <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-              </Pressable>
-            );
-          })}
-          {filterMerchantNames.map((name) => (
-            <Pressable key={`merchant-${name}`} onPress={() => setFilterMerchantNames((prev) => prev.filter((x) => x !== name))} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-label text-faint-foreground">{name === NOT_SET ? NOT_SET_LABELS.merchant : name}</Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          ))}
-          {filterRuleIds.map((rid) => {
-            const rule = allRules.find((r) => r.id === rid);
-            if (!rule) return null;
-            return (
-              <Pressable key={`rule-${rid}`} onPress={() => setFilterRuleIds((prev) => prev.filter((x) => x !== rid))} className="flex-row items-center mr-3 mb-1">
-                <Text className="text-label text-faint-foreground">Rule: {rule.name}</Text>
-                <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-              </Pressable>
-            );
-          })}
-          {filterRefundedStatus !== "" && (
-            <Pressable onPress={() => setFilterRefundedStatus("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-label text-faint-foreground">{filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded"}</Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          )}
-          {filterStatus !== "" && (
-            <Pressable onPress={() => setFilterStatus("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-label text-faint-foreground">{filterStatus === "pending_review" ? "Pending Review" : "Approved"}</Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          )}
-          {filterAvoidability !== "" && (
-            <Pressable onPress={() => setFilterAvoidability("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-label text-faint-foreground">{filterAvoidability === "avoidable" ? "Avoidable" : filterAvoidability === "unclassified" ? "Not classified" : "Unavoidable"}</Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          )}
-          {search !== "" && (
-            <Pressable onPress={() => setSearch("")} className="flex-row items-center mr-3 mb-1">
-              <Text className="text-label text-faint-foreground">"{search}"</Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          )}
-          <Pressable onPress={() => { clearFilters(); setActiveViewId(null); }} className="flex-row items-center mb-1">
-            <Text className="text-label font-medium" style={{ color: theme.primary }}>Clear all</Text>
-          </Pressable>
-        </View>
-      )}
-
       {/* Nature tabs + transaction list */}
       <SwipePager
         pages={natureTabs}
         activeIndex={activeNatureIndex}
         onIndexChange={handleNatureChange}
-        trailing={
-          <View className="flex-row items-center">
-            {hasActiveFilters && (
-              <Pressable onPress={handleSaveView} className="mr-3">
-                <Ionicons name="bookmark-outline" size={16} color={theme.primary} />
-              </Pressable>
-            )}
-            {activeViewId && (
-              <Pressable onPress={() => handleSetDefault(activeViewId)}>
-                <Ionicons name={getDefaultFilterViewId() === activeViewId ? "star" : "star-outline"} size={16} color={theme.warning} />
-              </Pressable>
-            )}
-          </View>
-        }
       >
         {natureTabs.map((page, pageIdx) => (
           <View key={page.key} style={{ flex: 1 }}>
@@ -1335,7 +1244,6 @@ export default function ExpensesScreen() {
                           {transfers.length} {transfers.length === 1 ? "transfer" : "transfers"}
                         </Text>
                       </View>
-                      <GroupByBar value={transferGroupBy} options={TRANSFER_GROUP_OPTIONS} onChange={setTransferGroupBy} />
                       </>
                     ) : null
                   }
@@ -1359,7 +1267,7 @@ export default function ExpensesScreen() {
                   maxToRenderPerBatch={10}
                   windowSize={7}
                   data={groupedExpenses}
-                  keyExtractor={(item) => item._type === "header" ? `header-${item.date}` : item.expense.id}
+                  keyExtractor={(item, index) => item._type === "header" ? `header-${item.date}-${index}` : item.expense.id}
                   renderItem={renderExpenseItem}
                   onEndReached={handleLoadMore}
                   onEndReachedThreshold={0.3}
@@ -1408,7 +1316,6 @@ export default function ExpensesScreen() {
                         groupByLabels={{ type: "Type" }}
                       />
                     ) : null}
-                    {expenses.length > 0 && <GroupByBar value={grouping.groupBy} options={grouping.options} onChange={grouping.setGroupBy} />}
                     </>
                   }
                   ListEmptyComponent={
@@ -1576,18 +1483,6 @@ export default function ExpensesScreen() {
         </View>
       )}
 
-      {/* Sort sheet */}
-      <SelectSheet
-        visible={showSortSheet}
-        title="Sort by"
-        options={EXPENSE_SORT_OPTIONS}
-        value={sortBy}
-        onChange={(v) => {
-          setSortBy(v);
-          settingsStorage.set(SORT_KEY, v);
-        }}
-        onClose={() => setShowSortSheet(false)}
-      />
     </ScreenContainer>
   );
 }

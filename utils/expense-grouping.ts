@@ -5,6 +5,7 @@ import type { PaymentMode } from "@/services/payment-mode";
 import { formatMonthLabel } from "@/utils/date";
 import { transactionDayLabel } from "@/utils/day-label";
 import { groupRows, NO_GROUP, ungrouped, type GroupedRow } from "@/utils/group-rows";
+import type { ListField } from "@/utils/list-tools";
 
 export type ExpenseGroupBy = "none" | "date" | "month" | "category" | "merchant" | "account" | "payment_mode" | "person";
 
@@ -84,6 +85,31 @@ function labelOf(key: string, by: ExpenseGroupBy, names: ExpenseGroupNames): str
     default:
       return key;
   }
+}
+
+/** What a transaction list can filter and group on, for useListTools. Dates only group. */
+export function expenseFields(
+  kind: ExpenseListKind,
+  available: readonly ExpenseGroupBy[],
+  names: ExpenseGroupNames,
+): ListField<Expense>[] {
+  const labels = expenseGroupLabels(kind);
+  return available
+    .filter((by) => by !== "none")
+    .map((by) => {
+      const isDate = by === "date" || by === "month";
+      return {
+        id: by,
+        label: labels[by],
+        keyOf: (e: Expense) => keyOf(e, by, names),
+        labelOf: (key: string) => labelOf(key, by, names),
+        noneLabel: NOTHING[by],
+        group: true,
+        filter: !isDate,
+        searchable: by === "merchant" || by === "category" || by === "person",
+        groupOrder: isDate ? ("first" as const) : ("size" as const),
+      };
+    });
 }
 
 /** Money in adds, money out takes away, so a group with both comes to what it really moved. */

@@ -3,11 +3,11 @@ import { Pressable, SectionList, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
-import { Card, GroupByBar, LoadingState, ScreenContainer, Text } from "@/components/ui";
-import { useGroupBy } from "@/hooks/use-group-by";
+import { Card, ListToolbar, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { useListTools } from "@/hooks/use-list-tools";
 import { creditLook } from "@/services/expense-types";
 import { transactionDayLabel } from "@/utils/day-label";
-import { groupRows, NO_GROUP } from "@/utils/group-rows";
+import type { ListField, ListSort } from "@/utils/list-tools";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -17,14 +17,15 @@ import { getMyMonthGroups, getMyMonthRangeGroups, type MyMonthGroup, type MyMont
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 
-type RowsGroupBy = "figure" | "date" | "category" | "merchant" | "account";
-const ROW_GROUPS: readonly RowsGroupBy[] = ["figure", "date", "category", "merchant", "account"];
-const ROW_GROUP_OPTIONS: { value: RowsGroupBy; label: string }[] = [
-  { value: "figure", label: "This figure's parts" },
-  { value: "date", label: "Date" },
-  { value: "category", label: "Category or type" },
-  { value: "merchant", label: "Merchant or payer" },
-  { value: "account", label: "Account" },
+/** A row and the part of the figure it belongs to. */
+type FigureRow = { figure: string; row: MyMonthRow };
+const dateOf = ({ row: r }: FigureRow) => (r.kind === "expense" ? r.expense.date : r.transfer.date);
+const amountOf = ({ row: r }: FigureRow) => (r.kind === "expense" ? r.expense.amount : r.transfer.amount);
+const ROW_SORTS: ListSort<FigureRow>[] = [
+  { id: "date_desc", label: "Newest first", compare: (a, b) => dateOf(b).localeCompare(dateOf(a)) },
+  { id: "date_asc", label: "Oldest first", compare: (a, b) => dateOf(a).localeCompare(dateOf(b)) },
+  { id: "amount_desc", label: "Amount (highest first)", compare: (a, b) => amountOf(b) - amountOf(a) },
+  { id: "amount_asc", label: "Amount (lowest first)", compare: (a, b) => amountOf(a) - amountOf(b) },
 ];
 
 /** The transactions behind a figure on My Month. Each row opens its details. */
@@ -65,40 +66,76 @@ export default function MyMonthRowsScreen() {
   const openExpense = useCallback((id: string) => router.push(`/expense/${id}`), [router]);
   const noop = useCallback(() => {}, []);
 
-  // "Other money in" is every kind of credit in one list, so it starts split up by type.
-  const [groupBy, setGroupBy] = useGroupBy<RowsGroupBy>(`my_month_${params.section}`, ROW_GROUPS, params.section === "other" ? "category" : "figure");
+  const allRows = useMemo<FigureRow[]>(() => (groups ?? []).flatMap((g) => g.rows.map((row) => ({ figure: g.title, row }))), [groups]);
+  const fields = useMemo<ListField<FigureRow>[]>(() => {
+    const accountName = (key: string) => {
+      const account = accountMap.get(key);
+      return account ? account.account_label || account.bank_name : "Other account";
+    };
+    return [
+      { id: "figure", label: "This figure's parts", keyOf: (r) => r.figure, group: true, groupOrder: "first" },
+      { id: "date", label: "Date", keyOf: (r) => dateOf(r).slice(0, 10), labelOf: transactionDayLabel, group: true, groupOrder: "first" },
+      {
+        id: "category",
+        label: "Category or type",
+        keyOf: ({ row: r }) => {
+          if (r.kind === "transfer") return "Transfers";
+          const e = r.expense;
+          return e.nature === "credit" ? creditLook(e.credit_kind).name : e.category_id ? (categoryMap.get(e.category_id)?.name ?? "Unknown") : null;
+        },
+        noneLabel: "Uncategorized",
+        group: true,
+        filter: true,
+        searchable: true,
+      },
+      {
+        id: "merchant",
+        label: "Merchant or payer",
+        keyOf: ({ row: r }) => (r.kind === "transfer" ? r.transfer.description : r.expense.merchant_name?.trim()),
+        noneLabel: "No merchant",
+        group: true,
+        filter: true,
+        searchable: true,
+      },
+      {
+        id: "account",
+        label: "Account",
+        keyOf: ({ row: r }) => (r.kind === "transfer" ? r.transfer.from_account_id : r.expense.account_id),
+        labelOf: accountName,
+        noneLabel: "No account",
+        group: true,
+        filter: true,
+      },
+    ];
+  }, [categoryMap, accountMap]);
+  const rowSearch = useCallback(({ row: r }: FigureRow) => {
+    if (r.kind === "transfer") return { texts: [r.transfer.description], amounts: [r.transfer.amount] };
+    const e = r.expense;
+    return {
+      texts: [e.merchant_name, e.description, e.nature === "credit" ? creditLook(e.credit_kind).name : e.category_id ? categoryMap.get(e.category_id)?.name : null],
+      amounts: [e.amount],
+    };
+  }, [categoryMap]);
+  const tools = useListTools<FigureRow>({
+    screen: `my_month_${params.section}`,
+    rows: allRows,
+    fields,
+    search: rowSearch,
+    searchPlaceholder: "Search name or amount",
+    sorts: ROW_SORTS,
+    amountOf,
+    // "Other money in" is every kind of credit in one list, so it starts split up by type.
+    defaultGroup: params.section === "other" ? "category" : "figure",
+    noGrouping: false,
+  });
   const sections = useMemo(() => {
-    if (groupBy === "figure") return (groups ?? []).map((g) => ({ title: g.title, total: g.total, data: g.rows }));
-    const dateOf = (r: MyMonthRow) => (r.kind === "expense" ? r.expense.date : r.transfer.date);
-    const flat = (groups ?? []).flatMap((g) => g.rows).sort((a, b) => dateOf(b).localeCompare(dateOf(a)));
-    const grouped = groupRows(flat, {
-      keyOf: (r) => {
-        if (groupBy === "date") return dateOf(r).slice(0, 10);
-        if (r.kind === "transfer") {
-          return groupBy === "category" ? "Transfers" : groupBy === "merchant" ? r.transfer.description : r.transfer.from_account_id;
-        }
-        const e = r.expense;
-        if (groupBy === "merchant") return e.merchant_name?.trim();
-        if (groupBy === "account") return e.account_id;
-        return e.nature === "credit" ? creditLook(e.credit_kind).name : e.category_id ? (categoryMap.get(e.category_id)?.name ?? "Unknown") : null;
-      },
-      labelOf: (key) => {
-        if (groupBy === "date") return transactionDayLabel(key);
-        if (key === NO_GROUP) return groupBy === "merchant" ? "No merchant" : groupBy === "account" ? "No account" : "Uncategorized";
-        if (groupBy !== "account") return key;
-        const account = accountMap.get(key);
-        return account ? account.account_label || account.bank_name : "Other account";
-      },
-      amountOf: (r) => (r.kind === "expense" ? r.expense.amount : r.transfer.amount),
-      order: groupBy === "date" ? "first" : "size",
-    });
     const out: { title: string; total: number; data: MyMonthRow[] }[] = [];
-    for (const row of grouped) {
+    for (const row of tools.grouped) {
       if (row.type === "heading") out.push({ title: row.label, total: row.total, data: [] });
-      else out[out.length - 1].data.push(row.item);
+      else out[out.length - 1].data.push(row.item.row);
     }
     return out;
-  }, [groups, groupBy, categoryMap, accountMap]);
+  }, [tools.grouped]);
   const single = sections.length === 1;
 
   const renderRow = ({ item }: { item: MyMonthRow }) => {
@@ -137,7 +174,7 @@ export default function MyMonthRowsScreen() {
     );
   };
 
-  const count = sections.reduce((s, g) => s + g.data.length, 0);
+  const count = allRows.length;
 
   return (
     <ScreenContainer padTop={false}>
@@ -151,6 +188,9 @@ export default function MyMonthRowsScreen() {
       ) : !groups ? (
         <LoadingState message="Finding the transactions..." icon="list-outline" />
       ) : (
+        <>
+        {allRows.length > 0 && <ListToolbar {...tools.toolbar} />}
+        {tools.filterSheet}
         <SectionList
           sections={sections}
           keyExtractor={(item, i) => `${item.kind === "expense" ? item.expense.id : item.transfer.id}-${i}`}
@@ -163,7 +203,6 @@ export default function MyMonthRowsScreen() {
                 <Text className="text-xs text-muted-foreground px-4 pt-3">
                   {count} transaction{count === 1 ? "" : "s"} in this figure
                 </Text>
-                <GroupByBar value={groupBy} options={ROW_GROUP_OPTIONS} onChange={setGroupBy} />
               </>
             ) : null
           }
@@ -177,10 +216,13 @@ export default function MyMonthRowsScreen() {
           )}
           ListEmptyComponent={
             <View className="items-center py-12 px-6">
-              <Text className="text-sm text-muted-foreground text-center">No transactions behind this figure this month.</Text>
+              <Text className="text-sm text-muted-foreground text-center">
+                {tools.narrowed ? "Nothing matches." : "No transactions behind this figure this month."}
+              </Text>
             </View>
           }
         />
+        </>
       )}
     </ScreenContainer>
   );

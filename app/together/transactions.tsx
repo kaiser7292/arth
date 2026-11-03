@@ -1,15 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
-import { FlatList, Pressable, TextInput, View } from "react-native";
+import { FlatList, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { GroupByBar, GroupHeading, Money, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
+import { GroupHeading, ListToolbar, Money, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
 import { FilterSummaryCard } from "@/components/expense/FilterSummaryCard";
 import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 import { StatementRowDetail, StatementRowItem } from "@/components/household/StatementList";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useGroupBy } from "@/hooks/use-group-by";
-import { useTheme } from "@/hooks/use-theme";
 import { getCategories, type Category } from "@/services/category";
 import { categoryLook } from "@/services/household/category-look";
 import { NOT_SET, NOT_SET_LABELS } from "@/services/expense-types";
@@ -46,6 +44,15 @@ const LIST_GROUP_OPTIONS: { value: StatementListBy; label: string }[] = [
   { value: "kind", label: "You owe or owed" },
 ];
 
+type StatementSort = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+const SORTS: readonly StatementSort[] = ["date_desc", "date_asc", "amount_desc", "amount_asc"];
+const SORT_OPTIONS: { value: StatementSort; label: string }[] = [
+  { value: "date_desc", label: "Date (newest first)" },
+  { value: "date_asc", label: "Date (oldest first)" },
+  { value: "amount_desc", label: "Amount (highest first)" },
+  { value: "amount_asc", label: "Amount (lowest first)" },
+];
+
 const thisMonth = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -61,7 +68,6 @@ const monthBefore = (month: string) => {
  * Opened from a total on Together.
  */
 export default function TogetherTransactionsScreen() {
-  const theme = useTheme();
   const toast = useToast();
   const params = useLocalSearchParams<{ month?: string; member?: string; category?: string }>();
   const [month, setMonth] = useState(params.month ?? thisMonth());
@@ -97,15 +103,26 @@ export default function TogetherTransactionsScreen() {
     }
   };
 
+  const [listBy, setListBy] = useGroupBy<StatementListBy>("together_transactions", LIST_GROUPS, "date");
   const filters = useMemo(() => ({ members, categories, merchants, kinds, query }), [members, categories, merchants, kinds, query]);
-  const rows = useMemo(() => filterStatementRows(s?.rows ?? [], filters), [s, filters]);
+  const [sortBy, setSortBy] = useGroupBy<StatementSort>("sort_together_transactions", SORTS, "date_desc");
+  const rows = useMemo(() => {
+    const byDate = (a: StatementRow, b: StatementRow) => b.date.localeCompare(a.date);
+    const compare: Record<StatementSort, (a: StatementRow, b: StatementRow) => number> = {
+      date_desc: byDate,
+      date_asc: (a, b) => a.date.localeCompare(b.date),
+      // By amount, days still hold together under their headings; a list by category sorts purely by amount.
+      amount_desc: (a, b) => (listBy === "date" ? byDate(a, b) : 0) || b.paid - a.paid,
+      amount_asc: (a, b) => (listBy === "date" ? byDate(a, b) : 0) || a.paid - b.paid,
+    };
+    return [...filterStatementRows(s?.rows ?? [], filters)].sort(compare[sortBy]);
+  }, [s, filters, sortBy, listBy]);
   const summary = useMemo(() => summarizeStatement(rows, groupBy), [rows, groupBy]);
   const previousTotal = useMemo(() => (previous ? statementTotal(filterStatementRows(previous.rows, filters)) : null), [previous, filters]);
 
   const me = s?.household.my_member_id ?? null;
   const nameOf = useCallback((id: string) => (id === me ? "You" : (s?.members.find((m) => m.id === id)?.name ?? "Someone")), [me, s]);
 
-  const [listBy, setListBy] = useGroupBy<StatementListBy>("together_transactions", LIST_GROUPS, "date");
   const list = useMemo(() => {
     if (listBy === "date") return withDayHeadings(rows);
     return groupStatementRows(rows, listBy, (key) => {
@@ -173,62 +190,14 @@ export default function TogetherTransactionsScreen() {
   return (
     <ScreenContainer padTop={false}>
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
-      <View className="px-4 pt-3 flex-row items-center" style={{ gap: 8 }}>
-        <View className="flex-1 flex-row items-center rounded-xl border px-3" style={{ borderColor: theme.alpha("foreground", 0.15), minHeight: 42 }}>
-          <Ionicons name="search" size={16} color={theme.mutedForeground} />
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search name, person or amount"
-            placeholderTextColor={theme.mutedForeground}
-            className="flex-1 text-sm text-foreground ml-2 py-2"
-            accessibilityLabel="Search"
-          />
-          {query ? (
-            <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel="Clear search">
-              <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
-            </Pressable>
-          ) : null}
-        </View>
-        <Pressable
-          onPress={() => setFiltersOpen(true)}
-          className="flex-row items-center rounded-xl border px-3"
-          style={{
-            minHeight: 42,
-            borderColor: active.length ? theme.primary : theme.alpha("foreground", 0.15),
-            backgroundColor: active.length ? theme.alpha("primary", 0.1) : "transparent",
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={active.length ? `Filter, ${active.length} on` : "Filter"}
-        >
-          <Ionicons name="options-outline" size={16} color={active.length ? theme.primary : theme.mutedForeground} />
-          <Text className="text-sm ml-1.5" style={{ color: active.length ? theme.primary : theme.foreground }}>
-            {active.length ? `Filter · ${active.length}` : "Filter"}
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* What's on, each with its own ×, so one can go without reopening the filter. */}
-      {active.length > 0 && (
-        <View className="px-4 pt-2 flex-row flex-wrap items-center">
-          {active.map((a) => (
-            <Pressable
-              key={a.key}
-              onPress={a.remove}
-              hitSlop={4}
-              className="flex-row items-center mr-3 mb-1"
-              accessibilityRole="button"
-              accessibilityLabel={`Remove filter ${a.label}`}
-            >
-              <Text className="text-xs text-muted-foreground">{a.label}</Text>
-              <Ionicons name="close" size={12} color={theme.mutedForeground} style={{ marginLeft: 2 }} />
-            </Pressable>
-          ))}
-          <Pressable onPress={clearFilters} hitSlop={8} className="mb-1" accessibilityRole="button">
-            <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Clear all</Text>
-          </Pressable>
-        </View>
-      )}
+      <ListToolbar
+        search={{ value: query, onChangeText: setQuery, placeholder: "Search name, person or amount" }}
+        filter={{ onPress: () => setFiltersOpen(true), activeCount: active.length }}
+        sort={{ value: sortBy, defaultValue: "date_desc", options: SORT_OPTIONS, onChange: setSortBy }}
+        group={{ value: listBy, defaultValue: "date", options: LIST_GROUP_OPTIONS, onChange: setListBy }}
+        chips={active.map((a) => ({ key: a.key, label: a.label, onRemove: a.remove }))}
+        onClearAll={clearFilters}
+      />
 
       <FlatList
         data={list}
@@ -241,7 +210,6 @@ export default function TogetherTransactionsScreen() {
         onRefresh={syncNow}
         ListHeaderComponent={
           rows.length > 0 ? (
-            <>
             <FilterSummaryCard
               summary={summary}
               natureKind="all"
@@ -255,8 +223,6 @@ export default function TogetherTransactionsScreen() {
                 groupBy === "member" ? nameOf(key ?? "") : key ?? (groupBy === "merchant" ? "No merchant" : "Uncategorized")
               }
             />
-            <GroupByBar value={listBy} options={LIST_GROUP_OPTIONS} onChange={setListBy} />
-            </>
           ) : null
         }
         ListEmptyComponent={

@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { GroupByBar, GroupHeading, LoadingState, ScreenContainer, Text } from "@/components/ui";
-import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
+import { GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -64,7 +63,6 @@ export default function InsightFilteredListScreen() {
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
     () => (settingsStorage.getString(INSIGHTS_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
   );
-  const [showSortSheet, setShowSortSheet] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -185,13 +183,21 @@ export default function InsightFilteredListScreen() {
     }
   }, [expenses, sortBy]);
 
-  const grouping = useExpenseGrouping({
+  const tools = useExpenseTools({
     screen: "insights_filtered",
     kind: "spend",
     available: GROUPS,
-    fallback: "none",
     expenses: sortedExpenses,
     names: { categoryMap, accountMap, paymentModeMap },
+    sort: {
+      value: sortBy,
+      defaultValue: "date_desc",
+      options: EXPENSE_SORT_OPTIONS,
+      onChange: (v) => {
+        setSortBy(v as ExpenseSortBy);
+        settingsStorage.set(INSIGHTS_SORT_KEY, v);
+      },
+    },
   });
 
   const handleItemPress = useCallback(
@@ -204,15 +210,6 @@ export default function InsightFilteredListScreen() {
       <Stack.Screen
         options={{
           title: "Transactions",
-          headerRight: () => (
-            <Pressable onPress={() => setShowSortSheet(true)} style={{ marginRight: 8 }} hitSlop={8}>
-              <Ionicons
-                name="swap-vertical-outline"
-                size={22}
-                color={sortBy !== "date_desc" ? colors.blue : colors.textSecondary}
-              />
-            </Pressable>
-          ),
         }}
       />
       <ScreenContainer padTop={false}>
@@ -261,13 +258,17 @@ export default function InsightFilteredListScreen() {
             </Text>
           </View>
         ) : (
+          <>
+          <ListToolbar {...tools.toolbar} />
+          {tools.filterSheet}
           <FlatList
             initialNumToRender={12}
             maxToRenderPerBatch={10}
             windowSize={7}
-            data={grouping.rows}
+            data={tools.grouped}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
             keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
-            ListHeaderComponent={<GroupByBar value={grouping.groupBy} options={grouping.options} onChange={grouping.setGroupBy} />}
             renderItem={({ item: row }) => row.type === "heading" ? (
               <GroupHeading label={row.label} count={row.count} total={row.total} />
             ) : (
@@ -285,21 +286,10 @@ export default function InsightFilteredListScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}
           />
+          </>
         )}
       </ScreenContainer>
 
-      {/* Sort sheet */}
-      <SelectSheet
-        visible={showSortSheet}
-        title="Sort by"
-        options={EXPENSE_SORT_OPTIONS}
-        value={sortBy}
-        onChange={(v) => {
-          setSortBy(v);
-          settingsStorage.set(INSIGHTS_SORT_KEY, v);
-        }}
-        onClose={() => setShowSortSheet(false)}
-      />
     </>
   );
 }

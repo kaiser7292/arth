@@ -1,4 +1,4 @@
-import { FilterChip, ScreenContainer, Text } from "@/components/ui";
+import { FilterChip, ListToolbar, ScreenContainer, Text } from "@/components/ui";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -15,7 +15,7 @@ import { formatDateTimeInTimezone } from "@/utils/timezone";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, SectionList, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, SectionList, View } from "react-native";
 import { useTheme, type Theme } from "@/hooks/use-theme";
 import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 
@@ -224,7 +224,8 @@ export default function AuditLogScreen() {
 
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
-  const allSections = groupEntriesByDate(entries);
+  const [order, setOrder] = useState<"newest" | "oldest">("newest");
+  const allSections = groupEntriesByDate(order === "oldest" ? [...entries].reverse() : entries);
   // Only today's drawer is open to begin with; every older day starts closed.
   // Tracking which sections the user TOGGLED (rather than which are collapsed)
   // means a tap flips that day away from its default and stays flipped across
@@ -419,39 +420,6 @@ export default function AuditLogScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      {/* Search row + funnel - mirrors the Transactions tab, where the date scope
-          stays a top-level control and every other filter lives behind the funnel. */}
-      <View className="px-4 pt-3 pb-2">
-        <View className="flex-row items-center border border-border rounded-lg px-3 py-2">
-          <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
-          <TextInput
-            value={searchRaw}
-            onChangeText={setSearchRaw}
-            placeholder="Search merchant, description, account…"
-            placeholderTextColor={colors.textSecondary}
-            className="flex-1 ml-2 text-sm"
-            style={{ color: colors.text }}
-          />
-          {searchRaw ? (
-            <Pressable onPress={() => setSearchRaw("")} hitSlop={8} accessibilityLabel="Clear search" accessibilityRole="button">
-              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
-            </Pressable>
-          ) : null}
-          <Pressable
-            onPress={() => setShowFilters(!showFilters)}
-            accessibilityLabel={showFilters ? "Hide filters" : "Show filters"}
-            accessibilityRole="button"
-            className="ml-2 p-1"
-          >
-            <Ionicons
-              name={hasChipFilters ? "funnel" : "funnel-outline"}
-              size={18}
-              color={hasChipFilters ? theme.primary : colors.textSecondary}
-            />
-          </Pressable>
-        </View>
-      </View>
-
       {/* Date scope - the audit log's equivalent of the Transactions period control */}
       <View className="px-4 pb-2 flex-row">
         {DATE_SCOPES.map((o) => (
@@ -463,6 +431,23 @@ export default function AuditLogScreen() {
           />
         ))}
       </View>
+
+      <ListToolbar
+        search={{ value: searchRaw, onChangeText: setSearchRaw, placeholder: "Search merchant, account…" }}
+        filter={{ onPress: () => setShowFilters(true), activeCount: sources.size + objects.size + actions.size }}
+        sort={{
+          value: order,
+          defaultValue: "newest",
+          options: [{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }],
+          onChange: setOrder,
+        }}
+        chips={[
+          ...Array.from(sources).map((k) => ({ key: `src-${k}`, label: SOURCE_OPTIONS.find((o) => o.key === k)?.label ?? k, onRemove: () => toggle(sources, setSources, k) })),
+          ...Array.from(objects).map((k) => ({ key: `obj-${k}`, label: OBJECT_OPTIONS.find((o) => o.key === k)?.label ?? k, onRemove: () => toggle(objects, setObjects, k) })),
+          ...Array.from(actions).map((k) => ({ key: `act-${k}`, label: actionLabel(k), onRemove: () => toggle(actions, setActions, k) })),
+        ]}
+        onClearAll={clearAll}
+      />
 
       <FullScreenFilter
         visible={showFilters}
@@ -479,55 +464,6 @@ export default function AuditLogScreen() {
         onReset={clearAll}
         onClose={() => setShowFilters(false)}
       />
-
-      {/* Active filters - subtle inline text with a close affordance, same as Transactions */}
-      {hasChipFilters && !showFilters && (
-        <View className="px-4 pb-2 flex-row flex-wrap">
-          {Array.from(sources).map((k) => (
-            <Pressable
-              key={`src-${k}`}
-              onPress={() => toggle(sources, setSources, k)}
-              className="flex-row items-center mr-3 mb-1"
-              accessibilityRole="button"
-              accessibilityLabel={`Remove source filter ${SOURCE_OPTIONS.find((o) => o.key === k)?.label ?? k}`}
-            >
-              <Text className="text-label text-faint-foreground">
-                {SOURCE_OPTIONS.find((o) => o.key === k)?.label ?? k}
-              </Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          ))}
-          {Array.from(objects).map((k) => (
-            <Pressable
-              key={`obj-${k}`}
-              onPress={() => toggle(objects, setObjects, k)}
-              className="flex-row items-center mr-3 mb-1"
-              accessibilityRole="button"
-              accessibilityLabel={`Remove type filter ${OBJECT_OPTIONS.find((o) => o.key === k)?.label ?? k}`}
-            >
-              <Text className="text-label text-faint-foreground">
-                {OBJECT_OPTIONS.find((o) => o.key === k)?.label ?? k}
-              </Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          ))}
-          {Array.from(actions).map((k) => (
-            <Pressable
-              key={`act-${k}`}
-              onPress={() => toggle(actions, setActions, k)}
-              className="flex-row items-center mr-3 mb-1"
-              accessibilityRole="button"
-              accessibilityLabel={`Remove action filter ${actionLabel(k)}`}
-            >
-              <Text className="text-label text-faint-foreground">{actionLabel(k)}</Text>
-              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
-            </Pressable>
-          ))}
-          <Pressable onPress={clearAll} className="flex-row items-center mb-1" accessibilityRole="button" accessibilityLabel="Clear all filters">
-            <Text className="text-label" style={{ color: theme.primary }}>Clear all</Text>
-          </Pressable>
-        </View>
-      )}
 
       {/* Results */}
       {loading ? (

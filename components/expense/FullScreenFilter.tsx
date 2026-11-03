@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { Text } from "@/components/ui";
+import { useState, useMemo, type ReactNode } from "react";
+import { DateInput, Text } from "@/components/ui";
 import { View, Pressable, ScrollView, TextInput, Modal } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -9,11 +9,16 @@ import { useTheme } from "@/hooks/use-theme";
 interface FilterSection {
   key: string;
   label: string;
-  type: "multi" | "single";
+  /** "dates" is a from and a to, kept in selectedIds. "custom" draws itself with render. */
+  type: "multi" | "single" | "dates" | "custom";
   options: { id: string; label: string; color?: string }[];
   selectedIds: string[];
   searchable?: boolean;
+  render?: () => ReactNode;
 }
+
+const countOn = (section: FilterSection, selected: string[]) =>
+  section.type === "custom" ? 0 : section.type === "dates" ? (selected[0] && selected[1] ? 1 : 0) : selected.length;
 
 interface FullScreenFilterProps {
   visible: boolean;
@@ -34,7 +39,9 @@ export function FullScreenFilter({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [activeSection, setActiveSection] = useState(sections[0]?.key ?? "");
+  // Opens on a filter, not on a section like saved views.
+  const firstSection = (sections.find((s) => s.type !== "custom") ?? sections[0])?.key ?? "";
+  const [activeSection, setActiveSection] = useState(firstSection);
   const [localSelections, setLocalSelections] = useState<Record<string, string[]>>(() => {
     const map: Record<string, string[]> = {};
     for (const s of sections) map[s.key] = [...s.selectedIds];
@@ -47,7 +54,7 @@ export function FullScreenFilter({
     const map: Record<string, string[]> = {};
     for (const s of sections) map[s.key] = [...s.selectedIds];
     setLocalSelections(map);
-    setActiveSection(sections[0]?.key ?? "");
+    setActiveSection(firstSection);
     setSearchQuery("");
   };
 
@@ -76,7 +83,24 @@ export function FullScreenFilter({
     });
   };
 
-  const totalSelected = Object.values(localSelections).reduce((sum, ids) => sum + ids.length, 0);
+  const totalSelected = sections.reduce((sum, s) => sum + countOn(s, localSelections[s.key] ?? []), 0);
+
+  const setDate = (index: 0 | 1, value: string) =>
+    setLocalSelections((prev) => {
+      const [from = "", to = ""] = prev[activeSection] ?? [];
+      return { ...prev, [activeSection]: index === 0 ? [value, to] : [from, value] };
+    });
+
+  // One date on its own, or the wrong way round, can't be applied.
+  const dateProblem = sections
+    .filter((s) => s.type === "dates")
+    .map((s) => {
+      const [from = "", to = ""] = localSelections[s.key] ?? [];
+      if (!from && !to) return null;
+      if (!from || !to) return "Choose both dates";
+      return from > to ? "'From' must be before 'To'" : null;
+    })
+    .find(Boolean);
 
   const handleApply = () => {
     onApply(localSelections);
@@ -118,7 +142,7 @@ export function FullScreenFilter({
           >
             {sections.map((section) => {
               const isActive = activeSection === section.key;
-              const count = (localSelections[section.key] ?? []).length;
+              const count = countOn(section, localSelections[section.key] ?? []);
               return (
                 <Pressable
                   key={section.key}
@@ -149,6 +173,20 @@ export function FullScreenFilter({
 
           {/* Right side — options for active section (70% width) */}
           <View style={{ flex: 0.7 }}>
+            {currentSection?.type === "custom" && (
+              <ScrollView className="flex-1 px-3 pt-3" showsVerticalScrollIndicator={false}>
+                {currentSection.render?.()}
+              </ScrollView>
+            )}
+            {currentSection?.type === "dates" && (
+              <View className="px-3 pt-3">
+                <DateInput label="From" value={currentSelected[0] ?? ""} onChange={(v) => setDate(0, v)} />
+                <DateInput label="To" value={currentSelected[1] ?? ""} onChange={(v) => setDate(1, v)} />
+                {dateProblem ? <Text className="text-xs text-danger mt-1">{dateProblem}</Text> : null}
+              </View>
+            )}
+            {currentSection?.type !== "custom" && currentSection?.type !== "dates" && (
+            <>
             {/* Search (if applicable) */}
             {currentSection?.searchable && currentSection.options.length > 6 && (
               <View className="mx-3 mt-3 mb-2 flex-row items-center rounded-lg bg-card px-3 py-2">
@@ -202,6 +240,8 @@ export function FullScreenFilter({
               )}
               <View style={{ height: 20 }} />
             </ScrollView>
+            </>
+            )}
           </View>
         </View>
 
@@ -215,8 +255,9 @@ export function FullScreenFilter({
           </Text>
           <Pressable
             onPress={handleApply}
+            disabled={!!dateProblem}
             className="px-5 py-2.5 rounded-lg"
-            style={{ backgroundColor: theme.primary }}
+            style={{ backgroundColor: dateProblem ? theme.alpha("foreground", 0.25) : theme.primary }}
           >
             <Text className="text-sm font-semibold text-primary-foreground">Apply</Text>
           </Pressable>

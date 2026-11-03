@@ -1,9 +1,11 @@
 import { useState, useCallback, useMemo } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { View, ScrollView, Pressable, TextInput } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, FAB, FilterChip, ScreenContainer, Text } from "@/components/ui";
+import { Card, FAB, GroupHeading, ListToolbar, ScreenContainer, Text } from "@/components/ui";
+import { useListTools } from "@/hooks/use-list-tools";
+import type { ListField, ListSort } from "@/utils/list-tools";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getAllAccountsWithModes } from "@/services/account-master";
 import type { AccountWithModes } from "@/services/account-master";
@@ -46,18 +48,14 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   fd: "Deposit",
 };
 
-type TypeFilter = "all" | "savings" | "credit_card" | "loan" | "wallet" | "demat" | "pension" | "fd";
-
-const TYPE_FILTERS: Array<{ key: TypeFilter; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "savings", label: "Savings" },
-  { key: "credit_card", label: "Credit Card" },
-  { key: "loan", label: "Loan" },
-  { key: "wallet", label: "Wallet" },
-  { key: "demat", label: "Demat" },
-  { key: "pension", label: "Pension" },
-  { key: "fd", label: "Deposit" },
+const ACCOUNT_SORTS: ListSort<AccountWithModes>[] = [
+  { id: "default", label: "As listed" },
+  { id: "name", label: "Name (A–Z)", compare: (a, b) => (a.account.account_label ?? a.account.bank_name).localeCompare(b.account.account_label ?? b.account.bank_name) },
+  { id: "bank", label: "Bank (A–Z)", compare: (a, b) => a.account.bank_name.localeCompare(b.account.bank_name) },
 ];
+const accountSearch = ({ account: a }: AccountWithModes) => ({
+  texts: [a.bank_name, a.account_identifier, a.account_label, a.account_number, a.account_type],
+});
 
 export default function AccountMasterScreen() {
   const router = useRouter();
@@ -69,8 +67,6 @@ export default function AccountMasterScreen() {
     if (preloaded) for (const d of preloaded.dematSummaries) m.set(d.account.id, d);
     return m;
   });
-  const [searchQuery, setSearchQuery] = useState("");
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
 
   /** "demat"/"pension"/"fd" resolved through the Phase-2 alias, else the raw account_type. */
@@ -129,21 +125,29 @@ export default function AccountMasterScreen() {
     }, [loadData]),
   );
 
-  const filteredAccounts = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return accounts.filter((item) => {
-      const a = item.account;
-      if (typeFilter !== "all" && resolvedType(a) !== typeFilter) return false;
-      if (!q) return true;
-      return (
-        a.bank_name.toLowerCase().includes(q) ||
-        a.account_identifier.includes(q) ||
-        (a.account_label ?? "").toLowerCase().includes(q) ||
-        (a.account_number ?? "").toLowerCase().includes(q) ||
-        a.account_type.toLowerCase().includes(q)
-      );
-    });
-  }, [accounts, searchQuery, typeFilter, resolvedType]);
+  const accountFields = useMemo<ListField<AccountWithModes>[]>(
+    () => [
+      {
+        id: "type",
+        label: "Type",
+        keyOf: (item) => resolvedType(item.account),
+        labelOf: (k) => ACCOUNT_TYPE_LABELS[k] ?? k,
+        group: true,
+        filter: true,
+      },
+      { id: "bank", label: "Bank", keyOf: (item) => item.account.bank_name, group: true, filter: true, searchable: true },
+    ],
+    [resolvedType],
+  );
+  const tools = useListTools<AccountWithModes>({
+    screen: "account_master",
+    rows: accounts,
+    fields: accountFields,
+    search: accountSearch,
+    searchPlaceholder: "Search accounts",
+    sorts: ACCOUNT_SORTS,
+  });
+  const filteredAccounts = tools.rows;
 
   const renderAccount = (item: AccountWithModes) => {
     const { account, linkedModes } = item;
@@ -303,41 +307,8 @@ export default function AccountMasterScreen() {
         </View>
       </Card>
 
-      {/* Type filter chips */}
-      <View className="mb-3">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingRight: 4, alignItems: "center" }}
-        >
-          {TYPE_FILTERS.map((f) => (
-            <FilterChip
-              key={f.key}
-              label={f.label}
-              active={typeFilter === f.key}
-              onPress={() => setTypeFilter(f.key)}
-            />
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Search bar */}
-      <View className="flex-row items-center border border-border rounded-lg px-3 py-2 mb-3">
-        <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search accounts..."
-          placeholderTextColor={colors.textSecondary}
-          maxLength={100}
-          className="flex-1 ml-2 text-base text-foreground"
-        />
-        {searchQuery.length > 0 && (
-          <Pressable onPress={() => setSearchQuery("")}>
-            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
-          </Pressable>
-        )}
-      </View>
+      <ListToolbar {...tools.toolbar} inset={false} />
+      {tools.filterSheet}
 
       {/* Count */}
       <Text className="text-sm text-muted-foreground px-1 mb-2">
@@ -352,11 +323,12 @@ export default function AccountMasterScreen() {
         <View className="items-center py-16">
           <Ionicons name="business-outline" size={48} color={colors.textSecondary} />
           <Text className="text-lg font-medium text-foreground mt-4">
-            No accounts yet
+            {accounts.length > 0 ? "Nothing matches" : "No accounts yet"}
           </Text>
           <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
-            Tap + to add an account. Supports savings, credit cards, loans,
-            wallets, and demat accounts.
+            {accounts.length > 0
+              ? "Try another search or filter."
+              : "Tap + to add an account. Supports savings, credit cards, loans, wallets, and demat accounts."}
           </Text>
         </View>
       ) : (
@@ -364,7 +336,9 @@ export default function AccountMasterScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 80 }}
         >
-          {filteredAccounts.map((item) => renderAccount(item))}
+          {tools.grouped.map((row) =>
+            row.type === "heading" ? <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} /> : renderAccount(row.item),
+          )}
           {ignoredAccounts.length > 0 && (
             <View className="mt-4">
               <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">

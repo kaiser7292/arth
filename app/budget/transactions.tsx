@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, GroupByBar, GroupHeading, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
-import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
+import { Button, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
+import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { bulkUpdateExpenses } from "@/services/expense-bulk";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -33,7 +32,6 @@ import { settingsStorage } from "@/services/storage";
 
 const BUDGET_SORT_KEY = "budget.transactions.sortBy";
 
-const PAGE_SIZE = 50;
 
 const GROUPS: readonly ExpenseGroupBy[] = ["none", "date", "category", "merchant", "account", "payment_mode", "person"];
 const GROUPS_IN_CATEGORY: readonly ExpenseGroupBy[] = ["none", "date", "merchant", "account", "payment_mode", "person"];
@@ -82,7 +80,6 @@ export default function BudgetTransactionsScreen() {
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
     () => (settingsStorage.getString(BUDGET_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
   );
-  const [showSortSheet, setShowSortSheet] = useState(false);
 
   // Compute date range from filterMonth
   const { startDate, endDate } = useMemo(() => {
@@ -108,16 +105,24 @@ export default function BudgetTransactionsScreen() {
     [accounts],
   );
 
-  const grouping = useExpenseGrouping({
+  const tools = useExpenseTools({
     screen: "budget_transactions",
     kind: "spend",
     available: categoryId ? GROUPS_IN_CATEGORY : GROUPS,
-    fallback: "none",
     expenses,
     names: { categoryMap, accountMap, paymentModeMap },
+    sort: {
+      value: sortBy,
+      defaultValue: "date_desc",
+      options: EXPENSE_SORT_OPTIONS,
+      onChange: (v) => {
+        setSortBy(v as ExpenseSortBy);
+        settingsStorage.set(BUDGET_SORT_KEY, v);
+      },
+    },
   });
-  // Groups only add up with every row in them, so a grouped list isn't paged.
-  const pageSize = grouping.groupBy === "none" ? PAGE_SIZE : ALL_ROWS;
+  // Search, filters and group totals only work with every row there, and it's one month's worth.
+  const pageSize = ALL_ROWS;
 
   const filters = useMemo(
     () => ({
@@ -277,19 +282,6 @@ export default function BudgetTransactionsScreen() {
                   <Ionicons name={selecting ? "close" : "checkmark-circle-outline"} size={22} color={colors.tint} />
                 </Pressable>
               )}
-              <Pressable
-                onPress={() => setShowSortSheet(true)}
-                hitSlop={8}
-                style={{ padding: 4 }}
-                accessibilityRole="button"
-                accessibilityLabel="Sort"
-              >
-                <Ionicons
-                  name="swap-vertical-outline"
-                  size={22}
-                  color={sortBy !== "date_desc" ? colors.blue : colors.textSecondary}
-                />
-              </Pressable>
             </View>
           ),
         }}
@@ -328,13 +320,17 @@ export default function BudgetTransactionsScreen() {
             </Text>
           </View>
         ) : (
+          <>
+          <ListToolbar {...tools.toolbar} />
+          {tools.filterSheet}
           <FlatList
             initialNumToRender={12}
             maxToRenderPerBatch={10}
             windowSize={7}
-            data={grouping.rows}
+            data={tools.grouped}
+            keyboardShouldPersistTaps="handled"
+            ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
             keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
-            ListHeaderComponent={<GroupByBar value={grouping.groupBy} options={grouping.options} onChange={grouping.setGroupBy} />}
             renderItem={({ item: row }) => row.type === "heading" ? (
               <GroupHeading label={row.label} count={row.count} total={row.total} />
             ) : (
@@ -365,6 +361,7 @@ export default function BudgetTransactionsScreen() {
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: selecting ? 160 : 40 }}
           />
+          </>
         )}
 
         {selecting && (
@@ -375,12 +372,12 @@ export default function BudgetTransactionsScreen() {
               </Text>
               <Pressable
                 onPress={() =>
-                  setSelected(selected.size === expenses.length ? new Set() : new Set(expenses.map((e) => e.id)))
+                  setSelected(selected.size === tools.rows.length ? new Set() : new Set(tools.rows.map((e) => e.id)))
                 }
                 hitSlop={8}
               >
                 <Text className="text-sm font-semibold text-primary">
-                  {selected.size === expenses.length ? "Select none" : `Select all ${expenses.length}`}
+                  {selected.size === tools.rows.length ? "Select none" : `Select all ${tools.rows.length}`}
                 </Text>
               </Pressable>
             </View>
@@ -405,18 +402,6 @@ export default function BudgetTransactionsScreen() {
         )}
       </ScreenContainer>
 
-      {/* Sort sheet */}
-      <SelectSheet
-        visible={showSortSheet}
-        title="Sort by"
-        options={EXPENSE_SORT_OPTIONS}
-        value={sortBy}
-        onChange={(v) => {
-          setSortBy(v);
-          settingsStorage.set(BUDGET_SORT_KEY, v);
-        }}
-        onClose={() => setShowSortSheet(false)}
-      />
     </>
   );
 }

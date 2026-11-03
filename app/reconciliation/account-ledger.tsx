@@ -1,10 +1,10 @@
 import { isPartOn } from "@/services/customise";
 import { creditLook } from "@/services/expense-types";
-import { useGroupBy } from "@/hooks/use-group-by";
+import { useListTools } from "@/hooks/use-list-tools";
 import { transactionDayLabel } from "@/utils/day-label";
-import { groupRows, NO_GROUP, ungrouped } from "@/utils/group-rows";
+import type { ListField, ListSort } from "@/utils/list-tools";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, DateInput, FABMenu, FilterChip, GroupByBar, GroupHeading, Input, Money, PeriodNavigator, ScreenContainer, SearchField, Text } from "@/components/ui";
+import { Badge, Button, Card, DateInput, FABMenu, GroupHeading, Input, ListToolbar, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -46,7 +46,6 @@ import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatLocalDate } from "@/utils/fiscal-year";
 import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
-import { matchesSearch } from "@/utils/amount-search";
 import { transactionTitle } from "@/utils/transaction-title";
 import { getCategories } from "@/services/category";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -104,14 +103,15 @@ interface LedgerEntry {
   linkedExpenseId?: string | null;
 }
 
-type LedgerGroupBy = "none" | "date" | "kind" | "category" | "merchant";
-const LEDGER_GROUPS: readonly LedgerGroupBy[] = ["none", "date", "kind", "category", "merchant"];
-const LEDGER_GROUP_OPTIONS: { value: LedgerGroupBy; label: string }[] = [
-  { value: "none", label: "None" },
-  { value: "date", label: "Date" },
-  { value: "kind", label: "Expense, credit or transfer" },
-  { value: "category", label: "Category or type" },
-  { value: "merchant", label: "Merchant or payer" },
+const isLedgerTransfer = (e: LedgerEntry) => e.type === "transfer_in" || e.type === "transfer_out";
+const ledgerKind = (e: LedgerEntry) =>
+  isLedgerTransfer(e) ? "Transfers" : e.isAdjustment ? "Adjustments" : e.isRefund ? "Refunds" : e.type === "credit" ? "Credits" : "Expenses";
+const ledgerAmount = (e: LedgerEntry) => (e.type === "debit" || e.type === "transfer_out" ? -e.amount : e.amount);
+const LEDGER_SORTS: ListSort<LedgerEntry>[] = [
+  { id: "date_desc", label: "Newest first", compare: (a, b) => b.date.localeCompare(a.date) },
+  { id: "date_asc", label: "Oldest first", compare: (a, b) => a.date.localeCompare(b.date) },
+  { id: "amount_desc", label: "Amount (highest first)", compare: (a, b) => b.amount - a.amount },
+  { id: "amount_asc", label: "Amount (lowest first)", compare: (a, b) => a.amount - b.amount },
 ];
 
 export default function AccountLedgerScreen() {
@@ -145,8 +145,6 @@ export default function AccountLedgerScreen() {
   const [seeded, setSeeded] = useState(false);
   const [isCreditCard, setIsCreditCard] = useState(false);
   const [poolSiblings, setPoolSiblings] = useState<{ id: string; last4: string }[]>([]);
-  const [cardFilter, setCardFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
   const [entries, setEntries] = useState<LedgerEntry[]>([]);
   // All active accounts, refreshed alongside the ledger. Lets callbacks
   // (e.g. handleConvertConfirm) look up an account's type without
@@ -195,39 +193,53 @@ export default function AccountLedgerScreen() {
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
 
-  const filteredEntries = useMemo(() => {
-    let result = entries;
-    if (filterMode === "transfers") {
-      result = result.filter((e) => e.type === "transfer_in" || e.type === "transfer_out");
-    }
-    if (cardFilter !== "all" && poolSiblings.length > 1) {
-      result = result.filter((e) => e.sourceAccountId === cardFilter);
-    }
-    return result.filter((e) => matchesSearch(search, [e.description, e.merchant, e.counterAccountName, e.splitPersonName], [e.amount]));
-  }, [entries, cardFilter, poolSiblings, filterMode, search]);
-
-  const [groupBy, setGroupBy] = useGroupBy<LedgerGroupBy>("account_ledger", LEDGER_GROUPS, "none");
-  const ledgerRows = useMemo(() => {
-    if (groupBy === "none") return ungrouped(filteredEntries);
-    return groupRows(filteredEntries, {
-      keyOf: (e) => {
-        if (groupBy === "date") return e.date.slice(0, 10);
-        if (groupBy === "merchant") return e.merchant?.trim();
-        const isTransfer = e.type === "transfer_in" || e.type === "transfer_out";
-        if (groupBy === "kind") {
-          return isTransfer ? "Transfers" : e.isAdjustment ? "Adjustments" : e.isRefund ? "Refunds" : e.type === "credit" ? "Credits" : "Expenses";
-        }
-        return isTransfer ? "Transfers" : e.isAdjustment ? "Adjustments" : (e.creditType?.name ?? e.categoryName);
+  const ledgerRowsIn = useMemo(
+    () => (filterMode === "transfers" ? entries.filter(isLedgerTransfer) : entries),
+    [entries, filterMode],
+  );
+  const ledgerFields = useMemo<ListField<LedgerEntry>[]>(
+    () => [
+      { id: "date", label: "Date", keyOf: (e) => e.date.slice(0, 10), labelOf: transactionDayLabel, group: true, groupOrder: "first" },
+      { id: "kind", label: "Expense, credit or transfer", keyOf: ledgerKind, group: true, filter: true },
+      {
+        id: "category",
+        label: "Category or type",
+        keyOf: (e) => (isLedgerTransfer(e) ? "Transfers" : e.isAdjustment ? "Adjustments" : (e.creditType?.name ?? e.categoryName)),
+        noneLabel: "Uncategorized",
+        group: true,
+        filter: true,
+        searchable: true,
       },
-      labelOf: (key) => {
-        if (groupBy === "date") return transactionDayLabel(key);
-        if (key === NO_GROUP) return groupBy === "merchant" ? "No merchant" : "Uncategorized";
-        return key;
-      },
-      amountOf: (e) => (e.type === "debit" || e.type === "transfer_out" ? -e.amount : e.amount),
-      order: groupBy === "date" ? "first" : "size",
-    });
-  }, [filteredEntries, groupBy]);
+      { id: "merchant", label: "Merchant or payer", keyOf: (e) => e.merchant?.trim(), noneLabel: "No merchant", group: true, filter: true, searchable: true },
+      // Only cards sharing one limit have more than one to choose from.
+      ...(poolSiblings.length > 1
+        ? [{
+            id: "card",
+            label: "Card",
+            keyOf: (e: LedgerEntry) => e.sourceAccountId,
+            labelOf: (k: string) => `•••• ${poolSiblings.find((s) => s.id === k)?.last4 ?? ""}`,
+            noneLabel: "No card",
+            filter: true,
+          }]
+        : []),
+    ],
+    [poolSiblings],
+  );
+  const ledgerSearch = useCallback(
+    (e: LedgerEntry) => ({ texts: [e.description, e.merchant, e.counterAccountName, e.splitPersonName], amounts: [e.amount] }),
+    [],
+  );
+  const tools = useListTools<LedgerEntry>({
+    screen: "account_ledger",
+    rows: ledgerRowsIn,
+    fields: ledgerFields,
+    search: ledgerSearch,
+    searchPlaceholder: "Search name or amount",
+    sorts: LEDGER_SORTS,
+    amountOf: ledgerAmount,
+  });
+  const filteredEntries = tools.rows;
+  const ledgerRows = tools.grouped;
 
 const loadData = useCallback(async () => {
       if (!accountId) return;
@@ -943,29 +955,8 @@ const loadData = useCallback(async () => {
             </Text>
           </View>
 
-          {entries.length > 0 && <SearchField value={search} onChangeText={setSearch} className="mx-4 mb-2" />}
-
-          {/* Per-card filter chips — only for shared-pool CCs */}
-          {poolSiblings.length > 1 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              className="mx-4 mb-2"
-              contentContainerStyle={{ paddingRight: 4, alignItems: "center" }}
-            >
-              <FilterChip label="All" active={cardFilter === "all"} onPress={() => setCardFilter("all")} />
-              {poolSiblings.map((s) => (
-                <FilterChip
-                  key={s.id}
-                  label={`•••• ${s.last4}`}
-                  active={cardFilter === s.id}
-                  onPress={() => setCardFilter(s.id)}
-                />
-              ))}
-            </ScrollView>
-          )}
-
-          {filteredEntries.length > 0 && <GroupByBar value={groupBy} options={LEDGER_GROUP_OPTIONS} onChange={setGroupBy} />}
+          {entries.length > 0 && <ListToolbar {...tools.toolbar} />}
+          {tools.filterSheet}
 
           {/* Transaction list */}
           {ledgerRows.map((row) => {
@@ -1213,7 +1204,7 @@ const loadData = useCallback(async () => {
             <View className="items-center py-12">
               <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
               <Text className="text-meta text-muted-foreground mt-3">
-                {search.trim() ? "Nothing matches your search" : "No transactions this month"}
+                {tools.narrowed ? "Nothing matches" : "No transactions this month"}
               </Text>
             </View>
           )}

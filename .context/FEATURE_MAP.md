@@ -192,9 +192,9 @@
 
 **Technical:** `services/customise.ts` (switches, `isPathOn` for search), `services/home-card-preferences.ts` (card switches, order), `hooks/use-customisation.ts` (re-renders screens). Home renders its cards through `renderHomeCards` in `app/(tabs)/index.tsx`.
 
-## Group by (lists)
+## List toolbar (search, filter, sort, group by)
 
-`utils/group-rows.ts` is the pure core; `components/ui/GroupBy.tsx` has the control and heading; `hooks/use-group-by.ts` remembers the choice per screen (`group_by__<screen>`). Transaction lists use `hooks/use-expense-grouping.ts` + `utils/expense-grouping.ts`, with `services/expense-people.ts` for Person. Lists grouped by anything but date load up to 5,000 rows instead of paging, so totals add up.
+`components/ui/ListToolbar.tsx` is the one toolbar. Lists in memory use `hooks/use-list-tools.tsx`: a screen passes its rows and `ListField`s and gets back the rows, their headings, the toolbar props and the filter sheet; the logic is pure in `utils/list-tools.ts`. Transaction lists go through `hooks/use-expense-tools.ts` + `expenseFields` in `utils/expense-grouping.ts`, with `services/expense-people.ts` for Person. The Transactions tab queries the database, so it drives `ListToolbar` itself and groups with `hooks/use-expense-grouping.ts`; a list grouped by anything but date loads up to 5,000 rows instead of paging. `FullScreenFilter` has `dates` and `custom` sections (Hisaab's range, saved views). Choices are remembered per screen in `group_by__<screen>` and `group_by__sort_<screen>` (`services/group-by-preference.ts`).
 
 ## Credit types
 

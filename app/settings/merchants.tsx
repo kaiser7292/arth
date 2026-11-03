@@ -1,8 +1,10 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, TextInput, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { FlatList, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { FilterChip, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
+import { GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
+import { useListTools } from "@/hooks/use-list-tools";
+import type { ListField, ListSort } from "@/utils/list-tools";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { compareUnicode } from "@/utils/unicode-sort";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -10,7 +12,24 @@ import { useTheme } from "@/hooks/use-theme";
 import { dismissMerchantUndo, undoMerchantChange, usePendingMerchantUndo } from "@/services/merchant-undo";
 import { listMerchants, type MerchantSummary } from "@/services/merchants-overview";
 
-type Filter = "all" | "uncategorised" | "several";
+const SHOW_LABELS: Record<string, string> = { uncategorised: "No category", several: "Several names" };
+const MERCHANT_FIELDS: ListField<MerchantSummary>[] = [
+  {
+    id: "show",
+    label: "Show",
+    keyOf: () => null,
+    // A merchant can be both.
+    keysOf: (m) => [...(!m.category ? ["uncategorised"] : []), ...(m.names.length > 1 ? ["several"] : [])],
+    labelOf: (k) => SHOW_LABELS[k] ?? k,
+    filter: true,
+  },
+  { id: "category", label: "Category", keyOf: (m) => m.category, noneLabel: "No category", filter: true, group: true, searchable: true },
+];
+const MERCHANT_SORTS: ListSort<MerchantSummary>[] = [
+  { id: "name", label: "Name (A–Z)", compare: (a, b) => compareUnicode(a.name, b.name) },
+  { id: "most", label: "Most transactions", compare: (a, b) => b.txCount - a.txCount || compareUnicode(a.name, b.name) },
+];
+const MERCHANT_SEARCH = (m: MerchantSummary) => ({ texts: [m.name, ...m.names.map((n) => n.smsName)] });
 
 /**
  * Every merchant you've used, with the names it has in transaction messages and the category its new
@@ -21,13 +40,12 @@ export default function MerchantsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [merchants, setMerchants] = useState<MerchantSummary[] | null>(null);
-  const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
   // A change made on a merchant's page can still be undone from here.
   const pendingUndo = usePendingMerchantUndo();
 
   // The merchant whose page was opened from here.
   const opened = useRef<string | null>(null);
+  const clearSearch = useRef<() => void>(() => {});
 
   useDataRefresh(
     useCallback(async () => {
@@ -35,7 +53,7 @@ export default function MerchantsScreen() {
         const list = await listMerchants(DEFAULT_USER_ID);
         setMerchants(list);
         // Back from a merchant that was renamed or merged away: the search that found it is stale.
-        if (opened.current && !list.some((m) => m.name === opened.current)) setQuery("");
+        if (opened.current && !list.some((m) => m.name === opened.current)) clearSearch.current();
         opened.current = null;
       } catch {
         setMerchants([]);
@@ -43,24 +61,15 @@ export default function MerchantsScreen() {
     }, []),
   );
 
-  const counts = useMemo(() => {
-    const list = merchants ?? [];
-    return {
-      all: list.length,
-      uncategorised: list.filter((m) => !m.category).length,
-      several: list.filter((m) => m.names.length > 1).length,
-    };
-  }, [merchants]);
-
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return (merchants ?? []).filter((m) => {
-      if (filter === "uncategorised" && m.category) return false;
-      if (filter === "several" && m.names.length < 2) return false;
-      if (!q) return true;
-      return m.name.toLowerCase().includes(q) || m.names.some((n) => n.smsName.toLowerCase().includes(q));
-    }).sort((a, b) => compareUnicode(a.name, b.name));
-  }, [merchants, query, filter]);
+  const tools = useListTools<MerchantSummary>({
+    screen: "merchants",
+    rows: merchants ?? [],
+    fields: MERCHANT_FIELDS,
+    sorts: MERCHANT_SORTS,
+    searchPlaceholder: "Search merchants or message names",
+    search: MERCHANT_SEARCH,
+  });
+  clearSearch.current = () => tools.setQuery("");
 
   if (!merchants) {
     return (
@@ -72,42 +81,22 @@ export default function MerchantsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      <ListToolbar {...tools.toolbar} />
+      {tools.filterSheet}
       <FlatList
-        data={shown}
-        keyExtractor={(m) => m.name.toLowerCase()}
+        data={tools.grouped}
+        keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.name.toLowerCase())}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: pendingUndo ? 120 : 40 }}
-        ListHeaderComponent={
-          <View className="px-4 pt-3 pb-1">
-            <View className="flex-row items-center rounded-lg border border-border bg-card px-3" style={{ minHeight: 42 }}>
-              <Ionicons name="search-outline" size={16} color={theme.mutedForeground} />
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Search merchants or names in messages"
-                placeholderTextColor={theme.mutedForeground}
-                className="flex-1 text-sm text-foreground py-2 ml-2"
-                accessibilityLabel="Search merchants"
-              />
-              {query.length > 0 && (
-                <Pressable onPress={() => setQuery("")} hitSlop={8} accessibilityLabel="Clear search">
-                  <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
-                </Pressable>
-              )}
-            </View>
-            <View className="flex-row mt-3 mb-2">
-              <FilterChip label={`All ${counts.all}`} active={filter === "all"} onPress={() => setFilter("all")} spacing="sm" />
-              <FilterChip label={`No category ${counts.uncategorised}`} active={filter === "uncategorised"} onPress={() => setFilter("uncategorised")} spacing="sm" />
-              <FilterChip label={`Several names ${counts.several}`} active={filter === "several"} onPress={() => setFilter("several")} spacing="sm" />
-            </View>
-          </View>
-        }
         ListEmptyComponent={
           <Text className="text-sm text-muted-foreground text-center px-8 mt-8">
             {merchants.length === 0 ? "Merchants appear here once you have transactions." : "Nothing matches."}
           </Text>
         }
-        renderItem={({ item: m }) => (
+        renderItem={({ item: row }) => {
+          if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={0} />;
+          const m = row.item;
+          return (
           <Pressable
             onPress={() => {
               opened.current = m.name;
@@ -138,7 +127,8 @@ export default function MerchantsScreen() {
             )}
             <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />
           </Pressable>
-        )}
+          );
+        }}
         ListFooterComponent={
           <Pressable
             onPress={() => router.push("/settings/merchant-categories")}
