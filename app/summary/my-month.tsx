@@ -9,6 +9,7 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getCurrentMonth } from "@/services/budget";
 import { getMonthAccounts, getMonthPeople, getMyMonth, type MonthAccount, type MyMonth } from "@/services/my-month";
+import type { MyMonthSection } from "@/services/my-month-rows";
 import { formatAmount } from "@/utils/expense-validation";
 
 const TOP_CATEGORIES = 5;
@@ -18,10 +19,12 @@ function Heading({ children }: { children: string }) {
 }
 
 function Row({ label, amount, sign = "", onPress }: { label: string; amount: number; sign?: string; onPress?: () => void }) {
+  const tint = useTheme().mutedForeground;
   return (
-    <Pressable disabled={!onPress} onPress={onPress} className="flex-row justify-between py-1.5" accessibilityRole={onPress ? "button" : undefined}>
+    <Pressable disabled={!onPress} onPress={onPress} className="flex-row items-center justify-between py-1.5" accessibilityRole={onPress ? "button" : undefined}>
       <Text className="text-sm text-foreground flex-1 mr-3">{label}</Text>
       <Text className="text-sm font-semibold text-foreground">{sign}{formatAmount(amount)}</Text>
+      {onPress && <Ionicons name="chevron-forward" size={13} color={tint} style={{ marginLeft: 4 }} />}
     </Pressable>
   );
 }
@@ -52,6 +55,9 @@ export default function MyMonthScreen() {
     }, [month]),
   );
 
+  const drill = (section: MyMonthSection, title: string, categoryId?: string) => () =>
+    router.push({ pathname: "/summary/my-month-rows", params: { month, section, title, ...(categoryId ? { categoryId } : {}) } });
+
   const categories = data ? (showAll ? data.categories : data.categories.slice(0, TOP_CATEGORIES)) : [];
   // Before pay day, being behind is just the calendar: no red, and it says so below.
   const beforePayDay = !!data?.salaryDue && data.leftOver < 0;
@@ -77,7 +83,7 @@ export default function MyMonthScreen() {
           <Card className="mb-3">
             <Heading>Money in</Heading>
             {data.salary > 0 ? (
-              <Row label="Income" amount={data.salary} />
+              <Row label="Income" amount={data.salary} onPress={drill("income", "Income")} />
             ) : data.salaryDue ? (
               <View className="py-1.5">
                 <Text className="text-sm text-foreground">Income due around {dueLabel}</Text>
@@ -94,7 +100,7 @@ export default function MyMonthScreen() {
                 </Text>
               </Pressable>
             )}
-            {data.otherIncome > 0 && <Row label="Other money in" amount={data.otherIncome} />}
+            {data.otherIncome > 0 && <Row label="Other money in" amount={data.otherIncome} onPress={drill("other", "Other money in")} />}
             {data.salaryMovedOut > 0 && (
               <Text className="text-xs text-muted-foreground mt-1">
                 {formatAmount(data.salaryMovedOut)} of income arrived this month but counts for another, by your income setting.
@@ -104,17 +110,11 @@ export default function MyMonthScreen() {
 
           <Card className="mb-3">
             <Heading>Spent</Heading>
-            <Row label="Total" amount={data.spent} />
+            <Row label="Total" amount={data.spent} onPress={drill("spent", "Spent")} />
             {categories.map((c) => (
               <Pressable
                 key={c.categoryId ?? "none"}
-                disabled={!c.categoryId}
-                onPress={() =>
-                  router.push({
-                    pathname: "/budget/transactions",
-                    params: { filterMonth: month, categoryId: c.categoryId ?? "", title: c.name },
-                  })
-                }
+                onPress={drill("spent", c.name, c.categoryId ?? "none")}
                 className="py-1.5"
                 accessibilityRole="button"
               >
@@ -139,15 +139,15 @@ export default function MyMonthScreen() {
             {data.saved.length === 0 ? (
               <Text className="text-sm text-muted-foreground py-1.5">Nothing this month</Text>
             ) : (
-              data.saved.map((s) => <Row key={s.label} label={s.label} amount={s.amount} />)
+              data.saved.map((s) => <Row key={s.label} label={s.label} amount={s.amount} onPress={drill(s.section, s.label)} />)
             )}
           </Card>
 
           {(data.people.billsShare > 0 || data.people.repaid > 0 || !!people?.owedToYou || !!people?.youOwe || !!people?.together) && (
             <Card className="mb-3">
               <Heading>With people</Heading>
-              {data.people.billsShare > 0 && <Row label="Others' share of bills you paid" amount={data.people.billsShare} sign="−" />}
-              {data.people.repaid > 0 && <Row label="Repaid to you" amount={data.people.repaid} sign="+" />}
+              {data.people.billsShare > 0 && <Row label="Others' share of bills you paid" amount={data.people.billsShare} sign="−" onPress={drill("bills", "Others' share of bills")} />}
+              {data.people.repaid > 0 && <Row label="Repaid to you" amount={data.people.repaid} sign="+" onPress={drill("repaid", "Repaid to you")} />}
               {(data.people.billsShare > 0 || data.people.repaid > 0) && (!!people?.owedToYou || !!people?.youOwe || !!people?.together) && (
                 <View className="border-t border-border my-1" />
               )}
@@ -164,6 +164,7 @@ export default function MyMonthScreen() {
           )}
 
           <Card className="mb-3">
+            <Pressable onPress={drill("left", beforePayDay ? "So far this month" : "Left over")} accessibilityRole="button">
             <View className="flex-row justify-between items-center">
               <Text className="text-base font-semibold" style={{ color: leftColor }}>
                 {beforePayDay ? "So far this month" : data.leftOver < 0 ? "Over by" : "Left over"}
@@ -171,6 +172,7 @@ export default function MyMonthScreen() {
               <Text className="text-xl font-bold" style={{ color: leftColor }}>{beforePayDay ? "−" : ""}{formatAmount(Math.abs(data.leftOver))}</Text>
             </View>
             <Text className="text-xs text-muted-foreground mt-1">{data.people.billsShare > 0 || data.people.repaid > 0 ? "Money in, minus spent and saved, with money to and from people" : "Money in, minus spent, minus saved"}</Text>
+            </Pressable>
           </Card>
 
           <Card className="mb-3">
@@ -183,16 +185,17 @@ export default function MyMonthScreen() {
               <Text className="text-sm text-muted-foreground py-1.5">Shows once money comes in this month</Text>
             ) : (
               <>
-                <Row label="Money in" amount={data.moneyIn} />
+                <Row label="Money in" amount={data.moneyIn} onPress={drill("moneyIn", "Money in")} />
                 {data.people.repaid !== data.people.billsShare && (
                   <Row
                     label="With people"
                     amount={Math.abs(data.people.repaid - data.people.billsShare)}
                     sign={data.people.repaid > data.people.billsShare ? "+" : "−"}
+                    onPress={drill("people", "With people")}
                   />
                 )}
-                <Row label="Budget for the month" amount={data.afterBudget.setAside} sign="−" />
-                {data.savedTotal > 0 && <Row label="Already saved" amount={data.savedTotal} sign="−" />}
+                <Row label="Budget for the month" amount={data.afterBudget.setAside} sign="−" onPress={() => router.push("/(tabs)/budget")} />
+                {data.savedTotal > 0 && <Row label="Already saved" amount={data.savedTotal} sign="−" onPress={drill("saved", "Saved or invested")} />}
                 <View className="flex-row justify-between items-center pt-2 mt-1 border-t border-border">
                   <Text className="text-sm font-semibold flex-1 mr-3" style={{ color: data.afterBudget.free < 0 ? theme.danger : theme.success }}>
                     {data.afterBudget.free < 0 ? "Budget is more than your money in, by" : "You can still save or spend"}
@@ -208,7 +211,14 @@ export default function MyMonthScreen() {
           {accounts.length > 0 && (
             <Card className="mb-3">
               <Heading>{month === getCurrentMonth() ? "In your accounts now" : "In your accounts at month end"}</Heading>
-              {accounts.map((a) => <Row key={a.id} label={a.name} amount={a.balance} />)}
+              {accounts.map((a) => (
+                <Row
+                  key={a.id}
+                  label={a.name}
+                  amount={a.balance}
+                  onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: a.id, month } })}
+                />
+              ))}
               {accounts.length > 1 && (
                 <View className="pt-1 mt-1 border-t border-border">
                   <Row label="Total" amount={accounts.reduce((s, a) => s + a.balance, 0)} />

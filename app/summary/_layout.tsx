@@ -13,6 +13,10 @@ export default function SummaryLayout() {
         options={{ title: "My month" }}
       />
       <Stack.Screen
+        name="my-month-rows"
+        options={{ title: "Transactions" }}
+      />
+      <Stack.Screen
         name="[month]"
         options={{ title: "Monthly Summary" }}
       />

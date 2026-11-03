@@ -138,6 +138,14 @@ export async function repaymentsIn(userId: string, startDate: string, endDate: s
   return row?.total ?? 0;
 }
 
+/** Money moved from a bank/wallet into a demat or investment account (FDs included). `t` is the transfer. */
+export const TRANSFERS_TO_INVESTMENTS_FROM = `FROM account_transfers t
+       JOIN financial_accounts dst ON dst.id = t.to_account_id
+       JOIN financial_accounts src ON src.id = t.from_account_id
+       WHERE dst.user_id = ? AND t.deleted_at IS NULL AND t.date >= ? AND t.date <= ?
+         AND dst.account_type IN ('demat', 'investment', 'pension')
+         AND src.account_type NOT IN ('demat', 'investment', 'pension')`;
+
 export async function invested(userId: string, startDate: string, endDate: string): Promise<{ amount: number; linked: number; transfers: number; fdsOpened: number }> {
   const db = getDatabase();
   const [links, transfers, fds] = await Promise.all([
@@ -149,15 +157,8 @@ export async function invested(userId: string, startDate: string, endDate: strin
          AND e.date >= ? AND e.date <= ?;`,
       userId, startDate, endDate,
     ),
-    // Money moved from a bank/wallet into a demat or investment account (FDs included).
     db.getFirstAsync<{ total: number | null }>(
-      `SELECT COALESCE(SUM(t.amount), 0) AS total
-       FROM account_transfers t
-       JOIN financial_accounts dst ON dst.id = t.to_account_id
-       JOIN financial_accounts src ON src.id = t.from_account_id
-       WHERE dst.user_id = ? AND t.deleted_at IS NULL AND t.date >= ? AND t.date <= ?
-         AND dst.account_type IN ('demat', 'investment', 'pension')
-         AND src.account_type NOT IN ('demat', 'investment', 'pension');`,
+      `SELECT COALESCE(SUM(t.amount), 0) AS total ${TRANSFERS_TO_INVESTMENTS_FROM};`,
       userId, startDate, endDate,
     ),
     db.getFirstAsync<{ n: number }>(

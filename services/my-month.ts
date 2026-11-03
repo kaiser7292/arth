@@ -33,7 +33,8 @@ export interface MyMonth {
   moneyIn: number;
   spent: number;
   categories: { categoryId: string | null; name: string; total: number }[];
-  saved: { label: string; amount: number }[];
+  /** `section` is which list of transactions a line opens. */
+  saved: { label: string; amount: number; section: "fd" | "sip" | "linked" | "transfers" }[];
   savedTotal: number;
   /** This month's salary hasn't come yet but isn't late: going over so far says nothing yet. */
   salaryDue: { date: string; amount: number } | null;
@@ -48,12 +49,12 @@ export interface MyMonth {
   waitingForReview: number;
 }
 
-const REAL_DEBIT = `status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+export const REAL_DEBIT = `status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
   AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)`;
-const NOT_PUT_AWAY = `${REAL_DEBIT}
+export const NOT_PUT_AWAY = `${REAL_DEBIT}
   AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)`;
 /** What's left of a debit after the part linked to goals, which counts as saved instead. */
-const LINKED_PART = `COALESCE((SELECT SUM(l.contribution_amount) FROM expense_investment_links l WHERE l.expense_id = expenses.id), 0)`;
+export const LINKED_PART = `COALESCE((SELECT SUM(l.contribution_amount) FROM expense_investment_links l WHERE l.expense_id = expenses.id), 0)`;
 
 export async function getMyMonth(userId: string, month: string): Promise<MyMonth> {
   const db = getDatabase();
@@ -113,10 +114,10 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
 
   const eventTotal = (event: string) => spotted.find((r) => r.money_event === event)?.total ?? 0;
   const saved = [
-    { label: "Fixed deposits", amount: eventTotal("fd_open") },
-    { label: "SIPs", amount: eventTotal("sip") },
-    { label: "Linked to goals", amount: put.linked },
-    { label: "Moved to investment accounts", amount: put.transfers },
+    { label: "Fixed deposits", amount: eventTotal("fd_open"), section: "fd" as const },
+    { label: "SIPs", amount: eventTotal("sip"), section: "sip" as const },
+    { label: "Linked to goals", amount: put.linked, section: "linked" as const },
+    { label: "Moved to investment accounts", amount: put.transfers, section: "transfers" as const },
   ].filter((s) => s.amount > 0);
   const savedTotal = saved.reduce((s, r) => s + r.amount, 0);
 

@@ -50,6 +50,7 @@ import { getExpenseTotal } from "../../services/expense-queries";
 import { goalMonthlyNeeded, goalMonths, saveDatedGoal } from "../../services/dated-goal";
 import { getLifeMilestones } from "../../services/life-milestone";
 import { getMonthAccounts, getMyMonth } from "../../services/my-month";
+import { getMyMonthGroups, type MyMonthSection } from "../../services/my-month-rows";
 import { deriveYearlyPlan, getBucketsByFY } from "../../services/yearly-plan";
 
 const USER = "default_user";
@@ -97,7 +98,7 @@ describe("getMyMonth", () => {
     const m = await getMyMonth(USER, MONTH);
     expect(m).toMatchObject({ salary: 85000, otherIncome: 3000, moneyIn: 88000, spent: 24000, savedTotal: 25000, leftOver: 39000 });
     expect(m.categories.map((c) => c.name)).toEqual(["Rent", "Food"]);
-    expect(m.saved).toEqual([{ label: "Fixed deposits", amount: 20000 }, { label: "SIPs", amount: 5000 }]);
+    expect(m.saved.map(({ label, amount }) => ({ label, amount }))).toEqual([{ label: "Fixed deposits", amount: 20000 }, { label: "SIPs", amount: 5000 }]);
   });
 
   it("refunds, own transfers and card payments aren't money in", async () => {
@@ -237,6 +238,73 @@ describe("money with people", () => {
     insert("budgets", { id: "b-food", user_id: USER, category_id: "food", month: MONTH, amount: 2000 });
     tx({ amount: 500, split_original_amount: 1000, category_id: "food", account_id: "bank" });
     expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ setAside: 2000, free: 7500 });
+  });
+});
+
+describe("drilling into a figure", () => {
+  const total = async (section: MyMonthSection, categoryId?: string | null) =>
+    (await getMyMonthGroups(USER, MONTH, section, categoryId)).reduce((s, g) => s + g.total, 0);
+
+  async function busyMonth() {
+    tx({ nature: "credit", credit_kind: "salary", amount: 85000, account_id: "bank" });
+    tx({ nature: "credit", credit_kind: "interest", amount: 3000, account_id: "bank" });
+    tx({ nature: "credit", credit_kind: "refund", amount: 700, account_id: "bank" });
+    const friend = tx({ nature: "credit", amount: 500, account_id: "bank" });
+    insert("hisaab_persons", { id: "p", owner_user_id: USER, name: "Friend" });
+    insert("hisaab_entries", { id: "h", hisaab_person_id: "p", amount: 500, date: "2026-10-20", type: "settlement", linked_expense_id: friend });
+    tx({ amount: 18000, category_id: "rent", account_id: "bank" });
+    tx({ amount: 6000, category_id: "food", account_id: "bank" });
+    tx({ amount: 300, account_id: "bank" });
+    tx({ amount: 500, split_original_amount: 1000, category_id: "food", account_id: "bank" });
+    tx({ amount: 20000, money_event: "fd_open", account_id: "bank" });
+    tx({ amount: 5000, money_event: "sip", account_id: "bank" });
+    tx({ amount: 900, money_event: "self_transfer", account_id: "bank" });
+    insert("investment_buckets", { id: "b1", user_id: USER, name: "Index", annual_target: 60000 });
+    const partial = tx({ amount: 5000, category_id: "food", account_id: "bank" });
+    insert("expense_investment_links", { id: "l1", expense_id: partial, investment_bucket_id: "b1", contribution_amount: 3000 });
+    insert("account_transfers", { id: "t1", from_account_id: "bank", to_account_id: "demat", amount: 2000, date: "2026-10-10", user_id: USER });
+  }
+
+  it("every figure's rows add up to the figure", async () => {
+    await busyMonth();
+    const m = await getMyMonth(USER, MONTH);
+    expect(await total("income")).toBe(m.salary);
+    expect(await total("other")).toBe(m.otherIncome);
+    expect(await total("moneyIn")).toBe(m.moneyIn);
+    expect(await total("repaid")).toBe(m.people.repaid);
+    expect(await total("in")).toBe(m.moneyIn + m.people.repaid);
+    expect(await total("spent")).toBe(m.spent);
+    expect(await total("saved")).toBe(m.savedTotal);
+    expect(await total("bills")).toBe(m.people.billsShare);
+    expect(await total("out")).toBe(m.spent + m.savedTotal + m.people.billsShare);
+    for (const s of m.saved) expect(await total(s.section)).toBe(s.amount);
+    for (const c of m.categories) expect(await total("spent", c.categoryId)).toBe(c.total);
+  });
+
+  it("left over is everything in against everything out", async () => {
+    await busyMonth();
+    const m = await getMyMonth(USER, MONTH);
+    const groups = await getMyMonthGroups(USER, MONTH, "left");
+    const inTitles = ["Income", "Other money in", "Repaid to you"];
+    const net = groups.reduce((s, g) => s + (inTitles.includes(g.title) ? g.total : -g.total), 0);
+    expect(net).toBe(m.leftOver);
+  });
+
+  it("budget's rows add up to the budget total, by its own rule", async () => {
+    await busyMonth();
+    expect(await total("budget")).toBe(await getExpenseTotal(USER, "2026-10-01", "2026-10-31"));
+  });
+
+  it("a row carries what opens it: an expense or a transfer", async () => {
+    await busyMonth();
+    const [g] = await getMyMonthGroups(USER, MONTH, "transfers");
+    expect(g.rows[0]).toMatchObject({ kind: "transfer", transfer: { id: "t1" } });
+    const [p] = await getMyMonthGroups(USER, MONTH, "linked");
+    expect(p.rows[0]).toMatchObject({ kind: "expense", expense: { amount: 3000 } });
+  });
+
+  it("a figure with nothing behind it is an empty list, not an error", async () => {
+    expect(await getMyMonthGroups(USER, MONTH, "saved")).toEqual([]);
   });
 });
 

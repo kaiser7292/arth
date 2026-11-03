@@ -67,8 +67,8 @@ export function expectedSalaryByMonth(profile: SalaryProfile, fyYear: number): n
 }
 
 async function salaryCredits(userId: string, from: string, to: string) {
-  return getDatabase().getAllAsync<{ amount: number; date: string; salary_for_month: string | null }>(
-    `SELECT e.amount, e.date, e.salary_for_month ${MONEY_IN_FROM} AND e.credit_kind = 'salary';`,
+  return getDatabase().getAllAsync<{ id: string; amount: number; date: string; salary_for_month: string | null }>(
+    `SELECT e.id, e.amount, e.date, e.salary_for_month ${MONEY_IN_FROM} AND e.credit_kind = 'salary';`,
     userId, from, to,
   );
 }
@@ -156,6 +156,14 @@ export async function getSalaryForMonth(userId: string, month: string): Promise<
     if (c.date.slice(0, 7) === month) arrived += c.amount;
   }
   return { counted, arrived };
+}
+
+/** The income credits counted for a month, wherever they arrived. */
+export async function getSalaryCreditIdsForMonth(userId: string, month: string): Promise<string[]> {
+  const profile = await getSalaryProfileByFY(userId, financialYearOf(month)).catch(() => null);
+  const offset = profile?.salary_month_offset ?? 0;
+  const credits = await salaryCredits(userId, firstDay(shiftMonth(month, -2)), lastDay(shiftMonth(month, 2)));
+  return credits.filter((c) => creditPeriod(c.date, c.salary_for_month, offset) === month).map((c) => c.id);
 }
 
 /** Whether this month's salary is still on its way, or overdue. Null once it's in, or with no salary to compare. */
