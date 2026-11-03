@@ -29,7 +29,16 @@ function Row({ label, amount, sign = "", onPress }: { label: string; amount: num
   );
 }
 
-/** "This is my salary, how I spent it": money in, spent, saved, and what's left, for one month. */
+function SubRow({ label, amount, onPress }: { label: string; amount: number; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} className="flex-row justify-between py-1" accessibilityRole="button">
+      <Text className="text-xs text-muted-foreground flex-1 mr-3" numberOfLines={1}>{label}</Text>
+      <Text className="text-xs text-muted-foreground">{formatAmount(amount)}</Text>
+    </Pressable>
+  );
+}
+
+/** "This is my salary, how I spent it": what came in, where it went (invested, spent by you, spent for others), and what's left. */
 export default function MyMonthScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -66,6 +75,17 @@ export default function MyMonthScreen() {
     ? new Date(`${data.salaryDue.date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
     : "";
 
+  const cameIn = data ? data.moneyIn + data.people.repaid : 0;
+  const flow = data
+    ? [
+        { key: "invested", label: "Invested", amount: data.savedTotal, color: theme.warning, section: "saved" as const },
+        { key: "spent", label: "Spent by you", amount: data.spent, color: theme.primary, section: "spent" as const },
+        { key: "others", label: "Spent for others", amount: data.people.billsShare, color: theme.alpha("primary", 0.45), section: "bills" as const },
+      ]
+    : [];
+  // The bar is out of money in; if more went out than came in, out of that instead.
+  const barWhole = Math.max(cameIn, flow.reduce((s, f) => s + f.amount, 0), 1);
+
   return (
     <ScreenContainer padTop={false}>
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
@@ -80,100 +100,98 @@ export default function MyMonthScreen() {
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
           <SalaryChecks month={month} />
+          {/* The whole month in one sum: what came in, where it went, and what's left. */}
           <Card className="mb-3">
-            <Heading>Money in</Heading>
-            {data.salary > 0 ? (
-              <Row label="Income" amount={data.salary} onPress={drill("income", "Income")} />
-            ) : data.salaryDue ? (
-              <View className="py-1.5">
-                <Text className="text-sm text-foreground">Income due around {dueLabel}</Text>
-                {data.salaryDue.amount > 0 && (
-                  <Text className="text-xs text-muted-foreground mt-0.5">{formatAmount(data.salaryDue.amount)} expected, not counted until it arrives</Text>
+            <Pressable onPress={drill("in", "Money came in")} accessibilityRole="button" accessibilityLabel="Money came in, see transactions">
+              <Text className="text-xs text-muted-foreground">Money came in</Text>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-title font-bold text-foreground">{formatAmount(cameIn)}</Text>
+                <Ionicons name="chevron-forward" size={15} color={theme.mutedForeground} />
+              </View>
+            </Pressable>
+
+            <View className="mt-1">
+              {data.salary > 0 ? (
+                <SubRow label="Income" amount={data.salary} onPress={drill("income", "Income")} />
+              ) : data.salaryDue ? (
+                <View className="py-1">
+                  <Text className="text-xs text-muted-foreground">Income due around {dueLabel}</Text>
+                  {data.salaryDue.amount > 0 && (
+                    <Text className="text-xs text-faint-foreground mt-0.5">{formatAmount(data.salaryDue.amount)} expected, not counted until it arrives</Text>
+                  )}
+                </View>
+              ) : (
+                // Nothing marked as income: asking beats showing a confident ₹0 on someone's pay.
+                <Pressable onPress={() => router.push({ pathname: "/(tabs)/expenses", params: { preset: "credits" } })} className="py-1" accessibilityRole="button">
+                  <Text className="text-xs" style={{ color: theme.primary }}>No income found. Already paid? Set the credit's type to Income</Text>
+                </Pressable>
+              )}
+              {data.otherIncome > 0 && <SubRow label="Other money in" amount={data.otherIncome} onPress={drill("other", "Other money in")} />}
+              {data.people.repaid > 0 && <SubRow label="Repaid to you" amount={data.people.repaid} onPress={drill("repaid", "Repaid to you")} />}
+              {data.salaryMovedOut > 0 && (
+                <Text className="text-xs text-faint-foreground mt-1">
+                  {formatAmount(data.salaryMovedOut)} of income arrived this month but counts for another, by your income setting.
+                </Text>
+              )}
+            </View>
+
+            <View className="flex-row rounded-full overflow-hidden mt-3 mb-1" style={{ height: 10, backgroundColor: theme.alpha("foreground", 0.08), gap: 2 }}>
+              {flow.filter((f) => f.amount > 0).map((f) => (
+                <View key={f.key} style={{ width: `${(f.amount / barWhole) * 100}%`, backgroundColor: f.color }} />
+              ))}
+            </View>
+
+            {flow.map((f) => (
+              <View key={f.key}>
+                <Pressable onPress={drill(f.section, f.label)} className="flex-row items-center py-2" accessibilityRole="button">
+                  <View className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: f.color }} />
+                  <Text className="text-sm text-foreground flex-1 mr-2">{f.label}</Text>
+                  {cameIn > 0 && <Text className="text-xs text-muted-foreground mr-2">{Math.round((f.amount / cameIn) * 100)}%</Text>}
+                  <Text className="text-sm font-semibold text-foreground">{formatAmount(f.amount)}</Text>
+                  <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
+                </Pressable>
+                {/* Only worth spelling out when it's more than one kind. */}
+                {f.key === "invested" && data.saved.length > 1 && (
+                  <View className="ml-4">
+                    {data.saved.map((x) => <SubRow key={x.label} label={x.label} amount={x.amount} onPress={drill(x.section, x.label)} />)}
+                  </View>
                 )}
               </View>
-            ) : (
-              // Nothing marked as salary: asking beats showing a confident ₹0 on someone's pay.
-              <Pressable onPress={() => router.push({ pathname: "/(tabs)/expenses", params: { preset: "credits" } })} className="py-1.5" accessibilityRole="button">
-                <Text className="text-sm text-foreground">No income found this month</Text>
-                <Text className="text-xs mt-0.5" style={{ color: theme.primary }}>
-                  Already paid? Open the credit in Transactions and set its type to Income
-                </Text>
-              </Pressable>
-            )}
-            {data.otherIncome > 0 && <Row label="Other money in" amount={data.otherIncome} onPress={drill("other", "Other money in")} />}
-            {data.salaryMovedOut > 0 && (
-              <Text className="text-xs text-muted-foreground mt-1">
-                {formatAmount(data.salaryMovedOut)} of income arrived this month but counts for another, by your income setting.
-              </Text>
-            )}
-          </Card>
-
-          <Card className="mb-3">
-            <Heading>Spent</Heading>
-            <Row label="Total" amount={data.spent} onPress={drill("spent", "Spent")} />
-            {categories.map((c) => (
-              <Pressable
-                key={c.categoryId ?? "none"}
-                onPress={drill("spent", c.name, c.categoryId ?? "none")}
-                className="py-1.5"
-                accessibilityRole="button"
-              >
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-muted-foreground flex-1 mr-3" numberOfLines={1}>{c.name}</Text>
-                  <Text className="text-xs text-muted-foreground">{formatAmount(c.total)}</Text>
-                </View>
-                <ProgressBar value={data.spent > 0 ? c.total / data.spent : 0} color={theme.primary} height={5} animated={false} />
-              </Pressable>
             ))}
-            {data.categories.length > TOP_CATEGORIES && (
-              <Pressable onPress={() => setShowAll((v) => !v)} className="pt-1.5" accessibilityRole="button">
-                <Text className="text-xs font-medium" style={{ color: theme.primary }}>
-                  {showAll ? "Show less" : `See all ${data.categories.length} categories`}
-                </Text>
-              </Pressable>
-            )}
+
+            <Pressable
+              onPress={drill("left", beforePayDay ? "So far this month" : "What's left")}
+              className="flex-row items-center justify-between pt-3 mt-1 border-t border-border"
+              accessibilityRole="button"
+            >
+              <Text className="text-base font-semibold" style={{ color: leftColor }}>
+                {beforePayDay ? "So far this month" : data.leftOver < 0 ? "More went out, by" : "What's left"}
+              </Text>
+              <Text className="text-xl font-bold" style={{ color: leftColor }}>{beforePayDay ? "−" : ""}{formatAmount(Math.abs(data.leftOver))}</Text>
+            </Pressable>
           </Card>
 
-          <Card className="mb-3">
-            <Heading>Saved or invested</Heading>
-            {data.saved.length === 0 ? (
-              <Text className="text-sm text-muted-foreground py-1.5">Nothing this month</Text>
-            ) : (
-              data.saved.map((s) => <Row key={s.label} label={s.label} amount={s.amount} onPress={drill(s.section, s.label)} />)
-            )}
-          </Card>
-
-          {(data.people.billsShare > 0 || data.people.repaid > 0 || !!people?.owedToYou || !!people?.youOwe || !!people?.together) && (
+          {data.categories.length > 0 && (
             <Card className="mb-3">
-              <Heading>With people</Heading>
-              {data.people.billsShare > 0 && <Row label="Others' share of bills you paid" amount={data.people.billsShare} sign="−" onPress={drill("bills", "Others' share of bills")} />}
-              {data.people.repaid > 0 && <Row label="Repaid to you" amount={data.people.repaid} sign="+" onPress={drill("repaid", "Repaid to you")} />}
-              {(data.people.billsShare > 0 || data.people.repaid > 0) && (!!people?.owedToYou || !!people?.youOwe || !!people?.together) && (
-                <View className="border-t border-border my-1" />
-              )}
-              {!!people?.owedToYou && <Row label="Owed to you now" amount={people.owedToYou} onPress={() => router.push("/hisaab/persons")} />}
-              {!!people?.youOwe && <Row label="You owe now" amount={people.youOwe} onPress={() => router.push("/hisaab/persons")} />}
-              {!!people?.together && (
-                <Row
-                  label="Your household spent together"
-                  amount={people.together}
-                  onPress={() => router.push({ pathname: "/together/transactions", params: { month } })}
-                />
+              <Heading>What you spent on</Heading>
+              {categories.map((c) => (
+                <Pressable key={c.categoryId ?? "none"} onPress={drill("spent", c.name, c.categoryId ?? "none")} className="py-1.5" accessibilityRole="button">
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-xs text-muted-foreground flex-1 mr-3" numberOfLines={1}>{c.name}</Text>
+                    <Text className="text-xs text-muted-foreground">{formatAmount(c.total)}</Text>
+                  </View>
+                  <ProgressBar value={data.spent > 0 ? c.total / data.spent : 0} color={theme.primary} height={5} animated={false} />
+                </Pressable>
+              ))}
+              {data.categories.length > TOP_CATEGORIES && (
+                <Pressable onPress={() => setShowAll((v) => !v)} className="pt-1.5" accessibilityRole="button">
+                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                    {showAll ? "Show less" : `See all ${data.categories.length} categories`}
+                  </Text>
+                </Pressable>
               )}
             </Card>
           )}
-
-          <Card className="mb-3">
-            <Pressable onPress={drill("left", beforePayDay ? "So far this month" : "Left over")} accessibilityRole="button">
-            <View className="flex-row justify-between items-center">
-              <Text className="text-base font-semibold" style={{ color: leftColor }}>
-                {beforePayDay ? "So far this month" : data.leftOver < 0 ? "Over by" : "Left over"}
-              </Text>
-              <Text className="text-xl font-bold" style={{ color: leftColor }}>{beforePayDay ? "−" : ""}{formatAmount(Math.abs(data.leftOver))}</Text>
-            </View>
-            <Text className="text-xs text-muted-foreground mt-1">{data.people.billsShare > 0 || data.people.repaid > 0 ? "Money in, minus spent and saved, with money to and from people" : "Money in, minus spent, minus saved"}</Text>
-            </Pressable>
-          </Card>
 
           <Card className="mb-3">
             <Heading>After your budget</Heading>
@@ -185,28 +203,39 @@ export default function MyMonthScreen() {
               <Text className="text-sm text-muted-foreground py-1.5">Shows once money comes in this month</Text>
             ) : (
               <>
-                <Row label="Money in" amount={data.moneyIn} onPress={drill("moneyIn", "Money in")} />
-                {data.people.repaid !== data.people.billsShare && (
-                  <Row
-                    label="With people"
-                    amount={Math.abs(data.people.repaid - data.people.billsShare)}
-                    sign={data.people.repaid > data.people.billsShare ? "+" : "−"}
-                    onPress={drill("people", "With people")}
-                  />
-                )}
-                <Row label="Budget for the month" amount={data.afterBudget.setAside} sign="−" onPress={() => router.push("/(tabs)/budget")} />
-                {data.savedTotal > 0 && <Row label="Already saved" amount={data.savedTotal} sign="−" onPress={drill("saved", "Saved or invested")} />}
+                <Row label="Money came in" amount={cameIn} onPress={drill("in", "Money came in")} />
+                {data.people.billsShare > 0 && <Row label="Spent for others" amount={data.people.billsShare} sign="−" onPress={drill("bills", "Spent for others")} />}
+                {data.savedTotal > 0 && <Row label="Invested" amount={data.savedTotal} sign="−" onPress={drill("saved", "Invested")} />}
+                <Row label="Your budget for the month" amount={data.afterBudget.setAside} sign="−" onPress={() => router.push("/(tabs)/budget")} />
                 <View className="flex-row justify-between items-center pt-2 mt-1 border-t border-border">
                   <Text className="text-sm font-semibold flex-1 mr-3" style={{ color: data.afterBudget.free < 0 ? theme.danger : theme.success }}>
-                    {data.afterBudget.free < 0 ? "Budget is more than your money in, by" : "You can still save or spend"}
+                    {data.afterBudget.free < 0 ? "Short by" : "You can still save or spend"}
                   </Text>
                   <Text className="text-base font-bold" style={{ color: data.afterBudget.free < 0 ? theme.danger : theme.success }}>
                     {formatAmount(Math.abs(data.afterBudget.free))}
                   </Text>
                 </View>
+                {data.afterBudget.free < 0 && (
+                  <Text className="text-xs text-muted-foreground mt-1">If you spend your full budget, this is how much more you'd need this month.</Text>
+                )}
               </>
             )}
           </Card>
+
+          {(!!people?.owedToYou || !!people?.youOwe || !!people?.together) && (
+            <Card className="mb-3">
+              <Heading>With people, overall</Heading>
+              {!!people?.owedToYou && <Row label="Owed to you now" amount={people.owedToYou} onPress={() => router.push("/hisaab/persons")} />}
+              {!!people?.youOwe && <Row label="You owe now" amount={people.youOwe} onPress={() => router.push("/hisaab/persons")} />}
+              {!!people?.together && (
+                <Row
+                  label="Your household spent together"
+                  amount={people.together}
+                  onPress={() => router.push({ pathname: "/together/transactions", params: { month } })}
+                />
+              )}
+            </Card>
+          )}
 
           {accounts.length > 0 && (
             <Card className="mb-3">

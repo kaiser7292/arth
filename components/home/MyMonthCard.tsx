@@ -131,8 +131,9 @@ function CashFlow({ d, month }: { d: MyMonth; month: string }) {
 
   const whole = Math.max(moneyIn, moneyOut, 1);
   const segments = [
-    { key: "Spent", value: d.spent + d.people.billsShare, color: theme.primary, section: "spent" as const },
-    { key: "Saved", value: d.savedTotal, color: theme.warning, section: "saved" as const },
+    { key: "Invested", value: d.savedTotal, color: theme.warning, section: "saved" as const },
+    { key: "Spent by you", value: d.spent, color: theme.primary, section: "spent" as const },
+    { key: "For others", value: d.people.billsShare, color: theme.alpha("primary", 0.45), section: "bills" as const },
     { key: "Left", value: left, color: theme.success, section: "left" as const },
   ];
 

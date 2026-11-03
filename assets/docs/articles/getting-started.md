@@ -53,11 +53,11 @@ The search icon at the top of Home finds almost anything: actions like "add an i
 
 ## My month and setting up
 
-**My month** on Home is the month in one place: money in, what you spent, what you saved or invested, and what's left. Tap it for the categories, your bank and wallet balances, what your budget leaves you free to save or spend, or to look at another month. A credit counts as income once its type is set to **Income**, whether that's a salary or money from your work or business. If it arrives at the end of a month but pays for the next, or on the 1st for the month before, set that under **Goals → Income Calculator → An income credit counts towards**. You can also move one credit, to any month and year, from its transaction screen.
+**My month** on Home is the month in one sum: how much money came in, how much of it you invested, spent yourself and spent for others, and what's left. Tap it for the categories, your bank and wallet balances, what your budget leaves you free to save or spend, or to look at another month. A credit counts as income once its type is set to **Income**, whether that's a salary or money from your work or business. If it arrives at the end of a month but pays for the next, or on the 1st for the month before, set that under **Goals → Income Calculator → An income credit counts towards**. You can also move one credit, to any month and year, from its transaction screen.
 
 If you're salaried and what's credited differs from your Income Calculator, Arth tells you here and in the calculator, and you choose whether to update it. Your yearly plan uses what was actually credited for months that have passed and your calculator for months to come. For business income these two stay off, because credits are receipts before expenses and tax, not take-home. Tag a bonus as **Bonus** so it isn't counted on top of your expected bonus.
 
-**With people** in My month keeps money with others apart from income and spending. On a bill you paid, your share is spending and the rest shows as others' share. A repayment linked to its Hisaab entry shows as repaid, not income. It also shows what you're owed, what you owe and your household's shared total.
+**With people** in My month keeps money with others apart from income and spending. On a bill you paid, your share is spent by you and the rest is spent for others. A repayment linked to its Hisaab entry counts in money that came in, shown as repaid, not as income. It also shows what you're owed, what you owe and your household's shared total.
 
 **Finish setting up** on Home lists what's left to do. Steps tick themselves as you do them, and the card goes away once they're all done. You can also dismiss it.
 
