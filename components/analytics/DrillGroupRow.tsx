@@ -6,6 +6,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { drawsOwnDivider } from "@/components/ui/Rows";
 
 interface DrillGroupRowProps {
   label: string;
@@ -23,14 +24,15 @@ export function DrillGroupRow({
   percentage,
   icon = "storefront-outline",
   onPress,
-}: DrillGroupRowProps) {
+  lastRow,
+}: DrillGroupRowProps & { lastRow?: boolean }) {
   
   const theme = useTheme();
 
   return (
     <Pressable
       onPress={onPress}
-      className="py-3 border-b border-border"
+      className={`py-3 ${lastRow ? "" : "border-b border-border"}`}
       accessibilityLabel={`${label}: ${formatAmount(amount)}, ${count} transactions, ${percentage}%`}
       accessibilityRole="button"
     >
@@ -61,3 +63,4 @@ export function DrillGroupRow({
   );
 }
 
+drawsOwnDivider(DrillGroupRow);

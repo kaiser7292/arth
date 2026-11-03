@@ -1,4 +1,5 @@
 import { View } from "react-native";
+import { trimEdgeDividers } from "./Rows";
 import { Text } from "./Text";
 import { Shadows } from "@/constants/theme";
 import { COMPONENTS } from "@/constants/design-tokens";
@@ -28,7 +29,7 @@ export function Card({
           {title}
         </Text>
       )}
-      {children}
+      {trimEdgeDividers(children)}
     </View>
   );
 }

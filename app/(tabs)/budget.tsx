@@ -40,6 +40,7 @@ import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analyti
 import { upsertBudget } from "@/services/budget";
 import { useTheme } from "@/hooks/use-theme";
 import { peekHomeTotals } from "@/services/home-preload";
+import { Rows } from "@/components/ui/Rows";
 
 interface BudgetDashboardRow {
   category: Category;
@@ -292,7 +293,7 @@ export default function BudgetScreen() {
 
       {/* Widget management panel (only on Overview page) */}
       {activePageIndex === 0 && showWidgetManager && (
-        <View className="mx-4 mt-2 mb-1 p-3 rounded-xl bg-card border border-border">
+        <Rows className="mx-4 mt-2 mb-1 p-3 rounded-xl bg-card border border-border">
           <Text className="text-xs font-semibold text-muted-foreground mb-2">
             Manage Widgets
           </Text>
@@ -356,7 +357,7 @@ export default function BudgetScreen() {
               })}
             </View>
           </View>
-        </View>
+        </Rows>
       )}
 
       <SwipePager
@@ -904,7 +905,7 @@ export default function BudgetScreen() {
             onPress={() => setQuickBudgetRow(null)}
           >
             <Pressable onPress={() => {}} style={{ borderRadius: 16, overflow: "hidden" }}>
-              <View
+              <Rows
                 className="rounded-2xl border border-border"
                 style={{ backgroundColor: colorScheme === "dark" ? "#1C2230" : "#fff" }}
               >
@@ -987,7 +988,7 @@ export default function BudgetScreen() {
                     </Text>
                   </Pressable>
                 </View>
-              </View>
+              </Rows>
             </Pressable>
           </Pressable>
         </Modal>

@@ -1,3 +1,4 @@
+import { drawsOwnDivider } from "@/components/ui/Rows";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -90,15 +91,15 @@ export default function ShareScreen() {
     }
   };
 
-  const Row = ({ title, body, value, onChange, disabled }: { title: string; body: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) => (
-    <View className="flex-row items-center py-3 border-b border-border" style={{ opacity: disabled ? 0.4 : 1 }}>
+  const Row = drawsOwnDivider(({ title, body, value, onChange, disabled, lastRow }: { title: string; body: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean; lastRow?: boolean }) => (
+    <View className={`flex-row items-center py-3 ${lastRow ? "" : "border-b border-border"}`} style={{ opacity: disabled ? 0.4 : 1 }}>
       <View className="flex-1 mr-3">
         <Text className="text-sm font-medium text-foreground">{title}</Text>
         <Text className="text-xs text-muted-foreground mt-0.5 leading-4">{body}</Text>
       </View>
       <Switch value={value} onValueChange={onChange} disabled={disabled} accessibilityLabel={title} />
     </View>
-  );
+  ));
 
   return (
     <ScreenContainer padTop={false}>

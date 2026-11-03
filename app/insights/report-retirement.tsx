@@ -1,3 +1,4 @@
+import { drawsOwnDivider } from "@/components/ui/Rows";
 import { useState } from "react";
 
 import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
@@ -54,7 +55,9 @@ function NumberRow({
   suffix,
   hint,
   colorScheme,
+  lastRow,
 }: {
+  lastRow?: boolean;
   label: string;
   value: number;
   onChange: (v: number) => void;
@@ -65,7 +68,7 @@ function NumberRow({
   const [text, setText] = useState(String(value));
 
   return (
-    <View className="flex-row items-center justify-between py-3 border-b border-border">
+    <View className={`flex-row items-center justify-between py-3 ${lastRow ? "" : "border-b border-border"}`}>
       <View className="flex-1 mr-3">
         <Text className="text-sm text-foreground">{label}</Text>
         {hint ? (
@@ -945,3 +948,5 @@ export default function RetirementReportScreen() {
     </ScreenContainer>
   );
 }
+
+drawsOwnDivider(NumberRow);

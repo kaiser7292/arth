@@ -22,6 +22,7 @@ import { PRIVACY_POLICY_URL, TERMS_URL } from "@/components/sms/SmsDisclosure";
 import { isDemoBuild, seedDemoData } from "@/services/demo-data";
 import { useTheme } from "@/hooks/use-theme";
 import { AppUpdateRow } from "@/components/settings/AppUpdateRow";
+import { drawsOwnDivider } from "@/components/ui/Rows";
 
 const THEME_OPTIONS: { value: "system" | "light" | "dark"; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: "system", label: "System", icon: "phone-portrait-outline" },
@@ -36,9 +37,10 @@ interface SettingsRowProps {
   onPress: () => void;
   disabled?: boolean;
   iconColor?: string;
+  lastRow?: boolean;
 }
 
-function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor }: SettingsRowProps) {
+function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor, lastRow }: SettingsRowProps) {
   const { colors: themeColors } = useColorScheme();
   const uiTheme = useTheme();
   return (
@@ -47,7 +49,7 @@ function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor }: Se
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
-      className="border-b border-border"
+      className={lastRow ? "" : "border-b border-border"}
       style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, opacity: disabled ? 0.4 : 1 }}
     >
       <Ionicons name={icon} size={20} color={iconColor ?? themeColors.textSecondary} />
@@ -261,3 +263,5 @@ export default function SettingsScreen() {
     </ScreenContainer>
   );
 }
+
+drawsOwnDivider(SettingsRow);

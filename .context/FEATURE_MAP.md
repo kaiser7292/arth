@@ -196,6 +196,10 @@
 
 `components/ui/ListToolbar.tsx` is the one toolbar. Lists in memory use `hooks/use-list-tools.tsx`: a screen passes its rows and `ListField`s and gets back the rows, their headings, the toolbar props and the filter sheet; the logic is pure in `utils/list-tools.ts`. Transaction lists go through `hooks/use-expense-tools.ts` + `expenseFields` in `utils/expense-grouping.ts`, with `services/expense-people.ts` for Person. The Transactions tab queries the database, so it drives `ListToolbar` itself and groups with `hooks/use-expense-grouping.ts`; a list grouped by anything but date loads up to 5,000 rows instead of paging. `FullScreenFilter` has `dates` and `custom` sections (Hisaab's range, saved views). Choices are remembered per screen in `group_by__<screen>` and `group_by__sort_<screen>` (`services/group-by-preference.ts`).
 
+## Row dividers
+
+Lines go between rows only. `Card` and `Rows` run `trimEdgeDividers` (`utils/row-dividers.ts`) over their children, removing `border-t border-border` from the first row and `border-b border-border` from the last. A row component that draws its own line reads a `lastRow` prop and registers with `drawsOwnDivider`. Use `Rows` for any box of rows that isn't a Card.
+
 ## Credit types
 
 `services/expense-types.ts`. "settlement" isn't pickable: `reconcileSettlementKinds` (`database/credit-kind-backfill.ts`) keeps it in step with `hisaab_entries`. Bulk: `bulkSetCreditKind`. Rules: the `credit_kind` action.

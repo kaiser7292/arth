@@ -5,6 +5,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { drawsOwnDivider } from "@/components/ui/Rows";
 
 interface YoYComparisonRowProps {
   label: string;
@@ -36,7 +37,8 @@ export function YoYComparisonRow({
   count,
   maxBarValue,
   onPress,
-}: YoYComparisonRowProps) {
+  lastRow,
+}: YoYComparisonRowProps & { lastRow?: boolean }) {
   
   const theme = useTheme();
 
@@ -51,7 +53,7 @@ export function YoYComparisonRow({
     <Pressable
       onPress={onPress}
       disabled={!onPress}
-      className="py-3 border-b border-border"
+      className={`py-3 ${lastRow ? "" : "border-b border-border"}`}
       accessibilityLabel={
         isNew
           ? `${label}: new this year ${formatAmount(currentAmount)}, ${count} transactions`
@@ -159,3 +161,5 @@ export function YoYComparisonRow({
     </Pressable>
   );
 }
+
+drawsOwnDivider(YoYComparisonRow);

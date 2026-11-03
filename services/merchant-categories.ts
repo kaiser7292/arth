@@ -138,6 +138,13 @@ export async function setMerchantRule(merchantOrKeyword: string, categoryName: s
   return keyword;
 }
 
+/** One category for many merchants. Names too short to be a rule are left out. Returns the rules set. */
+export async function setMerchantRules(names: string[], categoryName: string): Promise<string[]> {
+  const keywords = [...new Set(names.map(normalizeKeyword))].filter((k) => k.length >= 2);
+  for (const keyword of keywords) await setMerchantRule(keyword, categoryName);
+  return keywords;
+}
+
 export async function setMerchantRuleActive(keyword: string, active: boolean): Promise<void> {
   await getDatabase().runAsync("UPDATE merchant_mappings SET is_active = ? WHERE keyword = ?;", active ? 1 : 0, keyword);
   bumpDataVersion();

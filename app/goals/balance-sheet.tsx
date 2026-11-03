@@ -19,6 +19,7 @@ import { HisaabNetWorthSheet } from "@/components/goals/HisaabNetWorthSheet";
 import { NetWorthTrendCard } from "@/components/goals/NetWorthTrendCard";
 import { getNetWorthHistory, peekNetWorthHistory, type NetWorthPoint } from "@/services/net-worth-history";
 import { getDataVersion } from "@/services/settings";
+import { Rows } from "@/components/ui/Rows";
 
 const preloaded = consumeBalanceSheetPreload();
 
@@ -460,7 +461,7 @@ export default function BalanceSheetScreen() {
         {/* Column headers + body — horizontal scroll so more columns can fit.
             Plain View (not Card) so the scroller can extend to the table edges
             without inherited padding. */}
-        <View
+        <Rows
           className="mx-4 mb-2 rounded-2xl bg-card overflow-hidden"
           style={{ opacity: recomputing ? 0.55 : 1 }}
         >
@@ -826,7 +827,7 @@ export default function BalanceSheetScreen() {
               </View>
             </View>
           </ScrollView>
-        </View>
+        </Rows>
 
         {/* Which Hisaab people count towards net worth */}
         <Pressable onPress={() => setHisaabSheetOpen(true)} className="mx-4 mb-2" accessibilityRole="button">

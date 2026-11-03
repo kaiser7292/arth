@@ -27,6 +27,7 @@ import {
 } from "@/services/notification-scheduler";
 import { useTheme } from "@/hooks/use-theme";
 import { syncTransactionAlertTasks } from "@/services/transaction-alerts";
+import { drawsOwnDivider } from "@/components/ui/Rows";
 
 interface NotifToggleProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -38,11 +39,11 @@ interface NotifToggleProps {
   onToggle: (category: NotificationCategory, value: boolean) => void;
 }
 
-function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onToggle }: NotifToggleProps) {
+function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onToggle, lastRow }: NotifToggleProps & { lastRow?: boolean }) {
   const { colors } = useColorScheme();
   const theme = useTheme();
   return (
-    <View className="flex-row items-center justify-between py-3 border-b border-border">
+    <View className={`flex-row items-center justify-between py-3 ${lastRow ? "" : "border-b border-border"}`}>
       <View className="flex-row items-center flex-1 mr-3">
         <View
           className="w-7 h-7 rounded-full items-center justify-center mr-3"
@@ -200,3 +201,5 @@ export default function NotificationPreferencesScreen() {
     </ScreenContainer>
   );
 }
+
+drawsOwnDivider(NotifToggle);

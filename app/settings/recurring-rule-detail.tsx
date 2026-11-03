@@ -16,6 +16,7 @@ import { formatAmount } from "@/utils/format";
 import { getErrorMessage } from "@/utils/error-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
+import { Rows } from "@/components/ui/Rows";
 
 const FREQUENCIES: RecurringFrequency[] = ["weekly", "monthly", "quarterly", "yearly", "last_day_of_month", "nth_weekday"];
 const FREQ_LABEL: Record<RecurringFrequency, string> = {
@@ -367,7 +368,7 @@ export default function RecurringRuleDetailScreen() {
               </Text>
             </View>
           ) : (
-            <View className="rounded-xl bg-card overflow-hidden">
+            <Rows className="rounded-xl bg-card overflow-hidden">
               {history.map((entry, i) => (
                 <Pressable
                   key={entry.fulfillmentId}
@@ -396,7 +397,7 @@ export default function RecurringRuleDetailScreen() {
                   <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
                 </Pressable>
               ))}
-            </View>
+            </Rows>
           )}
         </View>
 

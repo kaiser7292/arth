@@ -7,6 +7,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { STATE_LIST } from "@/services/tax-engine";
 import { formatAmount } from "@/utils/expense-validation";
 import { useTheme } from "@/hooks/use-theme";
+import { Rows } from "@/components/ui/Rows";
 
 // ─── Toggle Component ─────────────────────────────────────
 
@@ -87,7 +88,7 @@ export function StatePicker({
         />
       </Pressable>
       {expanded && (
-        <View className="mt-1 rounded-lg border border-border bg-card max-h-48">
+        <Rows className="mt-1 rounded-lg border border-border bg-card max-h-48">
           <ScrollView nestedScrollEnabled>
             {STATE_LIST.map((state) => (
               <Pressable
@@ -112,7 +113,7 @@ export function StatePicker({
               </Pressable>
             ))}
           </ScrollView>
-        </View>
+        </Rows>
       )}
     </View>
   );

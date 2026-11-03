@@ -6,6 +6,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { DuplicateGroup } from "@/services/duplicate-detection";
 import { useTheme } from "@/hooks/use-theme";
+import { Rows } from "@/components/ui/Rows";
 
 interface DuplicateGroupCardProps {
   group: DuplicateGroup;
@@ -47,7 +48,7 @@ export function DuplicateGroupCard({
   const danger = theme.danger;
 
   return (
-    <View className="mx-4 my-2.5 rounded-2xl bg-card border border-border overflow-hidden">
+    <Rows className="mx-4 my-2.5 rounded-2xl bg-card border border-border overflow-hidden">
       {/* ── Header ────────────────────────────────────────────────── */}
       <View className="px-4 pt-4 pb-3">
         <View className="flex-row items-center mb-2">
@@ -212,6 +213,6 @@ export function DuplicateGroupCard({
             : "Auto-Resolve keeps the latest and rejects the rest. Use the trash icons to manually keep whichever entry you prefer. Keep Both marks them as not duplicates."}
         </Text>
       </View>
-    </View>
+    </Rows>
   );
 }

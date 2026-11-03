@@ -1,3 +1,4 @@
+import { drawsOwnDivider, trimEdgeDividers } from "@/components/ui/Rows";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -88,7 +89,7 @@ export function DeckCard({
   return (
     <Card className="flex-1">
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-        {children}
+        {trimEdgeDividers(children)}
       </ScrollView>
       <DeckCardActions actions={actions} disabled={disabled} />
     </Card>
@@ -139,9 +140,9 @@ export function DeckHeadline({ kicker, title, subtitle }: { kicker: string; titl
 }
 
 /** Label / value row for card details. */
-export function DeckRow({ label, value, valueColor }: { label: string; value: React.ReactNode; valueColor?: string }) {
+export function DeckRow({ label, value, valueColor, lastRow }: { label: string; value: React.ReactNode; valueColor?: string; lastRow?: boolean }) {
   return (
-    <View className="flex-row justify-between items-center py-2.5 border-b border-border">
+    <View className={`flex-row justify-between items-center py-2.5 ${lastRow ? "" : "border-b border-border"}`}>
       <Text className="text-sm text-muted-foreground">{label}</Text>
       {typeof value === "string" ? (
         <Text className="text-sm font-semibold text-foreground" style={valueColor ? { color: valueColor } : undefined}>
@@ -153,3 +154,5 @@ export function DeckRow({ label, value, valueColor }: { label: string; value: Re
     </View>
   );
 }
+
+drawsOwnDivider(DeckRow);

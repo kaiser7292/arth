@@ -54,6 +54,7 @@ import type * as XLSX from "xlsx";
 import { formatAmount } from "@/utils/expense-validation";
 import { useTheme } from "@/hooks/use-theme";
 import { shareFile } from "@/services/share-file";
+import { Rows } from "@/components/ui/Rows";
 
 type Step = "pick" | "sheets" | "preview" | "importing" | "done";
 type ImportMode = "transactions" | "hisaab";
@@ -308,7 +309,7 @@ export default function ImportExcelScreen() {
         {step === "pick" && (
           <View>
             {/* Template download card */}
-            <View className="rounded-lg border border-border bg-card p-4 mb-4">
+            <Rows className="rounded-lg border border-border bg-card p-4 mb-4">
               <View className="flex-row items-center mb-3">
                 <View className="w-10 h-10 rounded-full bg-success/8 items-center justify-center mr-3">
                   <Ionicons name="download-outline" size={20} color={theme.success} />
@@ -367,7 +368,7 @@ export default function ImportExcelScreen() {
                     : "* Required. Type is Expense, Committed, Credit or Transfer (blank means Expense). A transfer needs Account and To Account; a committed row needs Linked To (a loan or an investment bucket). Accounts match by name or last 4 digits. Dates like 2026-05-15 or 15/05/2026."}
                 </Text>
               </View>
-            </View>
+            </Rows>
 
             {/* Upload card */}
             <View className="items-center py-8 rounded-lg border-2 border-dashed border-border mb-4">

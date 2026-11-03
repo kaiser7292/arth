@@ -123,6 +123,8 @@ Long lists all have the same bar: a search box, then icons for **Filter**, **Sor
 
 **Group by** puts rows under headings, each with how many there are and what they add up to. Transactions can group by date, month, category, merchant, account, payment mode or person. On the Credits tab, category becomes **Type**. Transfers group by date, month, from account or to account. Each list remembers how you sorted and grouped it.
 
+The audit log also has a calendar icon: it shows the last 7 days until you pick 30 days, 90 days or a custom range.
+
 You'll find the bar on Transactions, Together, a person's Hisaab, an account's ledger, the lists behind My Month, Budget and Insights, and in Settings on merchants, keyword rules, accounts, Smart Rules, the recycle bin, the audit log and SMS scan runs.
 
 The summary card at the top of Transactions has its own breakdown, and it doesn't change with the list.

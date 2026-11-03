@@ -7,6 +7,7 @@ import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { Rows } from "@/components/ui/Rows";
 
 interface ForecastMatchCardProps {
   pair: ForecastMatchPair;
@@ -26,7 +27,7 @@ export function ForecastMatchCard({
   const { forecast, realized } = pair;
 
   return (
-    <View className="mx-4 my-2 rounded-xl bg-card border border-border overflow-hidden">
+    <Rows className="mx-4 my-2 rounded-xl bg-card border border-border overflow-hidden">
       {/* Header */}
       <View className="flex-row items-center px-3 py-2 bg-warning/8">
         <Ionicons name="git-compare-outline" size={14} color={theme.warning} />
@@ -116,6 +117,6 @@ export function ForecastMatchCard({
           </Text>
         </Pressable>
       </View>
-    </View>
+    </Rows>
   );
 }

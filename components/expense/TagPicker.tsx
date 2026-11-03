@@ -21,6 +21,7 @@ import {
 } from "@/services/tags";
 import type { Tag } from "@/services/tags";
 import { useTheme } from "@/hooks/use-theme";
+import { Rows } from "@/components/ui/Rows";
 
 interface TagPickerProps {
   /** Expense ID — if provided, loads/saves tags to this expense */
@@ -168,7 +169,7 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
 
       {/* Picker dropdown */}
       {showPicker && (
-        <View className="mt-2 rounded-xl bg-card p-3">
+        <Rows className="mt-2 rounded-xl bg-card p-3">
           <TextInput
             value={searchText}
             onChangeText={setSearchText}
@@ -228,7 +229,7 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
               </Text>
             </Pressable>
           )}
-        </View>
+        </Rows>
       )}
     </View>
   );

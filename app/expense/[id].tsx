@@ -121,6 +121,7 @@ import { Keyboard, KeyboardAvoidingView, Modal, Pressable, ScrollView, View } fr
 import { listRules, applyRuleActionsToExpense } from "@/services/smart-rules";
 import type { SmartRule } from "@/services/smart-rules";
 import { useTheme } from "@/hooks/use-theme";
+import { Rows } from "@/components/ui/Rows";
 
 
 
@@ -2154,7 +2155,7 @@ export default function ExpenseDetailScreen() {
 
               {/* 1b. Split-tender siblings (if this expense is one leg of a split purchase) */}
               {siblings.length > 0 && (
-                <View className="mx-4 mt-3 rounded-xl bg-card">
+                <Rows className="mx-4 mt-3 rounded-xl bg-card">
                   <View className="flex-row items-center px-4 py-3 border-b border-border">
                     <View
                       className="w-8 h-8 rounded-full items-center justify-center mr-2.5"
@@ -2212,7 +2213,7 @@ export default function ExpenseDetailScreen() {
                       </Pressable>
                     );
                   })}
-                </View>
+                </Rows>
               )}
 
               {/* 1c. Pending Review Action Bar */}
@@ -2257,7 +2258,7 @@ export default function ExpenseDetailScreen() {
                     })
                   : null;
                 return (
-                  <View className="mx-4 mt-3 rounded-xl bg-card">
+                  <Rows className="mx-4 mt-3 rounded-xl bg-card">
                     <View className="flex-row items-center px-4 py-3 border-b border-border">
                       <Ionicons name="scan-outline" size={16} color={colors.textSecondary} />
                       <Text className="text-xs text-muted-foreground ml-3 w-24">
@@ -2289,12 +2290,12 @@ export default function ExpenseDetailScreen() {
                         </Text>
                       </View>
                     )}
-                  </View>
+                  </Rows>
                 );
               })()}
 
               {/* 2. Summary Fields (read-only) */}
-              <View className="mx-4 mt-3 rounded-xl bg-card">
+              <Rows className="mx-4 mt-3 rounded-xl bg-card">
                 {/* Account */}
                 <View className="flex-row items-center px-4 py-3 border-b border-border">
                   <Ionicons name="business-outline" size={16} color={colors.textSecondary} />
@@ -2414,7 +2415,7 @@ export default function ExpenseDetailScreen() {
                     </Text>
                   </View>
                 )}
-              </View>
+              </Rows>
 
               {/* 4. Split Section — not applicable for credits, nor my share of a household member's
                   bill (Together keeps that one; its split is theirs) */}

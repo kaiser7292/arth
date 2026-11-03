@@ -83,6 +83,7 @@ import { settingsStorage } from "@/services/storage";
 import { Modal } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeTransactionsPreload } from "@/services/home-preload";
+import { Rows } from "@/components/ui/Rows";
 
 const SORT_KEY = "expenses.sortBy";
 
@@ -966,7 +967,7 @@ export default function ExpensesScreen() {
         } : undefined}
       />
       {/* Date preset selector */}
-      <View className="px-4 pb-2">
+      <View className="px-4 pt-3">
         <Pressable
           onPress={() => setShowDatePicker(!showDatePicker)}
           className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
@@ -1122,7 +1123,7 @@ export default function ExpensesScreen() {
                 options: [],
                 selectedIds: [],
                 render: () => (
-                  <View className="rounded-lg bg-card overflow-hidden">
+                  <Rows className="rounded-lg bg-card overflow-hidden">
               {savedViews.map((view) => {
                 const isActive = activeViewId === view.id;
                 const isDefault = getDefaultFilterViewId() === view.id;
@@ -1153,7 +1154,7 @@ export default function ExpensesScreen() {
                   </View>
                 );
               })}
-                  </View>
+                  </Rows>
                 ),
               }]
             : []),

@@ -11,6 +11,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
 import type { CalendarItemKind, CalendarPrefs, SyncResult } from "@/services/calendar-sync";
+import { drawsOwnDivider } from "@/components/ui/Rows";
 import {
   ensureArthCalendar,
   getCalendarPrefs,
@@ -75,16 +76,18 @@ function Row({
   value,
   onChange,
   disabled,
+  lastRow,
 }: {
   title: string;
   subtitle?: string;
   value: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
+  lastRow?: boolean;
 }) {
   const theme = useTheme();
   return (
-    <View className="flex-row items-center justify-between py-3 border-b border-border">
+    <View className={`flex-row items-center justify-between py-3 ${lastRow ? "" : "border-b border-border"}`}>
       <View className="flex-1 mr-3">
         <Text className="text-sm font-medium text-foreground">{title}</Text>
         {subtitle ? <Text className="text-xs text-muted-foreground mt-0.5">{subtitle}</Text> : null}
@@ -292,3 +295,5 @@ export default function CalendarSyncScreen() {
     </ScreenContainer>
   );
 }
+
+drawsOwnDivider(Row);

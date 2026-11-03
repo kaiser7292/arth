@@ -50,6 +50,7 @@ import { getFYStartMonth } from "@/services/settings";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 import { CREDIT_KIND_LABELS, PICKABLE_CREDIT_KINDS, creditLook } from "@/services/expense-types";
+import { Rows } from "@/components/ui/Rows";
 
 /**
  * Smart-rule detail / create form. Route: /settings/smart-rules/[id]
@@ -608,7 +609,7 @@ export default function SmartRuleDetailScreen() {
               const isNumericField = condition.field === "amount" || condition.field === "day_of_month";
 
               return (
-                <View
+                <Rows
                   key={index}
                   className="mb-3 p-3 rounded-xl border border-border bg-background"
                 >
@@ -890,7 +891,7 @@ export default function SmartRuleDetailScreen() {
                       )}
                     </View>
                   )}
-                </View>
+                </Rows>
               );
             })}
 
@@ -915,7 +916,7 @@ export default function SmartRuleDetailScreen() {
               const valueExpanded = expandedActionValueRow === index;
 
               return (
-                <View
+                <Rows
                   key={index}
                   className="mb-3 p-3 rounded-xl border border-border bg-background"
                 >
@@ -1413,7 +1414,7 @@ export default function SmartRuleDetailScreen() {
                       </>
                     );
                   })()}
-                </View>
+                </Rows>
               );
             })}
 

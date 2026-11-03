@@ -2,12 +2,18 @@ import { useCallback, useRef, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
+import { Button, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
+import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
+import { useAlert } from "@/hooks/use-alert";
+import { getCategories, type Category } from "@/services/category";
+import { applyRulesToPastTransactions, countPastTransactionsForRule, setMerchantRules } from "@/services/merchant-categories";
+import { withMerchantUndo } from "@/services/merchant-undo";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { compareUnicode } from "@/utils/unicode-sort";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 import { dismissMerchantUndo, undoMerchantChange, usePendingMerchantUndo } from "@/services/merchant-undo";
 import { listMerchants, type MerchantSummary } from "@/services/merchants-overview";
@@ -40,6 +46,11 @@ export default function MerchantsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [merchants, setMerchants] = useState<MerchantSummary[] | null>(null);
+  const alert = useAlert();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selecting, setSelecting] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [picking, setPicking] = useState(false);
   // A change made on a merchant's page can still be undone from here.
   const pendingUndo = usePendingMerchantUndo();
 
@@ -52,6 +63,7 @@ export default function MerchantsScreen() {
       try {
         const list = await listMerchants(DEFAULT_USER_ID);
         setMerchants(list);
+        getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => {});
         // Back from a merchant that was renamed or merged away: the search that found it is stale.
         if (opened.current && !list.some((m) => m.name === opened.current)) clearSearch.current();
         opened.current = null;
@@ -71,6 +83,45 @@ export default function MerchantsScreen() {
   });
   clearSearch.current = () => tools.setQuery("");
 
+  const toggle = (name: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  const stopSelecting = () => {
+    setSelecting(false);
+    setSelected(new Set());
+  };
+
+  const applyCategory = async (categoryName: string) => {
+    const names = [...selected];
+    try {
+      const keywords = await withMerchantUndo(
+        () => setMerchantRules(names, categoryName),
+        (set) => `${set.length} merchant${set.length === 1 ? "" : "s"} now go to ${categoryName}`,
+      );
+      stopSelecting();
+      let earlier = 0;
+      for (const keyword of keywords) earlier += await countPastTransactionsForRule(keyword, categoryName);
+      if (earlier === 0) return;
+      alert(`Move ${earlier} earlier transaction${earlier === 1 ? "" : "s"}?`, `They'd go to ${categoryName} too.`, [
+        { text: "Leave them", style: "cancel" },
+        {
+          text: "Move",
+          onPress: () =>
+            void withMerchantUndo(
+              () => applyRulesToPastTransactions(keywords.map((keyword) => ({ keyword, category: categoryName }))),
+              (n) => `Moved ${n} transaction${n === 1 ? "" : "s"} to ${categoryName}`,
+            ).catch((e) => alert("Couldn't move them", getErrorMessage(e, "Please try again."))),
+        },
+      ]);
+    } catch (e) {
+      alert("Couldn't set the category", getErrorMessage(e, "Please try again."));
+    }
+  };
+
   if (!merchants) {
     return (
       <ScreenContainer padTop={false}>
@@ -81,13 +132,16 @@ export default function MerchantsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <ListToolbar {...tools.toolbar} />
+      <ListToolbar
+        {...tools.toolbar}
+        action={merchants.length > 0 && !selecting ? { label: "Select merchants", onPress: () => setSelecting(true) } : undefined}
+      />
       {tools.filterSheet}
       <FlatList
         data={tools.grouped}
         keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.name.toLowerCase())}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: pendingUndo ? 120 : 40 }}
+        contentContainerStyle={{ paddingBottom: selecting ? 160 : pendingUndo ? 120 : 40 }}
         ListEmptyComponent={
           <Text className="text-sm text-muted-foreground text-center px-8 mt-8">
             {merchants.length === 0 ? "Merchants appear here once you have transactions." : "Nothing matches."}
@@ -99,8 +153,16 @@ export default function MerchantsScreen() {
           return (
           <Pressable
             onPress={() => {
+              if (selecting) {
+                toggle(m.name);
+                return;
+              }
               opened.current = m.name;
               router.push({ pathname: "/settings/merchant-detail", params: { name: m.name } });
+            }}
+            onLongPress={() => {
+              setSelecting(true);
+              toggle(m.name);
             }}
             className="flex-row items-center mx-4 px-3 border-b border-border"
             style={{ minHeight: 64, paddingVertical: 10 }}
@@ -125,7 +187,16 @@ export default function MerchantsScreen() {
                 <Text className="text-xs font-semibold" style={{ color: theme.warning }}>Set category</Text>
               </View>
             )}
-            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />
+            {selecting ? (
+              <Ionicons
+                name={selected.has(m.name) ? "checkbox" : "square-outline"}
+                size={22}
+                color={selected.has(m.name) ? theme.primary : theme.mutedForeground}
+                style={{ marginLeft: 8 }}
+              />
+            ) : (
+              <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />
+            )}
           </Pressable>
           );
         }}
@@ -144,7 +215,40 @@ export default function MerchantsScreen() {
           </Pressable>
         }
       />
-      {pendingUndo && <UndoBar message={pendingUndo.message} onUndo={() => undoMerchantChange()} onClose={dismissMerchantUndo} />}
+      {selecting && (
+        <View className="absolute left-0 right-0 bottom-0 px-4 pt-3 pb-6 bg-card border-t border-border">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-sm text-foreground">
+              {selected.size === 0 ? "Tap merchants to pick them" : `${selected.size} selected`}
+            </Text>
+            <Pressable
+              onPress={() => setSelected(selected.size === tools.rows.length ? new Set() : new Set(tools.rows.map((m) => m.name)))}
+              hitSlop={8}
+              accessibilityRole="button"
+            >
+              <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
+                {selected.size === tools.rows.length ? "Select none" : `Select all ${tools.rows.length}`}
+              </Text>
+            </Pressable>
+          </View>
+          <View className="flex-row" style={{ gap: 12 }}>
+            <View className="flex-1"><Button title="Cancel" variant="secondary" onPress={stopSelecting} /></View>
+            <View className="flex-1"><Button title="Set category" disabled={selected.size === 0} onPress={() => setPicking(true)} /></View>
+          </View>
+        </View>
+      )}
+      <CategoryPickerSheet
+        visible={picking}
+        categories={categories}
+        selectedId={null}
+        onSelect={(id) => {
+          setPicking(false);
+          const category = categories.find((c) => c.id === id);
+          if (category) void applyCategory(category.name);
+        }}
+        onClose={() => setPicking(false)}
+      />
+      {!selecting && pendingUndo && <UndoBar message={pendingUndo.message} onUndo={() => undoMerchantChange()} onClose={dismissMerchantUndo} />}
     </ScreenContainer>
   );
 }

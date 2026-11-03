@@ -15,6 +15,7 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { ScrollView, View, Pressable } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
+import { drawsOwnDivider } from "@/components/ui/Rows";
 
 const SEVERITY_COLORS = {
   critical: { border: STATUS_COLORS.error, bg: "#FEF2F2", bgDark: "#3B0000", text: "#991B1B", textDark: "#FCA5A5", icon: "warning-outline" as const },
@@ -24,10 +25,10 @@ const SEVERITY_COLORS = {
 };
 
 
-function StatRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function StatRow({ label, value, highlight, lastRow }: { label: string; value: string; highlight?: boolean; lastRow?: boolean }) {
   const theme = useTheme();
   return (
-    <View className="flex-row items-center justify-between py-2 border-b border-border">
+    <View className={`flex-row items-center justify-between py-2 ${lastRow ? "" : "border-b border-border"}`}>
       <Text className="text-sm text-muted-foreground flex-1">{label}</Text>
       <Text
         className="text-sm font-semibold ml-4 text-foreground"
@@ -557,3 +558,5 @@ export default function AdvisoryDetailScreen() {
     </ScreenContainer>
   );
 }
+
+drawsOwnDivider(StatRow);

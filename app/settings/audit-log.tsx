@@ -1,4 +1,4 @@
-import { FilterChip, ListToolbar, ScreenContainer, Text } from "@/components/ui";
+import { Button, DateInput, ListToolbar, ScreenContainer, Sheet, Text } from "@/components/ui";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -31,7 +31,8 @@ import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
  * Non-navigable rows (forecasts closed, transfers deleted) stay un-tappable.
  */
 
-type DateScope = "7d" | "30d" | "90d";
+type QuickScope = "7d" | "30d" | "90d";
+type DateScope = QuickScope | "custom";
 
 const SOURCE_OPTIONS: { key: AuditSourceType; label: string; icon: keyof typeof import("@expo/vector-icons/build/Ionicons").default.glyphMap }[] = [
   { key: "sms", label: "SMS", icon: "chatbubble-outline" },
@@ -60,21 +61,77 @@ const ACTION_OPTIONS: { key: AuditActionType; label: string }[] = [
   { key: "refunded", label: "Refunded" },
 ];
 
-const DATE_SCOPES: { key: DateScope; label: string }[] = [
+const DATE_SCOPES: { key: QuickScope; label: string }[] = [
   { key: "7d", label: "7 days" },
   { key: "30d", label: "30 days" },
   { key: "90d", label: "90 days" },
 ];
 
 /** Days back from today for each scope. */
-const SCOPE_DAYS: Record<DateScope, number> = { "7d": 7, "30d": 30, "90d": 90 };
+const SCOPE_DAYS: Record<QuickScope, number> = { "7d": 7, "30d": 30, "90d": 90 };
 
-function computeDateRange(scope: DateScope): { from?: string; to?: string } {
+function computeDateRange(scope: QuickScope): { from?: string; to?: string } {
   const today = new Date();
   const toDate = today.toISOString().slice(0, 10);
   const d = new Date(today);
   d.setDate(d.getDate() - SCOPE_DAYS[scope]);
   return { from: d.toISOString().slice(0, 10), to: toDate };
+}
+
+function AuditDatesSheet({ visible, scope, from, to, onChoose, onClose }: {
+  visible: boolean;
+  scope: DateScope;
+  from: string;
+  to: string;
+  onChoose: (scope: DateScope, from: string, to: string) => void;
+  onClose: () => void;
+}) {
+  const theme = useTheme();
+  const [customOpen, setCustomOpen] = useState(scope === "custom");
+  const [fromDate, setFromDate] = useState(from);
+  const [toDate, setToDate] = useState(to);
+  useEffect(() => {
+    if (!visible) return;
+    setCustomOpen(scope === "custom");
+    setFromDate(from);
+    setToDate(to);
+  }, [visible, scope, from, to]);
+  const wrongWay = !!fromDate && !!toDate && fromDate > toDate;
+
+  const option = (label: string, selected: boolean, onPress: () => void, last = false) => (
+    <Pressable
+      key={label}
+      onPress={onPress}
+      className={`flex-row items-center justify-between py-3 ${last ? "" : "border-b border-border"}`}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+    >
+      <Text className="text-sm" style={selected ? { color: theme.primary, fontWeight: "600" } : undefined}>{label}</Text>
+      {selected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
+    </Pressable>
+  );
+
+  return (
+    <Sheet visible={visible} onClose={onClose}>
+      <View className="px-4 pb-4">
+        <Text className="text-base font-semibold text-foreground mb-2">Dates</Text>
+        {DATE_SCOPES.map((o) => option(`Last ${o.label}`, scope === o.key && !customOpen, () => onChoose(o.key, from, to)))}
+        {option("Custom range", customOpen, () => setCustomOpen(true), true)}
+        {customOpen && (
+          <View className="mt-2">
+            <DateInput label="From" value={fromDate} onChange={setFromDate} />
+            <DateInput label="To" value={toDate} onChange={setToDate} />
+            {wrongWay && <Text className="text-xs text-danger mb-2">&apos;From&apos; must be before &apos;To&apos;</Text>}
+            <Button
+              title="Apply"
+              disabled={!fromDate || !toDate || wrongWay}
+              onPress={() => onChoose("custom", fromDate, toDate)}
+            />
+          </View>
+        )}
+      </View>
+    </Sheet>
+  );
 }
 
 function actionLabel(a: AuditActionType): string {
@@ -214,7 +271,10 @@ export default function AuditLogScreen() {
   const { colors } = useColorScheme();
   const theme = useTheme();
 
-  const [scope, setScope] = useState<DateScope>("30d");
+  const [scope, setScope] = useState<DateScope>("7d");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [datesOpen, setDatesOpen] = useState(false);
   const [sources, setSources] = useState<Set<AuditSourceType>>(new Set());
   const [objects, setObjects] = useState<Set<AuditObjectType>>(new Set());
   const [actions, setActions] = useState<Set<AuditActionType>>(new Set());
@@ -255,7 +315,7 @@ export default function AuditLogScreen() {
 
   const load = useCallback(async () => {
     try {
-      const { from, to } = computeDateRange(scope);
+      const { from, to } = scope === "custom" ? { from: customFrom, to: customTo } : computeDateRange(scope);
       const list = await getAuditLog(DEFAULT_USER_ID, {
         fromDate: from,
         toDate: to,
@@ -271,7 +331,7 @@ export default function AuditLogScreen() {
     } finally {
       setLoading(false);
     }
-  }, [scope, sources, objects, actions, search]);
+  }, [scope, customFrom, customTo, sources, objects, actions, search]);
 
   useEffect(() => {
     setLoading(true);
@@ -420,20 +480,9 @@ export default function AuditLogScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      {/* Date scope - the audit log's equivalent of the Transactions period control */}
-      <View className="px-4 pb-2 flex-row">
-        {DATE_SCOPES.map((o) => (
-          <FilterChip
-            key={o.key}
-            label={o.label}
-            active={scope === o.key}
-            onPress={() => setScope(o.key)}
-          />
-        ))}
-      </View>
-
       <ListToolbar
         search={{ value: searchRaw, onChangeText: setSearchRaw, placeholder: "Search merchant, account…" }}
+        dates={{ onPress: () => setDatesOpen(true), active: scope !== "7d" }}
         filter={{ onPress: () => setShowFilters(true), activeCount: sources.size + objects.size + actions.size }}
         sort={{
           value: order,
@@ -442,11 +491,35 @@ export default function AuditLogScreen() {
           onChange: setOrder,
         }}
         chips={[
+          ...(scope !== "7d"
+            ? [{
+                key: "dates",
+                label: scope === "custom" ? `${customFrom} → ${customTo}` : (DATE_SCOPES.find((o) => o.key === scope)?.label ?? scope),
+                onRemove: () => setScope("7d"),
+              }]
+            : []),
           ...Array.from(sources).map((k) => ({ key: `src-${k}`, label: SOURCE_OPTIONS.find((o) => o.key === k)?.label ?? k, onRemove: () => toggle(sources, setSources, k) })),
           ...Array.from(objects).map((k) => ({ key: `obj-${k}`, label: OBJECT_OPTIONS.find((o) => o.key === k)?.label ?? k, onRemove: () => toggle(objects, setObjects, k) })),
           ...Array.from(actions).map((k) => ({ key: `act-${k}`, label: actionLabel(k), onRemove: () => toggle(actions, setActions, k) })),
         ]}
-        onClearAll={clearAll}
+        onClearAll={() => {
+          clearAll();
+          setScope("7d");
+        }}
+      />
+
+      <AuditDatesSheet
+        visible={datesOpen}
+        scope={scope}
+        from={customFrom}
+        to={customTo}
+        onChoose={(next, from, to) => {
+          setCustomFrom(from);
+          setCustomTo(to);
+          setScope(next);
+          setDatesOpen(false);
+        }}
+        onClose={() => setDatesOpen(false)}
       />
 
       <FullScreenFilter

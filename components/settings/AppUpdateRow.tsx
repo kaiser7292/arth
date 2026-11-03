@@ -4,9 +4,10 @@ import { Platform, Pressable, Switch, View } from "react-native";
 import { Text, useToast } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { checkForUpdate, installUpdate, isUpdateCheckEnabled, setUpdateCheckEnabled, updateSource } from "@/services/app-update";
+import { drawsOwnDivider } from "@/components/ui/Rows";
 
 /** Settings → About: whether Home says when a newer Arth is out, and a Check now. Android only. */
-export function AppUpdateRow() {
+export function AppUpdateRow({ lastRow }: { lastRow?: boolean }) {
   const theme = useTheme();
   const toast = useToast();
   const [on, setOn] = useState(isUpdateCheckEnabled);
@@ -16,7 +17,7 @@ export function AppUpdateRow() {
   const fromPlay = updateSource() === "play";
 
   return (
-    <View className="py-2 border-b border-border">
+    <View className={`py-2 ${lastRow ? "" : "border-b border-border"}`}>
       <View className="flex-row items-center">
         <View className="flex-1 mr-3">
           <Text className="text-sm text-foreground">Tell me about new versions</Text>
@@ -58,3 +59,5 @@ export function AppUpdateRow() {
     </View>
   );
 }
+
+drawsOwnDivider(AppUpdateRow);

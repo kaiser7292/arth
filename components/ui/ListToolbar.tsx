@@ -29,6 +29,8 @@ export interface ListToolbarProps<S extends string = string, G extends string = 
     accessory?: ReactNode;
     input?: TextInputProps;
   };
+  /** A list that picks its own dates: this opens that screen's date sheet. */
+  dates?: { onPress: () => void; active: boolean };
   filter?: { onPress: () => void; activeCount: number };
   sort?: ToolbarChoice<S>;
   group?: ToolbarChoice<G>;
@@ -76,6 +78,7 @@ function ToolButton({ icon, activeIcon, label, active, onPress }: {
  */
 export function ListToolbar<S extends string = string, G extends string = string>({
   search,
+  dates,
   filter,
   sort,
   group,
@@ -139,6 +142,7 @@ export function ListToolbar<S extends string = string, G extends string = string
         ) : (
           <View className="flex-1" />
         )}
+        {dates && <ToolButton icon="calendar-outline" label="Dates" active={dates.active} onPress={dates.onPress} />}
         {filter && (
           <ToolButton icon="funnel-outline" activeIcon="funnel" label="Filter" active={filter.activeCount > 0} onPress={filter.onPress} />
         )}

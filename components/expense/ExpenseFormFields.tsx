@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { Rows } from "@/components/ui/Rows";
 
 // ---------------------------------------------------------------------------
 // Searchable Picker List — shared helper for all pickers
@@ -54,7 +55,7 @@ export function SearchablePickerList({
   }, [items, query]);
 
   return (
-    <View className="mt-2 rounded-lg border border-border bg-card overflow-hidden">
+    <Rows className="mt-2 rounded-lg border border-border bg-card overflow-hidden">
       {items.length > 5 && (
         <View className="flex-row items-center px-3 py-2 border-b border-border">
           <Ionicons name="search" size={14} color={colors.textSecondary} />
@@ -108,7 +109,7 @@ export function SearchablePickerList({
           <Text className="text-xs text-faint-foreground text-center py-4">No matches</Text>
         )}
       </ScrollView>
-    </View>
+    </Rows>
   );
 }
 
@@ -596,7 +597,7 @@ export function MerchantPicker({
         )}
       </View>
       {showSuggestions && filtered.length > 0 && (
-        <View className="mt-1 rounded-lg border border-border bg-card overflow-hidden max-h-48">
+        <Rows className="mt-1 rounded-lg border border-border bg-card overflow-hidden max-h-48">
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {filtered.slice(0, 20).map((name) => (
               <Pressable
@@ -621,7 +622,7 @@ export function MerchantPicker({
               </Pressable>
             ))}
           </ScrollView>
-        </View>
+        </Rows>
       )}
     </View>
   );

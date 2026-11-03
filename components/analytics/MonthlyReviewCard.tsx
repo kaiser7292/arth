@@ -9,6 +9,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { Rows } from "@/components/ui/Rows";
 
 interface ReviewItem {
   id: string;
@@ -50,7 +51,7 @@ export function MonthlyReviewCard({
         I noticed these might be regular:
       </Text>
 
-      <View className="rounded-xl border border-border overflow-hidden">
+      <Rows className="rounded-xl border border-border overflow-hidden">
         {items.map((item, idx) => (
           <View
             key={item.id}
@@ -92,7 +93,7 @@ export function MonthlyReviewCard({
             </View>
           </View>
         ))}
-      </View>
+      </Rows>
 
       <View className="flex-row items-center justify-between mt-4">
         <Button title="Confirm All" onPress={onConfirmAll} />
