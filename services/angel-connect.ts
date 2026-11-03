@@ -271,47 +271,72 @@ export async function connectAngel(
 
 // ─── Data Sync ────────────────────────────────────────────────────────────────
 
+/** Angel One's answers for an ended session. */
+const SESSION_ENDED_CODES = new Set(['AG8001', 'AG8002', 'AG8003', 'AB1010', 'AB8050', 'AB8051']);
+
+type PartResult = { ok: boolean; sessionEnded: boolean; data: any };
+
+async function readPart(url: string, headers: Record<string, string>): Promise<PartResult> {
+  try {
+    const resp = await fetch(url, { headers });
+    const sessionByStatus = resp.status === 401 || resp.status === 403;
+    let json: any = null;
+    try {
+      json = await resp.json();
+    } catch {
+      return { ok: false, sessionEnded: sessionByStatus, data: null };
+    }
+    if (json?.status === true) return { ok: true, sessionEnded: false, data: json.data ?? null };
+    return { ok: false, sessionEnded: sessionByStatus || SESSION_ENDED_CODES.has(json?.errorcode ?? json?.errorCode), data: null };
+  } catch {
+    return { ok: false, sessionEnded: false, data: null };
+  }
+}
+
+async function readAllParts(apiKey: string, jwt: string) {
+  const headers = angelHeaders(apiKey, jwt);
+  const [holdings, positions, orders, funds] = await Promise.all([
+    readPart(`${BASE_URL}/rest/secure/angelbroking/portfolio/v1/getAllHolding`, headers),
+    readPart(`${BASE_URL}/rest/secure/angelbroking/order/v1/getPosition`, headers),
+    readPart(`${BASE_URL}/rest/secure/angelbroking/order/v1/getOrderBook`, headers),
+    readPart(`${BASE_URL}/rest/secure/angelbroking/user/v1/getRMS`, headers),
+  ]);
+  return { holdings, positions, orders, funds };
+}
+
+/**
+ * Fetches everything from Angel One. Our 24-hour expiry is only an estimate: Angel One can end a
+ * session sooner, and then every call is refused. So a refusal means log in again (the code comes
+ * from the saved TOTP secret) and retry once, and only what actually came back replaces the saved
+ * copy, so a failed sync can never blank the screen.
+ */
 export async function syncAngelData(): Promise<AngelSyncResult> {
   const { apiKey, jwt } = await ensureValidToken();
-  const headers = angelHeaders(apiKey, jwt);
+  let parts = await readAllParts(apiKey, jwt);
 
-  const [holdingsRes, positionsRes, ordersRes, fundsRes] = await Promise.allSettled([
-    fetch(`${BASE_URL}/rest/secure/angelbroking/portfolio/v1/getAllHolding`, { headers }),
-    fetch(`${BASE_URL}/rest/secure/angelbroking/order/v1/getPosition`, { headers }),
-    fetch(`${BASE_URL}/rest/secure/angelbroking/order/v1/getOrderBook`, { headers }),
-    fetch(`${BASE_URL}/rest/secure/angelbroking/user/v1/getRMS`, { headers }),
-  ]);
+  const all = () => [parts.holdings, parts.positions, parts.orders, parts.funds];
+  if (all().some((p) => p.sessionEnded)) {
+    const creds = await getAngelCredentials();
+    if (!creds) throw new Error('Angel One credentials not found. Please connect your account.');
+    await loginToAngel(creds.apiKey, creds.clientId, creds.password, creds.totpSecret);
+    const fresh = await SecureStore.getItemAsync(ANGEL_JWT_TOKEN);
+    if (!fresh) throw new Error('Login succeeded but JWT not stored');
+    parts = await readAllParts(creds.apiKey, fresh);
+  }
 
-  let holdings: AngelHolding[] = [];
-  let totalHolding: AngelTotalHolding | null = null;
-  let positions: AngelPosition[] = [];
-  let orders: AngelOrder[] = [];
-  let funds: AngelFunds | null = null;
+  if (all().every((p) => !p.ok)) {
+    throw new Error(
+      all().some((p) => p.sessionEnded)
+        ? "Angel One didn't accept the sign-in. Check your details under Update credentials."
+        : "Couldn't reach Angel One. Your last synced data is still here. Try again in a moment.",
+    );
+  }
 
-  if (holdingsRes.status === 'fulfilled') {
-    try {
-      const j = await holdingsRes.value.json();
-      if (j.status && j.data) { holdings = j.data.holdings ?? []; totalHolding = j.data.totalholding ?? null; }
-    } catch { /* skip partial failure */ }
-  }
-  if (positionsRes.status === 'fulfilled') {
-    try {
-      const j = await positionsRes.value.json();
-      if (j.status && Array.isArray(j.data)) positions = j.data;
-    } catch { /* skip */ }
-  }
-  if (ordersRes.status === 'fulfilled') {
-    try {
-      const j = await ordersRes.value.json();
-      if (j.status && Array.isArray(j.data)) orders = j.data;
-    } catch { /* skip */ }
-  }
-  if (fundsRes.status === 'fulfilled') {
-    try {
-      const j = await fundsRes.value.json();
-      if (j.status && j.data) funds = j.data;
-    } catch { /* skip */ }
-  }
+  const holdings: AngelHolding[] = parts.holdings.ok ? parts.holdings.data?.holdings ?? [] : getCachedAngelHoldings();
+  const totalHolding: AngelTotalHolding | null = parts.holdings.ok ? parts.holdings.data?.totalholding ?? null : getCachedAngelTotalHolding();
+  const positions: AngelPosition[] = parts.positions.ok && Array.isArray(parts.positions.data) ? parts.positions.data : parts.positions.ok ? [] : getCachedAngelPositions();
+  const orders: AngelOrder[] = parts.orders.ok && Array.isArray(parts.orders.data) ? parts.orders.data : parts.orders.ok ? [] : getCachedAngelOrders();
+  const funds: AngelFunds | null = parts.funds.ok ? parts.funds.data : getCachedAngelFunds();
 
   const lastSynced = new Date().toISOString();
   settingsStorage.set(MMKV_HOLDINGS_CACHE, JSON.stringify(holdings));
