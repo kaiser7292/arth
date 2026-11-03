@@ -40,6 +40,8 @@ describe("UI Guard Rails", () => {
       "app/(tabs)/goals.tsx",
       "app/(tabs)/settings.tsx",
       "app/budget/[categoryId].tsx",
+      // Search or do: root Stack sets headerShown: false, it draws its own search bar.
+      "app/search.tsx",
       // v15.8.1: app/summary/[month].tsx migrated to Stack header — now uses padTop={false}.
       // v15 onboarding wizard — (onboarding)/_layout.tsx sets headerShown: false
       "app/(onboarding)/welcome.tsx",

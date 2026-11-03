@@ -217,6 +217,8 @@ export default function HomeScreen() {
   }, []);
 
   const loadData = useCallback(async (source?: "focus" | "data-version") => {
+    // Search can flip this too, so pick it up on coming back.
+    setAmountsHiddenState(isAmountsHidden());
     // data-version triggers (SMS scan, smart rules, approvals) always reload —
     // they carry data no snapshot could have captured.
     if (source !== "data-version") {
@@ -371,6 +373,7 @@ export default function HomeScreen() {
 
   const smsScanIcon: "sync-outline" | "scan-outline" = smsScanning ? "sync-outline" : "scan-outline";
   const homeHeaderActions = [
+    { icon: "search-outline" as const, onPress: () => router.push("/search"), accessibilityLabel: "Search or do something" },
     ...(isSpeechRecognitionAvailable ? [{ icon: "mic-outline" as const, onPress: () => setShowVoiceSheet(true) }] : []),
     {
       icon: amountsHidden ? "eye-off-outline" as const : "eye-outline" as const,

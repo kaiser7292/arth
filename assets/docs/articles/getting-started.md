@@ -47,6 +47,10 @@ Arth has **five bottom tabs**, in this order from left to right. **Swipe left or
 
 > Insights is one of the Home tab's swipe pages — swipe right from Overview or tap the "Insights" label at the top.
 
+## Search or do
+
+The search icon at the top of Home finds almost anything: actions like "add an investment" or "change my income", any screen, your transactions (try a name, a category, 450, 450-500, >5000 or "food last month"), merchants, people, accounts, holdings, goals, reminders, and help. It understands everyday words, including some Hindi, so "salary" finds Income and "kharcha" finds expenses, and it forgives small typos. The Vault is searched by name, username, email, website and notes, never by passwords or other secrets. Everything happens on your phone.
+
 ## My month and setting up
 
 **My month** on Home is the month in one place: money in, what you spent, what you saved or invested, and what's left. Tap it for the categories, your bank and wallet balances, what your budget leaves you free to save or spend, or to look at another month. A credit counts as income once its type is set to **Income**, whether that's a salary or money from your work or business. If it arrives at the end of a month but pays for the next, or on the 1st for the month before, set that under **Goals → Income Calculator → An income credit counts towards**. You can also move one credit, to any month and year, from its transaction screen.

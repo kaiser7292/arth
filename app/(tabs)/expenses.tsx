@@ -158,9 +158,13 @@ export default function ExpensesScreen() {
   const [showSortSheet, setShowSortSheet] = useState(false);
 
   // Preset: navigate to a specific tab after save (refund → credits, etc.)
-  const params = useLocalSearchParams<{ preset?: string; filterMonth?: string; filterAvoidability?: string }>();
+  const params = useLocalSearchParams<{ preset?: string; filterMonth?: string; filterAvoidability?: string; search?: string }>();
   const presetParam = params.preset;
   const presetAppliedRef = useRef(false);
+  // "See all" from Search or do. Keyed on the text, so each new search applies even with the tab open.
+  useEffect(() => {
+    if (params.search) setSearch(params.search);
+  }, [params.search]);
   useEffect(() => {
     if (presetAppliedRef.current) return;
     if (presetParam === "credits") {
