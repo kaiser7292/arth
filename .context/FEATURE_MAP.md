@@ -191,3 +191,11 @@
 **Where:** `app/settings/customise.tsx`. A feature's screens are wrapped in `FeatureGate` (`components/FeatureOff.tsx`) in its `_layout.tsx`.
 
 **Technical:** `services/customise.ts` (switches, `isPathOn` for search), `services/home-card-preferences.ts` (card switches, order), `hooks/use-customisation.ts` (re-renders screens). Home renders its cards through `renderHomeCards` in `app/(tabs)/index.tsx`.
+
+## Group by (lists)
+
+`utils/group-rows.ts` is the pure core; `components/ui/GroupBy.tsx` has the control and heading; `hooks/use-group-by.ts` remembers the choice per screen (`group_by__<screen>`). Transaction lists use `hooks/use-expense-grouping.ts` + `utils/expense-grouping.ts`, with `services/expense-people.ts` for Person. Lists grouped by anything but date load up to 5,000 rows instead of paging, so totals add up.
+
+## Credit types
+
+`services/expense-types.ts`. "settlement" isn't pickable: `reconcileSettlementKinds` (`database/credit-kind-backfill.ts`) keeps it in step with `hisaab_entries`. Bulk: `bulkSetCreditKind`. Rules: the `credit_kind` action.

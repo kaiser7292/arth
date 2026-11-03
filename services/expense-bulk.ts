@@ -17,6 +17,7 @@ export interface BulkUpdateFields {
   date?: string;
   /** 1 = unavoidable, 0 = discretionary. */
   is_right_spend?: 0 | 1;
+  credit_kind?: string;
 }
 
 export async function bulkUpdateExpenses(
@@ -52,6 +53,11 @@ export async function bulkUpdateExpenses(
   if (fields.is_right_spend !== undefined) {
     setClauses.push("is_right_spend = ?");
     params.push(fields.is_right_spend);
+  }
+
+  if (fields.credit_kind !== undefined) {
+    setClauses.push("credit_kind = ?");
+    params.push(fields.credit_kind);
   }
 
   setClauses.push("updated_at = datetime('now')");
@@ -99,4 +105,23 @@ export async function bulkUpdateExpenses(
     }
   }
   return result.changes;
+}
+
+/**
+ * Sets the type on many credits. Hisaab settlements and credits linked as refunds keep theirs, because
+ * their type comes from the link.
+ */
+export async function bulkSetCreditKind(
+  expenseIds: string[],
+  kind: string,
+): Promise<{ changed: number; skipped: number }> {
+  if (expenseIds.length === 0) return { changed: 0, skipped: 0 };
+  const rows = await getDatabase().getAllAsync<{ id: string }>(
+    `SELECT id FROM expenses
+     WHERE id IN (${expenseIds.map(() => "?").join(",")}) AND nature = 'credit' AND refund_of_expense_id IS NULL
+       AND COALESCE(credit_kind, '') <> 'settlement';`,
+    ...expenseIds,
+  );
+  const changed = await bulkUpdateExpenses(rows.map((r) => r.id), { credit_kind: kind });
+  return { changed, skipped: expenseIds.length - rows.length };
 }

@@ -315,7 +315,7 @@ export default function AddExpenseScreen() {
         if (src.nature === "credit") {
           setIsCreditDuplicate(true);
           setTxType("received");
-          if (src.credit_kind) {
+          if (src.credit_kind && src.credit_kind !== "settlement") {
             setCreditKind(src.credit_kind);
             creditKindTouched.current = true;
           }

@@ -40,6 +40,8 @@ Arth also has built-in merchant rules (Swiggy → Food, Uber → Travel and 250+
 You need at least one condition.
 
 **Then (actions):**
+
+- **Set credit type** - gives a credit its type, such as Reimbursement or Interest. A rule that applies to expenses doesn't offer it, and a rule that applies only to credits offers this in place of Set category. It leaves Hisaab settlements and linked refunds alone.
 - **Set category** - force the category
 - **Set payment mode** - force the payment mode
 - **Set description** - override the auto-generated description

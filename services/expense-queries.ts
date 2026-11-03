@@ -3,6 +3,7 @@ import { getDatabase } from "@/database";
 import type { Expense, ExpenseFilters, CategoryActual, MonthlyTotal } from "./expense-types";
 import { NOT_SET } from "./expense-types";
 import { amountPartsSql, effectiveAmountSql } from "./expense-effective-amount";
+import { creditKindsMatching } from "@/services/expense-types";
 
 /**
  * v17.0.0 / v17.4.0: SQL fragment to exclude expenses that are linked to an
@@ -149,8 +150,10 @@ function buildFilterConditions(userId: string, filters: ExpenseFilters): { condi
       conditions.push("(description LIKE ? OR merchant_name LIKE ? OR amount BETWEEN ? AND ? OR split_original_amount BETWEEN ? AND ?)");
       params.push(`%${filters.search}%`, `%${filters.search}%`, range.min, range.max, range.min, range.max);
     } else {
-      conditions.push("(description LIKE ? OR merchant_name LIKE ?)");
-      params.push(`%${filters.search}%`, `%${filters.search}%`);
+      const kinds = creditKindsMatching(filters.search);
+      const byType = kinds.length > 0 ? ` OR credit_kind IN (${kinds.map(() => "?").join(",")})` : "";
+      conditions.push(`(description LIKE ? OR merchant_name LIKE ?${byType})`);
+      params.push(`%${filters.search}%`, `%${filters.search}%`, ...kinds);
     }
   }
   if (filters.expenseIds && filters.expenseIds.length > 0) {
@@ -215,7 +218,7 @@ export async function getExpensesPaginated(
        id, user_id, amount, currency, description, merchant_name,
        category_id, payment_mode_id, account_id,
        date, transaction_time, due_date, is_right_spend,
-       source, status, nature,
+       source, status, nature, credit_kind,
        split_original_amount, split_person_id, split_pct, split_hisaab_entry_id, split_mode,
        deleted_at, created_at
      FROM expenses

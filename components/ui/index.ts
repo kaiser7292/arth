@@ -26,6 +26,7 @@ export { ScreenContainer } from "./ScreenContainer";
 export { SearchField } from "./SearchField";
 export { SectionHeader } from "./SectionHeader";
 export { SelectSheet } from "./SelectSheet";
+export { GroupByBar, GroupHeading } from "./GroupBy";
 export type { SelectOption } from "./SelectSheet";
 export { StatusPill } from "./StatusPill";
 export { SwipePager } from "./SwipePager";

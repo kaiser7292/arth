@@ -1,7 +1,10 @@
 import { isPartOn } from "@/services/customise";
 import { creditLook } from "@/services/expense-types";
+import { useGroupBy } from "@/hooks/use-group-by";
+import { transactionDayLabel } from "@/utils/day-label";
+import { groupRows, NO_GROUP, ungrouped } from "@/utils/group-rows";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, DateInput, FABMenu, FilterChip, Input, Money, PeriodNavigator, ScreenContainer, SearchField, Text } from "@/components/ui";
+import { Badge, Button, Card, DateInput, FABMenu, FilterChip, GroupByBar, GroupHeading, Input, Money, PeriodNavigator, ScreenContainer, SearchField, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -62,6 +65,10 @@ interface LedgerEntry {
   description: string;
   /** Searchable alongside the description. */
   merchant?: string | null;
+  /** An expense's category, for grouping. */
+  categoryName?: string | null;
+  /** A credit's type: its icon and name on the row. */
+  creditType?: { name: string; icon: string; color: string };
   date: string;
   source: string;
   isRefund: boolean;
@@ -96,6 +103,16 @@ interface LedgerEntry {
    */
   linkedExpenseId?: string | null;
 }
+
+type LedgerGroupBy = "none" | "date" | "kind" | "category" | "merchant";
+const LEDGER_GROUPS: readonly LedgerGroupBy[] = ["none", "date", "kind", "category", "merchant"];
+const LEDGER_GROUP_OPTIONS: { value: LedgerGroupBy; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "date", label: "Date" },
+  { value: "kind", label: "Expense, credit or transfer" },
+  { value: "category", label: "Category or type" },
+  { value: "merchant", label: "Merchant or payer" },
+];
 
 export default function AccountLedgerScreen() {
   const router = useRouter();
@@ -188,6 +205,29 @@ export default function AccountLedgerScreen() {
     }
     return result.filter((e) => matchesSearch(search, [e.description, e.merchant, e.counterAccountName, e.splitPersonName], [e.amount]));
   }, [entries, cardFilter, poolSiblings, filterMode, search]);
+
+  const [groupBy, setGroupBy] = useGroupBy<LedgerGroupBy>("account_ledger", LEDGER_GROUPS, "none");
+  const ledgerRows = useMemo(() => {
+    if (groupBy === "none") return ungrouped(filteredEntries);
+    return groupRows(filteredEntries, {
+      keyOf: (e) => {
+        if (groupBy === "date") return e.date.slice(0, 10);
+        if (groupBy === "merchant") return e.merchant?.trim();
+        const isTransfer = e.type === "transfer_in" || e.type === "transfer_out";
+        if (groupBy === "kind") {
+          return isTransfer ? "Transfers" : e.isAdjustment ? "Adjustments" : e.isRefund ? "Refunds" : e.type === "credit" ? "Credits" : "Expenses";
+        }
+        return isTransfer ? "Transfers" : e.isAdjustment ? "Adjustments" : (e.creditType?.name ?? e.categoryName);
+      },
+      labelOf: (key) => {
+        if (groupBy === "date") return transactionDayLabel(key);
+        if (key === NO_GROUP) return groupBy === "merchant" ? "No merchant" : "Uncategorized";
+        return key;
+      },
+      amountOf: (e) => (e.type === "debit" || e.type === "transfer_out" ? -e.amount : e.amount),
+      order: groupBy === "date" ? "first" : "size",
+    });
+  }, [filteredEntries, groupBy]);
 
 const loadData = useCallback(async () => {
       if (!accountId) return;
@@ -402,6 +442,7 @@ const loadData = useCallback(async () => {
             ? formatAdjustmentDescription(exp.description)
             : transactionTitle(exp, exp.category_id ? categoryNames.get(exp.category_id) : null, "Expense"),
           merchant: exp.merchant_name,
+          categoryName: exp.category_id ? categoryNames.get(exp.category_id) : null,
           reclassifiedAsTransfer: exp.reclassified_as_transfer === 1,
           linkedTransferId: exp.linked_transfer_id,
           date: exp.date,
@@ -427,6 +468,7 @@ const loadData = useCallback(async () => {
           splitPersonName: null,
           description: transactionTitle(cr, creditLook(cr.credit_kind).name, "Credit"),
           merchant: cr.merchant_name,
+          creditType: creditLook(cr.credit_kind),
           linkedHisaabPersonId: settlement?.personId,
           linkedHisaabPersonName: settlement?.personName,
           date: cr.date,
@@ -923,8 +965,14 @@ const loadData = useCallback(async () => {
             </ScrollView>
           )}
 
+          {filteredEntries.length > 0 && <GroupByBar value={groupBy} options={LEDGER_GROUP_OPTIONS} onChange={setGroupBy} />}
+
           {/* Transaction list */}
-          {filteredEntries.map((entry) => {
+          {ledgerRows.map((row) => {
+            if (row.type === "heading") {
+              return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} />;
+            }
+            const entry = row.item;
             const isTransfer = entry.type === "transfer_in" || entry.type === "transfer_out";
             const isDebitSide = entry.type === "debit" || entry.type === "transfer_out";
             const entryColor = isDebitSide ? theme.danger : theme.success;
@@ -1016,13 +1064,15 @@ const loadData = useCallback(async () => {
                     style={{
                       backgroundColor: isTransfer
                         ? transferColor + "14"
-                        : entryColor + "14",
+                        : (entry.creditType?.color ?? entryColor) + "14",
                     }}
                   >
                     <Ionicons
                       name={
                         isTransfer
                           ? "swap-horizontal"
+                          : entry.creditType
+                            ? (entry.creditType.icon as keyof typeof Ionicons.glyphMap)
                           : entry.isRefund
                             ? "return-down-back"
                             : isDebitSide
@@ -1030,7 +1080,7 @@ const loadData = useCallback(async () => {
                               : "arrow-down-outline"
                       }
                       size={14}
-                      color={isTransfer ? transferColor : entryColor}
+                      color={isTransfer ? transferColor : (entry.creditType?.color ?? entryColor)}
                     />
                   </View>
 
@@ -1070,7 +1120,7 @@ const loadData = useCallback(async () => {
                       {!entry.isRefund && !isTransfer && (
                         <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: entryColor + "14" }}>
                           <Text className="text-label font-semibold" style={{ color: entryColor }}>
-                            {entry.isAdjustment ? "ADJUSTMENT" : entry.type === "credit" ? "CREDIT" : "EXPENSE"}
+                            {entry.isAdjustment ? "ADJUSTMENT" : entry.type === "credit" ? (entry.creditType?.name.toUpperCase() ?? "CREDIT") : "EXPENSE"}
                           </Text>
                         </View>
                       )}

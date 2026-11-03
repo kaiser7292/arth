@@ -1,6 +1,7 @@
 import { NOT_SET } from "@/services/expense-types";
 import type { StatementRow } from "@/services/household/statement";
 import { matchesSearch } from "@/utils/amount-search";
+import { groupRows } from "@/utils/group-rows";
 
 /** Who owes the payer what on a shared bill, for reading: "You" for me, biggest share first. */
 export function statementShares(
@@ -64,7 +65,10 @@ export function summarizeStatement(rows: StatementRow[], groupBy: StatementGroup
   };
 }
 
+export type StatementListBy = "date" | StatementGroupBy | "kind";
+
 export type StatementListRow =
+  | { type: "group"; key: string; label: string; total: number; count: number }
   | { type: "day"; date: string; total: number }
   | { type: "row"; row: StatementRow };
 
@@ -81,4 +85,25 @@ export function withDayHeadings(rows: StatementRow[]): StatementListRow[] {
     out.push({ type: "row", row });
   }
   return out;
+}
+
+const SETTLE_GROUP = "__settle__";
+
+/** Rows under a heading for each group. Settle-ups aren't spending, so they add nothing and have a group of their own. */
+export function groupStatementRows(
+  rows: StatementRow[],
+  by: Exclude<StatementListBy, "date">,
+  labelOf: (key: string) => string,
+): StatementListRow[] {
+  const keyOf = (r: StatementRow) => {
+    if (by === "member") return r.member.id;
+    if (by === "kind") return r.relation.kind;
+    if (r.relation.kind === "settle") return SETTLE_GROUP;
+    return by === "category" ? r.category : r.merchant;
+  };
+  return groupRows(rows, {
+    keyOf,
+    labelOf: (key) => (key === SETTLE_GROUP ? "Settle-ups" : labelOf(key)),
+    amountOf: (r) => (r.relation.kind === "settle" ? 0 : r.paid),
+  }).map((row) => (row.type === "heading" ? { ...row, type: "group" as const } : { type: "row" as const, row: row.item }));
 }

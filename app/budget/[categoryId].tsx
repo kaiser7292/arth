@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, EmptyState, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, GroupByBar, GroupHeading, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
+import type { ExpenseGroupBy } from "@/utils/expense-grouping";
+import type { GroupedRow } from "@/utils/group-rows";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { TrendBarChart } from "@/components/charts/TrendBarChart";
@@ -35,6 +38,9 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { settingsStorage } from "@/services/storage";
 
 const CATEGORY_SORT_KEY = "budget.category.sortBy";
+
+const GROUPS: readonly ExpenseGroupBy[] = ["none", "date", "merchant", "account", "payment_mode", "person"];
+const NO_CATEGORIES = new Map<string, { name: string }>();
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
@@ -110,6 +116,17 @@ export default function CategoryDetailScreen() {
 
   useDataRefresh(loadData);
 
+  const paymentModeMap = useMemo(() => new Map(paymentModes.map((p) => [p.id, p])), [paymentModes]);
+  const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const grouping = useExpenseGrouping({
+    screen: "budget_category",
+    kind: "spend",
+    available: GROUPS,
+    fallback: "none",
+    expenses,
+    names: { categoryMap: NO_CATEGORIES, accountMap, paymentModeMap },
+  });
+
   if (!category) {
     return (
       <ScreenContainer>
@@ -132,10 +149,10 @@ export default function CategoryDetailScreen() {
     return `${months[m - 1]} ${year}`;
   })();
 
-  const paymentModeMap = new Map(paymentModes.map((p) => [p.id, p]));
-  const accountMap = new Map(accounts.map((a) => [a.id, a]));
-
-  const renderExpense = ({ item }: { item: Expense }) => (
+  const renderExpense = ({ item: row }: { item: GroupedRow<Expense> }) => {
+    if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} />;
+    const item = row.item;
+    return (
     <ExpenseListItem
       expense={item}
       category={category}
@@ -145,7 +162,8 @@ export default function CategoryDetailScreen() {
       splitNote={buildSplitNote(item, personMap)}
       onPress={() => router.push(`/expense/${item.id}`)}
     />
-  );
+    );
+  };
 
   return (
     <>
@@ -253,8 +271,9 @@ export default function CategoryDetailScreen() {
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}
-        data={expenses}
-        keyExtractor={(item) => item.id}
+        data={grouping.rows}
+        keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
+        ListHeaderComponent={expenses.length > 0 ? <GroupByBar value={grouping.groupBy} options={grouping.options} onChange={grouping.setGroupBy} /> : null}
         renderItem={renderExpense}
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={

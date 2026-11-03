@@ -95,7 +95,7 @@ export interface Expense {
 
 export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip" | "investment_withdrawal";
 
-export const CREDIT_KINDS = ["salary", "bonus", "interest", "dividend", "rent", "refund", "cashback", "reimbursement", "gift", "gain", "other"] as const;
+export const CREDIT_KINDS = ["salary", "bonus", "interest", "dividend", "rent", "refund", "cashback", "reimbursement", "gift", "gain", "settlement", "other"] as const;
 export type CreditKind = (typeof CREDIT_KINDS)[number];
 
 export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
@@ -109,8 +109,19 @@ export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
   gain: "Investment gain",
   dividend: "Dividend",
   rent: "Rent received",
+  settlement: "Hisaab settlement",
   other: "Other",
 };
+
+/** The types you can choose. "settlement" isn't one: it follows the credit's link to a Hisaab settlement. */
+export const PICKABLE_CREDIT_KINDS: readonly CreditKind[] = CREDIT_KINDS.filter((k) => k !== "settlement");
+
+/** Types a search matches by name, so "dividend" finds dividends whatever their text says. */
+export function creditKindsMatching(text: string): CreditKind[] {
+  const q = text.trim().toLowerCase();
+  if (q.length < 3) return [];
+  return CREDIT_KINDS.filter((k) => k !== "other" && CREDIT_KIND_LABELS[k].toLowerCase().includes(q));
+}
 
 /** A credit's look comes from its type, not a category. */
 export const CREDIT_KIND_LOOKS: Record<CreditKind, { icon: string; color: string }> = {
@@ -124,6 +135,7 @@ export const CREDIT_KIND_LOOKS: Record<CreditKind, { icon: string; color: string
   reimbursement: { icon: "receipt-outline", color: "#0284C7" },
   gift: { icon: "gift-outline", color: "#DB2777" },
   gain: { icon: "stats-chart-outline", color: "#4F46E5" },
+  settlement: { icon: "people-outline", color: "#0891B2" },
   other: { icon: "ellipsis-horizontal-circle-outline", color: "#6B7280" },
 };
 

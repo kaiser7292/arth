@@ -9,6 +9,7 @@
  */
 
 import { getDatabase } from "@/database";
+import { reconcileSettlementKinds } from "@/database/credit-kind-backfill";
 import { bumpDataVersion } from "@/services/settings";
 import { generateUUID } from "@/utils/uuid";
 
@@ -216,6 +217,7 @@ export async function hardDeletePerson(id: string): Promise<void> {
     await db.runAsync("DELETE FROM expense_splits WHERE hisaab_person_id = ?;", id);
     // Delete all remaining hisaab entries for this person
     await db.runAsync("DELETE FROM hisaab_entries WHERE hisaab_person_id = ?;", id);
+    await reconcileSettlementKinds(db);
     // Clear split references in expenses
     await db.runAsync(
       "UPDATE expenses SET split_person_id = NULL, split_pct = NULL, split_original_amount = NULL, split_hisaab_entry_id = NULL WHERE split_person_id = ?;",
@@ -528,6 +530,7 @@ export async function deleteEntry(id: string): Promise<void> {
   // Settlement with source='linked' — just drop the hisaab row, credit stays.
 
   await db.runAsync(`DELETE FROM hisaab_entries WHERE id = ?;`, id);
+  await reconcileSettlementKinds(db);
 
   bumpDataVersion();
 }
@@ -783,6 +786,7 @@ export async function recordSettlement(
     linkedCreditId,
     now,
   );
+  await reconcileSettlementKinds(db);
 
   bumpDataVersion();
   return id;
@@ -850,6 +854,7 @@ export async function linkCreditAsSettlement(
     creditId,
     now,
   );
+  await reconcileSettlementKinds(db);
 
   bumpDataVersion();
 
@@ -875,6 +880,7 @@ export async function unlinkCreditSettlement(creditId: string): Promise<void> {
      WHERE linked_expense_id = ? AND type = 'settlement' AND settlement_source = 'linked';`,
     creditId,
   );
+  await reconcileSettlementKinds(db);
   bumpDataVersion();
 }
 

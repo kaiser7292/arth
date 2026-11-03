@@ -121,6 +121,7 @@ export type ActionType =
   | "set_description"
   | "tags"
   | "is_right_spend"
+  | "credit_kind"
   | "mark_auto"
   | "split_with_person"
   | "mark_loan_repayment";
@@ -132,6 +133,8 @@ export interface RuleAction {
   description_template?: string;
   tag_ids?: string[];
   is_right_spend?: boolean;
+  /** credit_kind — the type it gives a credit. Does nothing on an expense. */
+  credit_kind?: string;
   person_id?: string;
   split_mode?: string;
   paid_by?: string;
@@ -207,6 +210,7 @@ export interface EvaluationTarget {
 
 export interface RuleApplication {
   rule: SmartRule;
+  credit_kind: string | null;
   category_id: string | null;
   payment_mode: string | null;
   description: string | null;
@@ -473,6 +477,7 @@ export function findAllMatches(
  * its expense record. Later actions of the same type win.
  */
 export function materialize(rule: SmartRule): RuleApplication {
+  let credit_kind: string | null = null;
   let category_id: string | null = null;
   let payment_mode: string | null = null;
   let description: string | null = null;
@@ -503,6 +508,9 @@ export function materialize(rule: SmartRule): RuleApplication {
       case "is_right_spend":
         if (action.is_right_spend !== undefined) is_right_spend = action.is_right_spend ? 1 : 0;
         break;
+      case "credit_kind":
+        if (action.credit_kind) credit_kind = action.credit_kind;
+        break;
       case "mark_auto":
         mark_auto = true;
         break;
@@ -523,7 +531,7 @@ export function materialize(rule: SmartRule): RuleApplication {
 
   const investment_bucket_id = rule.action_link_to_investment_bucket_id ?? null;
 
-  return { rule, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by, split_percentage, split_exact_amount, loan_account_id, investment_bucket_id };
+  return { rule, credit_kind, category_id, payment_mode, description, tag_ids, is_right_spend, mark_auto, split_person_id, split_mode, split_paid_by, split_percentage, split_exact_amount, loan_account_id, investment_bucket_id };
 }
 
 // ─── DB-backed operations ───
@@ -577,6 +585,7 @@ export async function applyAllRules(
     if (matches.length === 0) return null;
 
     // Merge: rules are in priority ASC order; later entries win per-field.
+    let credit_kind: string | null = null;
     let category_id: string | null = null;
     let payment_mode: string | null = null;
     let description: string | null = null;
@@ -594,6 +603,7 @@ export async function applyAllRules(
 
     for (const rule of matches) {
       const app = materialize(rule);
+      if (app.credit_kind !== null) credit_kind = app.credit_kind;
       if (app.category_id !== null) category_id = app.category_id;
       if (app.payment_mode !== null) payment_mode = app.payment_mode;
       if (app.description !== null) description = app.description;
@@ -617,6 +627,7 @@ export async function applyAllRules(
 
     const application: RuleApplication = {
       rule: primaryRule,
+      credit_kind,
       category_id,
       payment_mode,
       description,
@@ -973,8 +984,15 @@ type RetroactiveCandidate = {
   status: string | null;
   split_hisaab_entry_id: string | null;
   is_right_spend: number | null;
+  credit_kind: string | null;
+  refund_of_expense_id: string | null;
   date: string | null;
 };
+
+/** A rule can give a type to a credit, unless its type comes from a link (settlement, refund). */
+function ruleCanSetKind(e: { nature?: string; credit_kind: string | null; refund_of_expense_id: string | null }): boolean {
+  return e.nature === "credit" && e.credit_kind !== "settlement" && !e.refund_of_expense_id;
+}
 
 async function fetchRetroactiveCandidates(
   scope: Pick<RetroactiveScope, "startDate" | "endDate" | "accountIds" | "sinceDaysAgo">,
@@ -1005,7 +1023,7 @@ async function fetchRetroactiveCandidates(
   }
 
   return db.getAllAsync<RetroactiveCandidate>(
-    `SELECT id, amount, nature, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id, is_right_spend, date
+    `SELECT id, amount, nature, merchant_name, raw_merchant_name, description, account_id, payment_mode_id, category_id, raw_source_text, status, split_hisaab_entry_id, is_right_spend, credit_kind, refund_of_expense_id, date
      FROM expenses
      WHERE ${conds.join(" AND ")};`,
     params,
@@ -1036,6 +1054,7 @@ function hasNothingToAdd(app: RuleApplication, e: RetroactiveCandidate): boolean
   if (app.payment_mode !== null && e.payment_mode_id === null) return false;
   if (app.description !== null && e.description === null) return false;
   if (app.is_right_spend !== null && e.is_right_spend === null) return false;
+  if (app.credit_kind !== null && e.credit_kind === null && ruleCanSetKind(e)) return false;
   if (app.mark_auto && e.status === "pending_review") return false;
   if (app.split_person_id !== null && e.split_hisaab_entry_id === null) return false;
   if (app.tag_ids.length > 0) return false;
@@ -1102,6 +1121,11 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
       const nextIsRightSpend = scope.overwriteExisting
         ? (application.is_right_spend ?? e.is_right_spend)
         : (e.is_right_spend ?? application.is_right_spend);
+      const nextKind = !ruleCanSetKind(e)
+        ? e.credit_kind
+        : scope.overwriteExisting
+          ? (application.credit_kind ?? e.credit_kind)
+          : (e.credit_kind ?? application.credit_kind);
 
       await db.runAsync(
         `UPDATE expenses SET
@@ -1109,6 +1133,7 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
            payment_mode_id = ?,
            description = ?,
            is_right_spend = ?,
+           credit_kind = ?,
            applied_rule_id = ?,
            updated_at = datetime('now')
          WHERE id = ?;`,
@@ -1116,6 +1141,7 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
         nextPaymentMode,
         nextDescription,
         nextIsRightSpend,
+        nextKind,
         rule.id,
         e.id,
       );
@@ -1181,8 +1207,9 @@ export async function applyRuleActionsToExpense(ruleId: string, expenseId: strin
     id: string; category_id: string | null; payment_mode_id: string | null;
     description: string | null; is_right_spend: number | null;
     status: string; split_hisaab_entry_id: string | null;
+    nature: string; credit_kind: string | null; refund_of_expense_id: string | null;
   }>(
-    `SELECT id, category_id, payment_mode_id, description, is_right_spend, status, split_hisaab_entry_id
+    `SELECT id, category_id, payment_mode_id, description, is_right_spend, status, split_hisaab_entry_id, nature, credit_kind, refund_of_expense_id
      FROM expenses WHERE id = ? AND deleted_at IS NULL;`,
     expenseId,
   );
@@ -1195,6 +1222,7 @@ export async function applyRuleActionsToExpense(ruleId: string, expenseId: strin
        payment_mode_id = COALESCE(?, payment_mode_id),
        description = COALESCE(?, description),
        is_right_spend = COALESCE(?, is_right_spend),
+       credit_kind = COALESCE(?, credit_kind),
        applied_rule_id = ?,
        applied_rule_manually = 1,
        updated_at = datetime('now')
@@ -1203,6 +1231,7 @@ export async function applyRuleActionsToExpense(ruleId: string, expenseId: strin
     application.payment_mode,
     application.description,
     application.is_right_spend,
+    ruleCanSetKind(e) ? application.credit_kind : null,
     ruleId,
     expenseId,
   );

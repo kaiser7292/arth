@@ -49,6 +49,7 @@ import { getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { CREDIT_KIND_LABELS, PICKABLE_CREDIT_KINDS, creditLook } from "@/services/expense-types";
 
 /**
  * Smart-rule detail / create form. Route: /settings/smart-rules/[id]
@@ -136,6 +137,7 @@ const ACTION_TYPE_LABELS: Record<UIActionType, string> = {
   set_description: "Set description",
   tags: "Add tags",
   is_right_spend: "Mark unavoidable / discretionary",
+  credit_kind: "Set credit type",
   mark_auto: "Auto-approve from review",
   split_with_person: "Auto split with person",
   link_investment_bucket: "Link investment bucket",
@@ -153,6 +155,7 @@ function defaultActionFor(type: UIActionType): UIRuleAction {
     case "set_description": return { type: "set_description", description_template: "" };
     case "tags": return { type: "tags", tag_ids: [] };
     case "is_right_spend": return { type: "is_right_spend" };
+    case "credit_kind": return { type: "credit_kind" };
     case "mark_auto": return { type: "mark_auto" };
     case "split_with_person": return { type: "split_with_person", split_mode: "equal", paid_by: "me" };
     case "link_investment_bucket": return { type: "link_investment_bucket", bucket_id: null };
@@ -366,6 +369,7 @@ export default function SmartRuleDetailScreen() {
       const a = action as RuleAction;
       if (a.type === "category" && !a.category_id) continue;
       if (a.type === "payment_mode" && !a.payment_mode) continue;
+      if (a.type === "credit_kind" && !a.credit_kind) continue;
       if (a.type === "set_description" && !a.description_template?.trim()) continue;
       if (a.type === "tags" && (!a.tag_ids || a.tag_ids.length === 0)) continue;
       if (a.type === "mark_loan_repayment" && !a.loan_account_id) continue;
@@ -948,7 +952,10 @@ export default function SmartRuleDetailScreen() {
 
                   {typeExpanded && (
                     <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
-                      {ACTION_TYPE_OPTIONS.map((opt) => {
+                      {ACTION_TYPE_OPTIONS.filter(
+                        // Credits have a type, not a category; expenses the other way round.
+                        (opt) => opt.type === action.type || !(opt.type === "credit_kind" ? appliesTo === "expense" : opt.type === "category" && appliesTo === "credit"),
+                      ).map((opt) => {
                         const isSelected = action.type === opt.type;
                         return (
                           <Pressable
@@ -1126,6 +1133,45 @@ export default function SmartRuleDetailScreen() {
                                   style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
                                 >
                                   <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{opt.label}</Text>
+                                  {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
+                                </Pressable>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </>
+                    );
+                  })()}
+
+                  {action.type === "credit_kind" && (() => {
+                    const a = action as RuleAction & { type: "credit_kind" };
+                    const selectedLabel = a.credit_kind ? creditLook(a.credit_kind).name : null;
+                    return (
+                      <>
+                        <Pressable
+                          onPress={() => { setExpandedActionTypeRow(null); setExpandedActionValueRow(valueExpanded ? null : index); }}
+                          className="flex-row items-center justify-between py-2"
+                        >
+                          <View>
+                            <Text className="text-xs text-faint-foreground">Credit type</Text>
+                            <Text className="text-base text-foreground" style={selectedLabel ? undefined : { color: colors.tabIconDefault }}>
+                              {selectedLabel ?? "Select type"}
+                            </Text>
+                          </View>
+                          <Ionicons name={valueExpanded ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                        </Pressable>
+                        {valueExpanded && (
+                          <View className="mb-2 rounded-lg border border-border overflow-hidden bg-background">
+                            {PICKABLE_CREDIT_KINDS.map((k) => {
+                              const isSel = a.credit_kind === k;
+                              return (
+                                <Pressable
+                                  key={k}
+                                  onPress={() => { updateAction(index, { credit_kind: k }); setExpandedActionValueRow(null); }}
+                                  className="flex-row items-center justify-between px-3 py-2.5 border-b border-border"
+                                  style={{ backgroundColor: isSel ? accentColor + "18" : undefined }}
+                                >
+                                  <Text className="text-sm text-foreground" style={isSel ? { color: accentColor } : undefined}>{CREDIT_KIND_LABELS[k]}</Text>
                                   {isSel && <Ionicons name="checkmark" size={16} color={accentColor} />}
                                 </Pressable>
                               );

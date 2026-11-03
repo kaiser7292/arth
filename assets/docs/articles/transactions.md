@@ -24,6 +24,11 @@ phrasings:
   - I deleted a transaction by mistake
   - Undo delete
   - Search with plain English
+  - Group by category
+  - Group transactions by person
+  - Group by month
+  - Change the type of many credits
+  - Bulk assign credit type
 ---
 
 The **Transactions** tab (second tab at the bottom) is your full ledger. Everything you've approved or logged is here.
@@ -108,3 +113,15 @@ Split expenses don't offer Undo (restoring one wouldn't bring back its Hisaab en
 - [Tags](tags)
 - [Auto-categorize with smart rules](smart-rules)
 - [Voice input](voice-input)
+
+## Group by
+
+Tap **Group by** above the list to put rows under headings, each with how many there are and what they add up to. Transactions can group by date, month, category, merchant, account, payment mode or person. On the Credits tab, category becomes **Type**. Transfers group by date, month, from account or to account.
+
+Each list remembers how you left it. The same control is on Together's transactions, a person's Hisaab, an account's ledger, the transactions behind My Month, and the lists you open from Budget and Insights.
+
+The summary card at the top has its own breakdown, and it doesn't change with the list.
+
+## Change the type of many credits
+
+On the **Credits** tab, press and hold a credit, tap the others, then tap **Type** at the bottom. To tidy up old credits, filter by Type = Other first. Hisaab settlements and credits linked as refunds keep their type, because it comes from the link.

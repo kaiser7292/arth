@@ -12,7 +12,10 @@ import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, DateInput, FAB, Input, LoadingState, ScreenContainer, SearchField, Text } from "@/components/ui";
+import { Button, Card, DateInput, FAB, GroupByBar, GroupHeading, Input, LoadingState, ScreenContainer, SearchField, Text } from "@/components/ui";
+import { useGroupBy } from "@/hooks/use-group-by";
+import { formatMonthLabel } from "@/utils/date";
+import { groupRows, NO_GROUP, ungrouped } from "@/utils/group-rows";
 import { matchesSearch } from "@/utils/amount-search";
 import { transactionTitle } from "@/utils/transaction-title";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -44,6 +47,17 @@ import { useTheme } from "@/hooks/use-theme";
 type ViewMode = "list" | "add_entry" | "settle";
 type EntryType = "debit" | "credit";
 type SortOption = "date_desc" | "date_asc" | "amount_desc" | "amount_asc";
+
+type HisaabGroupBy = "none" | "month" | "type" | "category" | "merchant";
+const HISAAB_GROUPS: readonly HisaabGroupBy[] = ["none", "month", "type", "category", "merchant"];
+const HISAAB_GROUP_OPTIONS: { value: HisaabGroupBy; label: string }[] = [
+  { value: "none", label: "None" },
+  { value: "month", label: "Month" },
+  { value: "type", label: "Type" },
+  { value: "category", label: "Category" },
+  { value: "merchant", label: "Merchant" },
+];
+const HISAAB_TYPE_LABELS: Record<string, string> = { debit: "You paid", credit: "They paid", settlement: "Settlements" };
 
 export default function LedgerScreen() {
   const alert = useAlert();
@@ -339,6 +353,23 @@ export default function LedgerScreen() {
     }
     return sorted;
   }, [entries, sortBy, search, categoryMap]);
+
+  const [groupBy, setGroupBy] = useGroupBy<HisaabGroupBy>("hisaab_ledger", HISAAB_GROUPS, "none");
+  const groupedEntries = useMemo(() => {
+    if (groupBy === "none") return ungrouped(sortedEntries);
+    return groupRows(sortedEntries, {
+      keyOf: (e) => (groupBy === "month" ? e.date.slice(0, 7) : groupBy === "type" ? e.type : groupBy === "category" ? e.category_id : e.merchant_name?.trim()),
+      labelOf: (key) => {
+        if (groupBy === "month") return formatMonthLabel(key, "long");
+        if (groupBy === "type") return HISAAB_TYPE_LABELS[key] ?? key;
+        if (key === NO_GROUP) return groupBy === "category" ? "Uncategorized" : "No merchant";
+        return groupBy === "category" ? (categoryMap.get(key) ?? "Unknown") : key;
+      },
+      // What the group did to the balance: they owe more for a debit, less when they pay.
+      amountOf: (e) => (e.type === "debit" ? e.amount : -e.amount),
+      order: groupBy === "month" ? "first" : "size",
+    });
+  }, [sortedEntries, groupBy, categoryMap]);
 
   // ─── Loading ───────────────────────────────────────────
 
@@ -876,6 +907,8 @@ export default function LedgerScreen() {
             </Text>
           )}
 
+          {sortedEntries.length > 0 && <GroupByBar value={groupBy} options={HISAAB_GROUP_OPTIONS} onChange={setGroupBy} inset={false} />}
+
           {/* Entries */}
           {sortedEntries.length === 0 ? (
             <Card className="mb-4">
@@ -890,7 +923,11 @@ export default function LedgerScreen() {
               </View>
             </Card>
           ) : (
-            sortedEntries.map((entry) => {
+            groupedEntries.map((row) => {
+              if (row.type === "heading") {
+                return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} />;
+              }
+              const entry = row.item;
               const linkedAccountId = accountIdMap.get(entry.id);
               const isSettlementWithAccount =
                 entry.type === "settlement" && !!linkedAccountId;

@@ -811,6 +811,7 @@ async function applyRulesToSmsCredit(
          payment_mode_id = COALESCE(?, payment_mode_id),
          description = COALESCE(?, description),
          is_right_spend = COALESCE(?, is_right_spend),
+         credit_kind = CASE WHEN refund_of_expense_id IS NULL THEN COALESCE(?, credit_kind) ELSE credit_kind END,
          applied_rule_id = ?,
          applied_rule_ids = ?
        WHERE id = ?;`,
@@ -818,6 +819,7 @@ async function applyRulesToSmsCredit(
       app.payment_mode,
       app.description,
       app.is_right_spend,
+      app.credit_kind,
       ruleIds[0],
       JSON.stringify(ruleIds),
       expenseId,

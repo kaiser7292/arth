@@ -27,6 +27,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
   let categoryId = input.category_id ?? null;
   let paymentModeId = input.payment_mode_id ?? null;
   let isRightSpend = input.is_right_spend ?? null;
+  let creditKind = input.credit_kind ?? null;
   let appliedRuleId: string | null = null;
   let appliedRuleIdsJson: string | null = null;
   let matchedRuleIds: string[] = [];
@@ -61,6 +62,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
       if (!userSetCategory && rule.category_id) categoryId = rule.category_id;
       if (!userSetPaymentMode && rule.payment_mode) paymentModeId = rule.payment_mode;
       if (!userSetRightSpend && rule.is_right_spend !== null) isRightSpend = rule.is_right_spend;
+      if (creditKind === null && rule.credit_kind !== null) creditKind = rule.credit_kind as CreditKind;
       matchedRuleIds = ruleIds;
       appliedRuleId = ruleIds[0];
       appliedRuleIdsJson = JSON.stringify(ruleIds);
@@ -148,7 +150,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
     input.due_date ?? null,
     appliedRuleId,
     appliedRuleIdsJson,
-    input.nature === "credit" ? (input.credit_kind ?? null) : null,
+    input.nature === "credit" ? creditKind : null,
     now,
   );
 

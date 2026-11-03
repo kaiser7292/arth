@@ -1,6 +1,11 @@
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
-import { CREDIT_KIND_LABELS, CREDIT_KINDS, creditLook } from "@/services/expense-types";
+import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, CREDIT_KINDS, creditLook, PICKABLE_CREDIT_KINDS, type CreditKind } from "@/services/expense-types";
+import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
+import { useGroupBy } from "@/hooks/use-group-by";
+import { formatMonthLabel } from "@/utils/date";
+import type { ExpenseGroupBy } from "@/utils/expense-grouping";
+import { groupRows, NO_GROUP } from "@/utils/group-rows";
 import { restoreExpense } from "@/services/expense-crud";
 import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
@@ -14,7 +19,7 @@ import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, GroupByBar, GroupHeading, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -56,7 +61,7 @@ import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { FilterDropdown } from "@/components/expense/FilterDropdown";
 import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 import { BulkActionBar } from "@/components/expense/BulkActionBar";
-import { bulkUpdateExpenses } from "@/services/expense-bulk";
+import { bulkSetCreditKind, bulkUpdateExpenses } from "@/services/expense-bulk";
 import {
   getSavedFilterViews,
   saveFilterView,
@@ -82,6 +87,18 @@ import { consumeTransactionsPreload } from "@/services/home-preload";
 const SORT_KEY = "expenses.sortBy";
 
 const PAGE_SIZE = 50;
+// Groups only add up with every row in them, so a list grouped by anything but date isn't paged.
+const ALL_ROWS = 5000;
+const SPEND_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "category", "merchant", "account", "payment_mode", "person"];
+const CREDIT_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "category", "merchant", "account", "person"];
+type TransferGroupBy = "date" | "month" | "from" | "to";
+const TRANSFER_GROUPS: readonly TransferGroupBy[] = ["date", "month", "from", "to"];
+const TRANSFER_GROUP_OPTIONS: { value: TransferGroupBy; label: string }[] = [
+  { value: "date", label: "Date" },
+  { value: "month", label: "Month" },
+  { value: "from", label: "From account" },
+  { value: "to", label: "To account" },
+];
 
 const preloaded = consumeTransactionsPreload();
 
@@ -218,6 +235,17 @@ export default function ExpensesScreen() {
   const paymentModeMap = useMemo(() => new Map(paymentModes.map((p) => [p.id, p])), [paymentModes]);
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
 
+  const grouping = useExpenseGrouping({
+    screen: `transactions_${filterNature}`,
+    kind: filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "spend",
+    available: filterNature === "credit" ? CREDIT_GROUPS : SPEND_GROUPS,
+    fallback: "date",
+    expenses,
+    names: { categoryMap, accountMap, paymentModeMap },
+  });
+  const loadEverything = grouping.groupBy !== "date";
+  const [transferGroupBy, setTransferGroupBy] = useGroupBy<TransferGroupBy>("transactions_transfers", TRANSFER_GROUPS, "date");
+
   // v17.5.3 — offset read via ref to avoid re-creating callback on every
   // append (was ripping through useCallback deps via `expenses.length`).
   const expensesLenRef = useRef(0);
@@ -252,6 +280,7 @@ export default function ExpensesScreen() {
     filterNature,
     summaryGroupBy,
     sortBy,
+    loadEverything,
   ].join("|");
 
   const loadExpenses = useCallback(
@@ -312,7 +341,7 @@ export default function ExpensesScreen() {
           segment,
         };
         const [data, summaryResult, prevTotal] = await Promise.all([
-          getExpensesPaginated(DEFAULT_USER_ID, filters, PAGE_SIZE, offset),
+          getExpensesPaginated(DEFAULT_USER_ID, filters, loadEverything ? ALL_ROWS : PAGE_SIZE, offset),
           reset ? getFilteredExpenseSummary(DEFAULT_USER_ID, filters, summaryGroupBy) : Promise.resolve(null),
           reset ? getPreviousPeriodTotal(DEFAULT_USER_ID, filters) : Promise.resolve(null),
         ]);
@@ -324,7 +353,7 @@ export default function ExpensesScreen() {
         } else {
           setExpenses((prev) => [...prev, ...data]);
         }
-        setHasMore(data.length === PAGE_SIZE);
+        setHasMore(!loadEverything && data.length === PAGE_SIZE);
 
         // Load tags and refund totals for these expenses (batch queries)
         const [tagMap, refundMap] = await Promise.all([
@@ -348,7 +377,7 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading],
+    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything],
   );
 
   // Load reference data once (skipped if already seeded from preload)
@@ -385,7 +414,7 @@ export default function ExpensesScreen() {
       loadExpenses(true);
       getPendingExpenseCount(DEFAULT_USER_ID).then(setPendingCount).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, filterNature, summaryGroupBy, sortBy]),
+    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, filterNature, summaryGroupBy, sortBy, loadEverything]),
   );
 
   const handleDelete = useCallback(
@@ -673,7 +702,7 @@ export default function ExpensesScreen() {
     setSelectedExpenseIds(new Set());
   }, []);
 
-  const [bulkPickerType, setBulkPickerType] = useState<"category" | "paymentMode" | "account" | "merchant" | "date" | null>(null);
+  const [bulkPickerType, setBulkPickerType] = useState<"category" | "creditType" | "paymentMode" | "account" | "merchant" | "date" | null>(null);
 
   // Opened already selecting, nothing may be chosen yet.
   const pickBulkField = (field: NonNullable<typeof bulkPickerType>) => {
@@ -686,6 +715,14 @@ export default function ExpensesScreen() {
 
   const handleBulkApply = useCallback(async (field: string, value: string) => {
     const ids = [...selectedExpenseIds];
+    if (field === "creditType") {
+      const { skipped } = await bulkSetCreditKind(ids, value);
+      if (skipped > 0) toast(`${skipped} kept their type: settlements and linked refunds get it from their link`);
+      exitBulkMode();
+      setBulkPickerType(null);
+      loadExpenses(true);
+      return;
+    }
     const fields: Record<string, string> = {};
     if (field === "category") fields.category_id = value;
     else if (field === "paymentMode") fields.payment_mode_id = value;
@@ -696,12 +733,29 @@ export default function ExpensesScreen() {
     exitBulkMode();
     setBulkPickerType(null);
     loadExpenses(true);
-  }, [selectedExpenseIds, exitBulkMode, loadExpenses]);
+  }, [selectedExpenseIds, exitBulkMode, loadExpenses, toast]);
 
   const shownTransfers = useMemo(
     () => transfers.filter((t) => matchesSearch(debouncedSearch, [t.description], [t.amount])),
     [transfers, debouncedSearch],
   );
+
+  const transferRows = useMemo(() => {
+    const nameOf = (id: string) => {
+      const account = accountMap.get(id);
+      return account ? account.account_label || `${account.bank_name} ****${account.account_identifier}` : "Unknown";
+    };
+    return groupRows(shownTransfers, {
+      keyOf: (t) =>
+        transferGroupBy === "date" ? t.date.slice(0, 10) : transferGroupBy === "month" ? t.date.slice(0, 7) : transferGroupBy === "from" ? t.from_account_id : t.to_account_id,
+      labelOf: (key) => {
+        if (key === NO_GROUP) return "Unknown";
+        return transferGroupBy === "date" ? transactionDayLabel(key) : transferGroupBy === "month" ? formatMonthLabel(key, "long") : nameOf(key);
+      },
+      amountOf: (t) => t.amount,
+      order: transferGroupBy === "date" || transferGroupBy === "month" ? "first" : "size",
+    });
+  }, [shownTransfers, transferGroupBy, accountMap]);
 
   const renderTransferItem = useCallback(
     ({ item }: { item: AccountTransfer }) => {
@@ -773,6 +827,13 @@ export default function ExpensesScreen() {
 
   const groupedExpenses = useMemo<DateGroupRow[]>(() => {
     if (expenses.length === 0) return [];
+    if (grouping.groupBy !== "date") {
+      return grouping.rows.map((row) =>
+        row.type === "heading"
+          ? { _type: "header", date: row.key, label: `${row.label} · ${row.count}`, total: row.total }
+          : { _type: "item", expense: row.item },
+      );
+    }
     const rows: DateGroupRow[] = [];
     let lastDate = "";
     let currentHeader: Extract<DateGroupRow, { _type: "header" }> | null = null;
@@ -792,7 +853,7 @@ export default function ExpensesScreen() {
       }
     }
     return rows;
-  }, [expenses]);
+  }, [expenses, grouping.groupBy, grouping.rows]);
 
   const renderExpenseItem = useCallback(
     ({ item }: { item: DateGroupRow }) => {
@@ -1246,14 +1307,21 @@ export default function ExpensesScreen() {
                   initialNumToRender={12}
                   maxToRenderPerBatch={10}
                   windowSize={7}
-                  data={shownTransfers}
-                  keyExtractor={(item) => item.id}
-                  renderItem={renderTransferItem}
+                  data={transferRows}
+                  keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
+                  renderItem={({ item: row }) =>
+                    row.type === "heading" ? (
+                      <GroupHeading label={row.label} count={row.count} total={row.total} signed={false} />
+                    ) : (
+                      renderTransferItem({ item: row.item })
+                    )
+                  }
                   contentContainerStyle={{ paddingBottom: 80 }}
                   refreshing={loading && transfers.length === 0}
                   onRefresh={() => loadExpenses(true)}
                   ListHeaderComponent={
                     transfers.length > 0 ? (
+                      <>
                       <View className="mx-4 my-2 p-4 rounded-xl bg-card">
                         <View className="flex-row items-center justify-between">
                           <Text className="text-sm font-medium text-muted-foreground">
@@ -1267,6 +1335,8 @@ export default function ExpensesScreen() {
                           {transfers.length} {transfers.length === 1 ? "transfer" : "transfers"}
                         </Text>
                       </View>
+                      <GroupByBar value={transferGroupBy} options={TRANSFER_GROUP_OPTIONS} onChange={setTransferGroupBy} />
+                      </>
                     ) : null
                   }
                   ListEmptyComponent={
@@ -1297,7 +1367,8 @@ export default function ExpensesScreen() {
                   refreshing={loading && expenses.length === 0}
                   onRefresh={() => loadExpenses(true)}
                   ListHeaderComponent={
-                    summary && summary.count > 0 ? (
+                    <>
+                    {summary && summary.count > 0 ? (
                       <FilterSummaryCard
                         summary={summary}
                         groupLabelHeader={
@@ -1336,7 +1407,9 @@ export default function ExpensesScreen() {
                         }
                         groupByLabels={{ type: "Type" }}
                       />
-                    ) : null
+                    ) : null}
+                    {expenses.length > 0 && <GroupByBar value={grouping.groupBy} options={grouping.options} onChange={grouping.setGroupBy} />}
+                    </>
                   }
                   ListEmptyComponent={
                     loading ? <SkeletonList rows={7} /> : (() => {
@@ -1416,6 +1489,7 @@ export default function ExpensesScreen() {
         <BulkActionBar
           selectedCount={selectedExpenseIds.size}
           onChangeCategory={() => pickBulkField("category")}
+          onChangeType={filterNature === "credit" ? () => pickBulkField("creditType") : undefined}
           onChangePaymentMode={() => pickBulkField("paymentMode")}
           onChangeAccount={() => pickBulkField("account")}
           onChangeMerchant={() => pickBulkField("merchant")}
@@ -1425,6 +1499,18 @@ export default function ExpensesScreen() {
       )}
 
       {/* Bulk picker modals */}
+      <SelectSheet<CreditKind>
+        visible={bulkPickerType === "creditType"}
+        title="Set type"
+        value={null}
+        options={PICKABLE_CREDIT_KINDS.map((k) => ({
+          value: k,
+          label: CREDIT_KIND_LABELS[k],
+          icon: CREDIT_KIND_LOOKS[k].icon as keyof typeof Ionicons.glyphMap,
+        }))}
+        onChange={(k) => { void handleBulkApply("creditType", k); }}
+        onClose={() => setBulkPickerType(null)}
+      />
       {bulkPickerType === "category" && (
         <FilterDropdown
           label="Set Category"

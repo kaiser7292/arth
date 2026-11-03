@@ -44,3 +44,16 @@ export async function backfillCreditKinds(db: SQLiteDatabase): Promise<void> {
     if (kind) await db.runAsync("UPDATE expenses SET credit_kind = ? WHERE id = ?;", kind, r.id);
   }
 }
+
+/**
+ * The "settlement" type follows a credit's link to a Hisaab settlement: set while linked, cleared
+ * when not (it then reads as Other). A credit linked as a refund stays a refund.
+ */
+export async function reconcileSettlementKinds(db: Pick<SQLiteDatabase, "runAsync">): Promise<void> {
+  const linked = "EXISTS (SELECT 1 FROM hisaab_entries h WHERE h.linked_expense_id = expenses.id AND h.type = 'settlement')";
+  await db.runAsync(
+    `UPDATE expenses SET credit_kind = 'settlement'
+     WHERE nature = 'credit' AND refund_of_expense_id IS NULL AND COALESCE(credit_kind, '') <> 'settlement' AND ${linked};`,
+  );
+  await db.runAsync(`UPDATE expenses SET credit_kind = NULL WHERE credit_kind = 'settlement' AND NOT ${linked};`);
+}

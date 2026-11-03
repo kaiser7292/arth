@@ -14,6 +14,7 @@ phrasings:
   - Who owes whom
   - Record a loan to a friend
   - Settle up
+  - Hisaab settlement type
   - Hisaab balance is wrong
   - Hisaab export Excel PDF
   - Mark credit as settlement
@@ -126,3 +127,9 @@ Open the credit → **Unlink** on the settlement badge. The hisaab entry goes aw
 
 - How split-tender (multi-card) differs from hisaab-split: [Split-tender purchases](split-tender)
 - Adjusting a hisaab balance after the fact: [Reconciling a ledger](reconciliation)
+
+## Settlements in your credits
+
+A credit that's a settlement, whether you recorded it into an account or linked it, gets the type **Hisaab settlement** by itself. It isn't counted as income. You can't choose this type by hand, because a settlement needs a person. Unlink the credit and its type goes back to Other, ready for you to choose another.
+
+In a person's ledger, **Group by** sorts their entries by month, type, category or merchant.

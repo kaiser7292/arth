@@ -4,7 +4,9 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { GroupByBar, GroupHeading, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
+import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { settingsStorage } from "@/services/storage";
@@ -37,6 +39,8 @@ import { formatAmount } from "@/utils/format";
  *   expenseIds — comma-separated list of expense IDs to display
  *   title      — short label shown under the header (e.g. "Food → Zomato")
  */
+const GROUPS: readonly ExpenseGroupBy[] = ["none", "date", "month", "category", "merchant", "account", "payment_mode", "person"];
+
 export default function InsightFilteredListScreen() {
   const router = useRouter();
   const { expenseIds, title } = useLocalSearchParams<{
@@ -181,6 +185,15 @@ export default function InsightFilteredListScreen() {
     }
   }, [expenses, sortBy]);
 
+  const grouping = useExpenseGrouping({
+    screen: "insights_filtered",
+    kind: "spend",
+    available: GROUPS,
+    fallback: "none",
+    expenses: sortedExpenses,
+    names: { categoryMap, accountMap, paymentModeMap },
+  });
+
   const handleItemPress = useCallback(
     (id: string) => router.push(`/expense/${id}`),
     [router],
@@ -252,18 +265,21 @@ export default function InsightFilteredListScreen() {
             initialNumToRender={12}
             maxToRenderPerBatch={10}
             windowSize={7}
-            data={sortedExpenses}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+            data={grouping.rows}
+            keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
+            ListHeaderComponent={<GroupByBar value={grouping.groupBy} options={grouping.options} onChange={grouping.setGroupBy} />}
+            renderItem={({ item: row }) => row.type === "heading" ? (
+              <GroupHeading label={row.label} count={row.count} total={row.total} />
+            ) : (
               <ExpenseListRow
-                item={item}
+                item={row.item}
                 categoryMap={categoryMap}
                 paymentModeMap={paymentModeMap}
                 accountMap={accountMap}
                 refundedMap={refundedMap}
                 onPress={handleItemPress}
                 onLongPress={() => {}}
-                splitNote={splitNoteMap.get(item.id)}
+                splitNote={splitNoteMap.get(row.item.id)}
               />
             )}
             showsVerticalScrollIndicator={false}

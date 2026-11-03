@@ -4,7 +4,9 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
+import { Button, GroupByBar, GroupHeading, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
+import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
+import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { bulkUpdateExpenses } from "@/services/expense-bulk";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -32,6 +34,10 @@ import { settingsStorage } from "@/services/storage";
 const BUDGET_SORT_KEY = "budget.transactions.sortBy";
 
 const PAGE_SIZE = 50;
+
+const GROUPS: readonly ExpenseGroupBy[] = ["none", "date", "category", "merchant", "account", "payment_mode", "person"];
+const GROUPS_IN_CATEGORY: readonly ExpenseGroupBy[] = ["none", "date", "merchant", "account", "payment_mode", "person"];
+const ALL_ROWS = 5000;
 
 /**
  * Budget-context transaction drill-down.
@@ -89,6 +95,30 @@ export default function BudgetTransactionsScreen() {
     };
   }, [filterMonth]);
 
+  const categoryMap = useMemo(
+    () => new Map(categories.map((c) => [c.id, c])),
+    [categories],
+  );
+  const paymentModeMap = useMemo(
+    () => new Map(paymentModes.map((p) => [p.id, p])),
+    [paymentModes],
+  );
+  const accountMap = useMemo(
+    () => new Map(accounts.map((a) => [a.id, a])),
+    [accounts],
+  );
+
+  const grouping = useExpenseGrouping({
+    screen: "budget_transactions",
+    kind: "spend",
+    available: categoryId ? GROUPS_IN_CATEGORY : GROUPS,
+    fallback: "none",
+    expenses,
+    names: { categoryMap, accountMap, paymentModeMap },
+  });
+  // Groups only add up with every row in them, so a grouped list isn't paged.
+  const pageSize = grouping.groupBy === "none" ? PAGE_SIZE : ALL_ROWS;
+
   const filters = useMemo(
     () => ({
       startDate,
@@ -126,7 +156,7 @@ export default function BudgetTransactionsScreen() {
       try {
         const offset = reset ? 0 : expenses.length;
         const [data, summaryResult] = await Promise.all([
-          getExpensesPaginated(DEFAULT_USER_ID, filters, PAGE_SIZE, offset),
+          getExpensesPaginated(DEFAULT_USER_ID, filters, pageSize, offset),
           reset ? getFilteredExpenseSummary(DEFAULT_USER_ID, filters, "category") : Promise.resolve(null),
         ]);
         // Refunds linked to these rows, so a refunded expense shows struck through / reduced,
@@ -146,7 +176,7 @@ export default function BudgetTransactionsScreen() {
           setRefundedMap((prev) => new Map([...prev, ...refunds]));
           setPersonMap((prev) => new Map([...prev, ...persons]));
         }
-        setHasMore(data.length === PAGE_SIZE);
+        setHasMore(data.length === pageSize);
       } catch {
         // DB not ready
       } finally {
@@ -154,7 +184,7 @@ export default function BudgetTransactionsScreen() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [startDate, endDate, filters],
+    [startDate, endDate, filters, pageSize],
   );
 
   useFocusEffect(
@@ -169,19 +199,6 @@ export default function BudgetTransactionsScreen() {
       load(false);
     }
   }, [hasMore, loading, load]);
-
-  const categoryMap = useMemo(
-    () => new Map(categories.map((c) => [c.id, c])),
-    [categories],
-  );
-  const paymentModeMap = useMemo(
-    () => new Map(paymentModes.map((p) => [p.id, p])),
-    [paymentModes],
-  );
-  const accountMap = useMemo(
-    () => new Map(accounts.map((a) => [a.id, a])),
-    [accounts],
-  );
 
   const screenTitle = title ?? (filterAvoidability === "unavoidable"
     ? "Unavoidable Expenses"
@@ -315,24 +332,27 @@ export default function BudgetTransactionsScreen() {
             initialNumToRender={12}
             maxToRenderPerBatch={10}
             windowSize={7}
-            data={expenses}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+            data={grouping.rows}
+            keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
+            ListHeaderComponent={<GroupByBar value={grouping.groupBy} options={grouping.options} onChange={grouping.setGroupBy} />}
+            renderItem={({ item: row }) => row.type === "heading" ? (
+              <GroupHeading label={row.label} count={row.count} total={row.total} />
+            ) : (
               <ExpenseListRow
-                item={item}
+                item={row.item}
                 categoryMap={categoryMap}
                 paymentModeMap={paymentModeMap}
                 accountMap={accountMap}
                 refundedMap={refundedMap}
-                splitNote={buildSplitNote(item, personMap)}
+                splitNote={buildSplitNote(row.item, personMap)}
                 onPress={handleItemPress}
                 onLongPress={handleLongPress}
                 rightElement={
                   selecting ? (
                     <Ionicons
-                      name={selected.has(item.id) ? "checkbox" : "square-outline"}
+                      name={selected.has(row.item.id) ? "checkbox" : "square-outline"}
                       size={22}
-                      color={selected.has(item.id) ? colors.blue : colors.textSecondary}
+                      color={selected.has(row.item.id) ? colors.blue : colors.textSecondary}
                       style={{ marginLeft: 10 }}
                     />
                   ) : undefined

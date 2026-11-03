@@ -31,6 +31,7 @@ const DYNAMIC: Record<string, string[]> = {
   "services/broker-terms.ts|ACCEPTED_KEYS[id]": ["broker_terms_accepted_kite", "broker_terms_accepted_angel", "broker_terms_accepted_zebpay"],
   "services/home-card-preferences.ts|key": ["home_card_hidden__investments"],
   "services/customise.ts|key": ["customise_off__vault"],
+  "services/group-by-preference.ts|key": ["group_by__transactions_credit"],
   "services/min-balance.ts|ackKey(accountId": ["min_balance_ack_acc_2026-09"],
   "services/notifications.ts|key": ["notif_overdue", "notif_upcoming", "notif_scheduled_backup", "notif_new_transaction"],
   "services/portfolio-rows.ts|SORT_PREF(broker)": ["portfolio_sort:kite"],

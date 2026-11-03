@@ -1798,9 +1798,15 @@ export default function ExpenseDetailScreen() {
                 onCloseSuggestions={() => setShowMerchants(false)}
               />
 
-              {editIsCredit && (
+              {editIsCredit && (editCreditKind === "settlement" ? (
+                <View className="mb-4">
+                  <Text className="text-sm font-medium text-muted-foreground mb-1">Type</Text>
+                  <Text className="text-sm text-foreground">Hisaab settlement</Text>
+                  <Text className="text-xs text-muted-foreground mt-0.5">It comes from the link to Hisaab. Unlink it to choose another type.</Text>
+                </View>
+              ) : (
                 <CreditKindChips value={editCreditKind} onChange={setEditCreditKind} />
-              )}
+              ))}
               {editIsCredit && editCreditKind === "salary" && (
                 <CreditSalaryMonth date={date} override={editSalaryMonth} onChange={setEditSalaryMonth} className="mb-4" />
               )}
@@ -2310,7 +2316,7 @@ export default function ExpenseDetailScreen() {
                 <View className="flex-row items-center px-4 py-3 border-b border-border">
                   <Ionicons name="pricetags-outline" size={16} color={colors.textSecondary} />
                   <Text className="text-xs text-muted-foreground ml-3 w-20">
-                    Category
+                    {expense.nature === "credit" ? "Type" : "Category"}
                   </Text>
                   {expenseCategory ? (
                     <View className="flex-row items-center flex-1 justify-end">

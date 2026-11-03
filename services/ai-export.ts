@@ -326,7 +326,7 @@ interface TxnRow {
   status: string;
 }
 
-type TxnKind = "spend" | "investment" | "loan_payment" | "income" | "refund";
+type TxnKind = "spend" | "investment" | "loan_payment" | "income" | "refund" | "repayment";
 
 /**
  * Approved, not deleted, real money in or out. Transfers between own accounts are separate.
@@ -374,7 +374,8 @@ async function loadTransactions(userId: string, from: string, to: string, includ
 
   const kindOf = (r: TxnRow): TxnKind => {
     if (r.nature === "credit") {
-      return r.refund_of_expense_id || r.credit_kind === "refund" ? "refund" : "income";
+      if (r.refund_of_expense_id || r.credit_kind === "refund") return "refund";
+      return r.credit_kind === "settlement" ? "repayment" : "income";
     }
     if (invested.has(r.id)) return "investment";
     if (loanPaid.has(r.id)) return "loan_payment";
@@ -573,7 +574,7 @@ function buildGuide(has: (key: string) => boolean, fyStartMonth: number): string
   ];
   if (has("transactions")) {
     lines.push(
-      "`transactions` holds the user's entries, one per row, every row with the same fields (null means not applicable). `kind` is one of: spend (ordinary spending), investment (money put into an investment, not spending), loan_payment (an EMI or prepayment, not ordinary spending), income (money received; `income_type` says salary, interest and so on when known), refund (money returned for an earlier spend). For a spend shared with someone else, `amount` is the user's own share and `full_amount` is what actually left the account.",
+      "`transactions` holds the user's entries, one per row, every row with the same fields (null means not applicable). `kind` is one of: spend (ordinary spending), investment (money put into an investment, not spending), loan_payment (an EMI or prepayment, not ordinary spending), income (money received; `income_type` says salary, interest and so on when known), refund (money returned for an earlier spend), repayment (someone paying back what they owed, not income). For a spend shared with someone else, `amount` is the user's own share and `full_amount` is what actually left the account.",
     );
   }
   if (has("monthly_summary")) {
@@ -734,7 +735,7 @@ export async function buildAiExport(
       for (const r of txns?.rows ?? []) {
         if (r.status !== "approved") continue; // the summary is what the app shows: approved only
         const month = r.date.substring(0, 7);
-        const bucket = sums.get(month) ?? { spend: 0, investment: 0, loan_payment: 0, income: 0, refund: 0 };
+        const bucket = sums.get(month) ?? { spend: 0, investment: 0, loan_payment: 0, income: 0, refund: 0, repayment: 0 };
         bucket[txns!.kindOf(r)] += r.amount;
         sums.set(month, bucket);
       }

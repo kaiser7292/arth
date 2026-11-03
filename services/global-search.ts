@@ -21,6 +21,7 @@ import { parseAmountQuery } from "@/utils/amount-search";
 import { logger } from "@/utils/logger";
 import { formatDateForDisplay } from "@/utils/expense-validation";
 import { editDistance, normalizeText, queryTokens, semanticScore, synonymsFor } from "@/utils/search-semantics";
+import { creditKindsMatching } from "@/services/expense-types";
 
 /**
  * "Search or do": actions and screens from the catalog, then the person's own data, grouped. Each
@@ -140,8 +141,9 @@ async function transactionsGroup(query: string, merchantNames: string[]): Promis
   }
 
   const textFields = (like: string) => {
-    params.push(like, like, like, like, like);
-    return `(description LIKE ? OR merchant_name LIKE ? OR raw_merchant_name LIKE ?
+    const kinds = creditKindsMatching(like.replace(/%/g, ""));
+    params.push(like, like, like, ...kinds, like, like);
+    return `(description LIKE ? OR merchant_name LIKE ? OR raw_merchant_name LIKE ?${kinds.length > 0 ? ` OR credit_kind IN (${kinds.map(() => "?").join(",")})` : ""}
       OR category_id IN (SELECT id FROM categories WHERE name LIKE ?)
       OR id IN (SELECT et.expense_id FROM expense_tags et JOIN tags t ON t.id = et.tag_id WHERE t.name LIKE ?))`;
   };

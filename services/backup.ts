@@ -1,4 +1,4 @@
-import { backfillCreditKinds } from "@/database/credit-kind-backfill";
+import { backfillCreditKinds, reconcileSettlementKinds } from "@/database/credit-kind-backfill";
 import { exportSettings, importSettings, type SettingValue } from "@/services/backup-settings";
 import { getDatabase } from "@/database";
 import { TABLE_SCHEMAS } from "@/database/TABLE_SCHEMAS";
@@ -699,6 +699,7 @@ export async function restoreFromData(
 
       // Post-restore: credits from older backups get the type they show (migration 091).
       await backfillCreditKinds(db);
+      await reconcileSettlementKinds(db);
 
       // Post-restore: Phase 2 investment-account conversion (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
       // section 4). A backup taken before this shipped still has account_type='demat'/'pension'

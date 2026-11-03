@@ -17,6 +17,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { creditLook } from "@/services/expense-types";
 
 export default function SmartRulesListScreen() {
   const router = useRouter();
@@ -196,6 +197,9 @@ export default function SmartRulesListScreen() {
           break;
         case "is_right_spend":
           parts.push(action.is_right_spend ? "mark unavoidable" : "mark discretionary");
+          break;
+        case "credit_kind":
+          if (action.credit_kind) parts.push(`type ${creditLook(action.credit_kind).name}`);
           break;
         case "set_description":
           parts.push("set description");

@@ -1,5 +1,5 @@
 import { isPartOn } from "@/services/customise";
-import { CREDIT_KIND_LABELS, CREDIT_KINDS, creditKindOf, creditLook, type CreditKind } from "@/services/expense-types";
+import { CREDIT_KIND_LABELS, PICKABLE_CREDIT_KINDS, creditKindOf, creditLook, type CreditKind } from "@/services/expense-types";
 import { updateExpense } from "@/services/expense";
 import { FormulaTextInput } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -775,20 +775,21 @@ function CreditTypeChip({ expense }: { expense: Expense }) {
     <>
       <Pressable
         onPress={() => setOpen(true)}
+        disabled={kind === "settlement"}
         className="flex-row items-center px-4 rounded-full border"
         style={{ minHeight: 40, borderColor: look.color, backgroundColor: look.color + "14" }}
         accessibilityRole="button"
-        accessibilityLabel={`Type ${look.name}, tap to change`}
+        accessibilityLabel={kind === "settlement" ? `Type ${look.name}` : `Type ${look.name}, tap to change`}
       >
         <Ionicons name={look.icon as keyof typeof Ionicons.glyphMap} size={16} color={look.color} />
         <Text className="text-sm font-semibold ml-1.5" style={{ color: look.color }}>{look.name}</Text>
-        <Ionicons name="chevron-down" size={14} color={look.color} style={{ marginLeft: 4 }} />
+        {kind !== "settlement" && <Ionicons name="chevron-down" size={14} color={look.color} style={{ marginLeft: 4 }} />}
       </Pressable>
       <SelectSheet<CreditKind>
         visible={open}
         title="What is this money?"
         value={creditKindOf(kind)}
-        options={CREDIT_KINDS.map((k) => ({ value: k, label: CREDIT_KIND_LABELS[k] }))}
+        options={PICKABLE_CREDIT_KINDS.map((k) => ({ value: k, label: CREDIT_KIND_LABELS[k] }))}
         onChange={(k) => {
           setKind(k);
           void updateExpense(expense.id, { credit_kind: k });

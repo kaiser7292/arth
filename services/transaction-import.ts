@@ -22,7 +22,7 @@ import { createTransfer } from "./account-transfer";
 import { createCategory, getAllCategories } from "./category";
 import { fuzzyFindCategory, guessPaymentModeType, parseAmount, parseDate, parseRightSpend } from "./excel-import";
 import { createExpense } from "./expense-crud";
-import { CREDIT_KINDS, CREDIT_KIND_LABELS, type CreditKind } from "./expense-types";
+import { CREDIT_KIND_LABELS, PICKABLE_CREDIT_KINDS, type CreditKind } from "./expense-types";
 import { createPaymentMode, getAllPaymentModes } from "./payment-mode";
 import { getFYStartMonth } from "./settings";
 
@@ -124,7 +124,7 @@ export function parseCreditKind(value: unknown): CreditKind | null {
   if (value === null || value === undefined) return null;
   const word = String(value).trim().toLowerCase();
   if (!word) return null;
-  return CREDIT_KINDS.find((k) => k === word || CREDIT_KIND_LABELS[k].toLowerCase() === word) ?? null;
+  return PICKABLE_CREDIT_KINDS.find((k) => k === word || CREDIT_KIND_LABELS[k].toLowerCase() === word) ?? null;
 }
 
 function text(value: unknown, maxLen: number): string | null {
@@ -174,7 +174,7 @@ export function parseTransactionRows(
     const rawKind = text(r.credittype, MAX_LEN.name);
     const creditKind = parseCreditKind(rawKind);
     if (type === "credit" && rawKind && !creditKind) {
-      skipped.push({ rowNumber, reason: `Credit Type "${rawKind}" isn't one of ${CREDIT_KINDS.map((k) => CREDIT_KIND_LABELS[k]).join(", ")}` });
+      skipped.push({ rowNumber, reason: `Credit Type "${rawKind}" isn't one of ${PICKABLE_CREDIT_KINDS.map((k) => CREDIT_KIND_LABELS[k]).join(", ")}` });
       return;
     }
 

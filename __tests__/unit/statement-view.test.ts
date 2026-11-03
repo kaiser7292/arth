@@ -67,7 +67,7 @@ describe("totals", () => {
   });
   it("each day gets a heading with its own total", () => {
     const list = withDayHeadings(rows);
-    expect(list.map((l) => (l.type === "day" ? `${l.date}:${l.total}` : l.row.id))).toEqual(["2026-10-30:150", "x", "y", "2026-10-29:25", "s", "z"]);
+    expect(list.map((l) => (l.type === "day" ? `${l.date}:${l.total}` : l.type === "row" ? l.row.id : l.key))).toEqual(["2026-10-30:150", "x", "y", "2026-10-29:25", "s", "z"]);
   });
 });
 

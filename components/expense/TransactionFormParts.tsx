@@ -8,7 +8,7 @@ import { timing } from "@/components/motion/motion";
 
 import { Button, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
-import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, CREDIT_KINDS, type CreditKind } from "@/services/expense-types";
+import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, PICKABLE_CREDIT_KINDS, type CreditKind } from "@/services/expense-types";
 import { formatDateForStorage } from "@/utils/expense-validation";
 
 /** What the add/edit form is recording. Maps to nature 'realized' / 'credit', or an account transfer. */
@@ -110,7 +110,7 @@ export function CreditKindChips({
     <View className="mb-4">
       <Text className="text-sm font-medium text-muted-foreground mb-2">Type</Text>
       <View className="flex-row flex-wrap gap-2">
-        {CREDIT_KINDS.map((k) => {
+        {PICKABLE_CREDIT_KINDS.map((k) => {
           const selected = k === value;
           return (
             <Pressable

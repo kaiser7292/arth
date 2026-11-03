@@ -2,12 +2,13 @@ import { useCallback, useMemo, useState } from "react";
 import { FlatList, Pressable, TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Money, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
+import { GroupByBar, GroupHeading, Money, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
 import { FilterSummaryCard } from "@/components/expense/FilterSummaryCard";
 import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 import { StatementRowDetail, StatementRowItem } from "@/components/household/StatementList";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { useGroupBy } from "@/hooks/use-group-by";
 import { useTheme } from "@/hooks/use-theme";
 import { getCategories, type Category } from "@/services/category";
 import { categoryLook } from "@/services/household/category-look";
@@ -15,13 +16,16 @@ import { NOT_SET, NOT_SET_LABELS } from "@/services/expense-types";
 import { getStatement, type Statement, type StatementRow } from "@/services/household/statement";
 import { syncHousehold } from "@/services/household/sync";
 import { transactionDayLabel } from "@/utils/day-label";
+import { NO_GROUP } from "@/utils/group-rows";
 import {
   filterStatementRows,
+  groupStatementRows,
   statementTotal,
   summarizeStatement,
   withDayHeadings,
   type StatementGroupBy,
   type StatementKind,
+  type StatementListBy,
   type StatementListRow,
 } from "@/utils/statement-view";
 
@@ -33,6 +37,14 @@ const KINDS: { id: StatementKind; label: string }[] = [
 ];
 const GROUP_BYS: readonly StatementGroupBy[] = ["category", "member", "merchant"];
 const GROUP_LABELS: Record<StatementGroupBy, string> = { category: "Category", member: "Paid by", merchant: "Merchant" };
+const LIST_GROUPS: readonly StatementListBy[] = ["date", "category", "member", "merchant", "kind"];
+const LIST_GROUP_OPTIONS: { value: StatementListBy; label: string }[] = [
+  { value: "date", label: "Date" },
+  { value: "category", label: "Category" },
+  { value: "member", label: "Paid by" },
+  { value: "merchant", label: "Merchant" },
+  { value: "kind", label: "You owe or owed" },
+];
 
 const thisMonth = () => {
   const d = new Date();
@@ -87,12 +99,22 @@ export default function TogetherTransactionsScreen() {
 
   const filters = useMemo(() => ({ members, categories, merchants, kinds, query }), [members, categories, merchants, kinds, query]);
   const rows = useMemo(() => filterStatementRows(s?.rows ?? [], filters), [s, filters]);
-  const list = useMemo(() => withDayHeadings(rows), [rows]);
   const summary = useMemo(() => summarizeStatement(rows, groupBy), [rows, groupBy]);
   const previousTotal = useMemo(() => (previous ? statementTotal(filterStatementRows(previous.rows, filters)) : null), [previous, filters]);
 
   const me = s?.household.my_member_id ?? null;
   const nameOf = useCallback((id: string) => (id === me ? "You" : (s?.members.find((m) => m.id === id)?.name ?? "Someone")), [me, s]);
+
+  const [listBy, setListBy] = useGroupBy<StatementListBy>("together_transactions", LIST_GROUPS, "date");
+  const list = useMemo(() => {
+    if (listBy === "date") return withDayHeadings(rows);
+    return groupStatementRows(rows, listBy, (key) => {
+      if (listBy === "member") return nameOf(key);
+      if (listBy === "kind") return KINDS.find((k) => k.id === key)?.label ?? key;
+      if (key === NO_GROUP) return listBy === "merchant" ? "No merchant" : "Uncategorized";
+      return key;
+    });
+  }, [rows, listBy, nameOf]);
 
   // Names biggest first, as in the summary, and anything already chosen stays listed in any month.
   const optionsFor = (pick: (r: Statement["rows"][number]) => string | null, chosen: string[]) => {
@@ -138,6 +160,9 @@ export default function TogetherTransactionsScreen() {
             {item.total !== 0 && <Money value={-item.total} signed showPlus className="text-label font-semibold" />}
           </View>
         );
+      }
+      if (item.type === "group") {
+        return <GroupHeading label={item.label} count={item.count} total={-item.total} />;
       }
       const category = categoryLook(item.row.look, item.row.category, myCategories);
       return <StatementRowItem row={item.row} myMemberId={me} category={category} onView={setViewing} />;
@@ -207,7 +232,7 @@ export default function TogetherTransactionsScreen() {
 
       <FlatList
         data={list}
-        keyExtractor={(item) => (item.type === "day" ? `day-${item.date}` : item.row.id)}
+        keyExtractor={(item) => (item.type === "day" ? `day-${item.date}` : item.type === "group" ? `group-${item.key}` : item.row.id)}
         renderItem={renderItem}
         initialNumToRender={15}
         keyboardShouldPersistTaps="handled"
@@ -216,6 +241,7 @@ export default function TogetherTransactionsScreen() {
         onRefresh={syncNow}
         ListHeaderComponent={
           rows.length > 0 ? (
+            <>
             <FilterSummaryCard
               summary={summary}
               natureKind="all"
@@ -229,6 +255,8 @@ export default function TogetherTransactionsScreen() {
                 groupBy === "member" ? nameOf(key ?? "") : key ?? (groupBy === "merchant" ? "No merchant" : "Uncategorized")
               }
             />
+            <GroupByBar value={listBy} options={LIST_GROUP_OPTIONS} onChange={setListBy} />
+            </>
           ) : null
         }
         ListEmptyComponent={
