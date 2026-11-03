@@ -1,5 +1,6 @@
 import { getDatabase } from "@/database";
 import type { AccountTransfer } from "@/services/account-transfer";
+import { monthsBetween } from "@/services/cash-flow";
 import { effectiveAmountSql } from "@/services/expense-effective-amount";
 import type { Expense } from "@/services/expense-types";
 import { MONEY_IN_FROM } from "@/services/money-in-sql";
@@ -9,7 +10,7 @@ import { getSalaryCreditIdsForMonth } from "@/services/salary-periods";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 
 /**
- * The transactions behind each figure on My month. Each list uses the same rules as the figure, and a
+ * The transactions behind each figure on My Month. Each list uses the same rules as the figure, and a
  * row's amount is the part that counts towards it (a partly linked payment shows only its spent part
  * under Spent), so the rows add up to the number that was tapped.
  */
@@ -206,4 +207,28 @@ export async function getMyMonthGroups(
   };
 
   return (await pick()).filter((g) => g.rows.length > 0);
+}
+
+/** The same lists across a run of months, with each list's rows and total put together. */
+export async function getMyMonthRangeGroups(
+  userId: string,
+  startMonth: string,
+  endMonth: string,
+  section: MyMonthSection,
+  categoryId?: string | null,
+): Promise<MyMonthGroup[]> {
+  const merged = new Map<string, MyMonthGroup>();
+  // Newest month first, so the rows read newest first as they do within a month.
+  for (const month of monthsBetween(startMonth, endMonth).reverse()) {
+    for (const g of await getMyMonthGroups(userId, month, section, categoryId)) {
+      const seen = merged.get(g.title);
+      if (seen) {
+        seen.rows.push(...g.rows);
+        seen.total += g.total;
+      } else {
+        merged.set(g.title, { ...g, rows: [...g.rows] });
+      }
+    }
+  }
+  return [...merged.values()];
 }

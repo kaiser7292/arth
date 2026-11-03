@@ -1,4 +1,3 @@
-import { BrokerSyncCard } from "@/components/investments/BrokerSyncCard";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
@@ -200,21 +199,6 @@ export default function InvestmentsListScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        <BrokerSyncCard />
-        {rows.length > 0 && (
-          <PressableScale onPress={() => router.push("/investments/projections")} accessibilityRole="button" accessibilityLabel="See projections">
-            <Card className="mx-4 mt-3">
-              <View className="flex-row items-center">
-                <Ionicons name="analytics-outline" size={18} color={theme.primary} />
-                <View className="flex-1 ml-2">
-                  <Text className="text-sm font-semibold text-foreground">Where could this get to?</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">Project each investment with your own returns, SIPs and lump sums</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-              </View>
-            </Card>
-          </PressableScale>
-        )}
         {loaded && rows.length === 0 ? (
           <EmptyState
             icon="trending-up-outline"
@@ -233,11 +217,37 @@ export default function InvestmentsListScreen() {
               </Text>
               {/* Counts up when the screen opens and glides to a category's value; while dragging along
                   the chart it follows the finger exactly (no glide). */}
-              {scrubbing ? (
-                <Money value={shownValue} className="text-2xl font-bold text-foreground" />
-              ) : (
-                <AnimatedNumber value={viewTotal} className="text-2xl font-bold text-foreground" />
-              )}
+              <View className="flex-row items-center">
+                <View className="flex-1 mr-2">
+                  {scrubbing ? (
+                    <Money value={shownValue} className="text-2xl font-bold text-foreground" />
+                  ) : (
+                    <AnimatedNumber value={viewTotal} className="text-2xl font-bold text-foreground" />
+                  )}
+                </View>
+                {rows.some((r) => r.group === "market") && (
+                  <Pressable
+                    onPress={() => router.push("/investments/sync-review")}
+                    hitSlop={8}
+                    className="flex-row items-center ml-3"
+                    accessibilityRole="button"
+                    accessibilityLabel="Sync investments and see how they moved"
+                  >
+                    <Ionicons name="sync-outline" size={14} color={colors.textSecondary} />
+                    <Text className="text-xs text-muted-foreground ml-1">Sync</Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  onPress={() => router.push("/investments/projections")}
+                  hitSlop={8}
+                  className="flex-row items-center ml-3"
+                  accessibilityRole="button"
+                  accessibilityLabel="See projections"
+                >
+                  <Ionicons name="analytics-outline" size={14} color={colors.textSecondary} />
+                  <Text className="text-xs text-muted-foreground ml-1">Projections</Text>
+                </Pressable>
+              </View>
               {change != null && (Math.abs(change) >= 1 || scrubbing) ? (
                 <Text className="text-xs mt-0.5" style={{ color: change >= 0 ? theme.success : theme.danger }}>
                   {change >= 0 ? "+" : "−"}{formatAmount(Math.abs(change))}

@@ -4,9 +4,6 @@ import { getBudgetsForMonth } from "@/services/budget";
 import { getCategories } from "@/services/category";
 import { effectiveAmountSql } from "@/services/expense-effective-amount";
 import { getActiveAccounts } from "@/services/financial-account";
-import { getFlag } from "@/services/feature-flags";
-import { getHisaabSummary } from "@/services/hisaab";
-import { getStatement } from "@/services/household/statement";
 import { invested, moneyIn, repaymentsIn } from "@/services/reports/year-review";
 import { getMonthSalaryState, getSalaryForMonth } from "@/services/salary-periods";
 import { getMonthDateRange } from "@/utils/budget-helpers";
@@ -43,8 +40,8 @@ export interface MyMonth {
   /** People: others' share of bills you paid this month, and repayments that reached an account. */
   people: { billsShare: number; repaid: number };
   leftOver: number;
-  /** What the budget leaves over. Null when no budget is set for this month. */
-  afterBudget: { setAside: number; free: number } | null;
+  /** What the budget leaves over, on the month's total. Null when no budget is set for this month. */
+  afterBudget: { budget: number; overspend: number; free: number } | null;
   /** Transactions dated this month still waiting for review, so not in these numbers. */
   waitingForReview: number;
 }
@@ -134,33 +131,28 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
     salaryMissing: salaryState?.state === "missing",
     people: { billsShare, repaid },
     leftOver: totalIn + peopleNet - spent - savedTotal,
-    afterBudget: budgetLeaves(totalIn + peopleNet, savedTotal, budgets, spentRows),
+    afterBudget: budgetLeaves(totalIn + peopleNet, savedTotal, spent, budgets),
     waitingForReview: waiting?.n ?? 0,
   };
 }
 
 /**
- * What's free after the budget. Each category holds back its budget, or what's been spent if that's
- * more: money already overspent isn't free, and neither is spending with no budget against it.
+ * What's free after the budget, on totals only: the whole budget is held back, and if spending has
+ * passed the whole budget, the overspend is too. Categories don't come into it, so being over in one
+ * and under in another nets out.
  */
-function budgetLeaves(
-  available: number,
-  savedTotal: number,
-  budgets: { category_id: string; amount: number }[],
-  spentRows: { categoryId: string | null; total: number }[],
-): MyMonth["afterBudget"] {
+function budgetLeaves(available: number, savedTotal: number, spent: number, budgets: { amount: number }[]): MyMonth["afterBudget"] {
   if (budgets.length === 0) return null;
-  const held = new Map<string | null, number>();
-  for (const b of budgets) held.set(b.category_id, b.amount);
-  for (const r of spentRows) held.set(r.categoryId, Math.max(held.get(r.categoryId) ?? 0, r.total));
-  const setAside = [...held.values()].reduce((s, v) => s + v, 0);
-  return { setAside, free: available - setAside - savedTotal };
+  const budget = budgets.reduce((s, b) => s + b.amount, 0);
+  const overspend = Math.max(0, spent - budget);
+  return { budget, overspend, free: available - budget - overspend - savedTotal };
 }
 
 export interface MonthAccount {
   id: string;
   name: string;
   balance: number;
+  type: "savings" | "wallet";
 }
 
 /**
@@ -175,23 +167,11 @@ export async function getMonthAccounts(userId: string, month: string): Promise<M
       try {
         const summary = await getMonthBalanceSummary(a.id, month);
         const balance = summary ? summary.closing_balance : (await computeUnseededBalance(a.id, month)).closing;
-        return { id: a.id, name: a.account_label || `${a.bank_name} ••••${a.account_identifier}`, balance };
+        return { id: a.id, name: a.account_label || `${a.bank_name} ••••${a.account_identifier}`, balance, type: a.account_type as MonthAccount["type"] };
       } catch {
         return null;
       }
     }),
   );
   return rows.filter((r): r is MonthAccount => r !== null);
-}
-
-/**
- * Where you stand with people right now, and the household's shared total for the month. For reading
- * only, none of it is in the sums above. Each part fails alone, so the page still shows the rest.
- */
-export async function getMonthPeople(userId: string, month: string): Promise<{ owedToYou: number; youOwe: number; together: number | null }> {
-  const [hisaab, statement] = await Promise.all([
-    getHisaabSummary(userId).catch(() => null),
-    getFlag("household") ? getStatement(month).catch(() => null) : Promise.resolve(null),
-  ]);
-  return { owedToYou: hisaab?.totalOwedToYou ?? 0, youOwe: hisaab?.totalYouOwe ?? 0, together: statement?.together ?? null };
 }

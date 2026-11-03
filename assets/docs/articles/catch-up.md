@@ -22,7 +22,7 @@ phrasings:
 ## Where to find it
 
 - **Home tab → Review Queue card → Catch up (N).**
-- **Home tab → Queue page → Catch up (N).**
+- **Review Queue screen → Catch up (N).**
 - The **home screen widgets**, which show how many items are waiting, and on the large one let you approve or reject the newest ones. See [Notifications and the home screen widget](notifications).
 
 ## What's in the deck

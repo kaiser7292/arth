@@ -1,15 +1,15 @@
 import { useState, useCallback, useMemo } from "react";
 import { View, ScrollView, Pressable, Modal } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { Card, EmptyState, LoadingState, ScreenContainer, Sheet, Text } from "@/components/ui";
+import { PeriodBar } from "@/components/insights/PeriodBar";
+import { Card, EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
 import { formatAmount } from "@/utils/format";
-import { getMonthDateRange } from "@/utils/budget-helpers";
-import { getCurrentFY, getFYRange, getFYLabel, formatLocalDate } from "@/utils/fiscal-year";
+import { insightPeriodLabel, insightPeriodRange, isInsightPeriod, type InsightPeriod } from "@/utils/insight-periods";
 import { getFYStartMonth } from "@/services/settings";
 import {
   getBudgetVsActual,
@@ -22,7 +22,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Period = "this_month" | "last_3m" | "last_6m" | "this_fy" | "last_fy" | "custom";
+type Period = InsightPeriod;
 type SortOrder = "overspend" | "spent" | "alpha";
 
 const SORT_LABELS: Record<SortOrder, string> = {
@@ -31,72 +31,7 @@ const SORT_LABELS: Record<SortOrder, string> = {
   alpha: "A–Z",
 };
 
-const PERIODS: Period[] = ["this_month", "last_3m", "last_6m", "this_fy", "last_fy", "custom"];
-
-const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getPeriodRange(
-  period: Period,
-  fyStartMonth: number,
-  customStart?: string,
-  customEnd?: string,
-): { startMonth: string; endMonth: string; startDate: string; endDate: string } {
-  const now = new Date();
-  const todayStr = formatLocalDate(now);
-  const y = now.getFullYear();
-  const m = now.getMonth() + 1;
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const currentMonth = `${y}-${pad(m)}`;
-
-  const toMonthStr = (d: Date) =>
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
-
-  switch (period) {
-    case "this_month": {
-      const { startDate } = getMonthDateRange(currentMonth);
-      return { startMonth: currentMonth, endMonth: currentMonth, startDate, endDate: todayStr };
-    }
-    case "last_3m": {
-      const sm = toMonthStr(new Date(y, m - 3, 1));
-      return { startMonth: sm, endMonth: currentMonth, startDate: getMonthDateRange(sm).startDate, endDate: todayStr };
-    }
-    case "last_6m": {
-      const sm = toMonthStr(new Date(y, m - 6, 1));
-      return { startMonth: sm, endMonth: currentMonth, startDate: getMonthDateRange(sm).startDate, endDate: todayStr };
-    }
-    case "this_fy": {
-      const fyYear = getCurrentFY(fyStartMonth);
-      const { start } = getFYRange(fyYear, fyStartMonth);
-      const sm = toMonthStr(start);
-      return { startMonth: sm, endMonth: currentMonth, startDate: getMonthDateRange(sm).startDate, endDate: todayStr };
-    }
-    case "last_fy": {
-      const fyYear = getCurrentFY(fyStartMonth) - 1;
-      const { start, end } = getFYRange(fyYear, fyStartMonth);
-      const sm = toMonthStr(start);
-      const em = toMonthStr(end);
-      return {
-        startMonth: sm,
-        endMonth: em,
-        startDate: getMonthDateRange(sm).startDate,
-        endDate: getMonthDateRange(em).endDate,
-      };
-    }
-    case "custom": {
-      const sm = customStart ?? currentMonth;
-      const em = customEnd ?? currentMonth;
-      const endIsCurrentMonth = em >= currentMonth;
-      return {
-        startMonth: sm,
-        endMonth: em,
-        startDate: getMonthDateRange(sm).startDate,
-        endDate: endIsCurrentMonth ? todayStr : getMonthDateRange(em).endDate,
-      };
-    }
-  }
-}
 
 function proratedBudget(totalBudget: number): number {
   const now = new Date();
@@ -118,7 +53,8 @@ export default function BudgetVsActualScreen() {
   const { colors } = useColorScheme();
   const theme = useTheme();
 
-  const [period, setPeriod] = useState<Period>("this_month");
+  const params = useLocalSearchParams<{ period?: string }>();
+  const [period, setPeriod] = useState<Period>(isInsightPeriod(params.period) ? params.period : "this_month");
   const [sortOrder, setSortOrder] = useState<SortOrder>("overspend");
   const [result, setResult] = useState<BudgetVsActualResult | null>(null);
   const [fyStartMonth, setFyStartMonth] = useState(4);
@@ -133,27 +69,10 @@ export default function BudgetVsActualScreen() {
   });
   const [showMonthPicker, setShowMonthPicker] = useState<"start" | "end" | null>(null);
 
-  const fyLabels = useMemo(() => {
-    const thisYear = getCurrentFY(fyStartMonth);
-    return {
-      this_fy: getFYLabel(thisYear, fyStartMonth),
-      last_fy: getFYLabel(thisYear - 1, fyStartMonth),
-    };
-  }, [fyStartMonth]);
-
-  const getPeriodLabel = useCallback((p: Period): string => {
-    if (p === "this_fy") return fyLabels.this_fy;
-    if (p === "last_fy") return fyLabels.last_fy;
-    if (p === "custom") return "Custom";
-    const labels: Record<Period, string> = {
-      this_month: "This Month", last_3m: "Last 3M", last_6m: "Last 6M",
-      this_fy: "", last_fy: "", custom: "",
-    };
-    return labels[p];
-  }, [fyLabels, customStartMonth, customEndMonth]);
+  const getPeriodLabel = useCallback((p: Period): string => insightPeriodLabel(p, fyStartMonth), [fyStartMonth]);
 
   const range = useMemo(
-    () => getPeriodRange(period, fyStartMonth, customStartMonth, customEndMonth),
+    () => insightPeriodRange(period, fyStartMonth, customStartMonth, customEndMonth),
     [period, fyStartMonth, customStartMonth, customEndMonth],
   );
   const isCurrentMonth = range.endMonth === range.startMonth &&
@@ -166,7 +85,7 @@ export default function BudgetVsActualScreen() {
     try {
       const fySM = getFYStartMonth();
       setFyStartMonth(fySM);
-      const r = getPeriodRange(period, fySM, customStartMonth, customEndMonth);
+      const r = insightPeriodRange(period, fySM, customStartMonth, customEndMonth);
       const data = await getBudgetVsActual(
         DEFAULT_USER_ID,
         r.startMonth,
@@ -236,80 +155,15 @@ export default function BudgetVsActualScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
 
-        {/* ── Period chips ─────────────────────────────── */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
-        >
-          {PERIODS.map((p) => {
-            const selected = period === p;
-            return (
-              <Pressable
-                key={p}
-                onPress={() => { setPeriod(p); setLoading(true); }}
-                className="px-4 py-2 rounded-full border"
-                style={{
-                  backgroundColor: selected ? theme.primary : "transparent",
-                  borderColor: selected ? theme.primary : colors.border,
-                }}
-              >
-                <Text
-                  className="text-sm font-semibold"
-                  style={{ color: selected ? "#fff" : colors.textSecondary }}
-                >
-                  {getPeriodLabel(p)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {/* ── Custom range selectors ────────────────── */}
-        {period === "custom" && (
-          <View className="flex-row items-center px-4 pb-2 gap-2">
-            <Text className="text-xs text-muted-foreground">From</Text>
-            <Pressable
-              onPress={() => setShowMonthPicker("start")}
-              className="flex-row items-center px-3 py-1.5 rounded-lg border"
-              style={{ borderColor: colors.border }}
-            >
-              <Text className="text-sm font-medium text-foreground mr-1">
-                {`${MONTH_SHORT[parseInt(customStartMonth.split("-")[1], 10) - 1]} ${customStartMonth.split("-")[0]}`}
-              </Text>
-              <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
-            </Pressable>
-            <Text className="text-xs text-muted-foreground">to</Text>
-            <Pressable
-              onPress={() => setShowMonthPicker("end")}
-              className="flex-row items-center px-3 py-1.5 rounded-lg border"
-              style={{ borderColor: colors.border }}
-            >
-              <Text className="text-sm font-medium text-foreground mr-1">
-                {`${MONTH_SHORT[parseInt(customEndMonth.split("-")[1], 10) - 1]} ${customEndMonth.split("-")[0]}`}
-              </Text>
-              <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
-            </Pressable>
-          </View>
-        )}
-
-        {/* ── Month picker modal ────────────────────── */}
-        <Sheet visible={showMonthPicker !== null} onClose={() => setShowMonthPicker(null)}>
-              <MiniMonthPicker
-                value={showMonthPicker === "start" ? customStartMonth : customEndMonth}
-                maxMonth={showMonthPicker === "start" ? customEndMonth : undefined}
-                minMonth={showMonthPicker === "end" ? customStartMonth : undefined}
-                label={showMonthPicker === "start" ? "Start Month" : "End Month"}
-                colors={colors}
-                onSelect={(v) => {
-                  if (showMonthPicker === "start") setCustomStartMonth(v);
-                  else setCustomEndMonth(v);
-                  setShowMonthPicker(null);
-                  setLoading(true);
-                }}
-                onCancel={() => setShowMonthPicker(null)}
-              />
-        </Sheet>
+        <PeriodBar
+          period={period}
+          fyStartMonth={fyStartMonth}
+          customStart={customStartMonth}
+          customEnd={customEndMonth}
+          onPeriod={(p) => { setPeriod(p); setLoading(true); }}
+          onCustomStart={(m) => { setCustomStartMonth(m); setLoading(true); }}
+          onCustomEnd={(m) => { setCustomEndMonth(m); setLoading(true); }}
+        />
 
         {!hasAnyData ? (
           <EmptyState
@@ -399,7 +253,13 @@ export default function BudgetVsActualScreen() {
                     const moOver = mo.actual > mo.budget && mo.budget > 0;
                     const barMax = Math.max(mo.budget, mo.actual, 1);
                     return (
-                      <View key={mo.month} className="mb-3">
+                      <Pressable
+                        key={mo.month}
+                        onPress={() => router.push({ pathname: "/summary/my-month", params: { month: mo.month } })}
+                        className="mb-3"
+                        accessibilityRole="button"
+                        accessibilityLabel={`${shortMonth(mo.month)}, ${formatAmount(mo.actual)} of ${formatAmount(mo.budget)}. Open My Month`}
+                      >
                         <View className="flex-row items-center justify-between mb-1">
                           <Text className="text-xs font-medium text-muted-foreground w-8">
                             {shortMonth(mo.month)}
@@ -440,7 +300,7 @@ export default function BudgetVsActualScreen() {
                             </Text>
                           </View>
                         </View>
-                      </View>
+                      </Pressable>
                     );
                   })}
                   <View className="flex-row items-center gap-3 mt-1">
@@ -618,107 +478,5 @@ function CategoryRow({
       </View>
     </Card>
     </Pressable>
-  );
-}
-
-// ─── Mini Month Picker ────────────────────────────────────────────────────────
-
-function MiniMonthPicker({
-  value,
-  minMonth,
-  maxMonth,
-  label,
-  colors,
-  onSelect,
-  onCancel,
-}: {
-  value: string;
-  minMonth?: string;
-  maxMonth?: string;
-  label: string;
-  colors: any;
-  onSelect: (v: string) => void;
-  onCancel: () => void;
-}) {
-  const theme = useTheme();
-  const [y, m] = value.split("-").map(Number);
-  const [pickerYear, setPickerYear] = useState(y);
-  const now = new Date();
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const minYear = minMonth ? parseInt(minMonth.split("-")[0], 10) : undefined;
-  const maxYear = maxMonth ? parseInt(maxMonth.split("-")[0], 10) : undefined;
-
-  return (
-    <View className="px-4 pt-5 pb-4">
-      <Text className="text-base font-bold text-foreground mb-4">{label}</Text>
-
-      {/* Year navigation */}
-      <View className="flex-row items-center justify-between mb-4">
-        <Pressable
-          onPress={() => setPickerYear((v) => v - 1)}
-          disabled={minYear !== undefined && pickerYear <= minYear}
-          className="p-2"
-          style={minYear !== undefined && pickerYear <= minYear ? { opacity: 0.25 } : undefined}
-        >
-          <Ionicons name="chevron-back" size={22} color={colors.textSecondary} />
-        </Pressable>
-        <Text className="text-lg font-bold text-foreground">{pickerYear}</Text>
-        <Pressable
-          onPress={() => setPickerYear((v) => v + 1)}
-          disabled={maxYear !== undefined && pickerYear >= maxYear}
-          className="p-2"
-          style={maxYear !== undefined && pickerYear >= maxYear ? { opacity: 0.25 } : undefined}
-        >
-          <Ionicons name="chevron-forward" size={22} color={colors.textSecondary} />
-        </Pressable>
-      </View>
-
-      {/* Month grid */}
-      <View className="flex-row flex-wrap mb-4">
-        {MONTH_SHORT.map((name, idx) => {
-          const monthNum = idx + 1;
-          const monthVal = `${pickerYear}-${String(monthNum).padStart(2, "0")}`;
-          const isSelected = pickerYear === y && monthNum === m;
-          const isCurrent = monthVal === currentMonth;
-          const isDisabled = (minMonth && monthVal < minMonth) || (maxMonth && monthVal > maxMonth);
-          return (
-            <Pressable
-              key={name}
-              onPress={() => !isDisabled && onSelect(monthVal)}
-              disabled={!!isDisabled}
-              className="w-1/3 items-center py-2.5"
-              style={isDisabled ? { opacity: 0.25 } : undefined}
-            >
-              <View
-                className={`w-16 py-2 rounded-xl items-center ${isSelected ? "" : isCurrent ? "border" : ""}`}
-                style={
-                  isSelected
-                    ? { backgroundColor: theme.primary }
-                    : isCurrent
-                    ? { borderColor: theme.primary }
-                    : undefined
-                }
-              >
-                <Text
-                  className="text-sm font-semibold"
-                  style={{
-                    color: isSelected ? "#fff" : isCurrent ? theme.primary : colors.text,
-                  }}
-                >
-                  {name}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Pressable
-        onPress={onCancel}
-        className="py-3 rounded-xl bg-background items-center"
-      >
-        <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
-      </Pressable>
-    </View>
   );
 }

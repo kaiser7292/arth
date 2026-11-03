@@ -1,4 +1,4 @@
-import { combineProjections, defaultReturnPct, projectInvestment } from "../../services/investment-projections";
+import { combineProjections, defaultReturnPct, inTodaysMoney, monthlyAt, projectInvestment } from "../../services/investment-projections";
 
 const flat = { returnPct: 0, monthly: 0, lumpSums: [] };
 const last = <T,>(a: T[]) => a[a.length - 1];
@@ -60,5 +60,38 @@ describe("combining and defaults", () => {
     expect(defaultReturnPct("fd", null)).toBe(7);
     expect(defaultReturnPct("pension")).toBe(8);
     expect(defaultReturnPct("market")).toBe(12);
+  });
+});
+
+describe("step-up and inflation", () => {
+  it("a percent step-up rises every 12 months and compounds", () => {
+    const a = { ...flat, monthly: 10000, stepUp: { kind: "pct" as const, value: 10 } };
+    expect(monthlyAt(a, 0)).toBe(10000);
+    expect(monthlyAt(a, 11)).toBe(10000);
+    expect(monthlyAt(a, 12)).toBeCloseTo(11000, 6);
+    expect(monthlyAt(a, 24)).toBeCloseTo(12100, 6);
+  });
+
+  it("a rupee step-up adds the same each year, and does nothing with no SIP", () => {
+    const a = { ...flat, monthly: 10000, stepUp: { kind: "amount" as const, value: 1000 } };
+    expect(monthlyAt(a, 24)).toBe(12000);
+    expect(monthlyAt({ ...a, monthly: 0 }, 24)).toBe(0);
+  });
+
+  it("everything put in over the years adds up with the step-ups", () => {
+    const a = { ...flat, monthly: 10000, stepUp: { kind: "pct" as const, value: 10 } };
+    expect(last(projectInvestment(0, a, 24, "2026-11")).putIn).toBeCloseTo(12 * 10000 + 12 * 11000, 4);
+  });
+
+  it("with no step-up, a SIP matches the textbook sum at the same monthly rate", () => {
+    const i = Math.pow(1.12, 1 / 12) - 1;
+    const textbook = (10000 * (Math.pow(1 + i, 120) - 1) * (1 + i)) / i;
+    expect(last(projectInvestment(0, { ...flat, monthly: 10000, returnPct: 12 }, 120, "2026-11")).value).toBeCloseTo(textbook, 2);
+  });
+
+  it("today's money takes inflation off by the year", () => {
+    expect(inTodaysMoney(106, 12, 6)).toBeCloseTo(100, 6);
+    expect(inTodaysMoney(1000, 0, 6)).toBe(1000);
+    expect(inTodaysMoney(1000, 60, 0)).toBe(1000);
   });
 });

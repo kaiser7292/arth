@@ -8,7 +8,7 @@ import { getCurrentFY } from "@/utils/fiscal-year";
 
 /**
  * Which month each salary credit belongs to, and how that compares with the Income Calculator. What
- * was actually credited is what counts for a period: the yearly plan, My month and the salary check
+ * was actually credited is what counts for a period: the yearly plan, My Month and the salary check
  * all read from here. Salary only; business income has no salary-tagged credits to compare.
  */
 

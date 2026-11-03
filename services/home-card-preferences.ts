@@ -15,7 +15,6 @@ import { settingsStorage } from "./storage";
 export type HomeCardId =
   | "min_balance_alert"
   | "upcoming_dues"
-  | "review_queue"
   | "check_ins"
   | "my_month"
   | "total_spent"
@@ -58,12 +57,6 @@ export const HOME_CARDS: HomeCardMeta[] = [
     defaultVisible: true,
   },
   {
-    id: "review_queue",
-    label: "Review Queue",
-    description: "Action Required card + standalone Review Queue shortcut in Explore & Tools",
-    defaultVisible: true,
-  },
-  {
     id: "check_ins",
     label: "Check-ins",
     description: "Month-end check, settle-up, subscriptions and rule suggestions when there's something to swipe through",
@@ -71,13 +64,13 @@ export const HOME_CARDS: HomeCardMeta[] = [
   },
   {
     id: "my_month",
-    label: "My month: cash flow",
+    label: "My Month: cash flow",
     description: "Money in, money out and what's left this month",
     defaultVisible: true,
   },
   {
     id: "total_spent",
-    label: "My month: budget",
+    label: "My Month: budget",
     description: "How you're doing against the budget you set. Only shows once you've set one",
     defaultVisible: true,
   },

@@ -8,14 +8,15 @@ export default function InsightsStackLayout() {
     <Stack
       screenOptions={screenOptions}
     >
-      <Stack.Screen name="index" options={{ title: "Analytics" }} />
+      <Stack.Screen name="index" options={{ title: "Insights" }} />
       <Stack.Screen name="insight-detail" options={{ title: "Insight" }} />
-      <Stack.Screen name="forecast" options={{ title: "Monthly Forecast" }} />
+      <Stack.Screen name="forecast" options={{ title: "Forecast" }} />
       <Stack.Screen name="patterns" options={{ title: "My Spending Patterns" }} />
       <Stack.Screen name="merchants" options={{ title: "Merchant Analytics" }} />
       <Stack.Screen name="compare" options={{ title: "Compare Periods" }} />
       <Stack.Screen name="filtered" options={{ title: "Transactions" }} />
       <Stack.Screen name="budget-vs-actual" options={{ title: "Budget vs Actual" }} />
+      <Stack.Screen name="cash-flow" options={{ title: "Money in and out" }} />
       <Stack.Screen name="reports" options={{ title: "Reports" }} />
       <Stack.Screen name="export-for-ai" options={{ title: "Export for AI Insights" }} />
       <Stack.Screen name="report-financial-health" options={{ title: "Financial Health" }} />

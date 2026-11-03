@@ -126,6 +126,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("setup_checklist_closed", "boolean"),
   S("global_search_recent", "string", DEVICE("recent searches stay on the phone they were made on")),
   S("investment_projection_assumptions", "string"),
+  S("investment_projection_plan", "string"),
   P("salary_check_dismissed__", "boolean"),
   S("household_device_id", "string", DEVICE("identifies this phone to its household; a restored copy must get its own")),
   S("household_relay_url", "string", DEVICE("only set when testing against a local relay")),

@@ -1,8 +1,8 @@
 import { DatabaseSync } from "node:sqlite";
 
 /**
- * My month and dated goals against the real schema (every migration), with made-up numbers. The
- * point of My month is that nothing is counted twice and left over adds up.
+ * My Month and dated goals against the real schema (every migration), with made-up numbers. The
+ * point of My Month is that nothing is counted twice and left over adds up.
  */
 
 let mockDb: DatabaseSync;
@@ -248,7 +248,7 @@ describe("money with people", () => {
     tx({ nature: "credit", credit_kind: "salary", amount: 10000, account_id: "bank" });
     insert("budgets", { id: "b-food", user_id: USER, category_id: "food", month: MONTH, amount: 2000 });
     tx({ amount: 500, split_original_amount: 1000, category_id: "food", account_id: "bank" });
-    expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ setAside: 2000, free: 7500 });
+    expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ budget: 2000, overspend: 0, free: 7500 });
   });
 });
 
@@ -333,16 +333,24 @@ describe("after the budget", () => {
     budget("food", 10000);
     tx({ amount: 2000, category_id: "food" });
     tx({ amount: 5000, money_event: "sip" });
-    expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ setAside: 30000, free: 45000 });
+    expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ budget: 30000, overspend: 0, free: 45000 });
   });
 
-  it("overspending and spending with no budget aren't free", async () => {
+  it("works on the month's total: over in one category and under in another nets out", async () => {
+    tx({ nature: "credit", credit_kind: "salary", amount: 80000, account_id: "bank" });
+    budget("rent", 20000);
+    budget("food", 10000);
+    tx({ amount: 12000, category_id: "food" });
+    expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ budget: 30000, overspend: 0, free: 50000 });
+  });
+
+  it("spending past the whole budget, budgeted or not, isn't free", async () => {
     tx({ nature: "credit", credit_kind: "salary", amount: 80000, account_id: "bank" });
     budget("food", 10000);
     tx({ amount: 12000, category_id: "food" });
     tx({ amount: 3000, category_id: "rent" });
     tx({ amount: 1000 });
-    expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ setAside: 16000, free: 64000 });
+    expect((await getMyMonth(USER, MONTH)).afterBudget).toEqual({ budget: 10000, overspend: 6000, free: 64000 });
   });
 });
 

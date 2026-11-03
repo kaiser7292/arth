@@ -35,7 +35,7 @@ Open **Settings tab → Preferences & Security → Home Cards** and switch each 
 - **Upcoming dues** - forecasted payments and reminder cycles due in the next few days, with **Pay** and **Paid elsewhere** buttons.
 - **Review Queue** - how many items need you, with a **Catch up** button.
 - **Check-ins** - month-end check, settle up, subscriptions and rule suggestions, when there's something to swipe through. See [Check-ins](check-ins).
-- **My month** - one card with two sections. **Cash flow** is money in, money out and what's left this month. **Budget** is how you're doing against the budget you set, with days remaining, and only shows once you've set one. You can hide either section.
+- **My Month** - one card with two sections. **Cash flow** is money in, money out and what's left this month. **Budget** is how you're doing against the budget you set, with days remaining, and only shows once you've set one. You can hide either section.
 - **Hisaab - Family Ledger** - quick access to money owed between you and family or friends.
 - **Insights & Analytics** - merchants, accounts, trends, comparisons and patterns.
 - **Credit cards** - utilisation and next statement across your cards.

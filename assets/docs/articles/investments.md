@@ -42,13 +42,21 @@ The **Investments** screen brings every kind of investment together - demat and 
 
 Fixed deposits that have matured or been closed drop off this screen and out of the Investments total, so the payout is never counted twice.
 
-## Sync in one tap
+## Sync, and see how it moved
 
-With Zerodha, Angel One or Zebpay connected, **Sync today's investments** at the top of the Investments screen fetches each one and saves today's snapshot. Zerodha's login ends every day, so when it has, tap **Log in**: its login page opens, filled from the Vault if you've linked it, and the sync carries on when you're back.
+Tap **Sync** next to your total on the Investments screen. Zerodha, Angel One and Zebpay fetch on their own. For anything else, like a mutual fund you track by hand, Arth asks what it's worth today; leave one blank to skip it.
+
+You then see how much your investments went up or down since their last value, all together and one by one. Money you moved in or out in that time isn't counted as a gain or a loss. Anything you skipped is left out and says so. Fixed deposits and pension aren't included, because they don't change with the market each day.
+
+Zerodha's login ends every day, so when it has, tap **Log in**: its login page opens, filled from the Vault if you've linked it, and the sync carries on when you're back.
 
 ## Where could this get to?
 
-**Projections** on the Investments screen works forward from what each investment is worth today. Tap one to set the yearly return you want to assume, a monthly amount (a SIP) and any lump sums with their month. Each investment can have its own return. These are your assumptions worked forward, not a forecast or financial advice: real returns go up and down, and tax isn't taken off.
+**Projections**, next to your total, works forward from what each investment is worth today. Tap one to set the yearly return you want to assume, a monthly amount (a SIP), a yearly step-up and any one-time amounts. **Add more money** tries the same with money that isn't in any investment yet, and shows what it adds.
+
+**In today's money** shows what the future amount could really buy after inflation. Tap it to change the inflation rate (6% a year to start with). Tap a year's bar to read that year.
+
+A 12% return here means exactly 12% a year. Many online calculators use 1% a month, which works out to 12.68%, so they show a little more. These are your assumptions worked forward, not a forecast or financial advice: real returns go up and down, and tax isn't taken off.
 
 ## Three kinds of investment
 

@@ -5,7 +5,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { InsightsPage } from "@/components/home/pages/InsightsPage";
-import { ReviewQueuePage } from "@/components/home/pages/ReviewQueuePage";
 import { VaultPage } from "@/components/home/pages/VaultPage";
 import { SimulatorPage } from "@/components/home/pages/SimulatorPage";
 import { Platform, Pressable, RefreshControl, ScrollView, View } from "react-native";
@@ -95,7 +94,6 @@ import { useTheme } from "@/hooks/use-theme";
 const HOME_TABS: SwipePagerPage[] = [
   { key: "overview", label: "Overview" },
   { key: "insights", label: "Insights" },
-  { key: "queue", label: "Queue" },
   { key: "simulator", label: "Simulator" },
   { key: "vault", label: "Vault" },
 ];
@@ -460,8 +458,8 @@ export default function HomeScreen() {
         {/* Action Required Card - unified review queue entry */}
         {/* Cards arrive in sequence when Home first opens (Appear plays on mount only, so data
             refreshes on focus don't replay it). */}
-        {isHomeCardVisible("review_queue") && (
-          <Appear index={0}>
+        {/* Always on: with no Queue page, this is how duplicates and uncategorized items get found. */}
+        <Appear index={0}>
           <ReviewQueueCard
             counts={{
               pending: pendingCount,
@@ -471,8 +469,7 @@ export default function HomeScreen() {
             onPress={() => router.push("/expense/review-queue")}
             onCatchUp={() => router.push("/expense/catch-up")}
           />
-          </Appear>
-        )}
+        </Appear>
 
         {/* iPhone: what the bank-message Shortcut handed over. Self-loading; Android never shows it. */}
         <BankMessagesCard />
@@ -844,9 +841,8 @@ export default function HomeScreen() {
         </ScrollView>
 
         {visitedHomePages.has(1) ? <InsightsPage /> : <View style={{ flex: 1 }} />}
-        {visitedHomePages.has(2) ? <ReviewQueuePage /> : <View style={{ flex: 1 }} />}
-        {visitedHomePages.has(3) ? <SimulatorPage /> : <View style={{ flex: 1 }} />}
-        {visitedHomePages.has(4) ? <VaultPage showInlineAdd /> : <View style={{ flex: 1 }} />}
+        {visitedHomePages.has(2) ? <SimulatorPage /> : <View style={{ flex: 1 }} />}
+        {visitedHomePages.has(3) ? <VaultPage showInlineAdd /> : <View style={{ flex: 1 }} />}
       </SwipePager>
 
       <AccountPickerSheet

@@ -26,7 +26,7 @@ The review queue is the single screen where you clean up anything Arth couldn't 
 2. Tap the **Review Queue** card near the top. When there are items to review, the card shows a count; when you're caught up, it shows a green tick and no count.
 
 You can also open it from:
-- **Home** → swipe to the **Queue** page
+- **Transactions** → the pending count at the top right, when anything is pending
 - **Settings tab** → "Transaction Messages" section → "Review now"
 - **Settings tab** → "Possible Duplicates" panel → opens the queue filtered to Duplicates
 - **Budget tab** → "Uncategorized" card → opens the queue filtered to Uncategorized
@@ -35,7 +35,7 @@ You can also open it from:
 
 ## Catch Up: one card at a time
 
-Tap **Catch up (N)** on the Home Review Queue card, or at the top of the Queue page, to go through pending items one card at a time - swipe right to approve, left to skip, with Undo on every action. See [Catch Up](catch-up).
+Tap **Catch up (N)** on the Home Review Queue card, or at the top of the Review Queue screen, to go through pending items one card at a time - swipe right to approve, left to skip, with Undo on every action. See [Catch Up](catch-up).
 
 You can also approve or reject new transactions straight from a notification. See [Notifications and the home screen widget](notifications).
 

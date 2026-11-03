@@ -34,7 +34,7 @@ function SectionLabel({ children }: { children: string }) {
 /**
  * The month on Home, one card with two questions. Cash flow: money in against money out, a bar showing
  * where it went, and a line on what that means. Budget, once one is set: how it's going against it,
- * tap for the Budget tab. Tap anywhere else for My month. Self-loading; a section that can't load or
+ * tap for the Budget tab. Tap anywhere else for My Month. Self-loading; a section that can't load or
  * is turned off in Home Cards is left out, and with neither there's no card.
  *
  * Money out is spent, saved and others' share of bills you paid; money in includes repayments. So in
@@ -56,11 +56,11 @@ export function MyMonthCard({ showCashFlow = true, budget = null }: { showCashFl
   if (!cashFlow && !budget) return null;
 
   return (
-    <PressableScale onPress={() => router.push("/summary/my-month")} accessibilityRole="button" accessibilityLabel="Open My month">
+    <PressableScale onPress={() => router.push("/summary/my-month")} accessibilityRole="button" accessibilityLabel="Open My Month">
       <Card className="mx-4 mt-3">
         <View className="flex-row items-center justify-between">
           <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
-            My month · {formatMonthLabel(month, "long").split(" ")[0]}
+            My Month · {formatMonthLabel(month, "long").split(" ")[0]}
           </Text>
           <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
         </View>

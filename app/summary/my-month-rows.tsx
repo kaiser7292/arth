@@ -9,15 +9,15 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getCategories, type Category } from "@/services/category";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
-import { getMyMonthGroups, type MyMonthGroup, type MyMonthRow, type MyMonthSection } from "@/services/my-month-rows";
+import { getMyMonthGroups, getMyMonthRangeGroups, type MyMonthGroup, type MyMonthRow, type MyMonthSection } from "@/services/my-month-rows";
 import { getPaymentModes, type PaymentMode } from "@/services/payment-mode";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 
-/** The transactions behind a figure on My month. Each row opens its details. */
+/** The transactions behind a figure on My Month. Each row opens its details. */
 export default function MyMonthRowsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const params = useLocalSearchParams<{ month: string; section: MyMonthSection; categoryId?: string; title?: string }>();
+  const params = useLocalSearchParams<{ month: string; endMonth?: string; section: MyMonthSection; categoryId?: string; title?: string }>();
   const [groups, setGroups] = useState<MyMonthGroup[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -28,7 +28,11 @@ export default function MyMonthRowsScreen() {
     useCallback(async () => {
       try {
         const category = params.categoryId === undefined ? undefined : params.categoryId === "none" ? null : params.categoryId;
-        setGroups(await getMyMonthGroups(DEFAULT_USER_ID, params.month, params.section, category));
+        setGroups(
+          params.endMonth && params.endMonth !== params.month
+            ? await getMyMonthRangeGroups(DEFAULT_USER_ID, params.month, params.endMonth, params.section, category)
+            : await getMyMonthGroups(DEFAULT_USER_ID, params.month, params.section, category),
+        );
         setFailed(false);
       } catch {
         setFailed(true);
@@ -37,7 +41,7 @@ export default function MyMonthRowsScreen() {
       setCategories(await getCategories(DEFAULT_USER_ID).catch(() => []));
       setModes(await getPaymentModes(DEFAULT_USER_ID).catch(() => []));
       setAccounts(await getActiveAccounts(DEFAULT_USER_ID).catch(() => []));
-    }, [params.month, params.section, params.categoryId]),
+    }, [params.month, params.endMonth, params.section, params.categoryId]),
   );
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);

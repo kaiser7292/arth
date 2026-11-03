@@ -9,7 +9,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 /** Where things live, so a new user isn't dropped into a busy app cold. */
 const TOUR: Array<{ icon: keyof typeof Ionicons.glyphMap; title: string; body: string }> = [
-  { icon: "home-outline", title: "Arth", body: "Your month at a glance. The Queue tab holds transactions waiting for your approval." },
+  { icon: "home-outline", title: "Arth", body: "Your month at a glance. The Review Queue card holds transactions waiting for your approval." },
   { icon: "receipt-outline", title: "Transactions", body: "Everything you've spent and received. Tap + to add cash spends." },
   { icon: "wallet-outline", title: "Budget", body: "How each category is doing this month." },
   { icon: "trophy-outline", title: "Goals", body: "Your yearly plan, milestones, loans and net worth." },

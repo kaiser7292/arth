@@ -1,7 +1,6 @@
 export { ConfidenceDots } from "./ConfidenceDots";
 export { MiniTrendSpark } from "./MiniTrendSpark";
 export { InsightCard } from "./InsightCard";
-export { ForecastBreakdown } from "./ForecastBreakdown";
 export { DrillGroupRow } from "./DrillGroupRow";
 export { PatternEditSheet } from "./PatternEditSheet";
 export { LearningNudge } from "./LearningNudge";

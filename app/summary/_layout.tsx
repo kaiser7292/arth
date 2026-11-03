@@ -10,7 +10,7 @@ export default function SummaryLayout() {
     >
       <Stack.Screen
         name="my-month"
-        options={{ title: "My month" }}
+        options={{ title: "My Month" }}
       />
       <Stack.Screen
         name="my-month-rows"

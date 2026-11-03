@@ -228,7 +228,7 @@ describe("the yearly plan", () => {
   });
 });
 
-describe("My month with the setting", () => {
+describe("My Month with the setting", () => {
   it("counts salary for the month it belongs to, and says where the rest went", async () => {
     await profile({ salary_month_offset: 1 });
     salary("2026-10-30", 85000);

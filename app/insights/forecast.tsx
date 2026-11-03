@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
-import { StatusPill } from "@/components/ui/StatusPill";
 import { ConfidenceDots } from "@/components/analytics/ConfidenceDots";
 import { ActionSuggestionCard } from "@/components/analytics/ActionSuggestionCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -91,6 +90,12 @@ export default function ForecastDetailScreen() {
 
   const { fixedDone, fixedPending, variable, projectedTotal, budget, breathingRoom, confidence } = forecast;
   const isOverBudget = budget != null && projectedTotal > budget;
+  const dayToDayToCome = Math.max(0, projectedTotal - forecast.monthSoFar - fixedPending.total);
+  const parts = [
+    { key: "spent", label: "Spent so far", amount: forecast.monthSoFar, color: theme.primary },
+    { key: "bills", label: "Fixed bills still to come", amount: fixedPending.total, color: theme.warning },
+    { key: "daily", label: "Day-to-day still to come", amount: dayToDayToCome, color: theme.alpha("primary", 0.45) },
+  ];
 
   // Find breaching categories
   const breachingCategories = categoryForecast?.breachAlerts.slice(0, 3) ?? [];
@@ -98,66 +103,74 @@ export default function ForecastDetailScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Projection Summary */}
+        {/* Where the likely total comes from: the three parts add up to it. */}
         <View className="px-4 mt-3">
           <Card>
-            <View className="flex-row justify-between items-center mb-2">
-              <Text className="text-sm text-muted-foreground">
-                Projected Month-End
-              </Text>
-              <Text className="text-xl font-bold text-foreground">
-                {formatAmount(projectedTotal)}
-              </Text>
+            <Text className="text-xs text-muted-foreground">Likely spend by month end</Text>
+            <Text className="text-title font-bold text-foreground mt-0.5">{formatAmount(projectedTotal)}</Text>
+
+            <View className="mt-3 flex-row h-3 rounded-full overflow-hidden bg-border" style={{ gap: 2 }}>
+              {parts.filter((p) => p.amount > 0).map((p) => (
+                <View key={p.key} className="h-full" style={{ flex: p.amount, backgroundColor: p.color }} />
+              ))}
+            </View>
+            <View className="mt-2">
+              {parts.map((p) => (
+                <View key={p.key} className="flex-row items-center py-1">
+                  <View className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: p.color }} />
+                  <Text className="text-sm text-foreground flex-1 mr-2">{p.label}</Text>
+                  <Text className="text-sm font-semibold text-foreground">{formatAmount(p.amount)}</Text>
+                </View>
+              ))}
             </View>
 
             {budget != null && (
-              <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-sm text-muted-foreground">Budget</Text>
-                <Text className="text-sm text-muted-foreground">{formatAmount(budget)}</Text>
-              </View>
+              <Pressable
+                onPress={() => router.push("/insights/budget-vs-actual")}
+                className="flex-row items-center pt-2.5 mt-1.5 border-t border-border"
+                accessibilityRole="button"
+                accessibilityLabel="Open Budget vs actual"
+              >
+                <Text className="text-sm text-muted-foreground flex-1 mr-2">Budget {formatAmount(budget)}</Text>
+                <Text className="text-sm font-semibold" style={{ color: isOverBudget ? theme.danger : theme.success }}>
+                  {isOverBudget ? `${formatAmount(projectedTotal - budget)} over` : `${formatAmount(budget - projectedTotal)} to spare`}
+                </Text>
+                <Ionicons name="chevron-forward" size={13} color={theme.faintForeground} style={{ marginLeft: 4 }} />
+              </Pressable>
             )}
+            <Text className="text-xs text-muted-foreground mt-2">
+              Based on {forecast.dataMonths} {forecast.dataMonths === 1 ? "month" : "months"} of your spending
+            </Text>
+          </Card>
+        </View>
 
-            <StatusPill
-              label={isOverBudget ? "Over Budget" : "Within Budget"}
-              color={isOverBudget ? theme.danger : theme.success}
-              icon={isOverBudget ? "alert-circle" : "checkmark-circle"}
-            />
-
-            {/* Stacked Bar */}
-            <View className="mt-4 flex-row h-3 rounded-full overflow-hidden bg-border">
-              <View
-                className="h-full"
-                style={{
-                  width: `${Math.round(((fixedDone.total + fixedPending.total) / projectedTotal) * 100)}%`,
-                  backgroundColor: theme.success,
-                }}
-              />
-              <View
-                className="h-full"
-                style={{
-                  width: `${Math.round((variable.projected / projectedTotal) * 100)}%`,
-                  backgroundColor: theme.primary,
-                }}
-              />
+        {/* What's gone already */}
+        <View className="px-4 mt-4">
+          <SectionHeader title={`Spent so far - ${formatAmount(forecast.monthSoFar)}`} />
+          <Card>
+            <View className="flex-row justify-between py-1">
+              <Text className="text-sm text-foreground">Fixed bills paid</Text>
+              <Text className="text-sm font-semibold text-foreground">{formatAmount(fixedDone.total)}</Text>
             </View>
-            <View className="flex-row justify-between mt-1.5">
-              <Text className="text-xs text-muted-foreground">
-                Fixed {formatAmount(fixedDone.total + fixedPending.total)}
-              </Text>
-              <Text className="text-xs text-muted-foreground">
-                Variable {formatAmount(variable.projected)}
-              </Text>
+            <View className="flex-row justify-between py-1">
+              <Text className="text-sm text-foreground">Day-to-day</Text>
+              <Text className="text-sm font-semibold text-foreground">{formatAmount(Math.max(0, forecast.monthSoFar - fixedDone.total))}</Text>
             </View>
+            {variable.daysLeft > 0 && dayToDayToCome > 0 && (
+              <Text className="text-xs text-muted-foreground mt-1.5">
+                About {formatAmount(Math.round(dayToDayToCome / variable.daysLeft))} a day for the {variable.daysLeft} {variable.daysLeft === 1 ? "day" : "days"} left
+              </Text>
+            )}
           </Card>
         </View>
 
         {/* Fixed Expenses Done */}
         <View className="px-4 mt-4">
-          <SectionHeader title={`Fixed Expenses (Done) - ${formatAmount(fixedDone.total)}`} />
+          <SectionHeader title={`Fixed bills paid - ${formatAmount(fixedDone.total)}`} />
           <Card>
             {fixedDone.items.length === 0 ? (
               <Text className="text-sm text-muted-foreground">
-                No fixed expenses arrived yet this month.
+                No fixed bills paid yet this month.
               </Text>
             ) : (
               fixedDone.items.map((item, idx) => (
@@ -185,13 +198,13 @@ export default function ForecastDetailScreen() {
 
         {/* Fixed Expenses Pending */}
         <View className="px-4 mt-4">
-          <SectionHeader title={`Fixed Expenses (Pending) - ${formatAmount(fixedPending.total)}`} />
+          <SectionHeader title={`Fixed bills still to come - ${formatAmount(fixedPending.total)}`} />
           <Card>
             {fixedPending.items.length === 0 ? (
               <View className="flex-row items-center gap-2">
                 <Ionicons name="checkmark-circle" size={16} color={theme.success} />
                 <Text className="text-sm" style={{ color: theme.success }}>
-                  All expected fixed expenses have arrived this month.
+                  All the fixed bills you expect have been paid this month.
                 </Text>
               </View>
             ) : (
@@ -219,7 +232,7 @@ export default function ForecastDetailScreen() {
 
         {/* Variable Spending */}
         <View className="px-4 mt-4">
-          <SectionHeader title={`Variable Spending - ${formatAmount(variable.projected)}`} />
+          <SectionHeader title={`Day-to-day spending - ${formatAmount(variable.projected)}`} />
           <Card>
             <View className="gap-1.5 mb-3">
               <MetricLine label="Daily pace" value={`${formatAmount(variable.dailyPace)}/day`} />
