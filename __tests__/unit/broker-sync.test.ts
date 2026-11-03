@@ -95,3 +95,25 @@ describe("broker sync", () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 });
+
+describe("saving more than one broker", () => {
+  it("never has two saves going at once, because SQLite allows one transaction at a time", async () => {
+    let going = 0;
+    let most = 0;
+    mockSave.mockImplementation(async (_id: string, portfolio: number, fund: number) => {
+      going += 1;
+      most = Math.max(most, going);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      going -= 1;
+      return { portfolio, fund };
+    });
+    const r = await syncAllBrokers();
+    expect(r.map((x) => x.status)).toEqual(["saved", "saved", "saved"]);
+    expect(most).toBe(1);
+  });
+
+  it("a database error comes back in plain words", async () => {
+    mockSave.mockRejectedValueOnce(new Error("Call to function 'NativeDatabase.execAsync' has been rejected."));
+    expect(await syncBroker("zebpay")).toEqual({ broker: "zebpay", status: "failed", message: "Fetched, but couldn't save it. Sync again." });
+  });
+});

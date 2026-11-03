@@ -108,6 +108,7 @@ export default function BankAccountsScreen() {
   useDataRefresh(loadData);
 
   // Overall totals
+  const totalOpening = summaries.reduce((sum, s) => sum + s.opening, 0);
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
   const totalExpenses = summaries.reduce((sum, s) => sum + s.expenses, 0);
   const totalCredits = summaries.reduce((sum, s) => sum + s.credits, 0);
@@ -138,25 +139,24 @@ export default function BankAccountsScreen() {
           </View>
 
           <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-muted-foreground">Closing Balance</Text>
-            <Text
-              className="text-sm font-bold"
-              style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}
-            >
-              {formatAmount(totalBalance)}
+            <Text className="text-xs text-muted-foreground">Opening Balance</Text>
+            <Text className="text-sm font-semibold text-foreground">
+              {formatAmount(totalOpening)}
             </Text>
           </View>
-          <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-muted-foreground">Expenses this month</Text>
-            <Text className="text-sm font-semibold" style={{ color: totalExpenses > 0 ? theme.danger : colors.text }}>
-              {formatAmount(totalExpenses)}
-            </Text>
-          </View>
+          {totalExpenses > 0 && (
+            <View className="flex-row justify-between mb-1">
+              <Text className="text-xs text-muted-foreground">Expenses</Text>
+              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
+                −{formatAmount(totalExpenses)}
+              </Text>
+            </View>
+          )}
           {totalCredits > 0 && (
             <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">Credits this month</Text>
+              <Text className="text-xs text-muted-foreground">Credits / Refunds</Text>
               <Text className="text-sm font-semibold" style={{ color: theme.success }}>
-                {formatAmount(totalCredits)}
+                +{formatAmount(totalCredits)}
               </Text>
             </View>
           )}
@@ -169,13 +169,19 @@ export default function BankAccountsScreen() {
             </View>
           )}
           {totalTransfersIn > 0 && (
-            <View className="flex-row justify-between">
+            <View className="flex-row justify-between mb-1">
               <Text className="text-xs text-muted-foreground">Transfers In</Text>
               <Text className="text-sm font-semibold" style={{ color: theme.success }}>
                 +{formatAmount(totalTransfersIn)}
               </Text>
             </View>
           )}
+          <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
+            <Text className="text-xs font-semibold text-muted-foreground">Closing Balance</Text>
+            <Text className="text-sm font-bold" style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}>
+              {formatAmount(totalBalance)}
+            </Text>
+          </View>
 
           {/* Drift indicator — manual ledger adjustments across all savings accounts this month.
               Proxy for how much course-correction was needed — higher = less trust in auto-detected balances. */}

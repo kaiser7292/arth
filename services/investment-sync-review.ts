@@ -19,10 +19,17 @@ export interface SyncAccount {
   name: string;
   /** The connected broker that fills this account. Null means its value has to be typed in. */
   broker: SyncBroker | null;
+  /** Whether to ask for idle funds. A mutual fund or gold holding has none, unless some were recorded. */
+  asksFunds: boolean;
 }
 
 export interface AccountMove {
   current: number;
+  /** The two parts of current, for filling in the boxes. Null if never recorded. */
+  holdings: number | null;
+  funds: number | null;
+  /** The date of the latest value, today's included. */
+  lastDate: string | null;
   /** The value at the end of the last day before today that has one. Null on a first reading. */
   previous: number | null;
   previousDate: string | null;
@@ -71,11 +78,18 @@ export async function getSyncAccounts(userId: string): Promise<SyncAccount[]> {
     const id = broker === "kite" ? getLinkedAccountId() : getBrokerLinkedAccount(broker);
     if (id) linked.set(id, broker);
   }
-  return accounts.map((a) => ({
-    id: a.id,
-    name: a.account_label || a.bank_name,
-    broker: linked.get(a.id) ?? null,
-  }));
+  return Promise.all(
+    accounts.map(async (a) => {
+      const instrument = products.get(a.id)?.instrument;
+      const noFunds = instrument === "mutual_fund" || instrument === "gold";
+      return {
+        id: a.id,
+        name: a.account_label || a.bank_name,
+        broker: linked.get(a.id) ?? null,
+        asksFunds: !noFunds || ((await getLatestFundSnapshot(a.id))?.fund_value ?? 0) > 0,
+      };
+    }),
+  );
 }
 
 /** Holdings plus idle cash, now and at the last value before today, and what moved in between. */
@@ -99,7 +113,14 @@ export async function readAccountMove(accountId: string, today: string): Promise
   const dates = [portfolioBefore?.date, fundBefore?.date].filter((d): d is string => !!d).sort();
   const previousDate = dates[dates.length - 1] ?? null;
   const updatedToday = portfolioNow?.date === today || fundNow?.date === today;
-  if (!previousDate) return { current, previous: null, previousDate: null, added: 0, updatedToday };
+  const nowDates = [portfolioNow?.date, fundNow?.date].filter((d): d is string => !!d).sort();
+  const parts = {
+    current,
+    holdings: portfolioNow?.value ?? null,
+    funds: fundNow?.value ?? null,
+    lastDate: nowDates[nowDates.length - 1] ?? null,
+  };
+  if (!previousDate) return { ...parts, previous: null, previousDate: null, added: 0, updatedToday };
 
   const moved = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(CASE WHEN to_account_id = ? THEN amount ELSE -amount END) AS total FROM account_transfers
@@ -111,7 +132,7 @@ export async function readAccountMove(accountId: string, today: string): Promise
     today,
   );
   return {
-    current,
+    ...parts,
     previous: round2((portfolioBefore?.value ?? 0) + (fundBefore?.value ?? 0)),
     previousDate,
     added: round2(moved?.total ?? 0),
@@ -119,11 +140,10 @@ export async function readAccountMove(accountId: string, today: string): Promise
   };
 }
 
-/** Saves a typed total for today. Idle cash stays as it was; the rest is holdings. */
-export async function saveManualValue(accountId: string, total: number, today: string): Promise<void> {
-  const fund = (await getLatestFundSnapshot(accountId))?.fund_value ?? 0;
-  if (total < fund) await addOrUpdateFundSnapshot(accountId, today, total, "manual");
-  await addOrUpdateSnapshot(accountId, today, Math.max(0, total - fund), "manual");
+/** Saves what was given for today, over anything already saved today. A part left out stays as it was. */
+export async function saveManualValues(accountId: string, holdings: number | null, funds: number | null, today: string): Promise<void> {
+  if (holdings != null) await addOrUpdateSnapshot(accountId, today, holdings, "manual");
+  if (funds != null) await addOrUpdateFundSnapshot(accountId, today, funds, "manual");
 }
 
 /** The sum of the review, from each account's move. Separate from the reads so it can be checked alone. */

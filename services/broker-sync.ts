@@ -74,11 +74,15 @@ export async function syncBroker(broker: SyncBroker): Promise<BrokerSyncResult> 
     const message = e instanceof Error && e.message ? e.message : "Couldn't sync.";
     if (message === "NO_ACCOUNT_LINKED") return { broker, status: "needs_account" };
     if (broker === "kite" && looksLikeExpiredLogin(message)) return { broker, status: "needs_login" };
+    if (message.includes("NativeDatabase")) return { broker, status: "failed", message: "Fetched, but couldn't save it. Sync again." };
     return { broker, status: "failed", message };
   }
 }
 
 export async function syncAllBrokers(): Promise<BrokerSyncResult[]> {
   const brokers = await getConnectedBrokers();
-  return Promise.all(brokers.map(syncBroker));
+  // One at a time: each save is a database transaction, and two at once fail each other.
+  const results: BrokerSyncResult[] = [];
+  for (const broker of brokers) results.push(await syncBroker(broker));
+  return results;
 }

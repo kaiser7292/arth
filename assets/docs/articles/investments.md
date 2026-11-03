@@ -44,7 +44,7 @@ Fixed deposits that have matured or been closed drop off this screen and out of 
 
 ## Sync, and see how it moved
 
-Tap **Sync** next to your total on the Investments screen. Zerodha, Angel One and Zebpay fetch on their own. For anything else, like a mutual fund you track by hand, Arth asks what it's worth today; leave one blank to skip it.
+Tap **Sync** next to your total on the Investments screen. Zerodha, Angel One and Zebpay fetch on their own. For anything else, like an account you track by hand, Arth asks for its holdings value and idle funds, filled in from the last time. Change what's changed or carry on; clear both boxes to skip one. You can sync as often as you like: a new sync the same day replaces that day's values.
 
 You then see how much your investments went up or down since their last value, all together and one by one. Money you moved in or out in that time isn't counted as a gain or a loss. Anything you skipped is left out and says so. Fixed deposits and pension aren't included, because they don't change with the market each day.
 
@@ -52,7 +52,7 @@ Zerodha's login ends every day, so when it has, tap **Log in**: its login page o
 
 ## Where could this get to?
 
-**Projections**, next to your total, works forward from what each investment is worth today. Tap one to set the yearly return you want to assume, a monthly amount (a SIP), a yearly step-up and any one-time amounts. **Add more money** tries the same with money that isn't in any investment yet, and shows what it adds.
+**Projections**, next to your total, works forward from what each investment is worth today. Tap one to set the yearly return you want to assume, a monthly amount (a SIP), a yearly step-up and any one-time amounts. **Invest more** tries the same with money that isn't in any investment yet. It then lists what you set up, what you'd put in and what it adds.
 
 **In today's money** shows what the future amount could really buy after inflation. Tap it to change the inflation rate (6% a year to start with). Tap a year's bar to read that year.
 

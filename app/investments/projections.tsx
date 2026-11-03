@@ -158,6 +158,12 @@ export default function ProjectionsScreen() {
     setLumpAmount("");
   };
 
+  const clearExtra = () => {
+    const nextPlan = { ...plan, extra: { returnPct: plan.extra.returnPct, monthly: 0, lumpSums: [] } };
+    saveProjectionPlan(nextPlan);
+    setPlan(nextPlan);
+  };
+
   const saveInflation = () => {
     const nextPlan = { ...plan, inflationPct: amountOf(inflationText) };
     saveProjectionPlan(nextPlan);
@@ -173,7 +179,6 @@ export default function ProjectionsScreen() {
     );
   }
 
-  const extraSummary = describe(plan.extra, true);
   const hasExtra = plan.extra.monthly > 0 || plan.extra.lumpSums.length > 0;
 
   return (
@@ -204,7 +209,7 @@ export default function ProjectionsScreen() {
 
         {shownPoint && (
           <Card className="mb-3">
-            <Text className="text-xs text-muted-foreground">Could reach, in {shownYears} {shownYears === 1 ? "year" : "years"}</Text>
+            <Text className="text-xs text-muted-foreground">Projected value, in {shownYears} {shownYears === 1 ? "year" : "years"}</Text>
             <Text className="text-title font-bold text-foreground mt-0.5">{formatAmount(Math.round(shownPoint.value))}</Text>
             <Pressable
               onPress={() => {
@@ -224,7 +229,7 @@ export default function ProjectionsScreen() {
 
             <View className="flex-row justify-between mt-3">
               <View>
-                <Text className="text-label text-muted-foreground">Today and what you add</Text>
+                <Text className="text-label text-muted-foreground">Invested</Text>
                 <Text className="text-sm font-semibold text-foreground">{formatAmount(Math.round(shownPoint.putIn))}</Text>
               </View>
               <View className="items-end">
@@ -259,28 +264,54 @@ export default function ProjectionsScreen() {
           </Card>
         )}
 
-        <Pressable onPress={() => open(EXTRA, "Add more money", plan.extra)} accessibilityRole="button" accessibilityLabel="Add more money">
+        {hasExtra ? (
           <Card className="mb-3">
-            <View className="flex-row items-center">
-              <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                <Ionicons name="add" size={20} color={theme.primary} />
+            <View className="flex-row items-center justify-between mb-1">
+              <Text className="text-sm font-semibold text-foreground">Your extra investment</Text>
+              <View className="flex-row items-center">
+                <Pressable onPress={clearExtra} hitSlop={8} className="mr-4" accessibilityRole="button" accessibilityLabel="Remove your extra investment">
+                  <Text className="text-xs font-medium text-muted-foreground">Remove</Text>
+                </Pressable>
+                <Pressable onPress={() => open(EXTRA, "Invest more", plan.extra)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Edit your extra investment">
+                  <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Edit</Text>
+                </Pressable>
               </View>
-              <View className="flex-1 mr-2">
-                <Text className="text-sm font-semibold text-foreground">Add more money</Text>
-                <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={2}>
-                  {hasExtra ? extraSummary : "Try a monthly SIP, a yearly step-up or a one-time amount"}
-                </Text>
+            </View>
+            {plan.extra.monthly > 0 && <ExtraRow label="Monthly SIP" value={formatAmount(plan.extra.monthly)} />}
+            {plan.extra.monthly > 0 && plan.extra.stepUp && plan.extra.stepUp.value > 0 && (
+              <ExtraRow
+                label="Step-up every year"
+                value={plan.extra.stepUp.kind === "pct" ? `${plan.extra.stepUp.value}%` : `${formatAmount(plan.extra.stepUp.value)} a month`}
+              />
+            )}
+            {plan.extra.lumpSums.map((l, i) => (
+              <ExtraRow key={`${l.month}-${i}`} label={`One-time, ${formatMonthLabel(l.month)}`} value={formatAmount(l.amount)} />
+            ))}
+            <ExtraRow label="Assumed return" value={`${plan.extra.returnPct}% a year`} />
+            <View className="pt-2 mt-1.5 border-t border-border">
+              <ExtraRow label={`You'd put in, over ${shownYears} ${shownYears === 1 ? "year" : "years"}`} value={formatAmount(Math.round(extra[shownMonth]?.putIn ?? 0))} />
+              <View className="flex-row justify-between items-center py-0.5">
+                <Text className="text-xs font-semibold text-muted-foreground">Adds to your projected value</Text>
+                <Text className="text-sm font-bold" style={{ color: theme.success }}>+{formatAmount(Math.round(extraAdds))}</Text>
               </View>
-              {hasExtra && (
-                <View className="items-end">
-                  <Text className="text-sm font-bold" style={{ color: theme.success }}>+{formatAmount(Math.round(extraAdds))}</Text>
-                  <Text className="text-label text-muted-foreground">by then</Text>
-                </View>
-              )}
-              <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
             </View>
           </Card>
-        </Pressable>
+        ) : (
+          <Pressable onPress={() => open(EXTRA, "Invest more", plan.extra)} accessibilityRole="button" accessibilityLabel="Invest more. See what a SIP, a step-up or a one-time amount could add">
+            <Card className="mb-3">
+              <View className="flex-row items-center">
+                <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                  <Ionicons name="add" size={20} color={theme.primary} />
+                </View>
+                <View className="flex-1 mr-2">
+                  <Text className="text-sm font-semibold text-foreground">Invest more</Text>
+                  <Text className="text-xs text-muted-foreground mt-0.5">See what a SIP, a step-up or a one-time amount could add</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
+              </View>
+            </Card>
+          </Pressable>
+        )}
 
         {lines.length > 0 && <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-1">Each investment</Text>}
         {projections.map(({ line, points }) => {
@@ -394,5 +425,14 @@ export default function ProjectionsScreen() {
         </Pressable>
       </Modal>
     </ScreenContainer>
+  );
+}
+
+function ExtraRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row justify-between items-center py-0.5">
+      <Text className="text-xs text-muted-foreground flex-1 mr-3" numberOfLines={1}>{label}</Text>
+      <Text className="text-sm font-semibold text-foreground">{value}</Text>
+    </View>
   );
 }

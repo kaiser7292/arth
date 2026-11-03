@@ -49,7 +49,7 @@ jest.mock("../../services/kite-connect", () => ({ getLinkedAccountId: () => null
 import { runMigrations } from "../../database/migrations";
 import { getCashFlow, monthsBetween } from "../../services/cash-flow";
 import { addOrUpdateFundSnapshot, addOrUpdateSnapshot } from "../../services/financial-account";
-import { buildSyncReview, readAccountMove, saveManualValue, type AccountMove } from "../../services/investment-sync-review";
+import { buildSyncReview, readAccountMove, saveManualValues, type AccountMove } from "../../services/investment-sync-review";
 import { getMyMonth } from "../../services/my-month";
 import { getMyMonthGroups, getMyMonthRangeGroups } from "../../services/my-month-rows";
 
@@ -133,7 +133,7 @@ describe("readAccountMove", () => {
     await addOrUpdateSnapshot("d1", "2026-03-06", 100000);
     await addOrUpdateFundSnapshot("d1", "2026-03-06", 5000);
     await addOrUpdateSnapshot("d1", TODAY, 110000);
-    expect(await readAccountMove("d1", TODAY)).toEqual({ current: 115000, previous: 105000, previousDate: "2026-03-06", added: 0, updatedToday: true });
+    expect(await readAccountMove("d1", TODAY)).toEqual({ current: 115000, holdings: 110000, funds: 5000, lastDate: TODAY, previous: 105000, previousDate: "2026-03-06", added: 0, updatedToday: true });
   });
 
   it("a first value has nothing to compare with", async () => {
@@ -153,32 +153,42 @@ describe("readAccountMove", () => {
   });
 });
 
-describe("saveManualValue", () => {
+describe("saveManualValues", () => {
   const TODAY = "2026-03-10";
 
-  it("a typed total keeps idle cash as it was", async () => {
-    await addOrUpdateFundSnapshot("d1", "2026-03-06", 5000);
-    await saveManualValue("d1", 50000, TODAY);
-    expect((await readAccountMove("d1", TODAY)).current).toBe(50000);
-    expect(mockDb.prepare(`SELECT portfolio_value AS v, source FROM demat_portfolio_snapshots`).get()).toMatchObject({ v: 45000, source: "manual" });
+  it("saves holdings and idle funds apart", async () => {
+    await saveManualValues("d1", 45000, 5000, TODAY);
+    expect(await readAccountMove("d1", TODAY)).toMatchObject({ current: 50000, holdings: 45000, funds: 5000, updatedToday: true });
   });
 
-  it("a total below idle cash still reads back as typed", async () => {
+  it("a part left out stays as it was", async () => {
     await addOrUpdateFundSnapshot("d1", "2026-03-06", 5000);
-    await saveManualValue("d1", 2000, TODAY);
-    expect((await readAccountMove("d1", TODAY)).current).toBe(2000);
+    await saveManualValues("d1", 45000, null, TODAY);
+    expect(await readAccountMove("d1", TODAY)).toMatchObject({ current: 50000, funds: 5000 });
+  });
+
+  it("a second run the same day overwrites, and still compares with before today", async () => {
+    await saveManualValues("d1", 40000, 1000, "2026-03-09");
+    await saveManualValues("d1", 45000, 1000, TODAY);
+    await saveManualValues("d1", 46000, 2000, TODAY);
+    expect(await readAccountMove("d1", TODAY)).toMatchObject({ current: 48000, previous: 41000, previousDate: "2026-03-09" });
+    expect(mockDb.prepare(`SELECT COUNT(*) AS n FROM demat_portfolio_snapshots WHERE snapshot_date = ?`).get(TODAY)).toMatchObject({ n: 1 });
+    expect(mockDb.prepare(`SELECT COUNT(*) AS n FROM demat_fund_snapshots WHERE snapshot_date = ?`).get(TODAY)).toMatchObject({ n: 1 });
   });
 });
 
 describe("buildSyncReview", () => {
   const move = (current: number, previous: number | null, added = 0, previousDate: string | null = "2026-03-09"): AccountMove => ({
     current,
+    holdings: current,
+    funds: null,
+    lastDate: "2026-03-10",
     previous,
     previousDate: previous == null ? null : previousDate,
     added,
     updatedToday: true,
   });
-  const entry = (id: string, m: AccountMove, updated = true, failed = false) => ({ account: { id, name: id, broker: null }, move: m, updated, failed });
+  const entry = (id: string, m: AccountMove, updated = true, failed = false) => ({ account: { id, name: id, broker: null, asksFunds: true }, move: m, updated, failed });
 
   it("adds up the moves, largest first, up and down cancelling", () => {
     const r = buildSyncReview([entry("a", move(10100, 10000)), entry("b", move(19000, 20000))]);

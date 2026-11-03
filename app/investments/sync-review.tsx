@@ -16,7 +16,7 @@ import {
   getSyncAccounts,
   getSyncReview,
   readAccountMove,
-  saveManualValue,
+  saveManualValues,
   type AccountMove,
   type SyncAccount,
   type SyncReview,
@@ -28,6 +28,16 @@ import { formatLocalDate } from "@/utils/fiscal-year";
 
 const signed = (n: number) => `${n >= 0 ? "+" : "−"}${formatAmount(Math.abs(n))}`;
 const signedPct = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(2)}%`;
+const holdingsKey = (id: string) => `${id}:holdings`;
+const fundsKey = (id: string) => `${id}:funds`;
+
+/** A typed amount, or null if the box is blank or doesn't hold one. */
+function amountIn(text: string | undefined): number | null {
+  const clean = (text ?? "").replace(/,/g, "").trim();
+  if (!clean) return null;
+  const n = parseFloat(clean);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
 
 function sincePhrase(date: string | null, today: string): string {
   if (!date) return "since each one's last value";
@@ -62,28 +72,46 @@ export default function SyncReviewScreen() {
     [today],
   );
 
-  useEffect(() => {
-    let live = true;
-    (async () => {
-      try {
-        const synced = await syncAllBrokers();
-        // After the sync, because a first Zerodha sync is what finds its linked account.
-        const list = await getSyncAccounts(DEFAULT_USER_ID);
-        const read = new Map(await Promise.all(list.map(async (a) => [a.id, await readAccountMove(a.id, today)] as const)));
-        if (!live) return;
-        setResults(synced);
-        setAccounts(list);
-        setMoves(read);
-        if (list.some((a) => !a.broker)) setPhase("values");
-        else await showReview(list, synced, new Set());
-      } catch {
-        if (live) setFailed(true);
+  /** The whole run, from the start. Running it again today overwrites today's values. */
+  const run = useRef(0);
+  const start = useCallback(async () => {
+    const id = ++run.current;
+    setPhase("fetching");
+    setFailed(false);
+    try {
+      const synced = await syncAllBrokers();
+      // After the sync, because a first Zerodha sync is what finds its linked account.
+      const list = await getSyncAccounts(DEFAULT_USER_ID);
+      const read = new Map(await Promise.all(list.map(async (a) => [a.id, await readAccountMove(a.id, today)] as const)));
+      if (id !== run.current) return;
+      // Whatever's there now goes in the boxes, to change or carry on with.
+      const filled: Record<string, string> = {};
+      for (const a of list) {
+        const move = read.get(a.id);
+        if (a.broker || !move) continue;
+        if (move.holdings != null) filled[holdingsKey(a.id)] = String(move.holdings);
+        if (move.funds != null) filled[fundsKey(a.id)] = String(move.funds);
       }
-    })();
-    return () => {
-      live = false;
-    };
+      setValues(filled);
+      setTyped(new Set());
+      setResults(synced);
+      setAccounts(list);
+      setMoves(read);
+      if (list.some((a) => !a.broker)) setPhase("values");
+      else await showReview(list, synced, new Set());
+    } catch {
+      if (id === run.current) setFailed(true);
+    }
   }, [showReview, today]);
+
+  useEffect(() => {
+    start();
+    return () => {
+      // A run still going when the screen closes shouldn't carry on setting its state.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      run.current += 1;
+    };
+  }, [start]);
 
   // Back from logging in to Zerodha: carry on where the sync stopped.
   const latest = useRef({ accounts, results, typed, phase });
@@ -113,11 +141,10 @@ export default function SyncReviewScreen() {
     try {
       const ids = new Set<string>();
       for (const a of manual) {
-        const text = (values[a.id] ?? "").replace(/,/g, "").trim();
-        if (!text) continue;
-        const total = parseFloat(text);
-        if (!Number.isFinite(total) || total < 0) continue;
-        await saveManualValue(a.id, total, today);
+        const holdings = amountIn(values[holdingsKey(a.id)]);
+        const funds = a.asksFunds ? amountIn(values[fundsKey(a.id)]) : null;
+        if (holdings == null && funds == null) continue;
+        await saveManualValues(a.id, holdings, funds, today);
         ids.add(a.id);
       }
       setTyped(ids);
@@ -157,29 +184,39 @@ export default function SyncReviewScreen() {
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
             <Text className="text-base font-semibold text-foreground">What are these worth today?</Text>
             <Text className="text-sm text-muted-foreground mt-1 mb-3">
-              These don't sync on their own. Leave one blank to skip it for today.
+              These don't sync on their own. Change what's changed, or carry on with what's here. Clear both boxes to skip one for today.
             </Text>
             {manual.map((a) => {
               const move = moves.get(a.id);
-              const last = move?.previous ?? (move && move.current > 0 ? move.current : null);
               return (
                 <Card key={a.id} className="mb-2">
                   <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>{a.name}</Text>
                   <Text className="text-xs text-muted-foreground mt-0.5 mb-2">
                     {move?.updatedToday
-                      ? `Today's value is ${formatAmount(move.current)}. Type a new one to change it`
-                      : last != null
-                        ? `Last value ${formatAmount(last)}${move?.previousDate ? `, ${formatDate(move.previousDate)}` : ""}`
+                      ? "Filled in from today's earlier sync"
+                      : move?.lastDate
+                        ? `Filled in from your last value, ${formatDate(move.lastDate)}`
                         : "No value yet"}
                   </Text>
                   <Input
-                    label="Value today"
-                    value={values[a.id] ?? ""}
-                    onChangeText={(t) => setValues((v) => ({ ...v, [a.id]: t }))}
+                    label="Holdings value"
+                    value={values[holdingsKey(a.id)] ?? ""}
+                    onChangeText={(t) => setValues((v) => ({ ...v, [holdingsKey(a.id)]: t }))}
                     keyboardType="numeric"
                     formula
                     placeholder="0"
+                    containerClassName={a.asksFunds ? "mb-2" : undefined}
                   />
+                  {a.asksFunds && (
+                    <Input
+                      label="Idle funds"
+                      value={values[fundsKey(a.id)] ?? ""}
+                      onChangeText={(t) => setValues((v) => ({ ...v, [fundsKey(a.id)]: t }))}
+                      keyboardType="numeric"
+                      formula
+                      placeholder="0"
+                    />
+                  )}
                 </Card>
               );
             })}
@@ -310,6 +347,10 @@ export default function SyncReviewScreen() {
         <Text className="text-xs text-muted-foreground mt-2">
           Fixed deposits and pension aren't here, because they don't change with the market each day.
         </Text>
+        <Pressable onPress={start} className="flex-row items-center justify-center py-3 mt-3" accessibilityRole="button" accessibilityLabel="Sync again, replacing today's values">
+          <Ionicons name="sync-outline" size={14} color={theme.primary} />
+          <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.primary }}>Sync again</Text>
+        </Pressable>
       </ScrollView>
     </ScreenContainer>
   );
