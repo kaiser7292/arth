@@ -10,6 +10,7 @@
 
 import { getDatabase } from "@/database";
 import { getSpendingRows } from "@/services/analytics/spending-rows";
+import { MONEY_IN_FROM } from "@/services/money-in-sql";
 import { getSavingsSnapshot } from "@/services/savings-tracker";
 import { getNetWorthHistory, prevMonth, type NetWorthPoint } from "@/services/net-worth-history";
 import { bumpDataVersion, getDataVersion, getFYStartMonth } from "@/services/settings";
@@ -118,36 +119,20 @@ export async function categoryNames(userId: string): Promise<Map<string, { name:
   return new Map(rows.map((r) => [r.id, { name: r.name, color: r.color }]));
 }
 
-/** Credits that are real money in: not refunds, not your own transfers, not credit-card payments. */
-const MONEY_IN_SQL = `SELECT COALESCE(SUM(e.amount), 0) AS total
-     FROM expenses e
-     LEFT JOIN financial_accounts fa ON fa.id = e.account_id
-     WHERE e.user_id = ? AND e.date >= ? AND e.date <= ?
-       AND e.nature = 'credit' AND e.status = 'approved' AND e.deleted_at IS NULL
-       AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
-       AND e.refund_of_expense_id IS NULL
-       AND COALESCE(e.credit_kind, '') <> 'refund'
-       AND COALESCE(e.money_event, '') NOT IN ('self_transfer', 'fd_closure')
-       AND COALESCE(fa.account_type, '') <> 'credit_card'`;
-
+/** Credits that are real money in: see MONEY_IN_FROM. */
 export async function moneyIn(userId: string, startDate: string, endDate: string): Promise<number> {
-  const row = await getDatabase().getFirstAsync<{ total: number | null }>(`${MONEY_IN_SQL};`, userId, startDate, endDate);
+  const row = await getDatabase().getFirstAsync<{ total: number | null }>(
+    `SELECT COALESCE(SUM(e.amount), 0) AS total ${MONEY_IN_FROM};`,
+    userId, startDate, endDate,
+  );
   return row?.total ?? 0;
 }
 
 /** The part of moneyIn that's someone repaying you: credits linked to a Hisaab settlement. */
 export async function repaymentsIn(userId: string, startDate: string, endDate: string): Promise<number> {
   const row = await getDatabase().getFirstAsync<{ total: number | null }>(
-    `${MONEY_IN_SQL} AND EXISTS (SELECT 1 FROM hisaab_entries h WHERE h.linked_expense_id = e.id AND h.type = 'settlement');`,
-    userId, startDate, endDate,
-  );
-  return row?.total ?? 0;
-}
-
-/** The part of moneyIn marked as salary. */
-export async function salaryIn(userId: string, startDate: string, endDate: string): Promise<number> {
-  const row = await getDatabase().getFirstAsync<{ total: number | null }>(
-    `${MONEY_IN_SQL} AND e.credit_kind = 'salary';`,
+    `SELECT COALESCE(SUM(e.amount), 0) AS total ${MONEY_IN_FROM}
+       AND EXISTS (SELECT 1 FROM hisaab_entries h WHERE h.linked_expense_id = e.id AND h.type = 'settlement');`,
     userId, startDate, endDate,
   );
   return row?.total ?? 0;

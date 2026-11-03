@@ -33,6 +33,7 @@ const DYNAMIC: Record<string, string[]> = {
   "services/min-balance.ts|ackKey(accountId": ["min_balance_ack_acc_2026-09"],
   "services/notifications.ts|key": ["notif_overdue", "notif_upcoming", "notif_scheduled_backup", "notif_new_transaction"],
   "services/portfolio-rows.ts|SORT_PREF(broker)": ["portfolio_sort:kite"],
+  "services/salary-periods.ts|dismissKey(month)": ["salary_check_dismissed__2026-10"],
   "components/ui/CollapsibleSection.tsx|fullKey": ["collapsible_x"],
 };
 

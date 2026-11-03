@@ -7,7 +7,8 @@ import { getActiveAccounts } from "@/services/financial-account";
 import { getFlag } from "@/services/feature-flags";
 import { getHisaabSummary } from "@/services/hisaab";
 import { getStatement } from "@/services/household/statement";
-import { invested, moneyIn, repaymentsIn, salaryIn } from "@/services/reports/year-review";
+import { invested, moneyIn, repaymentsIn } from "@/services/reports/year-review";
+import { getMonthSalaryState, getSalaryForMonth } from "@/services/salary-periods";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 
 /**
@@ -24,13 +25,20 @@ import { getMonthDateRange } from "@/utils/budget-helpers";
  * so only your share counts, as spent.
  */
 export interface MyMonth {
+  /** Salary counted for this month, which may have arrived in a neighbouring one (the salary setting). */
   salary: number;
+  /** Salary that arrived during this month but counts for another. Shown so the bank still adds up. */
+  salaryMovedOut: number;
   otherIncome: number;
   moneyIn: number;
   spent: number;
   categories: { categoryId: string | null; name: string; total: number }[];
   saved: { label: string; amount: number }[];
   savedTotal: number;
+  /** This month's salary hasn't come yet but isn't late: going over so far says nothing yet. */
+  salaryDue: { date: string; amount: number } | null;
+  /** This month's salary is past due, or just not tagged as salary. */
+  salaryMissing: boolean;
   /** People: others' share of bills you paid this month, and repayments that reached an account. */
   people: { billsShare: number; repaid: number };
   leftOver: number;
@@ -40,9 +48,12 @@ export interface MyMonth {
   waitingForReview: number;
 }
 
-const NOT_PUT_AWAY = `status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
-  AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
+const REAL_DEBIT = `status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+  AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)`;
+const NOT_PUT_AWAY = `${REAL_DEBIT}
   AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)`;
+/** What's left of a debit after the part linked to goals, which counts as saved instead. */
+const LINKED_PART = `COALESCE((SELECT SUM(l.contribution_amount) FROM expense_investment_links l WHERE l.expense_id = expenses.id), 0)`;
 
 export async function getMyMonth(userId: string, month: string): Promise<MyMonth> {
   const db = getDatabase();
@@ -52,11 +63,11 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
   const [allIn, repaid, salary, put, byCategory, spotted, waiting, categories, others] = await Promise.all([
     moneyIn(userId, startDate, endDate),
     repaymentsIn(userId, startDate, endDate),
-    salaryIn(userId, startDate, endDate),
+    getSalaryForMonth(userId, month),
     invested(userId, startDate, endDate),
     db.getAllAsync<{ category_id: string | null; total: number }>(
-      `SELECT category_id, SUM(${amount}) AS total FROM expenses
-       WHERE user_id = ? AND date >= ? AND date <= ? AND ${NOT_PUT_AWAY}
+      `SELECT category_id, SUM(MAX(0, ${amount} - ${LINKED_PART})) AS total FROM expenses
+       WHERE user_id = ? AND date >= ? AND date <= ? AND ${REAL_DEBIT}
          AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        GROUP BY category_id ORDER BY total DESC;`,
       userId, startDate, endDate,
@@ -82,14 +93,17 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
       userId, startDate, endDate,
     ),
   ]);
-  const totalIn = Math.max(0, allIn - repaid);
+  const otherIncome = Math.max(0, allIn - repaid - salary.arrived);
+  const totalIn = otherIncome + salary.counted;
   const billsShare = others?.total ?? 0;
   const peopleNet = repaid - billsShare;
   const budgets = await getBudgetsForMonth(userId, month);
+  // Only colours the wording, so it can't be allowed to stop the month loading.
+  const salaryState = await getMonthSalaryState(userId, month).catch(() => null);
 
   const names = new Map(categories.map((c) => [c.id, c.name]));
   const spentRows = byCategory
-    .filter((r) => r.total > 0)
+    .filter((r) => r.total >= 0.005)
     .map((r) => ({
       categoryId: r.category_id,
       name: r.category_id ? (names.get(r.category_id) ?? "Other") : "Uncategorized",
@@ -107,13 +121,16 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
   const savedTotal = saved.reduce((s, r) => s + r.amount, 0);
 
   return {
-    salary,
-    otherIncome: Math.max(0, totalIn - salary),
+    salary: salary.counted,
+    salaryMovedOut: Math.max(0, salary.arrived - salary.counted),
+    otherIncome,
     moneyIn: totalIn,
     spent,
     categories: spentRows,
     saved,
     savedTotal,
+    salaryDue: salaryState?.state === "due" ? { date: salaryState.date, amount: salaryState.amount } : null,
+    salaryMissing: salaryState?.state === "missing",
     people: { billsShare, repaid },
     leftOver: totalIn + peopleNet - spent - savedTotal,
     afterBudget: budgetLeaves(totalIn + peopleNet, savedTotal, budgets, spentRows),

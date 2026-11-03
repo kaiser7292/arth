@@ -41,6 +41,8 @@ export interface SalaryProfile {
   monthly_overrides: string | null;
   /** Day of month (1-31) when user typically receives salary. Default 25. */
   salary_credit_day: number;
+  /** Where a salary credit counts relative to the month it arrived: 0 same, 1 next, -1 previous. */
+  salary_month_offset: number;
   /** 1 if employer's gratuity is part of quoted CTC (default); 0 if paid on top. */
   gratuity_in_ctc: number;
   /** 'percentage' (default) — use basic_pct/hra_pct; 'manual' — use the manual_* rupee fields. */
@@ -104,6 +106,7 @@ export interface CreateSalaryProfileInput {
   manual_monthly_in_hand?: number;
   monthly_overrides?: string | null;
   salary_credit_day?: number;
+  salary_month_offset?: number;
   gratuity_in_ctc?: boolean;
   ctc_mode?: "percentage" | "manual";
   manual_basic?: number;
@@ -156,6 +159,7 @@ export interface UpdateSalaryProfileInput {
   manual_monthly_in_hand?: number;
   monthly_overrides?: string | null;
   salary_credit_day?: number;
+  salary_month_offset?: number;
   gratuity_in_ctc?: boolean;
   ctc_mode?: "percentage" | "manual";
   manual_basic?: number;
@@ -233,10 +237,10 @@ export async function createSalaryProfile(
       expected_capital_gains, expected_bonus, computed_monthly_in_hand, computed_annual_tax,
       status, capital_gains_equity_ltcg, capital_gains_equity_stcg, capital_gains_debt,
       capital_gains_fd, capital_gains_gold, capital_gains_real_estate, manual_monthly_in_hand,
-      monthly_overrides, salary_credit_day,
+      monthly_overrides, salary_credit_day, salary_month_offset,
       gratuity_in_ctc, ctc_mode, manual_basic, manual_hra, manual_special, manual_employer_epf, manual_gratuity,
       income_type, business_scheme, business_receipts, business_digital_pct, business_expenses, business_tds_pct, business_gst_pct, side_business_enabled, rental_annual_rent, rental_municipal_tax, rental_loan_interest, business_receipt_account_ids)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     id,
     input.yearly_plan_id ?? null,
     input.financial_year ?? null,
@@ -271,6 +275,7 @@ export async function createSalaryProfile(
     input.manual_monthly_in_hand ?? 0,
     input.monthly_overrides ?? null,
     input.salary_credit_day ?? 25,
+    input.salary_month_offset ?? 0,
     input.gratuity_in_ctc !== false ? 1 : 0,
     input.ctc_mode ?? "percentage",
     input.manual_basic ?? 0,
@@ -424,6 +429,10 @@ export async function updateSalaryProfile(
   if (input.salary_credit_day !== undefined) {
     fields.push("salary_credit_day = ?");
     values.push(input.salary_credit_day);
+  }
+  if (input.salary_month_offset !== undefined) {
+    fields.push("salary_month_offset = ?");
+    values.push(input.salary_month_offset);
   }
   if (input.gratuity_in_ctc !== undefined) {
     fields.push("gratuity_in_ctc = ?");

@@ -9,6 +9,8 @@ import {
 import { bumpDataVersion, getFYStartMonth } from "@/services/settings";
 import { getCurrentFY } from "@/utils/fiscal-year";
 import { computeIncomeProfile } from "@/services/income-calculation";
+import { getBonusReceived, getSalaryMonths, salaryPlanAdjustment } from "@/services/salary-periods";
+import { formatLocalDate, getFYRange } from "@/utils/fiscal-year";
 
 // ─── Yearly Plan ────────────────────────────────────────────
 
@@ -818,6 +820,8 @@ export interface DerivedPlanSummary {
   savings_rate_target_pct: number;
   // Sources
   sources: string[];
+  /** How actual salary moved this year from the calculator. Null when there's nothing to compare. */
+  salary_actuals: { months: number; difference: number; missing: number } | null;
   // Cached data (avoids re-fetching downstream)
   _buckets: InvestmentBucket[];
   _milestones: LifeMilestone[];
@@ -843,6 +847,7 @@ export async function deriveYearlyPlan(
   let annualSalary = 0;
   let expectedBonus = 0;
   let expectedCapitalGains = 0;
+  let salaryActuals: DerivedPlanSummary["salary_actuals"] = null;
 
   const profile = await getSalaryProfileByFY(userId, financialYear);
   if (profile && profile.computed_monthly_in_hand > 0) {
@@ -854,6 +859,22 @@ export async function deriveYearlyPlan(
     expectedBonus = income.netBonus;
     expectedCapitalGains = income.netCapitalGains;
     sources.push("Income: from salary profile");
+
+    // What was credited replaces the plan for that month; months still to come stay as planned.
+    // Only ever a refinement, so a failure here leaves the calculator's figures.
+    try {
+      const rows = await getSalaryMonths(userId, financialYear, new Date(), profile);
+      if (rows.length > 0) {
+        salaryActuals = salaryPlanAdjustment(rows);
+        annualSalary = Math.max(0, annualSalary + salaryActuals.difference);
+        if (salaryActuals.months > 0) sources.push(`Income: actual salary for ${salaryActuals.months} month(s)`);
+      }
+      const fy = getFYRange(parseInt(financialYear, 10), getFYStartMonth());
+      // A bonus received is part of the expected bonus, not on top of it.
+      expectedBonus = Math.max(expectedBonus, await getBonusReceived(userId, formatLocalDate(fy.start), formatLocalDate(fy.end)));
+    } catch {
+      salaryActuals = null;
+    }
   } else {
     // Fallback: try previous FY plan
     const prevFY = String(parseInt(financialYear, 10) - 1);
@@ -980,6 +1001,7 @@ export async function deriveYearlyPlan(
     savings_rate: savingsRate,
     savings_rate_target_pct: savingsRateTarget,
     sources,
+    salary_actuals: salaryActuals,
     _buckets: buckets,
     _milestones: milestones,
   };

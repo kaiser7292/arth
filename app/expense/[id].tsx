@@ -1,3 +1,4 @@
+import { CreditSalaryMonth } from "@/components/expense/CreditSalaryMonth";
 import { applyRuleToPastTransactions, countPastTransactionsForRule, findRuleForMerchant, keywordForAlwaysFile, setMerchantRule } from "@/services/merchant-categories";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { AmountInput } from "@/components/expense/AmountInput";
@@ -2135,6 +2136,10 @@ export default function ExpenseDetailScreen() {
                 refundedAmount={refundedAmount}
                 splitOriginalAmount={expense.split_original_amount}
               />
+
+              {expense.nature === "credit" && expense.credit_kind === "salary" && (
+                <CreditSalaryMonth expenseId={expense.id} date={expense.date} override={expense.salary_for_month} />
+              )}
 
               {/* 1a. Money event — FD deposit / FD closure / own-account transfer / SIP */}
               {expense.money_event && (

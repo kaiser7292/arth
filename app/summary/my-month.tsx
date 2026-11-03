@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { SalaryChecks } from "@/components/goals/SalaryChecks";
 import { Card, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -52,7 +53,12 @@ export default function MyMonthScreen() {
   );
 
   const categories = data ? (showAll ? data.categories : data.categories.slice(0, TOP_CATEGORIES)) : [];
-  const leftColor = data && data.leftOver < 0 ? theme.danger : theme.success;
+  // Before pay day, being behind is just the calendar: no red, and it says so below.
+  const beforePayDay = !!data?.salaryDue && data.leftOver < 0;
+  const leftColor = beforePayDay ? theme.foreground : data && data.leftOver < 0 ? theme.danger : theme.success;
+  const dueLabel = data?.salaryDue
+    ? new Date(`${data.salaryDue.date}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short" })
+    : "";
 
   return (
     <ScreenContainer padTop={false}>
@@ -67,10 +73,18 @@ export default function MyMonthScreen() {
         <LoadingState message="Adding up your month..." icon="calendar-outline" />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+          <SalaryChecks month={month} />
           <Card className="mb-3">
             <Heading>Money in</Heading>
             {data.salary > 0 ? (
               <Row label="Salary" amount={data.salary} />
+            ) : data.salaryDue ? (
+              <View className="py-1.5">
+                <Text className="text-sm text-foreground">Salary due around {dueLabel}</Text>
+                {data.salaryDue.amount > 0 && (
+                  <Text className="text-xs text-muted-foreground mt-0.5">{formatAmount(data.salaryDue.amount)} expected, not counted until it arrives</Text>
+                )}
+              </View>
             ) : (
               // Nothing marked as salary: asking beats showing a confident ₹0 on someone's pay.
               <Pressable onPress={() => router.push({ pathname: "/(tabs)/expenses", params: { preset: "credits" } })} className="py-1.5" accessibilityRole="button">
@@ -81,6 +95,11 @@ export default function MyMonthScreen() {
               </Pressable>
             )}
             {data.otherIncome > 0 && <Row label="Other income" amount={data.otherIncome} />}
+            {data.salaryMovedOut > 0 && (
+              <Text className="text-xs text-muted-foreground mt-1">
+                {formatAmount(data.salaryMovedOut)} of salary arrived this month but counts for another, by your salary setting.
+              </Text>
+            )}
           </Card>
 
           <Card className="mb-3">
@@ -147,9 +166,9 @@ export default function MyMonthScreen() {
           <Card className="mb-3">
             <View className="flex-row justify-between items-center">
               <Text className="text-base font-semibold" style={{ color: leftColor }}>
-                {data.leftOver < 0 ? "Over by" : "Left over"}
+                {beforePayDay ? "So far this month" : data.leftOver < 0 ? "Over by" : "Left over"}
               </Text>
-              <Text className="text-xl font-bold" style={{ color: leftColor }}>{formatAmount(Math.abs(data.leftOver))}</Text>
+              <Text className="text-xl font-bold" style={{ color: leftColor }}>{beforePayDay ? "−" : ""}{formatAmount(Math.abs(data.leftOver))}</Text>
             </View>
             <Text className="text-xs text-muted-foreground mt-1">{data.people.billsShare > 0 || data.people.repaid > 0 ? "Money in, minus spent and saved, with money to and from people" : "Money in, minus spent, minus saved"}</Text>
           </Card>

@@ -12,6 +12,7 @@ import { getFYRange, getFiscalMonth, getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { deriveDirectBaseMonthly } from "@/services/income-calculation";
+import { getSalaryMonths } from "@/services/salary-periods";
 import {
   calculateSavingsSnapshot,
   calculateMonthlySavingsTrend,
@@ -200,6 +201,18 @@ export async function getSavingsTrend(
         monthlyIncomeOverrides.set(i + 1, value);
       }
     } catch {}
+  }
+
+  // Months with a salary credit show what was credited, plus any side income from the calculator.
+  try {
+    const rows = await getSalaryMonths(userId, String(fyYear), new Date(), salaryProfile);
+    if (rows.length > 0 && salaryProfile) {
+      const plannedAverage = rows.reduce((s, r) => s + r.expected, 0) / rows.length;
+      const side = Math.max(0, salaryProfile.computed_monthly_in_hand - plannedAverage);
+      monthlyIncomeOverrides = new Map(rows.map((r) => [r.index + 1, (r.credited > 0 ? r.credited : r.expected) + side]));
+    }
+  } catch {
+    // Keeps the calculator's figures.
   }
 
   return calculateMonthlySavingsTrend({

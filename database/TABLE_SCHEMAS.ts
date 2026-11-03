@@ -81,6 +81,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "applied_rule_manually", // migration 066 — 1 when rule was applied via ⚡ button (not auto-fired)
     "money_event", // migration 080 — fd_open / fd_closure / self_transfer / sip review hint
     "credit_kind", // migration 080 — salary / interest / refund / cashback / reimbursement / gift / other
+    "salary_for_month", // migration 090 — the month one salary credit counts for
     "household_ref", // migration 087 - written by Together (households)
   ] as const,
 
@@ -243,6 +244,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "manual_monthly_in_hand", // 001 consolidated
     "monthly_overrides", // 003
     "salary_credit_day", // 007
+    "salary_month_offset", // 090
     "gratuity_in_ctc", // 027
     "ctc_mode", // 027
     "manual_basic", // 027

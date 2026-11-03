@@ -255,6 +255,14 @@ export default function YearlyPlanScreen() {
               value={formatAmount(derived?.annual_salary_in_hand ?? 0)}
               icon="wallet-outline"
             />
+            {!!derived?.salary_actuals?.months && (
+              <Text className="text-xs text-muted-foreground mb-2">
+                Actual salary for {derived.salary_actuals.months} {derived.salary_actuals.months === 1 ? "month" : "months"}, the plan for the rest
+                {Math.abs(derived.salary_actuals.difference) >= 1
+                  ? `: ${formatAmount(Math.abs(derived.salary_actuals.difference))} ${derived.salary_actuals.difference > 0 ? "more" : "less"} than planned`
+                  : ""}
+              </Text>
+            )}
             <MetricRow
               label="Expected Bonus"
               value={formatAmount(derived?.expected_bonus ?? 0)}

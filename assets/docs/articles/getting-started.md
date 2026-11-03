@@ -49,7 +49,9 @@ Arth has **five bottom tabs**, in this order from left to right. **Swipe left or
 
 ## My month and setting up
 
-**My month** on Home is the month in one place: money in, what you spent, what you saved or invested, and what's left. Tap it for the categories, your bank and wallet balances, what your budget leaves you free to save or spend, or to look at another month. A salary credit counts as salary once its type is set to Salary.
+**My month** on Home is the month in one place: money in, what you spent, what you saved or invested, and what's left. Tap it for the categories, your bank and wallet balances, what your budget leaves you free to save or spend, or to look at another month. A salary credit counts as salary once its type is set to Salary. If your salary arrives at the end of a month but pays for the next, or on the 1st for the month before, set that under **Goals → Income Calculator → A salary credit counts towards**. You can also move one credit from its transaction screen.
+
+If what's credited differs from your Income Calculator, Arth tells you here and in the calculator, and you choose whether to update it. Your yearly plan always uses what was actually credited for months that have passed and your calculator for months to come. Tag a bonus as **Bonus** so it isn't counted on top of your expected bonus.
 
 **With people** in My month keeps money with others apart from income and spending. On a bill you paid, your share is spending and the rest shows as others' share. A repayment linked to its Hisaab entry shows as repaid, not income. It also shows what you're owed, what you owe and your household's shared total.
 

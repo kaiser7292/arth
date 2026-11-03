@@ -85,6 +85,8 @@ export interface Expense {
   money_event?: MoneyEvent | null;
   /** migration 080 — what a credit is (salary, interest, …). NULL for debits and older credits. */
   credit_kind?: CreditKind | null;
+  /** The month this salary credit counts for, when it doesn't follow the setting (migration 090). */
+  salary_for_month?: string | null;
   /** migration 087 — set on rows Together writes from what another household member shared. */
   household_ref?: string | null;
   created_at: string;
@@ -93,11 +95,12 @@ export interface Expense {
 
 export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip" | "investment_withdrawal";
 
-export const CREDIT_KINDS = ["salary", "interest", "refund", "cashback", "reimbursement", "gift", "gain", "other"] as const;
+export const CREDIT_KINDS = ["salary", "bonus", "interest", "refund", "cashback", "reimbursement", "gift", "gain", "other"] as const;
 export type CreditKind = (typeof CREDIT_KINDS)[number];
 
 export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
   salary: "Salary",
+  bonus: "Bonus",
   interest: "Interest",
   refund: "Refund",
   cashback: "Cashback",

@@ -80,7 +80,7 @@ describe("reading the sheet", () => {
   it("reads a credit kind by its key or the name shown in the app", () => {
     expect(parseCreditKind("salary")).toBe("salary");
     expect(parseCreditKind("Investment gain")).toBe("gain");
-    expect(parseCreditKind("bonus")).toBeNull();
+    expect(parseCreditKind("lottery")).toBeNull();
   });
 
   it("matches headers loosely and numbers rows as the sheet does", () => {
@@ -101,7 +101,7 @@ describe("reading the sheet", () => {
         { Date: "not a date", Type: "Expense", Amount: 100 },
         { Date: "2026-05-15", Type: "Expense", Amount: -5 },
         { Date: "2026-05-15", Type: "Loan", Amount: 100 },
-        { Date: "2026-05-15", Type: "Credit", Amount: 100, "Credit Type": "Bonus" },
+        { Date: "2026-05-15", Type: "Credit", Amount: 100, "Credit Type": "Lottery" },
       ]),
       "Sheet1",
     );
@@ -110,7 +110,7 @@ describe("reading the sheet", () => {
     expect(skipped[0].reason).toMatch(/date/i);
     expect(skipped[1].reason).toMatch(/amount/i);
     expect(skipped[2].reason).toMatch(/Loan/);
-    expect(skipped[3].reason).toMatch(/Bonus/);
+    expect(skipped[3].reason).toMatch(/Lottery/);
   });
 
   it("the template it hands out reads back cleanly, one row of each kind", () => {

@@ -1,3 +1,5 @@
+import { SalaryChecks } from "@/components/goals/SalaryChecks";
+import { SegmentedControl } from "@/components/motion";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -153,6 +155,7 @@ export default function SalaryCalculatorScreen() {
   // ─── Additional Income (shared all modes) ──────────
   const [expectedBonus, setExpectedBonus] = useState("0");
   const [salaryCreditDay, setSalaryCreditDay] = useState("25");
+  const [salaryMonthOffset, setSalaryMonthOffset] = useState("0");
   const [cgEquityLtcg, setCgEquityLtcg] = useState("0");
   const [cgEquityStcg, setCgEquityStcg] = useState("0");
   const [cgDebt, setCgDebt] = useState("0");
@@ -175,6 +178,7 @@ export default function SalaryCalculatorScreen() {
       setManualInHand(savedManual > 0 && ctcMultiplier === 1.0 ? String(savedManual) : "");
       setExpectedBonus(String(profile.expected_bonus ?? 0));
       setSalaryCreditDay(String(profile.salary_credit_day ?? 25));
+      setSalaryMonthOffset(String(profile.salary_month_offset ?? 0));
       setCgEquityLtcg(String(profile.capital_gains_equity_ltcg ?? 0));
       setCgEquityStcg(String(profile.capital_gains_equity_stcg ?? 0));
       setCgDebt(String(profile.capital_gains_debt ?? 0));
@@ -610,6 +614,7 @@ export default function SalaryCalculatorScreen() {
           if (n > 31) return 31;
           return n;
         })(),
+        salary_month_offset: parseInt(salaryMonthOffset, 10) || 0,
         expected_capital_gains: totalCG,
         capital_gains_equity_ltcg: num(cgEquityLtcg),
         capital_gains_equity_stcg: num(cgEquityStcg),
@@ -678,7 +683,7 @@ export default function SalaryCalculatorScreen() {
     incomeType, inputMode, manualInHand, monthlyOverrides, ctc, basicPct, hraPct, isMetro, epfMode,
     epfInCTC, gratuityInCTC, ctcMode, manualBasic, manualHra, manualSpecial, manualEmployerEPF,
     manualGratuity, vpfMonthly, state, deductions80C, deductions80D, hraExemption, homeLoan,
-    otherDeductions, profTax, expectedBonus, salaryCreditDay, cgEquityLtcg, cgEquityStcg, cgDebt,
+    otherDeductions, profTax, expectedBonus, salaryCreditDay, salaryMonthOffset, cgEquityLtcg, cgEquityStcg, cgDebt,
     cgFd, cgGold, cgRealEstate, businessScheme, businessReceipts, businessDigitalPct,
     businessExpenses, businessTdsPct, businessGstPct, sideBusinessEnabled, rentalRent,
     rentalMunicipalTax, rentalLoanInterest, receiptAccountIds, existingProfile, alert,
@@ -1185,7 +1190,39 @@ export default function SalaryCalculatorScreen() {
                   "elapsed" for investment/milestone warnings - avoids false alarms when you're
                   paid later in the month.
                 </Text>
+                {kind !== "business" && (
+                  <View className="mt-4">
+                    <Text className="text-sm font-medium text-foreground mb-2">A salary credit counts towards</Text>
+                    <SegmentedControl
+                      accessibilityLabel="Month a salary credit counts towards"
+                      options={[
+                        { value: "0", label: "Same month" },
+                        { value: "1", label: "Next month" },
+                        { value: "-1", label: "Previous" },
+                      ]}
+                      value={salaryMonthOffset}
+                      onChange={setSalaryMonthOffset}
+                    />
+                    <Text className="text-xs text-muted-foreground mt-2">
+                      {salaryMonthOffset === "1"
+                        ? "Paid on 30 Oct, it counts for November."
+                        : salaryMonthOffset === "-1"
+                          ? "Paid on 1 Nov, it counts for October."
+                          : "Paid on 30 Oct, it counts for October."}
+                    </Text>
+                  </View>
+                )}
               </Card>
+            )}
+
+            {hasSalaryData && kind !== "business" && (
+              <SalaryChecks
+                financialYear={selectedFY}
+                onAdopted={async () => {
+                  const fresh = await getSalaryProfileByFY(DEFAULT_USER_ID, selectedFY);
+                  if (fresh) populateFormFromProfile(fresh);
+                }}
+              />
             )}
 
             {/* ════════════════════════════════════════════

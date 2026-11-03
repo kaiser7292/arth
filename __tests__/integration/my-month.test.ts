@@ -45,6 +45,8 @@ jest.mock("../../database", () => ({
 }));
 
 import { runMigrations } from "../../database/migrations";
+import { reclassifyExpenseAsTransfer } from "../../services/account-transfer";
+import { getExpenseTotal } from "../../services/expense-queries";
 import { goalMonthlyNeeded, goalMonths, saveDatedGoal } from "../../services/dated-goal";
 import { getLifeMilestones } from "../../services/life-milestone";
 import { getMonthAccounts, getMyMonth } from "../../services/my-month";
@@ -141,6 +143,54 @@ describe("getMyMonth", () => {
   it("spending more than came in goes negative", async () => {
     tx({ amount: 500, category_id: "food" });
     expect((await getMyMonth(USER, MONTH)).leftOver).toBe(-500);
+  });
+});
+
+describe("tagging a transaction Arth didn't recognise", () => {
+  const debit = (amount: number) => tx({ amount, category_id: "food", account_id: "bank", updated_at: "2026-10-15T10:00:00" });
+  const bucket = () => insert("investment_buckets", { id: "b1", user_id: USER, name: "Index", annual_target: 60000 });
+  const budgetSpent = () => getExpenseTotal(USER, "2026-10-01", "2026-10-31");
+
+  it("counts as spent in both until it's tagged", async () => {
+    debit(5000);
+    expect((await getMyMonth(USER, MONTH)).spent).toBe(5000);
+    expect(await budgetSpent()).toBe(5000);
+  });
+
+  it("a transfer to an investment account moves to saved, and out of the budget", async () => {
+    const id = debit(5000);
+    await reclassifyExpenseAsTransfer(id, "demat", "2026-10-15T10:00:00");
+    const m = await getMyMonth(USER, MONTH);
+    expect(m).toMatchObject({ spent: 0, savedTotal: 5000 });
+    expect(await budgetSpent()).toBe(0);
+  });
+
+  it("a transfer to another own account leaves both, and isn't saved", async () => {
+    insert("financial_accounts", { id: "bank2", user_id: USER, account_type: "savings", bank_name: "Other", account_identifier: "4444" });
+    const id = debit(5000);
+    await reclassifyExpenseAsTransfer(id, "bank2", "2026-10-15T10:00:00");
+    const m = await getMyMonth(USER, MONTH);
+    expect(m).toMatchObject({ spent: 0, savedTotal: 0, leftOver: 0 });
+    expect(await budgetSpent()).toBe(0);
+  });
+
+  it("linked in full to a goal moves to saved, and out of the budget", async () => {
+    bucket();
+    const id = debit(5000);
+    insert("expense_investment_links", { id: "l1", expense_id: id, investment_bucket_id: "b1", contribution_amount: 5000 });
+    const m = await getMyMonth(USER, MONTH);
+    expect(m).toMatchObject({ spent: 0, savedTotal: 5000 });
+    expect(m.categories).toEqual([]);
+    expect(await budgetSpent()).toBe(0);
+  });
+
+  it("linked in part: the rest stays spent, so nothing goes missing from money out", async () => {
+    bucket();
+    const id = debit(5000);
+    insert("expense_investment_links", { id: "l1", expense_id: id, investment_bucket_id: "b1", contribution_amount: 3000 });
+    const m = await getMyMonth(USER, MONTH);
+    expect(m).toMatchObject({ spent: 2000, savedTotal: 3000, leftOver: -5000 });
+    expect(m.categories).toEqual([{ categoryId: "food", name: "Food", total: 2000 }]);
   });
 });
 
