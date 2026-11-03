@@ -42,6 +42,14 @@ The **Investments** screen brings every kind of investment together - demat and 
 
 Fixed deposits that have matured or been closed drop off this screen and out of the Investments total, so the payout is never counted twice.
 
+## Sync in one tap
+
+With Zerodha, Angel One or Zebpay connected, **Sync today's investments** at the top of the Investments screen fetches each one and saves today's snapshot. Zerodha's login ends every day, so when it has, tap **Log in**: its login page opens, filled from the Vault if you've linked it, and the sync carries on when you're back.
+
+## Where could this get to?
+
+**Projections** on the Investments screen works forward from what each investment is worth today. Tap one to set the yearly return you want to assume, a monthly amount (a SIP) and any lump sums with their month. Each investment can have its own return. These are your assumptions worked forward, not a forecast or financial advice: real returns go up and down, and tax isn't taken off.
+
 ## Three kinds of investment
 
 When you tap **+** (Add investment) on the Investments screen, you pick one of three kinds. Each works out its value differently:

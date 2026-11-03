@@ -8,6 +8,7 @@ export default function InvestmentsLayout() {
     <Stack screenOptions={screenOptions}>
       <Stack.Screen name="index" options={{ title: "Investments" }} />
       <Stack.Screen name="add" options={{ title: "Add Investment" }} />
+      <Stack.Screen name="projections" options={{ title: "Projections" }} />
       <Stack.Screen name="add-fd" options={{ title: "Add Fixed Deposit" }} />
     </Stack>
   );

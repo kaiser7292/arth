@@ -1,3 +1,4 @@
+import { BrokerSyncCard } from "@/components/investments/BrokerSyncCard";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
@@ -199,6 +200,21 @@ export default function InvestmentsListScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+        <BrokerSyncCard />
+        {rows.length > 0 && (
+          <PressableScale onPress={() => router.push("/investments/projections")} accessibilityRole="button" accessibilityLabel="See projections">
+            <Card className="mx-4 mt-3">
+              <View className="flex-row items-center">
+                <Ionicons name="analytics-outline" size={18} color={theme.primary} />
+                <View className="flex-1 ml-2">
+                  <Text className="text-sm font-semibold text-foreground">Where could this get to?</Text>
+                  <Text className="text-xs text-muted-foreground mt-0.5">Project each investment with your own returns, SIPs and lump sums</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              </View>
+            </Card>
+          </PressableScale>
+        )}
         {loaded && rows.length === 0 ? (
           <EmptyState
             icon="trending-up-outline"
