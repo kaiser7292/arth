@@ -42,7 +42,6 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useForecastActions } from "@/hooks/use-forecast-actions";
 import { getComputedBalances, computeUnseededBalance } from "@/services/account-balance";
 import { getBudgetsForMonth, getCurrentMonth } from "@/services/budget";
-import { formatMonthLabel } from "@/utils/date";
 import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import type { Expense } from "@/services/expense";
 import {
@@ -89,6 +88,7 @@ import {
     getMonthDateRange,
 } from "@/utils/budget-helpers";
 import { formatAmount } from "@/utils/expense-validation";
+import { formatMonthLabel } from "@/utils/date";
 import { logger } from "@/utils/logger";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -488,69 +488,19 @@ export default function HomeScreen() {
         {/* Check-ins - swipe decks (month-end, settle-up, subscriptions, rules). Self-loading. */}
         {isHomeCardVisible("check_ins") && <Appear index={1}><CheckInsCard /></Appear>}
 
-        {isHomeCardVisible("my_month") && <MyMonthCard />}
+        {/* Cash flow and, once a budget is set, how it's going against it. One card, two sections. */}
+        <Appear index={2}>
+          <MyMonthCard
+            showCashFlow={isHomeCardVisible("my_month")}
+            budget={
+              isHomeCardVisible("total_spent") && totalBudget > 0
+                ? { spent: totalSpent, total: totalBudget, remaining, progress: budgetPct, label: healthLabel, color: statusColor, daysLeft: daysRemaining }
+                : null
+            }
+          />
+        </Appear>
 
         {/* Budget Health Card */}
-        {isHomeCardVisible("total_spent") && (
-          <Appear index={2}>
-          <PressableScale onPress={() => router.push("/(tabs)/budget")} accessibilityRole="button" accessibilityLabel="Spent this month, open Budget">
-          <Card className="mx-4 mt-3">
-            <View className="flex-row items-center justify-between mb-3">
-              <View>
-                <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
-                  Spent this month
-                </Text>
-                <View className="flex-row items-baseline mt-0.5">
-                  <AnimatedNumber value={totalSpent} className="text-title font-bold text-foreground" />
-                  {totalBudget > 0 && (
-                    <Text className="text-meta text-muted-foreground ml-1.5">
-                      of {formatAmount(totalBudget)}
-                    </Text>
-                  )}
-                </View>
-              </View>
-              {/* No budget yet: there's nothing to be over, and "Set up your budget" below says so. */}
-              {totalBudget > 0 && <StatusPill label={healthLabel} color={statusColor} />}
-            </View>
-
-            {totalBudget > 0 && (
-              <>
-                <ProgressBar value={budgetPct} color={statusColor} height={8} animated />
-                <View className="flex-row justify-between mt-2">
-                  <Text
-                    className="text-xs font-semibold"
-                    style={{ color: remaining >= 0 ? theme.success : theme.danger }}
-                  >
-                    {remaining >= 0
-                      ? `${formatAmount(remaining)} remaining`
-                      : `${formatAmount(Math.abs(remaining))} over`}
-                  </Text>
-                  <Text className="text-xs text-faint-foreground">
-                    {daysRemaining} days left
-                  </Text>
-                </View>
-              </>
-            )}
-
-            {totalBudget === 0 && (
-              <Pressable
-                onPress={() => router.push("/settings/budget-config")}
-                accessibilityLabel="Set up your budget"
-                accessibilityRole="button"
-                className="mt-1 py-2 rounded-lg items-center"
-                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-              >
-                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
-                  Set up your budget
-                </Text>
-              </Pressable>
-            )}
-
-          </Card>
-          </PressableScale>
-          </Appear>
-        )}
-
         {/* Recurring reminders — pending/overdue with auto-match suggestions. */}
         {isHomeCardVisible("reminders") && dueReminders.length > 0 && (
           <Card className="mx-4 mt-3">

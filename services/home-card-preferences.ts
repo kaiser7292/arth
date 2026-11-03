@@ -71,14 +71,14 @@ export const HOME_CARDS: HomeCardMeta[] = [
   },
   {
     id: "my_month",
-    label: "My month",
-    description: "Money in, spent, saved and what's left this month",
+    label: "My month: cash flow",
+    description: "Money in, money out and what's left this month",
     defaultVisible: true,
   },
   {
     id: "total_spent",
-    label: "Total Spent",
-    description: "Budget health card showing monthly spend, progress bar, and days remaining",
+    label: "My month: budget",
+    description: "How you're doing against the budget you set. Only shows once you've set one",
     defaultVisible: true,
   },
   {
