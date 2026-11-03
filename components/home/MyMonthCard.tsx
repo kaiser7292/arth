@@ -35,7 +35,7 @@ function SectionLabel({ children }: { children: string }) {
  * The month on Home, one card with two questions. Cash flow: money in against money out, a bar showing
  * where it went, and a line on what that means. Budget, once one is set: how it's going against it,
  * tap for the Budget tab. Tap anywhere else for My Month. Self-loading; a section that can't load or
- * is turned off in Home Cards is left out, and with neither there's no card.
+ * is turned off in Customise Arth is left out, and with neither there's no card.
  *
  * Money out is spent, saved and others' share of bills you paid; money in includes repayments. So in
  * minus out is exactly the page's left over.

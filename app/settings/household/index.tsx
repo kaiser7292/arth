@@ -205,8 +205,6 @@ export default function HouseholdScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         refreshControl={<RefreshControl refreshing={syncing} onRefresh={syncNow} />}
       >
-        <Button title="Open Together" onPress={() => router.push("/together")} className="mb-3" />
-
         <Card className="mb-3">
           <View className="flex-row items-center">
             <View className="flex-row mr-3">
@@ -264,6 +262,14 @@ export default function HouseholdScreen() {
               </View>
             </View>
           )}
+          <Pressable
+            onPress={() => router.push("/together")}
+            className="flex-row items-center justify-between mt-3 pt-3 border-t border-border"
+            accessibilityRole="button"
+          >
+            <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Open Together</Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.primary} />
+          </Pressable>
         </Card>
 
         {requests.map((r) => (

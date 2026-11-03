@@ -1,3 +1,4 @@
+import { FeatureGate } from "@/components/FeatureOff";
 import { useStackScreenOptions } from "@/components/ui/stack-options";
 import { Stack } from "expo-router";
 
@@ -5,6 +6,7 @@ export default function InsightsStackLayout() {
   const screenOptions = useStackScreenOptions();
 
   return (
+    <FeatureGate feature="insights">
     <Stack
       screenOptions={screenOptions}
     >
@@ -25,5 +27,6 @@ export default function InsightsStackLayout() {
       <Stack.Screen name="report-spending-personality" options={{ title: "Spending Personality" }} />
       <Stack.Screen name="year-review" options={{ title: "Year in Review", headerShown: false, animation: "fade_from_bottom" }} />
     </Stack>
+    </FeatureGate>
   );
 }

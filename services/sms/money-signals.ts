@@ -207,11 +207,13 @@ export function detectInvestmentWithdrawal(type: string, merchant: string | null
  * Best guess at what a credit is, from its SMS / payer / description. Null when
  * nothing stands out — the user picks in the form or review queue.
  */
-export function inferCreditKind(text: string | null | undefined): "salary" | "interest" | "refund" | "cashback" | null {
+export function inferCreditKind(text: string | null | undefined): "salary" | "interest" | "dividend" | "rent" | "refund" | "cashback" | null {
   if (!text) return null;
   if (/\bcash\s*back\b/i.test(text)) return "cashback";
   if (/\brefund(?:ed)?\b|\breversal\b|\breversed\b/i.test(text)) return "refund";
   if (/\binterest\b|\bint\.?\s*p(?:ai)?d\b|\bint\s+cr\b|\bsb\s*int\b/i.test(text)) return "interest";
+  if (/\bdividend\b/i.test(text)) return "dividend";
+  if (/\brent\b/i.test(text)) return "rent";
   if (/\bsalary\b|\bsal\s+(?:for|cr)\b|\bpayroll\b/i.test(text)) return "salary";
   return null;
 }

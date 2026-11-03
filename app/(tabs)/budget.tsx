@@ -1,3 +1,5 @@
+import { isPartOn } from "@/services/customise";
+import { useCustomisation } from "@/hooks/use-customisation";
 import { useState, useCallback, useMemo, useRef } from "react";
 
 import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
@@ -77,6 +79,12 @@ export default function BudgetScreen() {
   const [quickBudgetAmount, setQuickBudgetAmount] = useState("");
   const quickBudgetInputRef = useRef<TextInput>(null);
   const [activePageIndex, setActivePageIndex] = useState(0);
+  useCustomisation();
+  const budgetPages = [
+    { key: "overview", label: "Overview" },
+    ...(isPartOn("budget_split") ? [{ key: "split", label: "Spending Split" }] : []),
+    ...(isPartOn("budget_monthly") ? [{ key: "monthly", label: "Monthly Summary" }] : []),
+  ];
   const [visitedSplit, setVisitedSplit] = useState(false);
   const [visitedMonthly, setVisitedMonthly] = useState(false);
 
@@ -352,17 +360,13 @@ export default function BudgetScreen() {
       )}
 
       <SwipePager
-        pages={[
-          { key: "overview", label: "Overview" },
-          { key: "split", label: "Spending Split" },
-          { key: "monthly", label: "Monthly Summary" },
-        ]}
-        activeIndex={activePageIndex}
+        pages={budgetPages}
+        activeIndex={Math.min(activePageIndex, budgetPages.length - 1)}
         onIndexChange={(i) => {
           setActivePageIndex(i);
           if (i !== 0) setShowWidgetManager(false);
-          if (i === 1) setVisitedSplit(true);
-          if (i === 2) setVisitedMonthly(true);
+          if (budgetPages[i]?.key === "split") setVisitedSplit(true);
+          if (budgetPages[i]?.key === "monthly") setVisitedMonthly(true);
         }}
       >
         {/* Page 0 — Overview */}
@@ -990,12 +994,12 @@ export default function BudgetScreen() {
         </ScrollView>
 
         {/* Page 1 — Spending Split (lazy: only mount after first visit) */}
-        {visitedSplit
+        {!isPartOn("budget_split") ? null : visitedSplit
           ? <SpendingSplitPage month={month} />
           : <View style={{ flex: 1 }} />}
 
         {/* Page 2 — Monthly Summary (lazy: only mount after first visit) */}
-        {visitedMonthly
+        {!isPartOn("budget_monthly") ? null : visitedMonthly
           ? <MonthlySummaryPage month={month} />
           : <View style={{ flex: 1 }} />}
       </SwipePager>

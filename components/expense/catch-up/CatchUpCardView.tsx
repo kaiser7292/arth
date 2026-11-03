@@ -1,8 +1,11 @@
+import { isPartOn } from "@/services/customise";
+import { CREDIT_KIND_LABELS, CREDIT_KINDS, creditKindOf, creditLook, type CreditKind } from "@/services/expense-types";
+import { updateExpense } from "@/services/expense";
 import { FormulaTextInput } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
-import { Button, Money, Text } from "@/components/ui";
+import { Button, Money, SelectSheet, Text } from "@/components/ui";
 import { DeckCard } from "@/components/check-in/DeckParts";
 import { TYPE_ICONS } from "@/constants/icons";
 import type { FooterAction } from "@/components/check-in/DeckParts";
@@ -237,7 +240,7 @@ function SingleExpenseBody({
   // Once split, `amount` is your share; the card keeps showing what was actually paid.
   const isSplit = expense.split_original_amount != null;
   const total = expense.split_original_amount ?? expense.amount;
-  const canSplit = !isCredit && expense.nature === "realized" && !expense.money_event;
+  const canSplit = !isCredit && expense.nature === "realized" && !expense.money_event && isPartOn("hisaab");
   const splitPerson = expense.split_person_id ? persons.find((p) => p.id === expense.split_person_id) : undefined;
   // The card covers "I paid": half each, they owe it all, or an amount. Anything else
   // (they paid, a percentage, several people) is edited on the full screen.
@@ -267,6 +270,9 @@ function SingleExpenseBody({
       </Pressable>
 
       <View className="flex-row flex-wrap justify-center mt-4" style={{ gap: 8 }}>
+      {isCredit ? (
+        <CreditTypeChip expense={expense} />
+      ) : (
       <Pressable
         onPress={onPickCategory}
         className="flex-row items-center px-4 rounded-full border"
@@ -291,6 +297,7 @@ function SingleExpenseBody({
         </Text>
         <Ionicons name="chevron-down" size={14} color={category?.color ?? theme.mutedForeground} style={{ marginLeft: 4 }} />
       </Pressable>
+      )}
 
       <FieldChip
         icon="storefront-outline"
@@ -755,5 +762,39 @@ function MerchantField({
         </View>
       )}
     </View>
+  );
+}
+
+/** A credit has a type instead of a category. Saved as it's picked. */
+function CreditTypeChip({ expense }: { expense: Expense }) {
+  const [kind, setKind] = useState(expense.credit_kind ?? null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => setKind(expense.credit_kind ?? null), [expense.id, expense.credit_kind]);
+  const look = creditLook(kind);
+  return (
+    <>
+      <Pressable
+        onPress={() => setOpen(true)}
+        className="flex-row items-center px-4 rounded-full border"
+        style={{ minHeight: 40, borderColor: look.color, backgroundColor: look.color + "14" }}
+        accessibilityRole="button"
+        accessibilityLabel={`Type ${look.name}, tap to change`}
+      >
+        <Ionicons name={look.icon as keyof typeof Ionicons.glyphMap} size={16} color={look.color} />
+        <Text className="text-sm font-semibold ml-1.5" style={{ color: look.color }}>{look.name}</Text>
+        <Ionicons name="chevron-down" size={14} color={look.color} style={{ marginLeft: 4 }} />
+      </Pressable>
+      <SelectSheet<CreditKind>
+        visible={open}
+        title="What is this money?"
+        value={creditKindOf(kind)}
+        options={CREDIT_KINDS.map((k) => ({ value: k, label: CREDIT_KIND_LABELS[k] }))}
+        onChange={(k) => {
+          setKind(k);
+          void updateExpense(expense.id, { credit_kind: k });
+        }}
+        onClose={() => setOpen(false)}
+      />
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from "react";
 import { AiSetupCard } from "@/components/home/AiSetupCard";
 import { MyMonthCard } from "@/components/home/MyMonthCard";
 import { SetupChecklistCard } from "@/components/home/SetupChecklistCard";
@@ -57,7 +58,9 @@ import { getFlag } from "@/services/feature-flags";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getCcExpenseTotals } from "@/services/financial-account";
 import { getHisaabSummary } from "@/services/hisaab";
-import { isHomeCardVisible } from "@/services/home-card-preferences";
+import { getHomeCardOrder, isDefaultHomeCardOrder, isHomeCardVisible, type HomeCardId } from "@/services/home-card-preferences";
+import { isPartOn, type FeatureId } from "@/services/customise";
+import { useCustomisation } from "@/hooks/use-customisation";
 import { peekHomeSnapshot, saveHomeSnapshot, waitForHomeSection, type HomePreloadData } from "@/services/home-preload";
 import { ArthLoader } from "@/components/ArthLoader";
 import type { LoansSummary } from "@/services/loan-accounts";
@@ -97,6 +100,22 @@ const HOME_TABS: SwipePagerPage[] = [
   { key: "simulator", label: "Simulator" },
   { key: "vault", label: "Vault" },
 ];
+
+const HOME_HEADINGS: Partial<Record<HomeCardId, string>> = { hisaab: "People & Money", credit_cards: "Your Accounts" };
+
+function renderHomeCards({ cards, headings }: { cards: Partial<Record<HomeCardId, ReactNode>>; headings: Partial<Record<HomeCardId, boolean | null>> }) {
+  const grouped = isDefaultHomeCardOrder();
+  return getHomeCardOrder().map((id) => (
+    <Fragment key={id}>
+      {grouped && headings[id] && (
+        <View className="mx-4 mt-5 mb-1">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">{HOME_HEADINGS[id]}</Text>
+        </View>
+      )}
+      {cards[id]}
+    </Fragment>
+  ));
+}
 
 /** Longest Home shows the Arth loader on a cold start before rendering with what it has. */
 const HOME_FIRST_LOAD_MAX_WAIT_MS = 6000;
@@ -166,11 +185,16 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [smsScanning, setSmsScanning] = useState(false);
   const [activeHomeIndex, setActiveHomeIndex] = useState(0);
-  const [visitedHomePages, setVisitedHomePages] = useState(new Set([0]));
+  const [visitedHomePages, setVisitedHomePages] = useState(new Set(["overview"]));
+  useCustomisation();
+  const homePages = HOME_TABS.filter((t) => t.key === "overview" || isPartOn(t.key as FeatureId));
+  const activeHomePage = Math.min(activeHomeIndex, homePages.length - 1);
+  const homePageKeys = homePages.map((p) => p.key).join();
   const handleHomeIndexChange = useCallback((idx: number) => {
     setActiveHomeIndex(idx);
-    setVisitedHomePages((prev) => new Set([...prev, idx]));
-  }, []);
+    const key = homePageKeys.split(",")[idx];
+    if (key) setVisitedHomePages((prev) => new Set([...prev, key]));
+  }, [homePageKeys]);
 
   const handleHomeScan = useCallback(async () => {
     if (smsScanning) return;
@@ -398,8 +422,8 @@ export default function HomeScreen() {
         rightActions={homeHeaderActions}
       />
       <SwipePager
-        pages={HOME_TABS}
-        activeIndex={activeHomeIndex}
+        pages={homePages}
+        activeIndex={activeHomePage}
         onIndexChange={handleHomeIndexChange}
       >
         <ScrollView
@@ -483,13 +507,17 @@ export default function HomeScreen() {
         <FirstScanSummaryCard />
         <SetupChecklistCard />
         <AiSetupCard />
-        <YearReviewReadyCard />
+        {isPartOn("insights") && <YearReviewReadyCard />}
 
-        {/* Check-ins - swipe decks (month-end, settle-up, subscriptions, rules). Self-loading. */}
-        {isHomeCardVisible("check_ins") && <Appear index={1}><CheckInsCard /></Appear>}
-
-        {/* Cash flow and, once a budget is set, how it's going against it. One card, two sections. */}
-        <Appear index={2}>
+        {/* Cards in the order set in Customise Arth. Headings only while they're in their usual groups. */}
+        {renderHomeCards({
+          headings: {
+            hisaab: isHomeCardVisible("hisaab"),
+            credit_cards: ccAccounts.length > 0 || bankAccounts.length > 0 || walletAccounts.length > 0 || investmentSummary.accountCount > 0 || (loansSummary && loansSummary.activeCount > 0),
+          },
+          cards: {
+          check_ins: isHomeCardVisible("check_ins") && <Appear index={1}><CheckInsCard /></Appear>,
+          my_month: <Appear index={2}>
           <MyMonthCard
             showCashFlow={isHomeCardVisible("my_month")}
             budget={
@@ -498,11 +526,8 @@ export default function HomeScreen() {
                 : null
             }
           />
-        </Appear>
-
-        {/* Budget Health Card */}
-        {/* Recurring reminders — pending/overdue with auto-match suggestions. */}
-        {isHomeCardVisible("reminders") && dueReminders.length > 0 && (
+        </Appear>,
+          reminders: isHomeCardVisible("reminders") && dueReminders.length > 0 && (
           <Card className="mx-4 mt-3">
             <View className="flex-row items-center mb-2">
               <Ionicons name="repeat-outline" size={18} color={theme.primary} />
@@ -679,10 +704,8 @@ export default function HomeScreen() {
               );
             })}
           </Card>
-        )}
-
-        {/* Upcoming Dues — collapsible */}
-        {isHomeCardVisible("upcoming_dues") && upcomingDues.length > 0 && (
+        ),
+          upcoming_dues: isHomeCardVisible("upcoming_dues") && upcomingDues.length > 0 && (
           <View>
           <Card className="mx-4 mt-3">
             <Pressable
@@ -747,19 +770,8 @@ export default function HomeScreen() {
             )}
           </Card>
           </View>
-        )}
-
-
-
-        {/* ── People & Money ── */}
-        <View className="mx-4 mt-5 mb-1">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">
-            People & Money
-          </Text>
-        </View>
-
-        {/* Hisaab Quick Access */}
-        {isHomeCardVisible("hisaab") && <View>
+        ),
+          hisaab: isHomeCardVisible("hisaab") && <View>
         <Pressable onPress={() => router.push("/hisaab/persons")} accessibilityLabel="Open Hisaab family ledger" accessibilityRole="button">
           <Card className="mx-4 mt-2">
             <View className="flex-row items-center justify-between">
@@ -795,35 +807,24 @@ export default function HomeScreen() {
             </View>
           </Card>
         </Pressable>
-        </View>}
-
-        {/* Together: the household's month. Self-loading; hidden outside a household. */}
-        {isHomeCardVisible("household") && <HouseholdCard />}
-
-        {/* ── Your Accounts ── */}
-        {(ccAccounts.length > 0 || bankAccounts.length > 0 || walletAccounts.length > 0 || investmentSummary.accountCount > 0 || (loansSummary && loansSummary.activeCount > 0)) && (
-          <View className="mx-4 mt-5 mb-1">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">
-              Your Accounts
-            </Text>
-          </View>
-        )}
-        {isHomeCardVisible("credit_cards") && (
+        </View>,
+          household: isHomeCardVisible("household") && <HouseholdCard />,
+          credit_cards: isHomeCardVisible("credit_cards") && (
           <Appear index={3}>
             <CreditCardDashboard accounts={ccAccounts} expenseTotals={ccExpenseTotals} computedBalances={computedBalanceMap} />
           </Appear>
-        )}
-        {isHomeCardVisible("bank_balances") && (
+        ),
+          bank_balances: isHomeCardVisible("bank_balances") && (
           <Appear index={4}>
             <BankBalanceSummary accounts={bankAccounts} />
           </Appear>
-        )}
-        {isHomeCardVisible("wallets") && (
+        ),
+          wallets: isHomeCardVisible("wallets") && (
           <Appear index={5}>
             <WalletSummary accounts={walletAccounts} />
           </Appear>
-        )}
-        {isHomeCardVisible("investments") && (
+        ),
+          investments: isHomeCardVisible("investments") && (
           <Appear index={6}>
             <InvestmentsSummaryCard
               totalValue={investmentSummary.totalValue}
@@ -831,18 +832,20 @@ export default function HomeScreen() {
               breakdown={investmentSummary.breakdown}
             />
           </Appear>
-        )}
-        {isHomeCardVisible("loans") && loansSummary && loansSummary.activeCount > 0 && (
+        ),
+          loans: isHomeCardVisible("loans") && loansSummary && loansSummary.activeCount > 0 && (
           <Appear index={7}>
             <LoanSummaryCard summary={loansSummary} />
           </Appear>
-        )}
+        ),
+          },
+        })}
 
         </ScrollView>
 
-        {visitedHomePages.has(1) ? <InsightsPage /> : <View style={{ flex: 1 }} />}
-        {visitedHomePages.has(2) ? <SimulatorPage /> : <View style={{ flex: 1 }} />}
-        {visitedHomePages.has(3) ? <VaultPage showInlineAdd /> : <View style={{ flex: 1 }} />}
+        {isPartOn("insights") ? (visitedHomePages.has("insights") ? <InsightsPage /> : <View style={{ flex: 1 }} />) : null}
+        {isPartOn("simulator") ? (visitedHomePages.has("simulator") ? <SimulatorPage /> : <View style={{ flex: 1 }} />) : null}
+        {isPartOn("vault") ? (visitedHomePages.has("vault") ? <VaultPage showInlineAdd /> : <View style={{ flex: 1 }} />) : null}
       </SwipePager>
 
       <AccountPickerSheet

@@ -47,3 +47,21 @@ test("no match is no match", () => {
   expect(match("Zzz")).toBeUndefined();
   expect(categoryMatchScore("", "Food")).toBe(0);
 });
+
+describe("the icon on a shared transaction", () => {
+  const { categoryLook } = require("../../services/household/category-look");
+  const author = { icon: "medkit-outline", color: "#EF4444" };
+  const mine = [{ name: "Grocery & Supplies", icon: "basket-outline", color: "#111111" }];
+
+  test("whoever added it wins over my own category", () => {
+    expect(categoryLook(author, "Grocery & Supplies", mine)).toEqual(author);
+  });
+
+  test("without theirs: my category of that name or a close one, then a fitting icon, then none", () => {
+    expect(categoryLook(null, "Grocery & Supplies", mine)?.icon).toBe("basket-outline");
+    expect(categoryLook(null, "Groceries", mine)?.icon).toBe("basket-outline");
+    expect(categoryLook(null, "Health and medicine", mine)?.icon).toBe("medkit-outline");
+    expect(categoryLook(null, "Zzz", mine)).toBeNull();
+    expect(categoryLook(null, null, mine)).toBeNull();
+  });
+});

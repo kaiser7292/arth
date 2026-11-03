@@ -1,3 +1,5 @@
+import { isPartOn } from "@/services/customise";
+import { creditLook } from "@/services/expense-types";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { Badge, Button, Card, DateInput, FABMenu, FilterChip, Input, Money, PeriodNavigator, ScreenContainer, SearchField, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
@@ -423,7 +425,7 @@ const loadData = useCallback(async () => {
           type: "credit",
           amount: cr.amount,
           splitPersonName: null,
-          description: transactionTitle(cr, cr.category_id ? categoryNames.get(cr.category_id) : null, "Credit"),
+          description: transactionTitle(cr, creditLook(cr.credit_kind).name, "Credit"),
           merchant: cr.merchant_name,
           linkedHisaabPersonId: settlement?.personId,
           linkedHisaabPersonName: settlement?.personName,
@@ -760,6 +762,8 @@ const loadData = useCallback(async () => {
                   Reconcile
                 </Text>
               </Pressable>
+              {isPartOn("vault") && (
+              <>
               <View className="w-px" style={{ backgroundColor: colors.border }} />
               <Pressable
                 onPress={async () => {
@@ -784,6 +788,8 @@ const loadData = useCallback(async () => {
                   Credentials
                 </Text>
               </Pressable>
+              </>
+              )}
             </View>
           </Card>
 

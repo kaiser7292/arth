@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, Switch, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, Input, ScreenContainer, SelectSheet, Text, useToast } from "@/components/ui";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -26,6 +26,7 @@ export default function HouseholdCategoriesScreen() {
   const [mine, setMine] = useState<{ id: string; name: string }[]>([]);
   const [map, setMap] = useState<Map<string, string>>(new Map());
   const [picking, setPicking] = useState<{ id: string; name: string } | null>(null);
+  const [ruleFor, setRuleFor] = useState<HouseholdCategory | null>(null);
   const [newName, setNewName] = useState("");
   const [theirs, setTheirs] = useState<TheirCategory[]>([]);
   const [mappingTheirs, setMappingTheirs] = useState<TheirCategory | null>(null);
@@ -117,26 +118,25 @@ export default function HouseholdCategoriesScreen() {
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Household categories</Text>
           <Text className="text-xs text-muted-foreground mb-2 leading-4">
             {isCreator
-              ? "Arth's categories, so everyone's map by name. Spends in the ones marked shared are shared and split as they're approved."
-              : "Set by whoever started the household. Spends in the ones marked shared are shared and split as they're approved."}
+              ? "Arth's categories, so everyone's map by name. Always share: every spend shows in Together. Only when split: a spend shows once it's split with someone in the household."
+              : "Set by whoever started the household. Always share: every spend shows in Together. Only when split: a spend shows once it's split with someone in the household."}
           </Text>
           {hcats.map((c) => (
             <View key={c.id} className="flex-row items-center py-2 border-b border-border">
-              <View className="flex-1">
-                <Text className="text-sm text-foreground">{c.name}</Text>
-                {!isCreator && c.shared_default ? <Text className="text-xs" style={{ color: theme.primary }}>Shared by default</Text> : null}
-              </View>
-              {isCreator && (
-                <View className="flex-row items-center mr-3">
-                  <Text className="text-xs text-muted-foreground mr-1">Shared</Text>
-                  <Switch
-                    value={!!c.shared_default}
-                    onValueChange={(v) =>
-                      void saveList(hcats.map((x) => ({ id: x.id, name: x.name, shared: x.id === c.id ? v : !!x.shared_default })))
-                    }
-                    accessibilityLabel={`${c.name} shared by default`}
-                  />
-                </View>
+              <Text className="text-sm text-foreground flex-1">{c.name}</Text>
+              {isCreator ? (
+                <Pressable
+                  onPress={() => setRuleFor(c)}
+                  className="flex-row items-center mr-3"
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${c.name}: ${c.shared_default ? "always share" : "share only when split"}`}
+                >
+                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>{c.shared_default ? "Always" : "When split"}</Text>
+                  <Ionicons name="chevron-down" size={12} color={theme.primary} style={{ marginLeft: 2 }} />
+                </Pressable>
+              ) : (
+                <Text className="text-xs text-muted-foreground">{c.shared_default ? "Always" : "When split"}</Text>
               )}
               {isCreator && (
                 <Pressable
@@ -193,6 +193,21 @@ export default function HouseholdCategoriesScreen() {
           })}
         </Card>
       </ScrollView>
+
+      <SelectSheet<"always" | "split">
+        visible={!!ruleFor}
+        title={ruleFor ? `Share ${ruleFor.name}` : ""}
+        value={ruleFor ? (ruleFor.shared_default ? "always" : "split") : null}
+        options={[
+          { value: "always", label: "Always share", description: "Every spend shows in Together" },
+          { value: "split", label: "Share only when split", description: "A spend shows once it's split with someone in the household" },
+        ]}
+        onChange={(v) => {
+          if (!ruleFor) return;
+          void saveList(hcats.map((x) => ({ id: x.id, name: x.name, shared: x.id === ruleFor.id ? v === "always" : !!x.shared_default })));
+        }}
+        onClose={() => setRuleFor(null)}
+      />
 
       <SelectSheet<string>
         visible={!!picking}

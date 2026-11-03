@@ -242,6 +242,36 @@ test("start, invite, join with matching codes, approve", async () => {
   expect((await getMembers(ah.id)).map((m) => m.name).sort()).toEqual(["Aastha", "Sourav"]);
 });
 
+test("someone joining gets each category's sharing rule, not all of them shared", async () => {
+  const { getHouseholdCategories } = require("../../services/household/store");
+  on(aastha);
+  const list: { name: string; shared_default: number }[] = await getHouseholdCategories((await getActiveHousehold())!.id);
+  const rule = (name: string) => list.find((c) => c.name === name)?.shared_default;
+  expect(rule("Grocery & Supplies")).toBe(1);
+  expect(rule("Food")).toBe(0);
+});
+
+test("a shared transaction shows the icon of whoever added it, on every phone", async () => {
+  const { getStatement } = require("../../services/household/statement");
+  const setLook = (icon: string, color: string) =>
+    sourav.db.prepare("UPDATE categories SET icon = ?, color = ? WHERE name = 'Grocery'").run(icon, color);
+  const seen = async () => {
+    await sync(sourav);
+    await sync(aastha);
+    on(aastha);
+    const s = await getStatement(today().slice(0, 7));
+    return s.rows.find((r: { merchant: string | null }) => r.merchant === "BigBasket")?.look;
+  };
+  aastha.db.prepare("UPDATE categories SET icon = 'basket-outline', color = '#111111' WHERE name = 'Groceries'").run();
+
+  setLook("cart-outline", "#10B981");
+  expect(await seen()).toEqual({ icon: "cart-outline", color: "#10B981" });
+
+  // Changing it on their phone changes it everywhere.
+  setLook("nutrition-outline", "#65A30D");
+  expect(await seen()).toEqual({ icon: "nutrition-outline", color: "#65A30D" });
+});
+
 test("household spending is shown; bills split by hand are shared; each phone keeps its own Hisaab and budget in step", async () => {
   const { getMemberLinks } = require("../../services/household/shares");
   const { splitExistingExpense } = require("../../services/expense-splits");

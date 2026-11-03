@@ -20,7 +20,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="backup-restore" options={{ title: "Backup & Restore" }} />
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
       <Stack.Screen name="calendar-sync" options={{ title: "Calendar sync" }} />
-      <Stack.Screen name="home-cards" options={{ title: "Home Cards" }} />
+      <Stack.Screen name="customise" options={{ title: "Customise Arth" }} />
       <Stack.Screen name="transaction-messages" options={{ title: "Transaction Messages" }} />
       <Stack.Screen name="merchants" options={{ title: "Merchants" }} />
       <Stack.Screen name="merchant-detail" options={{ title: "Merchant" }} />

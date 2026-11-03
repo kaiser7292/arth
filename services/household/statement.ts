@@ -14,6 +14,8 @@ export interface StatementRow {
   date: string;
   merchant: string | null;
   category: string | null;
+  /** The icon and colour of the category on the phone of whoever added it. */
+  look: { icon: string; color: string } | null;
   paid: number;
   /** From my side. */
   relation: { kind: "you_owe" | "owes_you" | "shared" | "personal" | "settle"; amount: number; with?: string };
@@ -36,7 +38,7 @@ export interface Statement {
 
 const extraOf = (
   i: HouseholdItem,
-): { owes?: Record<string, number>; split?: string; shared?: number; payer?: string; payee?: string; amount?: number; paidBy?: string } => {
+): { icon?: string; color?: string; owes?: Record<string, number>; split?: string; shared?: number; payer?: string; payee?: string; amount?: number; paidBy?: string } => {
   try {
     return i.payload_json ? JSON.parse(i.payload_json) : {};
   } catch {
@@ -91,6 +93,7 @@ export async function getStatement(month: string): Promise<Statement | null> {
         date: (i.date ?? "").slice(0, 10),
         merchant: i.merchant,
         category: i.category_name,
+        look: typeof x.icon === "string" && typeof x.color === "string" && /^#[0-9a-f]{6}$/i.test(x.color) ? { icon: x.icon, color: x.color } : null,
         paid,
         relation,
         split: (x.split as string) ?? null,
@@ -107,6 +110,7 @@ export async function getStatement(month: string): Promise<Statement | null> {
         date: (i.date ?? "").slice(0, 10),
         merchant: `Settle-up to ${payee.id === me ? "you" : payee.name}`,
         category: null,
+        look: null,
         paid: x.amount ?? i.paid ?? 0,
         relation: { kind: "settle", amount: x.amount ?? 0 },
         split: null,

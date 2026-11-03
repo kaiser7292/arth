@@ -1,3 +1,4 @@
+import { isPathOn } from "@/services/customise";
 import { Platform } from "react-native";
 import { getFlag } from "@/services/feature-flags";
 
@@ -197,7 +198,9 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   add("app-lock", "Turn on app lock", "lock-closed-outline", "/settings/security", "fingerprint face"),
   add("notifications", "Change notifications", "notifications-outline", "/settings/notifications", "alerts"),
   add("calendar", "Sync to calendar", "calendar-outline", "/settings/calendar-sync", "dues"),
-  add("home-cards", "Show or hide Home cards", "grid-outline", "/settings/home-cards", "customise"),
+  add("home-cards", "Show or hide Home cards", "grid-outline", "/settings/customise", "customise"),
+  add("reorder-cards", "Reorder Home cards", "reorder-four-outline", "/settings/customise", "move order arrange customise"),
+  add("switch-off", "Switch off a feature or tab", "options-outline", "/settings/customise", "hide remove disable vault simulator insights hisaab loans investments together budget goals tab customise"),
   add("region", "Change region or currency", "globe-outline", "/settings/region", "language date"),
   add("fy", "Change financial year", "calendar-outline", "/settings/region", "april start"),
   add("theme", "Change theme", "contrast-outline", SET, "dark light mode"),
@@ -277,7 +280,7 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   go("messages", "Transaction messages", "chatbubbles-outline", "/settings/transaction-messages", "sms"),
   go("iphone", "iPhone bank messages", "phone-portrait-outline", "/settings/iphone-bank-messages", "shortcut", undefined, "ios"),
   go("voice", "Voice input", "mic-outline", "/settings/voice-input"),
-  go("cards-setting", "Home cards", "grid-outline", "/settings/home-cards"),
+  go("cards-setting", "Customise Arth", "options-outline", "/settings/customise", "home cards tabs features"),
   go("region-go", "Region", "globe-outline", "/settings/region"),
   go("notif-go", "Notifications", "notifications-outline", "/settings/notifications"),
   go("calendar-go", "Calendar sync", "calendar-outline", "/settings/calendar-sync"),
@@ -305,6 +308,7 @@ export const SUGGESTED_ACTION_IDS = ["add-expense", "add-investment", "add-goal"
 
 export function availableCatalog(): CatalogEntry[] {
   return SEARCH_CATALOG.filter((e) => {
+    if (e.target && !isPathOn(e.target.pathname)) return false;
     if (e.only === "household") return getFlag("household");
     if (e.only === "ios") return Platform.OS === "ios";
     if (e.only === "android") return Platform.OS === "android";

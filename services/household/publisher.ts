@@ -56,6 +56,8 @@ interface SpendRow {
   date: string;
   category_id: string | null;
   category_name: string | null;
+  category_icon: string | null;
+  category_color: string | null;
   merchant_name: string | null;
   description: string | null;
   transaction_time: string | null;
@@ -65,7 +67,7 @@ interface SpendRow {
 
 async function spendRows(userId: string, from: string): Promise<SpendRow[]> {
   return getDatabase().getAllAsync<SpendRow>(
-    `SELECT e.id, e.date, e.category_id, c.name AS category_name, e.merchant_name, e.description, e.transaction_time,
+    `SELECT e.id, e.date, e.category_id, c.name AS category_name, c.icon AS category_icon, c.color AS category_color, e.merchant_name, e.description, e.transaction_time,
             CASE WHEN e.split_original_amount > 0 THEN e.split_original_amount ELSE e.amount END AS gross,
             ${effectiveAmountSql("e")} AS effective
      FROM expenses e
@@ -113,6 +115,8 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
     const info = shared.get(r.id);
     const hcatName = r.category_id ? hcats.get(map.get(r.category_id) ?? "") : undefined;
     if (info || choices.allTransactions) {
+      // How the category looks on my phone: the person who added a transaction decides its icon.
+      const look = r.category_icon && r.category_color ? { icon: r.category_icon, color: r.category_color } : {};
       const id = txId(r.id);
       localRefs.set(id, r.id);
       items.push({
@@ -136,8 +140,9 @@ export async function desiredItems(h: Household, userId: string = DEFAULT_USER_I
               time: r.transaction_time ?? null,
               // Their own category too, in case the household one doesn't match anything on the other phone.
               ownCategory: r.category_name ?? null,
+              ...look,
             }
-          : undefined,
+          : look,
       });
     }
   }

@@ -271,7 +271,7 @@ export async function fixedSplitNote(h: Household, expenseId: string): Promise<s
     const amount = `₹${Math.round(r.amount).toLocaleString("en-IN")}`;
     if (r.household_ref) return `${who} recorded this bill as paid by you. ${who} owes you ${amount}, on both phones.`;
     if (r.type === "credit") return `${who} paid this. You owe ${who} ${amount}, and it shows as ${who}'s bill to the household.`;
-    if (r.type === "debit") return `Split with ${who}: ${who} owes you ${amount}, on both phones. Change or remove it from the split above.`;
+    if (r.type === "debit") return `Split with ${who}: ${who} owes you ${amount}, on both phones. Edit or remove it from the split above.`;
   }
   return null;
 }

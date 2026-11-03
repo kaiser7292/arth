@@ -1,3 +1,4 @@
+import { FeatureGate } from "@/components/FeatureOff";
 import { useStackScreenOptions } from "@/components/ui/stack-options";
 import { Stack } from "expo-router";
 
@@ -5,6 +6,7 @@ export default function VaultLayout() {
   const screenOptions = useStackScreenOptions();
 
   return (
+    <FeatureGate feature="vault">
     <Stack
       screenOptions={screenOptions}
     >
@@ -12,5 +14,6 @@ export default function VaultLayout() {
       <Stack.Screen name="add" options={{ title: "New Entry" }} />
       <Stack.Screen name="[entryId]" options={{ title: "Entry" }} />
     </Stack>
+    </FeatureGate>
   );
 }

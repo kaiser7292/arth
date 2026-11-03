@@ -6,8 +6,24 @@ import { useTheme } from "@/hooks/use-theme";
 import { getCreditSalaryMonth, setCreditSalaryMonth, shiftMonth } from "@/services/salary-periods";
 import { formatMonthLabel } from "@/utils/date";
 
-/** On a salary credit: which month it counts for, for the odd one that lands either side of a month end. */
-export function CreditSalaryMonth({ expenseId, date, override }: { expenseId: string; date: string; override: string | null | undefined }) {
+/**
+ * On a salary credit: which month it counts for, for the odd one that lands either side of a month
+ * end. Saves straight away given `expenseId`; in a form, `onChange` hands the choice to the form
+ * (null = what the setting says).
+ */
+export function CreditSalaryMonth({
+  expenseId,
+  date,
+  override,
+  onChange,
+  className = "mt-3",
+}: {
+  expenseId?: string;
+  date: string;
+  override: string | null | undefined;
+  onChange?: (month: string | null) => void;
+  className?: string;
+}) {
   const theme = useTheme();
   const [selected, setSelected] = useState<string | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
@@ -30,13 +46,15 @@ export function CreditSalaryMonth({ expenseId, date, override }: { expenseId: st
   const options = [shiftMonth(own, -1), own, shiftMonth(own, 1)];
   const choose = async (m: string) => {
     setSelected(m);
-    await setCreditSalaryMonth(expenseId, m === fallback ? null : m);
+    const value = m === fallback ? null : m;
+    onChange?.(value);
+    if (expenseId) await setCreditSalaryMonth(expenseId, value);
   };
   // Any other month and year, as a fallback for a salary paid well outside its period.
   const elsewhere = !options.includes(selected);
 
   return (
-    <Card className="mt-3">
+    <Card className={className}>
       <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Income counts for</Text>
       <View className="flex-row" style={{ gap: 8 }}>
         {options.map((m) => {

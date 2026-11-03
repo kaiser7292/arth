@@ -1,3 +1,6 @@
+import { isPartOn } from "@/services/customise";
+import { useCustomisation } from "@/hooks/use-customisation";
+import { CREDIT_KIND_LABELS, CREDIT_KINDS, creditLook } from "@/services/expense-types";
 import { restoreExpense } from "@/services/expense-crud";
 import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
@@ -92,6 +95,10 @@ const NATURE_TABS: SwipePagerPage[] = [
 
 export default function ExpensesScreen() {
   const alert = useAlert();
+  useCustomisation();
+  const natureTabs = NATURE_TABS.filter(
+    (t) => (t.key !== "committed" || isPartOn("tx_committed")) && (t.key !== "transfers" || isPartOn("tx_transfers")),
+  );
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -113,12 +120,11 @@ export default function ExpensesScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [summary, setSummary] = useState<FilteredSummary | null>(null);
   const [previousTotal, setPreviousTotal] = useState<number | null>(null);
-  const [summaryGroupBy, setSummaryGroupBy] = useState<"category" | "account" | "payment_mode" | "merchant">("category");
+  const [summaryGroupBy, setSummaryGroupBy] = useState<"category" | "account" | "payment_mode" | "merchant" | "type">("category");
   // Track last user-picked group-by per nature so switching Expenses↔Credits
-  // doesn't force the user to re-pick. Credits default to "account" since
-  // most credits don't carry a category.
-  const groupByForRealizedRef = useRef<"category" | "account" | "payment_mode" | "merchant">("category");
-  const groupByForCreditRef = useRef<"category" | "account" | "payment_mode" | "merchant">("account");
+  // doesn't force the user to re-pick. Credits group by their type: they don't have a category.
+  const groupByForRealizedRef = useRef<"category" | "account" | "payment_mode" | "merchant" | "type">("category");
+  const groupByForCreditRef = useRef<"category" | "account" | "payment_mode" | "merchant" | "type">("type");
 
   // Date filter — dynamic presets
   const [datePreset, setDatePreset] = useState<DatePreset>("this_month");
@@ -137,6 +143,7 @@ export default function ExpensesScreen() {
   // Debounce search so every keystroke doesn't refire the 5-query load.
   const debouncedSearch = useDebouncedValue(search, 300);
   const [filterCategoryIds, setFilterCategoryIds] = useState<string[]>([]);
+  const [filterCreditKinds, setFilterCreditKinds] = useState<string[]>([]);
   const [filterPaymentModeIds, setFilterPaymentModeIds] = useState<string[]>([]);
   const [filterAccountIds, setFilterAccountIds] = useState<string[]>([]);
   const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
@@ -233,6 +240,7 @@ export default function ExpensesScreen() {
     filterStartDate,
     filterEndDate,
     filterCategoryIds.join(","),
+    filterCreditKinds.join(","),
     filterPaymentModeIds.join(","),
     filterAccountIds.join(","),
     filterTagIds.join(","),
@@ -290,6 +298,7 @@ export default function ExpensesScreen() {
           endDate: filterEndDate,
           search: debouncedSearch.trim() || undefined,
           categoryIds: filterCategoryIds.length > 0 ? filterCategoryIds : undefined,
+          creditKinds: filterCreditKinds.length > 0 ? filterCreditKinds : undefined,
           paymentModeIds: filterPaymentModeIds.length > 0 ? filterPaymentModeIds : undefined,
           accountIds: filterAccountIds.length > 0 ? filterAccountIds : undefined,
           tagIds: filterTagIds.length > 0 ? filterTagIds : undefined,
@@ -440,7 +449,7 @@ export default function ExpensesScreen() {
   }, [hasMore, loading, loadExpenses]);
 
   const handleNatureChange = useCallback((index: number) => {
-    const tab = NATURE_TABS[index];
+    const tab = natureTabs[index];
     if (!tab) return;
     const newKey = tab.key as typeof filterNature;
     if (newKey === filterNature) return;
@@ -454,11 +463,12 @@ export default function ExpensesScreen() {
     }
     if (newKey === "transfers") {
       setFilterCategoryIds([]);
+      setFilterCreditKinds([]);
       setFilterPaymentModeIds([]);
       setFilterTagIds([]);
       setFilterMerchantNames([]);
     }
-  }, [filterNature, summaryGroupBy]);
+  }, [filterNature, summaryGroupBy, natureTabs]);
 
   const clearFilters = useCallback(() => {
     setDatePreset("this_month");
@@ -466,6 +476,7 @@ export default function ExpensesScreen() {
     setCustomEndDate("");
     setSearch("");
     setFilterCategoryIds([]);
+    setFilterCreditKinds([]);
     setFilterPaymentModeIds([]);
     setFilterAccountIds([]);
     setFilterTagIds([]);
@@ -489,6 +500,7 @@ export default function ExpensesScreen() {
       else setCustomEndDate("");
       setFilterNature(f.nature ?? "realized");
       setFilterCategoryIds(f.categoryIds ?? []);
+      setFilterCreditKinds(f.creditKinds ?? []);
       setFilterPaymentModeIds(f.paymentModeIds ?? []);
       setFilterAccountIds(f.accountIds ?? []);
       setFilterTagIds(f.tagIds ?? []);
@@ -509,6 +521,7 @@ export default function ExpensesScreen() {
     customEndDate: customEndDate || undefined,
     nature: filterNature,
     categoryIds: filterCategoryIds,
+    creditKinds: filterCreditKinds,
     paymentModeIds: filterPaymentModeIds,
     accountIds: filterAccountIds,
     tagIds: filterTagIds,
@@ -620,8 +633,12 @@ export default function ExpensesScreen() {
     setIsVoiceSearching(false);
   }, []);
 
-  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || !!filterStatus;
-  const activeNatureIndex = NATURE_TABS.findIndex((t) => t.key === filterNature);
+  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterCreditKinds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || !!filterStatus;
+  const activeNatureIndex = Math.max(0, natureTabs.findIndex((t) => t.key === filterNature));
+  // The tab showing was just switched off, or a saved view points at one that is.
+  useEffect(() => {
+    if (!natureTabs.some((t) => t.key === filterNature)) setFilterNature("realized");
+  }, [natureTabs, filterNature]);
   const hasActiveFilters = hasNonDateFilters || datePreset !== "this_month";
 
   const handleItemPress = useCallback(
@@ -1072,7 +1089,9 @@ export default function ExpensesScreen() {
         visible={showFilters}
         sections={[
           // Each list starts with "No ..." (NOT_SET): transactions with nothing set there.
-          { key: "category", label: "Category", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.category }, ...categories.map((c) => ({ id: c.id, label: c.name }))], selectedIds: filterCategoryIds, searchable: true },
+          ...(filterNature === "credit"
+            ? [{ key: "creditKind", label: "Type", type: "multi" as const, options: CREDIT_KINDS.map((k) => ({ id: k as string, label: CREDIT_KIND_LABELS[k] })), selectedIds: filterCreditKinds }]
+            : [{ key: "category", label: "Category", type: "multi" as const, options: [{ id: NOT_SET, label: NOT_SET_LABELS.category }, ...categories.map((c) => ({ id: c.id, label: c.name }))], selectedIds: filterCategoryIds, searchable: true },]),
           { key: "paymentMode", label: "Payment Mode", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.paymentMode }, ...paymentModes.map((p) => ({ id: p.id, label: p.name }))], selectedIds: filterPaymentModeIds },
           { key: "account", label: "Account", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.account }, ...accounts.map((a) => ({ id: a.id, label: `${a.bank_name} ****${a.account_identifier}` }))], selectedIds: filterAccountIds, searchable: true },
           { key: "tags", label: "Tags", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.tags }, ...allTags.map((t) => ({ id: t.id, label: t.name, color: t.color }))], selectedIds: filterTagIds },
@@ -1088,6 +1107,7 @@ export default function ExpensesScreen() {
         ]}
         onApply={(selections) => {
           setFilterCategoryIds(selections.category ?? []);
+          setFilterCreditKinds(selections.creditKind ?? []);
           setFilterPaymentModeIds(selections.paymentMode ?? []);
           setFilterAccountIds(selections.account ?? []);
           setFilterTagIds(selections.tags ?? []);
@@ -1099,6 +1119,7 @@ export default function ExpensesScreen() {
         }}
         onReset={() => {
           setFilterCategoryIds([]);
+          setFilterCreditKinds([]);
           setFilterPaymentModeIds([]);
           setFilterAccountIds([]);
           setFilterTagIds([]);
@@ -1115,6 +1136,12 @@ export default function ExpensesScreen() {
       {/* Active filters — subtle inline text with × */}
       {hasNonDateFilters && !showFilters && (
         <View className="px-4 pb-2 flex-row flex-wrap">
+          {filterCreditKinds.map((k) => (
+            <Pressable key={`kind-${k}`} onPress={() => setFilterCreditKinds((prev) => prev.filter((x) => x !== k))} className="flex-row items-center mr-3 mb-1">
+              <Text className="text-label text-faint-foreground">{creditLook(k).name}</Text>
+              <Ionicons name="close" size={10} color={colors.textSecondary} style={{ marginLeft: 2 }} />
+            </Pressable>
+          ))}
           {filterCategoryIds.map((id) => {
             const name = id === NOT_SET ? NOT_SET_LABELS.category : categoryMap.get(id)?.name;
             if (!name) return null;
@@ -1193,7 +1220,7 @@ export default function ExpensesScreen() {
 
       {/* Nature tabs + transaction list */}
       <SwipePager
-        pages={NATURE_TABS}
+        pages={natureTabs}
         activeIndex={activeNatureIndex}
         onIndexChange={handleNatureChange}
         trailing={
@@ -1211,7 +1238,7 @@ export default function ExpensesScreen() {
           </View>
         }
       >
-        {NATURE_TABS.map((page, pageIdx) => (
+        {natureTabs.map((page, pageIdx) => (
           <View key={page.key} style={{ flex: 1 }}>
             {activeNatureIndex === pageIdx ? (
               filterNature === "transfers" ? (
@@ -1276,6 +1303,8 @@ export default function ExpensesScreen() {
                         groupLabelHeader={
                           summaryGroupBy === "category"
                             ? "Category"
+                            : summaryGroupBy === "type"
+                              ? "Type"
                             : summaryGroupBy === "account"
                               ? "Account"
                               : summaryGroupBy === "merchant"
@@ -1283,6 +1312,7 @@ export default function ExpensesScreen() {
                                 : "Payment Mode"
                         }
                         resolveGroupLabel={(key) => {
+                          if (summaryGroupBy === "type") return creditLook(key).name;
                           if (!key) return summaryGroupBy === "merchant" ? "No merchant" : "Uncategorized";
                           if (summaryGroupBy === "category") {
                             const hidden = hiddenCategoryNames.get(key);
@@ -1301,9 +1331,10 @@ export default function ExpensesScreen() {
                         natureKind={filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : ("realized" as const)}
                         availableGroupBys={
                           filterNature === "credit"
-                            ? (["account", "payment_mode", "merchant"] as const)
+                            ? (["type", "account", "merchant"] as const)
                             : (["category", "account", "payment_mode", "merchant"] as const)
                         }
+                        groupByLabels={{ type: "Type" }}
                       />
                     ) : null
                   }

@@ -246,7 +246,7 @@ export async function approveJoin(req: JoinRequest): Promise<void> {
     key: toBase64(key),
     memberId: newMember.id,
     members: [...members.map(toMemberPublic), newMember],
-    categories: (await getHouseholdCategories(h.id)).map((c) => ({ id: c.id, name: c.name })),
+    categories: (await getHouseholdCategories(h.id)).map((c) => ({ id: c.id, name: c.name, shared: !!c.shared_default })),
   };
   await relay.postAccept(h.relay_url, relayToken(key), req.inviteId, sealTo(bundle, req.boxPublic, mine.boxSecret));
 
@@ -366,7 +366,7 @@ interface AcceptBundle {
   key: string;
   memberId: string;
   members: MemberPublic[];
-  categories: { id: string; name: string }[];
+  categories: { id: string; name: string; shared?: boolean }[];
 }
 
 /** Checks whether the inviting phone approved; on approval sets the household up on this phone. */

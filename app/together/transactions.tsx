@@ -10,6 +10,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getCategories, type Category } from "@/services/category";
+import { categoryLook } from "@/services/household/category-look";
 import { NOT_SET, NOT_SET_LABELS } from "@/services/expense-types";
 import { getStatement, type Statement, type StatementRow } from "@/services/household/statement";
 import { syncHousehold } from "@/services/household/sync";
@@ -63,16 +64,14 @@ export default function TogetherTransactionsScreen() {
   const [s, setS] = useState<Statement | null>(null);
   const [previous, setPrevious] = useState<Statement | null>(null);
   const [viewing, setViewing] = useState<StatementRow | null>(null);
-  const [categoryByName, setCategoryByName] = useState<Map<string, Category>>(new Map());
+  const [myCategories, setMyCategories] = useState<Category[]>([]);
 
   useDataRefresh(
     useCallback(async () => {
       setS(await getStatement(month));
       // Only the trend line and icons depend on these, so neither can stop the list loading.
       getStatement(monthBefore(month)).then(setPrevious).catch(() => setPrevious(null));
-      getCategories(DEFAULT_USER_ID)
-        .then((list) => setCategoryByName(new Map(list.map((c) => [c.name.toLowerCase(), c]))))
-        .catch(() => {});
+      getCategories(DEFAULT_USER_ID).then(setMyCategories).catch(() => {});
     }, [month]),
   );
 
@@ -140,10 +139,10 @@ export default function TogetherTransactionsScreen() {
           </View>
         );
       }
-      const category = item.row.category ? categoryByName.get(item.row.category.toLowerCase()) : null;
+      const category = categoryLook(item.row.look, item.row.category, myCategories);
       return <StatementRowItem row={item.row} myMemberId={me} category={category} onView={setViewing} />;
     },
-    [categoryByName, me],
+    [myCategories, me],
   );
 
   return (

@@ -1,3 +1,5 @@
+import { isPartOn } from "@/services/customise";
+import { useCustomisation } from "@/hooks/use-customisation";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { Shadows } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -19,6 +21,7 @@ export default function TabLayout() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReduceMotion();
+  useCustomisation();
   const [pendingCount, setPendingCount] = useState(0);
 
   const refreshPending = useCallback(async () => {
@@ -105,6 +108,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="budget"
         options={{
+          href: isPartOn("budget") ? undefined : null,
           title: "Budget",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="wallet-outline" size={size} color={color} />
@@ -114,6 +118,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="goals"
         options={{
+          href: isPartOn("goals") ? undefined : null,
           title: "Goals",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="trophy-outline" size={size} color={color} />

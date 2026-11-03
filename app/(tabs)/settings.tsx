@@ -1,3 +1,5 @@
+import { isPartOn } from "@/services/customise";
+import { useCustomisation } from "@/hooks/use-customisation";
 import { Card, ContextualHeader, ScreenContainer, Text } from "@/components/ui";
 import { PressableScale } from "@/components/motion";
 
@@ -63,6 +65,7 @@ function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor }: Se
 }
 
 export default function SettingsScreen() {
+  useCustomisation();
   const alert = useAlert();
   const router = useRouter();
   const { colorScheme, setColorScheme, colors } = useColorScheme();
@@ -134,17 +137,19 @@ export default function SettingsScreen() {
             <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log")} />
           </Card>
 
-          {getFlag("household") && (
+          {getFlag("household") && isPartOn("together") && (
             <Card title="Together" className="mb-4">
               <SettingsRow icon="people-outline" label="Household" subtitle="Share household spending with your partner or family" onPress={() => router.push("/settings/household")} />
             </Card>
           )}
 
+          {isPartOn("investments") && (
           <Card title="Integrations" className="mb-4">
             <SettingsRow icon="trending-up-outline" label="Zerodha Kite" subtitle="Connect your Zerodha account to sync portfolio" onPress={() => router.push("/settings/kite-connect")} />
             <SettingsRow icon="bar-chart-outline" label="Angel One" subtitle="Connect your Angel One account to sync portfolio" onPress={() => router.push("/settings/angel-connect" as any)} />
             <SettingsRow icon="logo-bitcoin" label="Zebpay" subtitle="Connect your Zebpay account to view crypto portfolio" onPress={() => router.push("/settings/zebpay-connect" as any)} />
           </Card>
+          )}
 
           <Card title="Backup and Data" className="mb-4">
             <SettingsRow icon="cloud-upload-outline" label="Backup and Data" subtitle={backupLine} onPress={() => router.push("/settings/backup-data")} />
@@ -154,7 +159,7 @@ export default function SettingsScreen() {
             <SettingsRow icon="globe-outline" label="Region" subtitle="Currency, date format, number format, fiscal year" onPress={() => router.push("/settings/region")} />
             <SettingsRow icon="notifications-outline" label="Notifications" subtitle="SMS scan alerts, due reminders" onPress={() => router.push("/settings/notifications")} />
             <SettingsRow icon="calendar-outline" label="Calendar sync" subtitle="Bills, EMIs and reminders in your calendar" onPress={() => router.push("/settings/calendar-sync")} />
-            <SettingsRow icon="grid-outline" label="Home Cards" subtitle="Show or hide any card on the Home screen" onPress={() => router.push("/settings/home-cards")} />
+            <SettingsRow icon="options-outline" label="Customise Arth" subtitle="Switch off what you don't use, and order your Home cards" onPress={() => router.push("/settings/customise")} />
             <SettingsRow icon="lock-closed-outline" label="Security" subtitle="App lock with biometric authentication" onPress={() => router.push("/settings/security")} />
             <>
               <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground mt-4 mb-2">Theme</Text>

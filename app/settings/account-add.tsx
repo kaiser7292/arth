@@ -1,3 +1,4 @@
+import { isPartOn } from "@/services/customise";
 import { useState, useRef } from "react";
 import { View, ScrollView, Pressable, Keyboard } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -159,7 +160,7 @@ export default function AccountAddScreen() {
         }
 
         // Offer to add credentials for banking accounts
-        if (accountType === "savings" || accountType === "credit_card" || accountType === "loan") {
+        if (isPartOn("vault") && (accountType === "savings" || accountType === "credit_card" || accountType === "loan")) {
           const buttons: AlertButton[] = [
             {
               text: "Add credentials",

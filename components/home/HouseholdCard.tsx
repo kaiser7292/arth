@@ -18,7 +18,7 @@ const thisMonth = () => {
 /**
  * Home → People & Money: the household, in the same shape as the Hisaab card. Spent together this
  * month and who owes whom; opens Together. Self-loading; hidden outside a household, and from
- * Settings → Home Cards ("household").
+ * Settings → Customise Arth ("household").
  */
 export function HouseholdCard() {
   const router = useRouter();

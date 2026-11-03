@@ -4,6 +4,7 @@ import { transactionTitle } from "@/utils/transaction-title";
 import { Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { Category } from "@/services/category";
+import { creditLook } from "@/services/expense-types";
 import type { Expense } from "@/services/expense";
 import { classifyRefund } from "@/services/expense";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -45,6 +46,7 @@ function ExpenseListItemInner({
   const { colors } = useColorScheme();
   const theme = useTheme();
   const isPending = expense.status === "pending_review";
+  const look = expense.nature === "credit" ? creditLook(expense.credit_kind) : category;
   // For split expenses, the refund is against the full original charge, not just the user's share.
   const originalForRefund = expense.split_original_amount ?? expense.amount;
   const refundState = classifyRefund(originalForRefund, refundedAmount);
@@ -74,21 +76,21 @@ function ExpenseListItemInner({
       onLongPress={onLongPress}
       className="flex-row items-center px-4 py-3.5 border-b border-border"
     >
-      {/* Category icon */}
+      {/* Category icon, or the credit's type */}
       <View
         className="w-10 h-10 rounded-full items-center justify-center mr-3"
         style={{
-          backgroundColor: category ? category.color + "14" : colors.textSecondary + "14",
+          backgroundColor: look ? look.color + "14" : colors.textSecondary + "14",
         }}
       >
         <Ionicons
           name={
-            category
-              ? (category.icon as keyof typeof Ionicons.glyphMap)
+            look
+              ? (look.icon as keyof typeof Ionicons.glyphMap)
               : "receipt-outline"
           }
           size={20}
-          color={category ? category.color : colors.textSecondary}
+          color={look ? look.color : colors.textSecondary}
         />
       </View>
 
@@ -99,7 +101,7 @@ function ExpenseListItemInner({
             className="text-sm font-semibold text-foreground shrink"
             numberOfLines={1}
           >
-            {transactionTitle(expense, category?.name)}
+            {transactionTitle(expense, look?.name)}
           </Text>
           {isPending && (
             <View

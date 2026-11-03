@@ -1,3 +1,4 @@
+import { FeatureGate } from "@/components/FeatureOff";
 import { useStackScreenOptions } from "@/components/ui/stack-options";
 import { Stack } from "expo-router";
 
@@ -10,6 +11,7 @@ export default function SimulatorStackLayout() {
   const screenOptions = useStackScreenOptions();
 
   return (
+    <FeatureGate feature="simulator">
     <Stack
       screenOptions={screenOptions}
     >
@@ -17,5 +19,6 @@ export default function SimulatorStackLayout() {
       <Stack.Screen name="[id]" options={{ title: "" }} />
       <Stack.Screen name="[id]/entry" options={{ title: "Add Planned Entry" }} />
     </Stack>
+    </FeatureGate>
   );
 }

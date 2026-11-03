@@ -95,7 +95,7 @@ export interface Expense {
 
 export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip" | "investment_withdrawal";
 
-export const CREDIT_KINDS = ["salary", "bonus", "interest", "refund", "cashback", "reimbursement", "gift", "gain", "other"] as const;
+export const CREDIT_KINDS = ["salary", "bonus", "interest", "dividend", "rent", "refund", "cashback", "reimbursement", "gift", "gain", "other"] as const;
 export type CreditKind = (typeof CREDIT_KINDS)[number];
 
 export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
@@ -107,8 +107,36 @@ export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
   reimbursement: "Reimbursement",
   gift: "Gift",
   gain: "Investment gain",
+  dividend: "Dividend",
+  rent: "Rent received",
   other: "Other",
 };
+
+/** A credit's look comes from its type, not a category. */
+export const CREDIT_KIND_LOOKS: Record<CreditKind, { icon: string; color: string }> = {
+  salary: { icon: "briefcase-outline", color: "#16A34A" },
+  bonus: { icon: "star-outline", color: "#D97706" },
+  interest: { icon: "trending-up-outline", color: "#0D9488" },
+  dividend: { icon: "pie-chart-outline", color: "#7C3AED" },
+  rent: { icon: "key-outline", color: "#B45309" },
+  refund: { icon: "return-down-back-outline", color: "#2563EB" },
+  cashback: { icon: "cash-outline", color: "#059669" },
+  reimbursement: { icon: "receipt-outline", color: "#0284C7" },
+  gift: { icon: "gift-outline", color: "#DB2777" },
+  gain: { icon: "stats-chart-outline", color: "#4F46E5" },
+  other: { icon: "ellipsis-horizontal-circle-outline", color: "#6B7280" },
+};
+
+/** The type a credit shows: one with none set reads as Other. */
+export function creditKindOf(kind: string | null | undefined): CreditKind {
+  return (CREDIT_KINDS as readonly string[]).includes(kind ?? "") ? (kind as CreditKind) : "other";
+}
+
+/** What a credit shows in place of a category. */
+export function creditLook(kind: string | null | undefined): { name: string; icon: string; color: string } {
+  const k = creditKindOf(kind);
+  return { name: CREDIT_KIND_LABELS[k], ...CREDIT_KIND_LOOKS[k] };
+}
 
 export interface CreateExpenseInput {
   user_id: string;
@@ -196,6 +224,8 @@ export interface ExpenseFilters {
   refundedStatus?: "refunded" | "not_refunded";
   /** Filter by is_right_spend: 'avoidable' = 0, 'unavoidable' = 1, 'unclassified' = not set yet. */
   avoidability?: "avoidable" | "unavoidable" | "unclassified";
+  /** Credits of these types. A credit with no type counts as "other". */
+  creditKinds?: string[];
   /** Filter by merchant name (exact match from distinct list). */
   merchantNames?: string[];
   /** Filter by smart rule ID — matches expenses where any of these rules fired. */

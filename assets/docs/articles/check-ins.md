@@ -35,7 +35,7 @@ phrasings:
 
 When you finish one, Arth moves you on to the next check-in that has cards. After the last one you see **You're all caught up**, with a summary and a **Back to Home** button.
 
-To hide the card, go to Settings tab → Preferences & Security → Home Cards → **Check-ins**.
+To hide the card, go to Settings tab → Preferences & Security → Customise Arth → **Check-ins**.
 
 ## Month-end check
 

@@ -1,3 +1,4 @@
+import { backfillCreditKinds } from "@/database/credit-kind-backfill";
 import { exportSettings, importSettings, type SettingValue } from "@/services/backup-settings";
 import { getDatabase } from "@/database";
 import { TABLE_SCHEMAS } from "@/database/TABLE_SCHEMAS";
@@ -695,6 +696,9 @@ export async function restoreFromData(
             AND id IN (SELECT hisaab_entry_id FROM expense_splits WHERE hisaab_entry_id IS NOT NULL);
         `);
       } catch { /* expense_splits may not exist */ }
+
+      // Post-restore: credits from older backups get the type they show (migration 091).
+      await backfillCreditKinds(db);
 
       // Post-restore: Phase 2 investment-account conversion (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
       // section 4). A backup taken before this shipped still has account_type='demat'/'pension'

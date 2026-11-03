@@ -1,3 +1,4 @@
+import { FeatureGate } from "@/components/FeatureOff";
 import { useStackScreenOptions } from "@/components/ui/stack-options";
 import { Stack } from "expo-router";
 
@@ -5,6 +6,7 @@ export default function TogetherLayout() {
   const screenOptions = useStackScreenOptions();
 
   return (
+    <FeatureGate feature="together">
     <Stack screenOptions={screenOptions}>
       <Stack.Screen name="index" options={{ title: "Together" }} />
       <Stack.Screen name="settle" options={{ title: "Settle Up" }} />
@@ -12,5 +14,6 @@ export default function TogetherLayout() {
       <Stack.Screen name="goal" options={{ title: "Shared Goal" }} />
       <Stack.Screen name="transactions" options={{ title: "Shared Transactions" }} />
     </Stack>
+    </FeatureGate>
   );
 }

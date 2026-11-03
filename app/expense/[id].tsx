@@ -1,3 +1,4 @@
+import { isPartOn } from "@/services/customise";
 import { CreditSalaryMonth } from "@/components/expense/CreditSalaryMonth";
 import { applyRuleToPastTransactions, countPastTransactionsForRule, findRuleForMerchant, keywordForAlwaysFile, setMerchantRule } from "@/services/merchant-categories";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
@@ -13,7 +14,8 @@ import {
   TYPE_LABEL,
   type TransactionType,
 } from "@/components/expense/TransactionFormParts";
-import type { CreditKind } from "@/services/expense-types";
+import { creditLook, type CreditKind } from "@/services/expense-types";
+import { setCreditSalaryMonth } from "@/services/salary-periods";
 import {
     AccountPicker,
     CategoryPicker,
@@ -28,13 +30,13 @@ import { ForecastActionBar } from "@/components/expense/ForecastActionBar";
 import { HisaabSettlementPickerSheet } from "@/components/expense/HisaabSettlementPickerSheet";
 import { InvestmentBucketPickerSheet } from "@/components/expense/InvestmentBucketPickerSheet";
 import { LoanPaymentPickerSheet } from "@/components/expense/LoanPaymentPickerSheet";
-import { MultiSplitSheet } from "@/components/expense/MultiSplitSheet";
 import { RecurringRuleSheet } from "@/components/expense/RecurringRuleSheet";
 import { RefundTargetSheet } from "@/components/expense/RefundTargetSheet";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import { SharedWithHome } from "@/components/household/SharedWithHome";
 import { HouseholdShareLink } from "@/components/household/HouseholdShareLink";
-import { SplitSheet } from "@/components/expense/SplitSheet";
+import { SplitCard } from "@/components/expense/SplitCard";
+import { SplitEditSheet } from "@/components/expense/SplitEditSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
 import { Button, Input, LoadingState, ScreenContainer, Sheet, Text, useToast } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -74,7 +76,9 @@ import {
     unlinkExpenseFromLoan,
     type ExpenseLoanLink,
 } from "@/services/expense-loan-link";
-import type { MultiSplitConfig, MultiSplitSummary } from "@/services/expense-multi-split";
+import type { MultiSplitSummary } from "@/services/expense-multi-split";
+import { draftFromView, draftToSave, splitViewOf, type SplitDraft } from "@/services/split-draft";
+import { getEntryById } from "@/services/hisaab";
 import {
     applyMultiSplit,
     getMultiSplitSummary,
@@ -112,7 +116,7 @@ import { formatDate } from "@/utils/date";
 import { logger } from "@/utils/logger";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from "react-native";
 import { listRules, applyRuleActionsToExpense } from "@/services/smart-rules";
 import type { SmartRule } from "@/services/smart-rules";
@@ -217,14 +221,14 @@ export default function ExpenseDetailScreen() {
   const [showPaymentModes, setShowPaymentModes] = useState(false);
   const [showMerchants, setShowMerchants] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showSplitSheet, setShowSplitSheet] = useState(false);
+  const [showSplitEdit, setShowSplitEdit] = useState(false);
   const [splitPersonName, setSplitPersonName] = useState<string | null>(null);
+  const [splitEntry, setSplitEntry] = useState<{ type: string; amount: number } | null>(null);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
 
 
   // Multi-split state
   const [multiSplitSummary, setMultiSplitSummary] = useState<MultiSplitSummary | null>(null);
-  const [showMultiSplitSheet, setShowMultiSplitSheet] = useState(false);
 
   useEffect(() => {
     // `retried`: one more try before giving up. A one-off native error on load (seen as
@@ -321,6 +325,7 @@ export default function ExpenseDetailScreen() {
             const person = await getPerson(exp.split_person_id);
             setSplitPersonName(person?.name ?? null);
           }
+          if (exp.split_hisaab_entry_id) setSplitEntry(await getEntryById(exp.split_hisaab_entry_id));
           const msSummary = await getMultiSplitSummary(exp.id);
           setMultiSplitSummary(msSummary);
           if (exp.purchase_group_id) {
@@ -371,10 +376,12 @@ export default function ExpenseDetailScreen() {
   // Edit form's Spent / Received switch and credit type (credits and expenses only).
   const [editType, setEditType] = useState<TransactionType>("spent");
   const [editCreditKind, setEditCreditKind] = useState<CreditKind | null>(null);
+  const [editSalaryMonth, setEditSalaryMonth] = useState<string | null>(null);
 
   function populateForm(exp: Expense) {
     setEditType(exp.nature === "credit" ? "received" : "spent");
     setEditCreditKind(exp.credit_kind ?? null);
+    setEditSalaryMonth(exp.salary_for_month ?? null);
     // For split expenses, show the original total amount (not the post-split budget amount)
     const displayAmount = exp.split_original_amount ?? exp.amount;
     setAmount(String(displayAmount));
@@ -408,7 +415,9 @@ export default function ExpenseDetailScreen() {
   );
 
   // Category and payment mode looked up from the expense (for read-only view)
-  const expenseCategory = expense
+  const expenseCategory = expense?.nature === "credit"
+    ? creditLook(expense.credit_kind)
+    : expense
     ? categories.find((c) => c.id === expense.category_id)
     : null;
   const expensePaymentMode = expense
@@ -475,7 +484,6 @@ export default function ExpenseDetailScreen() {
         const storedMode = expense!.split_mode ?? "percentage";
         let paidBy: "me" | "them" = "me";
         if (expense!.split_hisaab_entry_id) {
-          const { getEntryById } = await import("@/services/hisaab");
           const hisaabEntry = await getEntryById(expense!.split_hisaab_entry_id);
           if (hisaabEntry?.type === "credit") paidBy = "them";
         }
@@ -581,16 +589,18 @@ export default function ExpenseDetailScreen() {
           setMultiSplitSummary(msSummary);
         }
       } else if (isCreditNow) {
-        // Credits: same categories as spending, plus their credit type.
+        // Credits have a type instead of a category.
         await updateExpense(id, {
           amount: parsedAmount,
           description: description.trim() || null,
           merchant_name: merchantName.trim() || null,
-          category_id: categoryId,
           account_id: accountId,
           date,
           credit_kind: editCreditKind,
         });
+        if (editCreditKind === "salary" && editSalaryMonth !== (expense?.salary_for_month ?? null)) {
+          await setCreditSalaryMonth(id, editSalaryMonth);
+        }
       } else {
         await updateExpense(id, {
           amount: parsedAmount,
@@ -805,92 +815,58 @@ export default function ExpenseDetailScreen() {
     );
   }, [id, expense, router]);
 
-  const handleRemoveSplit = useCallback(() => {
+  // What the split card shows comes from these; re-read them after any change to the split.
+  const reloadSplit = useCallback(async () => {
+    const updated = await getExpenseById(id);
+    if (updated) {
+      setExpense(updated);
+      setOriginalExpense(updated);
+      setSplitPersonName(updated.split_person_id ? ((await getPerson(updated.split_person_id))?.name ?? null) : null);
+      setSplitEntry(updated.split_hisaab_entry_id ? await getEntryById(updated.split_hisaab_entry_id) : null);
+    }
+    setMultiSplitSummary(await getMultiSplitSummary(id));
+  }, [id]);
+
+  const handleSplitRemove = useCallback(() => {
     alert(
-      "Remove Split",
-      "This will restore the expense to the original amount and delete the linked hisaab entry. Continue?",
+      "Remove split",
+      "This puts the expense back to its full amount and deletes what it added to Hisaab. Continue?",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Remove Split",
+          text: "Remove split",
           style: "destructive",
           onPress: async () => {
-            await removeSplit(id);
-            const updated = await getExpenseById(id);
-            if (updated) {
-              setExpense(updated);
-              setOriginalExpense(updated);
-            }
+            if (multiSplitSummary) await removeMultiSplit(id);
+            else await removeSplit(id);
+            setShowSplitEdit(false);
+            await reloadSplit();
           },
         },
       ],
     );
-  }, [id]);
+  }, [id, multiSplitSummary, reloadSplit]);
 
-  const handleSplitConfirm = useCallback(
-    async (config: SplitConfig) => {
+  const handleSplitSave = useCallback(
+    async (draft: SplitDraft) => {
+      if (!expense) return;
       try {
-        await splitExistingExpense(id, config);
-        const updated = await getExpenseById(id);
-        if (updated) {
-          setExpense(updated);
-          setOriginalExpense(updated);
-          if (updated.split_person_id) {
-            const person = await getPerson(updated.split_person_id);
-            setSplitPersonName(person?.name ?? null);
-          }
+        const save = draftToSave(expense.split_original_amount ?? expense.amount, draft);
+        if (save.kind === "multi") {
+          await applyMultiSplit(id, save.config);
+        } else {
+          // One person is stored on the expense; clear a split among several first.
+          if (multiSplitSummary) await removeMultiSplit(id);
+          await splitExistingExpense(id, save.config);
         }
+        await reloadSplit();
       } catch (e) {
         logger.error("Apply split failed:", e);
         alert("Error", formatError("Apply split", e));
       }
     },
-    [id],
+    [id, expense, multiSplitSummary, reloadSplit],
   );
-
-  // Multi-split handlers
-  const handleMultiSplitConfirm = useCallback(
-    async (config: MultiSplitConfig) => {
-      try {
-        await applyMultiSplit(id, config);
-        const updated = await getExpenseById(id);
-        if (updated) {
-          setExpense(updated);
-          setOriginalExpense(updated);
-        }
-        const msSummary = await getMultiSplitSummary(id);
-        setMultiSplitSummary(msSummary);
-        setSplitPersonName(null);
-      } catch (e) {
-        logger.error("Apply multi-split failed:", e);
-        alert("Error", formatError("Apply split", e));
-      }
-    },
-    [id],
-  );
-
-  const handleRemoveMultiSplit = useCallback(() => {
-    alert(
-      "Remove Split",
-      "This will restore the expense to the original amount and delete all linked hisaab entries. Continue?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            await removeMultiSplit(id);
-            const updated = await getExpenseById(id);
-            if (updated) {
-              setExpense(updated);
-              setOriginalExpense(updated);
-            }
-            setMultiSplitSummary(null);
-          },
-        },
-      ],
-    );
-  }, [id]);
 
   // Forecast lifecycle actions
   const [repaymentPickerVisible, setRepaymentPickerVisible] = useState(false);
@@ -949,6 +925,11 @@ export default function ExpenseDetailScreen() {
 
   // Refunded amount + list of refund credits linked back to this expense.
   const [refundedAmount, setRefundedAmount] = useState<number>(0);
+  const splitView = useMemo(
+    () => (expense ? splitViewOf(expense, splitPersonName, splitEntry, multiSplitSummary, refundedAmount) : null),
+    [expense, splitPersonName, splitEntry, multiSplitSummary, refundedAmount],
+  );
+  const splitDraft = useMemo(() => (splitView ? draftFromView(splitView) : null), [splitView]);
   const [refunds, setRefunds] = useState<{ id: string; amount: number; date: string; description: string | null }[]>([]);
   useEffect(() => {
     if (!expense?.id || expense.nature !== "realized") {
@@ -1820,6 +1801,9 @@ export default function ExpenseDetailScreen() {
               {editIsCredit && (
                 <CreditKindChips value={editCreditKind} onChange={setEditCreditKind} />
               )}
+              {editIsCredit && editCreditKind === "salary" && (
+                <CreditSalaryMonth date={date} override={editSalaryMonth} onChange={setEditSalaryMonth} className="mb-4" />
+              )}
 
               {/* Account picker (V4) */}
               <AccountPicker
@@ -1870,7 +1854,8 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* Category picker — expenses and credits share the same categories. */}
+              {/* Category picker: credits have a type instead. */}
+              {!editIsCredit && (
               <CategoryPicker
                 categories={categories}
                 categoryId={categoryId}
@@ -1889,6 +1874,7 @@ export default function ExpenseDetailScreen() {
                   if (cat) setIsRightSpend(cat.is_unavoidable === 1);
                 }}
               />
+              )}
 
               {/* Spending-only fields: payment mode, unavoidable. */}
               {!editIsCredit && (<>
@@ -2426,211 +2412,35 @@ export default function ExpenseDetailScreen() {
 
               {/* 4. Split Section — not applicable for credits, nor my share of a household member's
                   bill (Together keeps that one; its split is theirs) */}
-              {expense.nature !== "credit" && !expense.household_ref && (
+              {expense.nature !== "credit" && !expense.household_ref && (splitView || isPartOn("hisaab")) && (
               <View className="mx-4 mt-3">
-                {multiSplitSummary ? (
-                  /* ── Multi-split active ── */
-                  <View>
-                    <View
-                      className="py-3 px-4 rounded-xl"
-                      style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                    >
-                      <View className="flex-row items-center mb-2">
-                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                          <Ionicons name="people" size={20} color={colors.blue} />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
-                            Split with:
-                          </Text>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
-                            Originally {formatAmount(multiSplitSummary.originalAmount)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Per-person split rows — tappable to navigate to ledger */}
-                      {multiSplitSummary.splits.map((split) => (
-                        <Pressable
-                          key={split.id}
-                          onPress={() => {
-                            const { startDate, endDate } = getMonthDateRange(expense!.date.substring(0, 7));
-                            router.push({
-                              pathname: "/hisaab/ledger",
-                              params: { personId: split.hisaab_person_id, personName: split.person_name, fromDate: startDate, toDate: endDate },
-                            });
-                          }}
-                          className="flex-row items-center py-2 ml-13"
-                        >
-                          <View className="flex-1">
-                            <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
-                              {split.person_name}
-                            </Text>
-                            {split.description && (
-                              <Text className="text-label text-muted-foreground" numberOfLines={1}>
-                                {split.description}
-                              </Text>
-                            )}
-                          </View>
-                          <Text className="text-xs font-semibold text-foreground ml-2">
-                            {formatAmount(split.amount)}
-                          </Text>
-                          <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} className="ml-1" />
-                        </Pressable>
-                      ))}
-
-                      {/* My share (absorbed portion) */}
-                      {multiSplitSummary.convenienceFee > 0 && (
-                        <View className="flex-row items-center py-1.5 ml-13 mt-1 pt-1.5 border-t border-border">
-                          <Text className="text-xs text-muted-foreground flex-1">
-                            My share
-                          </Text>
-                          <Text className="text-xs font-semibold" style={{ color: theme.warning }}>
-                            {formatAmount(multiSplitSummary.convenienceFee)}
-                          </Text>
-                        </View>
-                      )}
-
-                      {/* My share */}
-                      <View className="flex-row items-center py-1.5 ml-13 mt-1 pt-1.5 border-t border-border">
-                        <Text className="text-xs font-medium text-foreground flex-1">
-                          My budget
-                        </Text>
-                        <Text className="text-xs font-bold" style={{ color: theme.primary }}>
-                          {formatAmount(multiSplitSummary.myShare)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View className="flex-row items-center justify-center mt-1.5 gap-4">
-                      <Pressable
-                        onPress={() => setShowMultiSplitSheet(true)}
-                        className="py-2 px-3 rounded-lg"
-                      >
-                        <Text className="text-label font-medium" style={{ color: theme.primary }}>
-                          Change Split
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={handleRemoveMultiSplit}
-                        className="py-2 px-3 rounded-lg"
-                      >
-                        <Text className="text-label font-medium" style={{ color: theme.danger }}>
-                          Remove Split
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </View>
-                ) : expense.split_person_id ? (
-                  /* ── Legacy single split active ── */
-                  <View>
-                    <View
-                      className="py-3 px-4 rounded-xl"
-                      style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                    >
-                      <View className="flex-row items-center mb-2">
-                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                          <Ionicons name="people" size={20} color={colors.blue} />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
-                            Split with:
-                          </Text>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
-                            Originally {formatAmount(expense.split_original_amount ?? expense.amount)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Split details */}
-                      <Pressable
-                        onPress={() => {
-                          const { startDate, endDate } = getMonthDateRange(expense.date.substring(0, 7));
-                          router.push({
-                            pathname: "/hisaab/ledger",
-                            params: { personId: expense.split_person_id!, personName: splitPersonName ?? "Person", fromDate: startDate, toDate: endDate },
-                          });
-                        }}
-                        className="flex-row items-center py-2 ml-13"
-                      >
-                        <View className="flex-1">
-                          <Text className="text-xs font-medium text-foreground" numberOfLines={1}>
-                            {splitPersonName ?? "Unknown"}
-                          </Text>
-                          <Text className="text-label text-muted-foreground">
-                            {(() => {
-                              const orig = expense.split_original_amount ?? expense.amount;
-                              const pct = expense.split_pct ?? 100;
-                              const myShare = refundedAmount > 0
-                                ? Math.max(0, Math.round((orig - refundedAmount) * pct / 100 * 100) / 100)
-                                : expense.amount;
-                              return `Your share: ${pct}% (${formatAmount(myShare)})`;
-                            })()}
-                          </Text>
-                        </View>
-                        <Text className="text-xs font-semibold text-foreground ml-2">
-                          {formatAmount(expense.split_original_amount ?? expense.amount)}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} className="ml-1" />
-                      </Pressable>
-                    </View>
-                    <View className="flex-row items-center justify-center mt-1.5 gap-4">
-                      <Pressable
-                        onPress={() => setShowMultiSplitSheet(true)}
-                        className="py-2 px-3 rounded-lg"
-                      >
-                        <Text className="text-label font-medium" style={{ color: theme.primary }}>
-                          Change Split
-                        </Text>
-                      </Pressable>
-                      <Pressable
-                        onPress={handleRemoveSplit}
-                        className="py-2 px-3 rounded-lg"
-                      >
-                        <Text className="text-label font-medium" style={{ color: theme.danger }}>
-                          Remove Split
-                        </Text>
-                      </Pressable>
-                    </View>
-                  </View>
+                {splitView ? (
+                  <SplitCard
+                    view={splitView}
+                    onEdit={() => setShowSplitEdit(true)}
+                    onOpenPerson={(p) => {
+                      const { startDate, endDate } = getMonthDateRange(expense.date.substring(0, 7));
+                      router.push({
+                        pathname: "/hisaab/ledger",
+                        params: { personId: p.personId, personName: p.name, fromDate: startDate, toDate: endDate },
+                      });
+                    }}
+                  />
                 ) : (
-                  /* ── No split — show split options ── */
-                  <View className="gap-2">
-                    <Pressable
-                      onPress={() => setShowSplitSheet(true)}
-                      className="flex-row items-center py-3 px-4 rounded-xl bg-card"
-                    >
-                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="people-outline" size={20} color={colors.blue} />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">
-                          Split Expense
-                        </Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
-                          50-50, they owe, I owe, exact amount
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => setShowMultiSplitSheet(true)}
-                      className="flex-row items-center py-2.5 px-4 rounded-xl bg-card"
-                    >
-                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="git-network-outline" size={20} color={colors.blue} />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">
-                          Multi-person Split
-                        </Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
-                          Split among multiple people
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
+                  <Pressable
+                    onPress={() => setShowSplitEdit(true)}
+                    className="flex-row items-center py-3 px-4 rounded-xl bg-card"
+                    accessibilityRole="button"
+                  >
+                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                      <Ionicons name="people-outline" size={20} color={colors.blue} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-semibold text-foreground">Split this expense</Text>
+                      <Text className="text-xs text-muted-foreground mt-0.5">With one person or several, equally, by percentage or amount</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                  </Pressable>
                 )}
               </View>
               )}
@@ -3616,26 +3426,13 @@ export default function ExpenseDetailScreen() {
       </KeyboardAvoidingView>
 
       {expense && (
-        <SplitSheet
-          visible={showSplitSheet}
-          onClose={() => setShowSplitSheet(false)}
+        <SplitEditSheet
+          visible={showSplitEdit}
+          onClose={() => setShowSplitEdit(false)}
           totalAmount={expense.split_original_amount ?? expense.amount}
-          onConfirm={handleSplitConfirm}
-        />
-      )}
-
-      {expense && (
-        <MultiSplitSheet
-          visible={showMultiSplitSheet}
-          onClose={() => setShowMultiSplitSheet(false)}
-          totalAmount={expense.split_original_amount ?? expense.amount}
-          onConfirm={handleMultiSplitConfirm}
-          initialSplits={multiSplitSummary?.splits.map((s) => ({
-            personId: s.hisaab_person_id,
-            description: s.description ?? "",
-            amount: s.amount,
-          }))}
-          initialFeeAbsorbed={multiSplitSummary?.feeAbsorbed}
+          initial={splitDraft}
+          onSave={handleSplitSave}
+          onRemove={splitView ? handleSplitRemove : undefined}
         />
       )}
 

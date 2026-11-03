@@ -39,6 +39,8 @@ export interface FilterViewState {
   customEndDate?: string;
   nature: "realized" | "committed" | "credit" | "transfers" | "all";
   categoryIds: string[];
+  /** Credits tab only. Missing on views saved before types could be filtered. */
+  creditKinds?: string[];
   paymentModeIds: string[];
   accountIds: string[];
   tagIds: string[];

@@ -1,12 +1,16 @@
 ---
-title: Home screen cards
+title: Customise Arth
 slug: home-cards
-summary: Choose which cards appear on your Home tab, and hide every amount with one tap when someone's looking at your screen.
+summary: Switch off features, tabs and cards you don't use, reorder your Home cards, and hide every amount with one tap at your screen.
 tags: [home screen, cards, customize, hide card, show card, home tab, dashboard, preferences, hide amounts, privacy, eye icon, investments card, check-ins card]
 contextKeys: [home-cards, settings-home, home]
 phrasings:
   - How do I hide a card on the home screen?
   - Customise home screen
+  - How do I turn off the Vault?
+  - Remove a tab I do not use
+  - Reorder home cards
+  - Move a card up on home
   - Remove a card from home
   - What cards are on the home screen?
   - Home screen layout
@@ -25,9 +29,18 @@ phrasings:
 
 The **Home tab** is your daily dashboard. You can choose which cards appear there and hide anything you don't use.
 
-## Managing home cards
+## Customise Arth
 
-Open **Settings tab → Preferences & Security → Home Cards** and switch each card on or off. Changes show up as soon as you go back to Home.
+Open **Settings tab → Preferences & Security → Customise Arth**.
+
+- **Features**: switch off Vault, Simulator, Insights, Hisaab, Investments, Loans or Together and it's gone from every screen and from search.
+- **Bottom tabs**: switch off Budget or Goals. Home, Transactions and Settings always stay.
+- **Tabs inside screens**: Spending Split and Monthly Summary in Budget, Committed and Transfers in Transactions.
+- **Home cards**: switch each card on or off, and use the arrows to change its place on Home.
+
+Off only hides. Nothing is deleted, and switching it back on brings everything back. If a reminder or a link leads to something that's off, Arth says so and offers **Turn on**.
+
+Two things go further than hiding: **Together** stops syncing while it's off, so others in your household won't see your new spends. With **Hisaab** off you can't start a new split, though expenses already split still show theirs.
 
 ## Available cards
 
@@ -37,13 +50,11 @@ Open **Settings tab → Preferences & Security → Home Cards** and switch each 
 - **Check-ins** - month-end check, settle up, subscriptions and rule suggestions, when there's something to swipe through. See [Check-ins](check-ins).
 - **My Month** - one card with two sections. **Cash flow** is money in, money out and what's left this month. **Budget** is how you're doing against the budget you set, with days remaining, and only shows once you've set one. You can hide either section.
 - **Hisaab - Family Ledger** - quick access to money owed between you and family or friends.
-- **Insights & Analytics** - merchants, accounts, trends, comparisons and patterns.
 - **Credit cards** - utilisation and next statement across your cards.
 - **Bank balances** - closing balance across your savings accounts.
 - **Wallets** - Paytm, PhonePe and other wallet balances.
 - **Investments** - total value across demat, pension and fixed deposit accounts. See [Investments and fixed deposits](investments).
 - **Reminders** - active reminders due soon or overdue.
-- **Cash-flow Simulator** - a shortcut to your what-if plans.
 - **Loans summary** - total outstanding and next EMI.
 
 The **Investments** card replaced the separate Demat and Pension cards. If you had hidden either of those, the Investments card starts hidden too.
@@ -56,7 +67,7 @@ Tap the eye again to show amounts. Arth remembers your choice, even after you cl
 
 ## Resetting to defaults
 
-At the bottom of the Home Cards screen, **Reset to defaults** turns every card back on.
+At the bottom of Customise Arth, **Reset to defaults** turns everything back on and restores the original order.
 
 ## Common situations
 

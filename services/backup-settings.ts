@@ -61,6 +61,8 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   P("portfolio_sort:", "string"),
   P("collapsible_", "boolean"),
   P("home_card_hidden__", "boolean"),
+  P("customise_off__", "boolean"),
+  S("home_card_order", "string"),
   S("report_loan_payoff_inputs", "string"),
   S("report_retirement_inputs", "string"),
   S("recon_account_suffix_map", "string"),

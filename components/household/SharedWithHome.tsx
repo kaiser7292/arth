@@ -1,3 +1,4 @@
+import { isPartOn } from "@/services/customise";
 import { useCallback, useEffect, useState } from "react";
 import { Switch, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -32,7 +33,7 @@ export function SharedWithHome({ expenseId, categoryId, onChanged }: Props) {
   const [note, setNote] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!getFlag("household")) return;
+    if (!getFlag("household") || !isPartOn("together")) return;
     const hh = await getActiveHousehold().catch(() => null);
     setH(hh);
     if (!hh) return;
@@ -67,7 +68,7 @@ export function SharedWithHome({ expenseId, categoryId, onChanged }: Props) {
         )}
       </View>
       <Text className="text-xs text-muted-foreground mt-2 leading-4">
-        {note ?? (choice.shared ? "In Together, in full. Nobody owes anything for it unless you split it." : "Personal: only you see it.")}
+        {note ?? (choice.shared ? "In Together, in full. Nobody owes anything for it unless you split it." : `Personal: only you see it. It's shared once you split it with someone in ${h.name}.`)}
       </Text>
     </View>
   );

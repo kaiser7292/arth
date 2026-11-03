@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Chevron } from "@/components/motion/Chevron";
 import { Collapse } from "@/components/motion/Collapse";
@@ -7,7 +8,7 @@ import { timing } from "@/components/motion/motion";
 
 import { Button, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
-import { CREDIT_KIND_LABELS, CREDIT_KINDS, type CreditKind } from "@/services/expense-types";
+import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, CREDIT_KINDS, type CreditKind } from "@/services/expense-types";
 import { formatDateForStorage } from "@/utils/expense-validation";
 
 /** What the add/edit form is recording. Maps to nature 'realized' / 'credit', or an account transfer. */
@@ -96,7 +97,7 @@ export function TransactionTypeSwitch({
   );
 }
 
-/** Salary · Interest · Refund · Cashback · Reimbursement · Gift · Other. */
+/** What a credit is: it takes the place of a category, so credits don't have one. */
 export function CreditKindChips({
   value,
   onChange,
@@ -117,13 +118,19 @@ export function CreditKindChips({
               onPress={() => onChange(selected ? null : k)}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
-              className="px-3 py-1.5 rounded-full border"
+              className="flex-row items-center px-3 py-1.5 rounded-full border"
               style={
                 selected
                   ? { borderColor: theme.success, backgroundColor: theme.alpha("success", 0.12) }
                   : { borderColor: theme.border }
               }
             >
+              <Ionicons
+                name={CREDIT_KIND_LOOKS[k].icon as keyof typeof Ionicons.glyphMap}
+                size={14}
+                color={selected ? theme.success : CREDIT_KIND_LOOKS[k].color}
+                style={{ marginRight: 5 }}
+              />
               <Text className="text-sm" style={{ color: selected ? theme.success : theme.mutedForeground }}>
                 {CREDIT_KIND_LABELS[k]}
               </Text>

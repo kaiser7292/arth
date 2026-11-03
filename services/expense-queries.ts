@@ -134,6 +134,7 @@ function buildFilterConditions(userId: string, filters: ExpenseFilters): { condi
     params.push(filters.endDate);
   }
   inOrNone(filters.categoryIds, (ph) => `category_id IN (${ph})`, "category_id IS NULL");
+  inOrNone(filters.creditKinds, (ph) => `COALESCE(credit_kind, 'other') IN (${ph})`, "credit_kind IS NULL");
   inOrNone(filters.paymentModeIds, (ph) => `payment_mode_id IN (${ph})`, "payment_mode_id IS NULL");
   inOrNone(filters.accountIds, (ph) => `account_id IN (${ph})`, "account_id IS NULL");
   inOrNone(
@@ -246,7 +247,7 @@ export interface FilteredSummary {
   count: number;
   /** Set for expense (realized) summaries; gross − othersShare − refunds = total. */
   breakdown?: SummaryBreakdown;
-  groupBy: "category" | "account" | "payment_mode" | "merchant";
+  groupBy: "category" | "account" | "payment_mode" | "merchant" | "type";
   groups: FilteredSummaryGroup[];
 }
 
@@ -257,7 +258,7 @@ export interface FilteredSummary {
 export async function getFilteredExpenseSummary(
   userId: string,
   filters: ExpenseFilters = {},
-  groupBy: "category" | "account" | "payment_mode" | "merchant" = "category",
+  groupBy: "category" | "account" | "payment_mode" | "merchant" | "type" = "category",
 ): Promise<FilteredSummary> {
   const db = getDatabase();
 
@@ -289,7 +290,15 @@ export async function getFilteredExpenseSummary(
   );
 
   const groupColumn =
-    groupBy === "category" ? "category_id" : groupBy === "account" ? "account_id" : groupBy === "merchant" ? "merchant_name" : "payment_mode_id";
+    groupBy === "category"
+      ? "category_id"
+      : groupBy === "account"
+        ? "account_id"
+        : groupBy === "merchant"
+          ? "merchant_name"
+          : groupBy === "type"
+            ? "COALESCE(credit_kind, 'other')"
+            : "payment_mode_id";
 
   const groupRows = await db.getAllAsync<{ key: string | null; total: number | null; count: number }>(
     `SELECT ${groupColumn} as key, COALESCE(${amountExpr}, 0) as total, COUNT(*) as count

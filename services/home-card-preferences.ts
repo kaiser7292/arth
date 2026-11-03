@@ -1,15 +1,11 @@
 /**
- * Home card visibility preferences (v17.4.0, trimmed in v17.5.2).
+ * Home cards: which are on and in what order (Settings → Customise Arth). Every Home card is
+ * addressable by an id. A card also goes when the feature or tab it belongs to is switched off.
  *
- * Every Home card is addressable by an id. User can hide any card from
- * Settings → Preferences → Home cards. v17.5.2 removed the "advisor" and
- * "reconcile" entries — both were dead-end Coming Soon stubs that confused
- * users who enabled them.
- *
- * MMKV-backed. Device-local; intentionally NOT part of backup (prefs pattern
- * matches biometric-lock, locale-preferences, fiscal-year-start-month).
+ * MMKV-backed and part of backups (SETTINGS_REGISTRY).
  */
 
+import { customiseChanged, isPartOn, resetParts, type PartId } from "./customise";
 import { settingsStorage } from "./storage";
 
 export type HomeCardId =
@@ -20,13 +16,11 @@ export type HomeCardId =
   | "total_spent"
   | "hisaab"
   | "household"
-  | "insights"
   | "credit_cards"
   | "bank_balances"
   | "wallets"
   | "investments"
   | "reminders"
-  | "simulator"
   | "loans";
 
 const KEY_PREFIX = "home_card_hidden__";
@@ -87,12 +81,6 @@ export const HOME_CARDS: HomeCardMeta[] = [
     defaultVisible: true,
   },
   {
-    id: "insights",
-    label: "Insights & Analytics",
-    description: "Merchants, accounts, trends, comparisons and spending patterns",
-    defaultVisible: true,
-  },
-  {
     id: "credit_cards",
     label: "Credit cards",
     description: "Utilization + next statement across all your credit cards",
@@ -123,12 +111,6 @@ export const HOME_CARDS: HomeCardMeta[] = [
     defaultVisible: true,
   },
   {
-    id: "simulator",
-    label: "Cash-flow Simulator",
-    description: "What-if planner shortcut",
-    defaultVisible: true,
-  },
-  {
     id: "loans",
     label: "Loans summary",
     description: "Total outstanding + next EMI due",
@@ -136,30 +118,94 @@ export const HOME_CARDS: HomeCardMeta[] = [
   },
 ];
 
-/**
- * Is the card visible on Home? Checks MMKV override first; falls back to the
- * catalog default. Returns false only when explicitly hidden or the catalog
- * default is hidden and the user hasn't overridden it.
- */
-export function isHomeCardVisible(id: HomeCardId): boolean {
+/** The feature or tab a card goes away with. */
+const CARD_OWNERS: Partial<Record<HomeCardId, PartId>> = {
+  hisaab: "hisaab",
+  household: "together",
+  investments: "investments",
+  loans: "loans",
+  total_spent: "budget",
+};
+
+export function owningPart(id: HomeCardId): PartId | null {
+  return CARD_OWNERS[id] ?? null;
+}
+
+/** The card's own switch, whatever its feature is doing. */
+export function isHomeCardSwitchedOn(id: HomeCardId): boolean {
   const override = settingsStorage.getBoolean(KEY_PREFIX + id);
-  if (override !== undefined) {
-    // User set an explicit preference: true=visible, false=hidden
-    return override;
-  }
+  if (override !== undefined) return override;
   return HOME_CARDS.find((c) => c.id === id)?.defaultVisible ?? true;
+}
+
+/** Does the card show on Home? Its own switch, and its feature or tab being on. */
+export function isHomeCardVisible(id: HomeCardId): boolean {
+  const owner = CARD_OWNERS[id];
+  if (owner && !isPartOn(owner)) return false;
+  return isHomeCardSwitchedOn(id);
 }
 
 /** Set whether the card is visible. */
 export function setHomeCardVisible(id: HomeCardId, visible: boolean): void {
   settingsStorage.set(KEY_PREFIX + id, visible);
+  customiseChanged();
 }
 
-/** Reset all cards to catalog defaults. */
-export function resetHomeCardPreferences(): void {
+// ─── Order ───
+
+/** The cards that can be moved, as Home has always had them. Low-balance alerts stay on top; the budget part sits inside My Month. */
+export const HOME_CARD_DEFAULT_ORDER: HomeCardId[] = [
+  "check_ins",
+  "my_month",
+  "reminders",
+  "upcoming_dues",
+  "hisaab",
+  "household",
+  "credit_cards",
+  "bank_balances",
+  "wallets",
+  "investments",
+  "loans",
+];
+
+const ORDER_KEY = "home_card_order";
+
+/** The saved order. Cards it doesn't know keep their default place at the end; ones that no longer exist drop out. */
+export function getHomeCardOrder(): HomeCardId[] {
+  let saved: string[] = [];
+  try {
+    saved = JSON.parse(settingsStorage.getString(ORDER_KEY) ?? "[]");
+  } catch {
+    saved = [];
+  }
+  if (!Array.isArray(saved)) saved = [];
+  const known = saved.filter((id): id is HomeCardId => HOME_CARD_DEFAULT_ORDER.includes(id as HomeCardId));
+  return [...known, ...HOME_CARD_DEFAULT_ORDER.filter((id) => !known.includes(id))];
+}
+
+export function isDefaultHomeCardOrder(): boolean {
+  return getHomeCardOrder().every((id, i) => id === HOME_CARD_DEFAULT_ORDER[i]);
+}
+
+/** One place up (-1) or down (1). */
+export function moveHomeCard(id: HomeCardId, by: -1 | 1): void {
+  const order = getHomeCardOrder();
+  const from = order.indexOf(id);
+  const to = from + by;
+  if (from < 0 || to < 0 || to >= order.length) return;
+  [order[from], order[to]] = [order[to], order[from]];
+  settingsStorage.set(ORDER_KEY, JSON.stringify(order));
+  customiseChanged();
+}
+
+/** Everything back on, in the original order. */
+export function resetCustomisation(): void {
   for (const c of HOME_CARDS) {
     settingsStorage.delete(KEY_PREFIX + c.id);
   }
+  settingsStorage.delete(ORDER_KEY);
+  resetParts();
+  customiseChanged();
 }
 
 /**

@@ -5,7 +5,7 @@ import { Card, Text } from "@/components/ui";
 import { Avatar } from "@/components/household/HouseholdBits";
 import { useTheme } from "@/hooks/use-theme";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
-import type { Category } from "@/services/category";
+import type { CategoryLook } from "@/services/household/category-look";
 import type { StatementRow } from "@/services/household/statement";
 
 const SPLIT_LABEL: Record<string, string> = { equal: "split equally", payer_all: "shared, paid in full", custom: "custom split" };
@@ -23,7 +23,7 @@ export function StatementRowItem({
 }: {
   row: StatementRow;
   myMemberId: string | null;
-  category?: Category | null;
+  category?: CategoryLook | null;
   onView: (row: StatementRow) => void;
 }) {
   const router = useRouter();
@@ -31,7 +31,9 @@ export function StatementRowItem({
   const { relation: rel } = row;
   const isSettle = rel.kind === "settle";
   const tint = category?.color ?? theme.mutedForeground;
-  const icon = isSettle ? "swap-horizontal-outline" : ((category?.icon ?? "receipt-outline") as keyof typeof Ionicons.glyphMap);
+  // It may have come from another phone, so only an icon this build has.
+  const own = category && category.icon in Ionicons.glyphMap ? (category.icon as keyof typeof Ionicons.glyphMap) : "receipt-outline";
+  const icon = isSettle ? "swap-horizontal-outline" : own;
   const details = [
     row.member.id === myMemberId ? "You" : row.member.name,
     isSettle ? "Settle-up" : rel.kind === "personal" ? "personal" : SPLIT_LABEL[row.split ?? "equal"],

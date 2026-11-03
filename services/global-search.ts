@@ -1,3 +1,4 @@
+import { isPathOn } from "@/services/customise";
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getCachedAngelHoldings } from "@/services/angel-connect";
@@ -423,7 +424,11 @@ export async function searchData(query: string): Promise<SearchGroup[]> {
     }),
   ]);
 
-  return groups.filter((g): g is SearchGroup => g !== null).sort((a, b) => b.score - a.score);
+  return groups
+    .filter((g): g is SearchGroup => g !== null)
+    .map((g) => ({ ...g, results: g.results.filter((r) => !r.target || isPathOn(r.target.pathname)) }))
+    .filter((g) => g.results.length > 0)
+    .sort((a, b) => b.score - a.score);
 }
 
 // ── Recent ──
@@ -436,7 +441,7 @@ export function getRecentSearchResults(): SearchResult[] {
   const raw = settingsStorage.getString(RECENT_KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw);
+    return (JSON.parse(raw) as SearchResult[]).filter((r) => !r.target || isPathOn(r.target.pathname));
   } catch {
     return [];
   }

@@ -1,3 +1,6 @@
+import { isPartOn } from "@/services/customise";
+import { CreditSalaryMonth } from "@/components/expense/CreditSalaryMonth";
+import { setCreditSalaryMonth } from "@/services/salary-periods";
 import { AmountInput } from "@/components/expense/AmountInput";
 import {
     AccountPicker,
@@ -7,7 +10,8 @@ import {
     PaymentModePicker,
     RightSpendToggle,
 } from "@/components/expense/ExpenseFormFields";
-import { SplitSheet } from "@/components/expense/SplitSheet";
+import { SplitEditSheet } from "@/components/expense/SplitEditSheet";
+import { draftFromConfig, draftToSave } from "@/services/split-draft";
 import { TagPicker } from "@/components/expense/TagPicker";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import {
@@ -67,7 +71,7 @@ import { logger } from "@/utils/logger";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -126,6 +130,7 @@ export default function AddExpenseScreen() {
   );
   // Once the user picks a credit type or category, suggestions stop overwriting it.
   const creditKindTouched = useRef(isRefund || !!params.prefillCreditKind);
+  const [salaryForMonth, setSalaryForMonth] = useState<string | null>(null);
   const categoryTouched = useRef(false);
   const [categoryHint, setCategoryHint] = useState<string | null>(null);
   // "Refund" picked on a plain credit: which expense it refunds.
@@ -438,6 +443,12 @@ export default function AddExpenseScreen() {
   );
 
   const splitPerson = splitConfig ? persons.find((p) => p.id === splitConfig.personId) : null;
+  const splitDraft = useMemo(
+    () => (splitConfig ? draftFromConfig(parsedAmountForPreview, splitConfig) : null),
+    // The sheet resets when this changes, so it follows the split, not each digit typed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [splitConfig],
+  );
   const parsedAmountForPreview = parseAmount(amount) ?? 0;
   const splitPreview = splitConfig && parsedAmountForPreview > 0
     ? computeSplitAmounts(parsedAmountForPreview, splitConfig)
@@ -630,8 +641,6 @@ export default function AddExpenseScreen() {
             amount: parsedAmount,
             description: description.trim() || undefined,
             merchant_name: merchantName.trim() || undefined,
-            // Same categories as spending. A refund starts with the refunded expense's.
-            category_id: categoryId ?? undefined,
             account_id: accountId,
             date,
             nature: "credit" as const,
@@ -682,6 +691,7 @@ export default function AddExpenseScreen() {
         }
       }
 
+      if (isCredit && creditKind === "salary" && salaryForMonth) await setCreditSalaryMonth(createdId, salaryForMonth);
       rememberAccount(isCredit ? "received" : "spent", accountId);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigateAfterSave(createdId);
@@ -846,7 +856,7 @@ export default function AddExpenseScreen() {
                 />
 
                 {/* Split with someone — hidden for refunds (doesn't make sense to split a refund) */}
-                {!isRefund && (
+                {!isRefund && isPartOn("hisaab") && (
                 <View className="mb-4">
                   {splitConfig && splitPreview ? (
                     <Pressable
@@ -894,11 +904,17 @@ export default function AddExpenseScreen() {
                 )}
 
                 {!isRefund && (
-                <SplitSheet
+                <SplitEditSheet
                   visible={showSplitSheet}
                   onClose={() => setShowSplitSheet(false)}
                   totalAmount={parsedAmountForPreview}
-                  onConfirm={(config) => setSplitConfig(config)}
+                  initial={splitDraft}
+                  onePersonOnly
+                  onSave={(draft) => {
+                    const save = draftToSave(parsedAmountForPreview, draft);
+                    if (save.kind === "single") setSplitConfig(save.config);
+                  }}
+                  onRemove={splitConfig ? () => { setSplitConfig(null); setShowSplitSheet(false); } : undefined}
                 />
                 )}
 
@@ -1149,24 +1165,9 @@ export default function AddExpenseScreen() {
                     <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                   </Pressable>
                 )}
-                {/* Same categories as spending — a credit can be filed too (refunds start with the
-                    refunded expense's). */}
-                <CategoryPicker
-                  categories={categories}
-                  categoryId={categoryId}
-                  selectedCategory={selectedCategory}
-                  showCategories={showCategories}
-                  allowNone
-                  onToggle={() => {
-                    setShowCategories(!showCategories);
-                    setShowAccounts(false);
-                  }}
-                  onSelect={(catId) => {
-                    categoryTouched.current = true;
-                    setCategoryId(catId);
-                    setShowCategories(false);
-                  }}
-                />
+                {creditKind === "salary" && (
+                  <CreditSalaryMonth date={date} override={salaryForMonth} onChange={setSalaryForMonth} className="mb-4" />
+                )}
                 <AccountPicker
                   accounts={accounts}
                   accountId={accountId}

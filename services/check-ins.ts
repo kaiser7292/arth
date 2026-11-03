@@ -1,3 +1,4 @@
+import { isPartOn } from "@/services/customise";
 import { getMonthEndPendingCount, isMonthEndWindow } from "@/services/month-end-check";
 import { getPatternsToConfirm } from "@/services/analytics/pattern-learner";
 import { getRuleSuggestions } from "@/services/rule-suggestions";
@@ -35,7 +36,7 @@ export async function getCheckInCounts(userId: string, now: Date = new Date()): 
     safe("rules", async () => (await getRuleSuggestions(userId)).length),
     safe("subscriptions", async () => (await getSubscriptionCheckItems(userId)).length),
     safe("settle-up", async () =>
-      (await getPeopleWhoOweYou(userId)).filter((p) => needsNudge(p.id, now.getTime())).length,
+      isPartOn("hisaab") ? (await getPeopleWhoOweYou(userId)).filter((p) => needsNudge(p.id, now.getTime())).length : 0,
     ),
     safe("bills", async () => (await getPatternsToConfirm(userId)).length),
   ]);

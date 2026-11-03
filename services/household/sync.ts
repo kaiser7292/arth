@@ -1,3 +1,4 @@
+import { isPartOn } from "@/services/customise";
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { bumpDataVersion } from "@/services/settings";
@@ -52,6 +53,7 @@ let inFlight: Promise<SyncResult> | null = null;
 
 /** Runs a sync, or joins the one already running. */
 export function syncHousehold(): Promise<SyncResult> {
+  if (!isPartOn("together")) return Promise.resolve({ ran: false, changed: false });
   if (!inFlight) {
     inFlight = run().finally(() => {
       inFlight = null;

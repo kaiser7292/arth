@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Children, useCallback, useEffect, useRef, useState } from "react";
 import { Text } from "./Text";
 import { Animated, Pressable, ScrollView, View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -13,7 +13,8 @@ interface SwipePagerProps {
   pages: SwipePagerPage[];
   activeIndex: number;
   onIndexChange: (index: number) => void;
-  children: React.ReactNode[];
+  /** One per page. A page that's switched off passes null and is left out. */
+  children: React.ReactNode;
   trailing?: React.ReactNode;
   /**
    * MINIMUM width of each tab cell. Defaults to 80. Tabs grow past it to fit their label, so a
@@ -112,7 +113,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
   return (
     <View style={{ flex: 1 }}>
       {/* Tab strip */}
-      <View style={{ flexDirection: "row", alignItems: "center", borderBottomWidth: 0.5, borderBottomColor: colors.border, backgroundColor: colors.background }}>
+      <View style={{ display: pages.length > 1 ? "flex" : "none", flexDirection: "row", alignItems: "center", borderBottomWidth: 0.5, borderBottomColor: colors.border, backgroundColor: colors.background }}>
         <ScrollView
           ref={tabStripRef}
           horizontal
@@ -202,7 +203,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
               height: contentSize.height,
             }}
           >
-            {children.map((child, index) => (
+            {Children.toArray(children).map((child, index) => (
               <View
                 key={pages[index]?.key ?? index}
                 style={{ width: contentSize.width, height: contentSize.height }}

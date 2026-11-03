@@ -183,3 +183,11 @@
 | Deep-dive on the 5 historically-buggiest areas | `.context/features/*.md` |
 | Verified, still-open bugs (from the May 2026 audit) | `.context/KNOWN_ISSUES.md` |
 | Incident history / "what not to do" | `CLAUDE.md` (root) |
+
+## Customise Arth
+
+**What it does:** Switches off features, bottom tabs, tabs inside screens and Home cards, and orders the Home cards. Off only hides; nothing is deleted. Together also stops syncing while off, and with Hisaab off no new split can be started.
+
+**Where:** `app/settings/customise.tsx`. A feature's screens are wrapped in `FeatureGate` (`components/FeatureOff.tsx`) in its `_layout.tsx`.
+
+**Technical:** `services/customise.ts` (switches, `isPathOn` for search), `services/home-card-preferences.ts` (card switches, order), `hooks/use-customisation.ts` (re-renders screens). Home renders its cards through `renderHomeCards` in `app/(tabs)/index.tsx`.

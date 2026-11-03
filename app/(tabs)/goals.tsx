@@ -1,3 +1,5 @@
+import { isPartOn } from "@/services/customise";
+import { useCustomisation } from "@/hooks/use-customisation";
 import { Card, ContextualHeader, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { AnimatedNumber, Appear, PressableScale } from "@/components/motion";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -31,6 +33,7 @@ import { useTheme } from "@/hooks/use-theme";
 const preloaded = consumeGoalsPreload();
 
 export default function GoalsScreen() {
+  useCustomisation();
   const router = useRouter();
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
@@ -553,6 +556,7 @@ export default function GoalsScreen() {
           </Text>
           <Appear index={2}>
           <Card className="mb-4">
+            {isPartOn("loans") && (
             <Pressable
               onPress={() => router.push("/goals/loans")}
               className="flex-row items-center py-3 border-b border-border"
@@ -575,6 +579,7 @@ export default function GoalsScreen() {
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
             </Pressable>
+            )}
 
             <Pressable
               onPress={() => router.push("/goals/risk-coverage")}
@@ -661,6 +666,7 @@ export default function GoalsScreen() {
                 <Text className="text-xs text-muted-foreground">Any two financial years, side by side</Text>
               )}
             </AnalyseTile>
+            {isPartOn("insights") && (
             <AnalyseTile
               icon="sparkles-outline"
               color={theme.primary}
@@ -673,6 +679,7 @@ export default function GoalsScreen() {
                   : `${fyLabel} so far, as a story`}
               </Text>
             </AnalyseTile>
+            )}
             <AnalyseTile
               icon="calculator-outline"
               color={theme.success}
