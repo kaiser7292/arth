@@ -99,7 +99,7 @@ export const CREDIT_KINDS = ["salary", "bonus", "interest", "refund", "cashback"
 export type CreditKind = (typeof CREDIT_KINDS)[number];
 
 export const CREDIT_KIND_LABELS: Record<CreditKind, string> = {
-  salary: "Salary",
+  salary: "Income",
   bonus: "Bonus",
   interest: "Interest",
   refund: "Refund",

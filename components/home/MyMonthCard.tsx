@@ -105,9 +105,9 @@ function CashFlow({ d, month }: { d: MyMonth; month: string }) {
 
   // Before pay day, more going out than coming in is just the calendar, not a problem.
   const message = due
-    ? `Salary due around ${dayMonth(due.date)}${due.amount > 0 ? `, ${formatAmount(due.amount)} expected` : ""}`
+    ? `Income due around ${dayMonth(due.date)}${due.amount > 0 ? `, ${formatAmount(due.amount)} expected` : ""}`
     : d.salaryMissing
-      ? "No salary found yet. Tap to check your credits"
+      ? "No income found yet. Tap to check your credits"
       : moneyIn <= 0
         ? "No money in yet this month"
         : d.leftOver < 0

@@ -41,8 +41,8 @@ export function SalaryChecks({
   const fyOf = (c: SalaryCheck) => financialYear ?? String(getCurrentFY(getFYStartMonth(), new Date(`${c.month}-15T12:00:00`)));
   const line = (c: SalaryCheck) =>
     c.status === "missing"
-      ? `No salary found for ${formatMonthLabel(c.month, "long")}. ${formatAmount(c.expected)} expected, so the plan keeps that figure for now.`
-      : `${formatMonthLabel(c.month, "long")} salary: ${formatAmount(c.credited)} credited, ${formatAmount(c.expected)} expected. ${formatAmount(Math.abs(c.credited - c.expected))} ${c.status === "more" ? "more" : "less"}.`;
+      ? `No income found for ${formatMonthLabel(c.month, "long")}. ${formatAmount(c.expected)} expected, so the plan keeps that figure for now.`
+      : `${formatMonthLabel(c.month, "long")} income: ${formatAmount(c.credited)} credited, ${formatAmount(c.expected)} expected. ${formatAmount(Math.abs(c.credited - c.expected))} ${c.status === "more" ? "more" : "less"}.`;
 
   return (
     <Card className="mb-3">

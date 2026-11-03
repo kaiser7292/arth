@@ -1190,28 +1190,26 @@ export default function SalaryCalculatorScreen() {
                   "elapsed" for investment/milestone warnings - avoids false alarms when you're
                   paid later in the month.
                 </Text>
-                {kind !== "business" && (
-                  <View className="mt-4">
-                    <Text className="text-sm font-medium text-foreground mb-2">A salary credit counts towards</Text>
-                    <SegmentedControl
-                      accessibilityLabel="Month a salary credit counts towards"
-                      options={[
-                        { value: "0", label: "Same month" },
-                        { value: "1", label: "Next month" },
-                        { value: "-1", label: "Previous" },
-                      ]}
-                      value={salaryMonthOffset}
-                      onChange={setSalaryMonthOffset}
-                    />
-                    <Text className="text-xs text-muted-foreground mt-2">
-                      {salaryMonthOffset === "1"
-                        ? "Paid on 30 Oct, it counts for November."
-                        : salaryMonthOffset === "-1"
-                          ? "Paid on 1 Nov, it counts for October."
-                          : "Paid on 30 Oct, it counts for October."}
-                    </Text>
-                  </View>
-                )}
+                <View className="mt-4">
+                  <Text className="text-sm font-medium text-foreground mb-2">An income credit counts towards</Text>
+                  <SegmentedControl
+                    accessibilityLabel="Month an income credit counts towards"
+                    options={[
+                      { value: "0", label: "Same month" },
+                      { value: "1", label: "Next month" },
+                      { value: "-1", label: "Previous" },
+                    ]}
+                    value={salaryMonthOffset}
+                    onChange={setSalaryMonthOffset}
+                  />
+                  <Text className="text-xs text-muted-foreground mt-2">
+                    {salaryMonthOffset === "1"
+                      ? "Paid on 30 Oct, it counts for November."
+                      : salaryMonthOffset === "-1"
+                        ? "Paid on 1 Nov, it counts for October."
+                        : "Paid on 30 Oct, it counts for October."}
+                  </Text>
+                </View>
               </Card>
             )}
 

@@ -79,6 +79,7 @@ describe("reading the sheet", () => {
 
   it("reads a credit kind by its key or the name shown in the app", () => {
     expect(parseCreditKind("salary")).toBe("salary");
+    expect(parseCreditKind("Income")).toBe("salary");
     expect(parseCreditKind("Investment gain")).toBe("gain");
     expect(parseCreditKind("lottery")).toBeNull();
   });

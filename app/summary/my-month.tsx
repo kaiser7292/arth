@@ -77,10 +77,10 @@ export default function MyMonthScreen() {
           <Card className="mb-3">
             <Heading>Money in</Heading>
             {data.salary > 0 ? (
-              <Row label="Salary" amount={data.salary} />
+              <Row label="Income" amount={data.salary} />
             ) : data.salaryDue ? (
               <View className="py-1.5">
-                <Text className="text-sm text-foreground">Salary due around {dueLabel}</Text>
+                <Text className="text-sm text-foreground">Income due around {dueLabel}</Text>
                 {data.salaryDue.amount > 0 && (
                   <Text className="text-xs text-muted-foreground mt-0.5">{formatAmount(data.salaryDue.amount)} expected, not counted until it arrives</Text>
                 )}
@@ -88,16 +88,16 @@ export default function MyMonthScreen() {
             ) : (
               // Nothing marked as salary: asking beats showing a confident ₹0 on someone's pay.
               <Pressable onPress={() => router.push({ pathname: "/(tabs)/expenses", params: { preset: "credits" } })} className="py-1.5" accessibilityRole="button">
-                <Text className="text-sm text-foreground">No salary found this month</Text>
+                <Text className="text-sm text-foreground">No income found this month</Text>
                 <Text className="text-xs mt-0.5" style={{ color: theme.primary }}>
-                  Already paid? Open the credit in Transactions and set its type to Salary
+                  Already paid? Open the credit in Transactions and set its type to Income
                 </Text>
               </Pressable>
             )}
-            {data.otherIncome > 0 && <Row label="Other income" amount={data.otherIncome} />}
+            {data.otherIncome > 0 && <Row label="Other money in" amount={data.otherIncome} />}
             {data.salaryMovedOut > 0 && (
               <Text className="text-xs text-muted-foreground mt-1">
-                {formatAmount(data.salaryMovedOut)} of salary arrived this month but counts for another, by your salary setting.
+                {formatAmount(data.salaryMovedOut)} of income arrived this month but counts for another, by your income setting.
               </Text>
             )}
           </Card>

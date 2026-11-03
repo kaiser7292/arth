@@ -37,7 +37,7 @@ export function CreditSalaryMonth({ expenseId, date, override }: { expenseId: st
 
   return (
     <Card className="mt-3">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Salary counts for</Text>
+      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Income counts for</Text>
       <View className="flex-row" style={{ gap: 8 }}>
         {options.map((m) => {
           const on = m === selected;
