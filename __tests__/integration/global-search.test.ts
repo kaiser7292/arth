@@ -67,6 +67,7 @@ import {
   rememberSearchResult,
   searchCatalog,
   searchData,
+  withoutActionWords,
 } from "../../services/global-search";
 import { SEARCH_CATALOG, SUGGESTED_ACTION_IDS } from "../../services/search-catalog";
 import { createVaultEntry } from "../../services/vault";
@@ -128,6 +129,29 @@ describe("the catalog", () => {
     for (const id of SUGGESTED_ACTION_IDS) expect(ids).toContain(id);
   });
 
+  it("finds how to change things, one or many", () => {
+    const first = (q: string) => searchCatalog(q).actions[0]?.title;
+    expect(first("change date")).toBe("Change a transaction's date");
+    expect(first("change transaction date")).toBe("Change a transaction's date");
+    expect(first("edit transaction")).toBe("Edit a transaction");
+    expect(first("delete transaction")).toBe("Delete a transaction");
+    expect(first("bulk edit")).toBe("Edit transactions in bulk");
+    expect(first("change dates in bulk")).toBe("Change dates in bulk");
+    expect(first("fix multiple categories")).toBe("Change category in bulk");
+    expect(first("change password")).toBe("Change a saved password");
+    expect(first("remove goal")).toBe("Edit or delete a goal");
+    expect(first("stop subscription")).toBe("Edit or stop a reminder");
+    expect(searchCatalog("change date").actions.map((a) => a.title)).toContain("Change dates in bulk");
+    expect(searchCatalog("change date swiggy").actions[0]?.title).toBe("Change a transaction's date");
+  });
+
+  it("bulk actions open Transactions already selecting, single edits don't", () => {
+    const entry = (id: string) => SEARCH_CATALOG.find((e) => e.id === id)!;
+    expect(entry("bulk-date").target?.params?.select).toBe("1");
+    expect(entry("edit-tx-date").target?.params?.select).toBeUndefined();
+    expect(entry("edit-tx-date").target?.params?.hint).toBeTruthy();
+  });
+
   it("finds what people would type", () => {
     const first = (q: string) => searchCatalog(q).actions[0]?.title;
     expect(first("change income")).toBe("Change my income");
@@ -164,6 +188,14 @@ describe("transactions", () => {
     expect((await group("store 9", "transactions"))?.results[0].title).toBe("Store 9");
     await expect(searchData("how do i find every single food and travel and shopping bill from the shop")).resolves.toBeDefined();
     expect((await group("store 9 food travel shopping bills rent money", "transactions"))).toBeUndefined();
+  });
+
+  it("an edit search still finds the transaction it names", async () => {
+    tx({ merchant_name: "Swiggy" });
+    expect(withoutActionWords(["change", "date", "swiggy"])).toEqual(["swiggy"]);
+    expect(withoutActionWords(["change", "date"])).toEqual(["change", "date"]);
+    expect(withoutActionWords(["amount", "swiggy"])).toEqual(["amount", "swiggy"]);
+    expect((await group("change date swiggy", "transactions"))?.results[0].title).toBe("Swiggy");
   });
 
   it("date words narrow it down", async () => {

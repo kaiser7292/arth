@@ -49,7 +49,7 @@ Arth has **five bottom tabs**, in this order from left to right. **Swipe left or
 
 ## Search or do
 
-The search icon at the top of Home finds almost anything: actions like "add an investment" or "change my income", any screen, your transactions (try a name, a category, 450, 450-500, >5000 or "food last month"), merchants, people, accounts, holdings, goals, reminders, and help. It understands everyday words, including some Hindi, so "salary" finds Income and "kharcha" finds expenses, and it forgives small typos. The Vault is searched by name, username, email, website and notes, never by passwords or other secrets. Everything happens on your phone.
+The search icon at the top of Home finds almost anything: actions like "add an investment" or "change my income", any screen, your transactions (try a name, a category, 450, 450-500, >5000 or "food last month"), merchants, people, accounts, holdings, goals, reminders, and help. It understands everyday words, including some Hindi, so "salary" finds Income and "kharcha" finds expenses, and it forgives small typos. It also takes you to changing things: "change date", "edit in bulk", "delete transaction", "change password". Bulk actions open Transactions ready for you to tap the ones you want. The Vault is searched by name, username, email, website and notes, never by passwords or other secrets. Everything happens on your phone.
 
 ## My month and setting up
 

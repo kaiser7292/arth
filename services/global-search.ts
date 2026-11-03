@@ -52,11 +52,36 @@ export interface SearchGroup {
 
 const SHOW = 4;
 
+/** Words about what to do to a transaction rather than which one: "change date swiggy" is about Swiggy. */
+const ACTION_WORDS = new Set(
+  "edit edits editing change changes changing fix correct correction modify update alter delete remove bulk many multiple several transaction transactions txn date dates amount amounts category categories merchant merchants account accounts mode modes payment split refund transfer tag".split(" "),
+);
+const VERBS = new Set("edit edits editing change changes changing fix correct correction modify update alter delete remove bulk".split(" "));
+
+/** The words that name something, once it's clear the search is about changing it. */
+export function withoutActionWords(tokens: string[]): string[] {
+  if (!tokens.some((t) => VERBS.has(t))) return tokens;
+  const rest = tokens.filter((t) => !ACTION_WORDS.has(t));
+  return rest.length > 0 ? rest : tokens;
+}
+
 export function searchCatalog(query: string, entries: CatalogEntry[] = availableCatalog()): { actions: SearchResult[]; screens: SearchResult[]; best: number } {
-  const scored = entries
-    .map((e) => ({ e, score: semanticScore(query, [e.title, e.words]) }))
-    .filter((x) => x.score > 0)
-    .sort((a, b) => b.score - a.score);
+  // Most changes are to one transaction: bulk actions lead only when the search asks for many.
+  const wantsMany = /(bulk|many|multiple|several|batch|mass|all)/i.test(query);
+  const score = (q: string) =>
+    entries
+      .map((e) => {
+        const base = semanticScore(q, [e.title, e.words]);
+        return { e, score: base > 0 && e.target?.params?.select && !wantsMany ? Math.max(1, base - 60) : base };
+      })
+      .filter((x) => x.score > 0);
+  let matches = score(query);
+  // "change date swiggy": no action has Swiggy in it, but the rest of the search is still an action.
+  if (matches.length === 0) {
+    const useful = queryTokens(query).filter((t) => score(t).length > 0);
+    if (useful.length > 0) matches = score(useful.join(" "));
+  }
+  const scored = matches.sort((a, b) => b.score - a.score);
   const toResult = ({ e }: { e: CatalogEntry }): SearchResult => ({ key: `catalog:${e.id}`, title: e.title, icon: e.icon, target: e.target, action: e.action });
   return {
     actions: scored.filter((x) => x.e.kind === "do").slice(0, 6).map(toResult),
@@ -105,7 +130,7 @@ async function transactionsGroup(query: string, merchantNames: string[]): Promis
   const db = getDatabase();
   const { rest, from, to } = dateWordsIn(query);
   const range = rest ? parseAmountQuery(rest) : null;
-  const tokens = rest ? queryTokens(rest) : [];
+  const tokens = rest ? withoutActionWords(queryTokens(rest)) : [];
   const where: string[] = ["user_id = ?", "deleted_at IS NULL", "status <> 'rejected'", "nature IN ('realized', 'credit')"];
   const params: (string | number)[] = [DEFAULT_USER_ID];
   if (from && to) {
@@ -150,7 +175,7 @@ async function transactionsGroup(query: string, merchantNames: string[]): Promis
     key: "transactions",
     title: "Transactions",
     total,
-    seeAll: total > SHOW ? { pathname: "/(tabs)/expenses", params: { search: rest || query } } : undefined,
+    seeAll: total > SHOW ? { pathname: "/(tabs)/expenses", params: { search: tokens.join(" ") || rest || query } } : undefined,
     score: 55,
     results: rows.map((r) => ({
       key: `tx:${r.id}`,

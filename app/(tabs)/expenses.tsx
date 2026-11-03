@@ -158,13 +158,25 @@ export default function ExpensesScreen() {
   const [showSortSheet, setShowSortSheet] = useState(false);
 
   // Preset: navigate to a specific tab after save (refund → credits, etc.)
-  const params = useLocalSearchParams<{ preset?: string; filterMonth?: string; filterAvoidability?: string; search?: string }>();
+  const params = useLocalSearchParams<{ preset?: string; filterMonth?: string; filterAvoidability?: string; search?: string; select?: string; show?: string; hint?: string; request?: string }>();
   const presetParam = params.preset;
   const presetAppliedRef = useRef(false);
   // "See all" from Search or do. Keyed on the text, so each new search applies even with the tab open.
   useEffect(() => {
     if (params.search) setSearch(params.search);
-  }, [params.search]);
+  }, [params.search, params.request]);
+  // An action from Search or do: which list to show, whether to start selecting, and what to do next.
+  useEffect(() => {
+    if (!params.request) return;
+    if (params.show === "transfers" || params.show === "credit") setFilterNature(params.show);
+    if (params.select === "1") {
+      setSelectedExpenseIds(new Set());
+      setBulkMode(true);
+    }
+    if (params.hint) toast(params.hint);
+    // Only a new request should re-run this, not every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.request]);
   useEffect(() => {
     if (presetAppliedRef.current) return;
     if (presetParam === "credits") {
@@ -645,6 +657,15 @@ export default function ExpensesScreen() {
   }, []);
 
   const [bulkPickerType, setBulkPickerType] = useState<"category" | "paymentMode" | "account" | "merchant" | "date" | null>(null);
+
+  // Opened already selecting, nothing may be chosen yet.
+  const pickBulkField = (field: NonNullable<typeof bulkPickerType>) => {
+    if (selectedExpenseIds.size === 0) {
+      toast("Tap the transactions you want to change first");
+      return;
+    }
+    setBulkPickerType(field);
+  };
 
   const handleBulkApply = useCallback(async (field: string, value: string) => {
     const ids = [...selectedExpenseIds];
@@ -1363,11 +1384,11 @@ export default function ExpensesScreen() {
       {bulkMode && (
         <BulkActionBar
           selectedCount={selectedExpenseIds.size}
-          onChangeCategory={() => setBulkPickerType("category")}
-          onChangePaymentMode={() => setBulkPickerType("paymentMode")}
-          onChangeAccount={() => setBulkPickerType("account")}
-          onChangeMerchant={() => setBulkPickerType("merchant")}
-          onChangeDate={() => setBulkPickerType("date")}
+          onChangeCategory={() => pickBulkField("category")}
+          onChangePaymentMode={() => pickBulkField("paymentMode")}
+          onChangeAccount={() => pickBulkField("account")}
+          onChangeMerchant={() => pickBulkField("merchant")}
+          onChangeDate={() => pickBulkField("date")}
           onCancel={exitBulkMode}
         />
       )}

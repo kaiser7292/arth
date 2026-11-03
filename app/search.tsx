@@ -87,7 +87,9 @@ export default function SearchScreen() {
         return;
       }
       if (!r.target) return;
-      router.push({ pathname: r.target.pathname, params: r.target.params } as Href);
+      // A new value each time, so the same action works again with the Transactions tab already open.
+      const params = r.target.pathname === "/(tabs)/expenses" ? { ...r.target.params, request: String(Date.now()) } : r.target.params;
+      router.push({ pathname: r.target.pathname, params } as Href);
     },
     [router, toast],
   );
@@ -167,7 +169,7 @@ export default function SearchScreen() {
         renderSectionFooter={({ section }) =>
           section.seeAll ? (
             <Pressable
-              onPress={() => router.push({ pathname: section.seeAll!.pathname, params: section.seeAll!.params } as Href)}
+              onPress={() => router.push({ pathname: section.seeAll!.pathname, params: { ...section.seeAll!.params, request: String(Date.now()) } } as Href)}
               className="px-4 py-3 border-b border-border"
               accessibilityRole="button"
             >
