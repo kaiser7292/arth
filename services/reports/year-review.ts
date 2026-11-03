@@ -119,16 +119,17 @@ export async function categoryNames(userId: string): Promise<Map<string, { name:
   return new Map(rows.map((r) => [r.id, { name: r.name, color: r.color }]));
 }
 
-/** Credits that are real money in: see MONEY_IN_FROM. */
+/** Income: credits that are real money in (see MONEY_IN_FROM), leaving out someone repaying you. */
 export async function moneyIn(userId: string, startDate: string, endDate: string): Promise<number> {
   const row = await getDatabase().getFirstAsync<{ total: number | null }>(
-    `SELECT COALESCE(SUM(e.amount), 0) AS total ${MONEY_IN_FROM};`,
+    `SELECT COALESCE(SUM(e.amount), 0) AS total ${MONEY_IN_FROM}
+       AND NOT EXISTS (SELECT 1 FROM hisaab_entries h WHERE h.linked_expense_id = e.id AND h.type = 'settlement');`,
     userId, startDate, endDate,
   );
   return row?.total ?? 0;
 }
 
-/** The part of moneyIn that's someone repaying you: credits linked to a Hisaab settlement. */
+/** Someone repaying you: credits linked to a Hisaab settlement, which moneyIn leaves out. */
 export async function repaymentsIn(userId: string, startDate: string, endDate: string): Promise<number> {
   const row = await getDatabase().getFirstAsync<{ total: number | null }>(
     `SELECT COALESCE(SUM(e.amount), 0) AS total ${MONEY_IN_FROM}

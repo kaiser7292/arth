@@ -59,7 +59,7 @@ function seed() {
     CREATE TABLE account_transfers (id TEXT, from_account_id TEXT, to_account_id TEXT, amount REAL, date TEXT, deleted_at TEXT);
     CREATE TABLE investment_products (id TEXT, financial_account_id TEXT, valuation TEXT, start_date TEXT);
     CREATE TABLE hisaab_persons (id TEXT, owner_user_id TEXT);
-    CREATE TABLE hisaab_entries (id TEXT, hisaab_person_id TEXT, type TEXT, amount REAL, date TEXT);
+    CREATE TABLE hisaab_entries (id TEXT, hisaab_person_id TEXT, type TEXT, amount REAL, date TEXT, linked_expense_id TEXT);
 
     INSERT INTO financial_accounts VALUES ('s1', 'u1', 'savings'), ('d1', 'u1', 'demat'), ('cc', 'u1', 'credit_card');
     INSERT INTO categories VALUES ('food', 'u1', 'Food', '#F97316'), ('rent', 'u1', 'Rent', '#6366F1');
@@ -84,7 +84,7 @@ function seed() {
 
     INSERT INTO account_transfers VALUES ('t1', 's1', 'd1', 10000, '2025-07-01', NULL);
     INSERT INTO hisaab_persons VALUES ('h1', 'u1');
-    INSERT INTO hisaab_entries VALUES ('he1', 'h1', 'settlement', 1500, '2025-08-01');
+    INSERT INTO hisaab_entries VALUES ('he1', 'h1', 'settlement', 1500, '2025-08-01', NULL);
   `);
 }
 

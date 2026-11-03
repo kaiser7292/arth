@@ -94,7 +94,7 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
       userId, startDate, endDate,
     ),
   ]);
-  const otherIncome = Math.max(0, allIn - repaid - salary.arrived);
+  const otherIncome = Math.max(0, allIn - salary.arrived);
   const totalIn = otherIncome + salary.counted;
   const billsShare = others?.total ?? 0;
   const peopleNet = repaid - billsShare;

@@ -47,6 +47,7 @@ jest.mock("../../database", () => ({
 import { runMigrations } from "../../database/migrations";
 import { reclassifyExpenseAsTransfer } from "../../services/account-transfer";
 import { getExpenseTotal } from "../../services/expense-queries";
+import { moneyIn } from "../../services/reports/year-review";
 import { goalMonthlyNeeded, goalMonths, saveDatedGoal } from "../../services/dated-goal";
 import { getLifeMilestones } from "../../services/life-milestone";
 import { getMonthAccounts, getMyMonth } from "../../services/my-month";
@@ -192,6 +193,16 @@ describe("tagging a transaction Arth didn't recognise", () => {
     const m = await getMyMonth(USER, MONTH);
     expect(m).toMatchObject({ spent: 2000, savedTotal: 3000, leftOver: -5000 });
     expect(m.categories).toEqual([{ categoryId: "food", name: "Food", total: 2000 }]);
+  });
+});
+
+describe("income in reports", () => {
+  it("a repayment linked to Hisaab isn't income in Year in Review or year-over-year", async () => {
+    tx({ nature: "credit", credit_kind: "salary", amount: 1000, account_id: "bank" });
+    const back = tx({ nature: "credit", amount: 500, account_id: "bank" });
+    insert("hisaab_persons", { id: "p", owner_user_id: USER, name: "Friend" });
+    insert("hisaab_entries", { id: "h", hisaab_person_id: "p", amount: 500, date: "2026-10-20", type: "settlement", linked_expense_id: back });
+    await expect(moneyIn(USER, "2026-10-01", "2026-10-31")).resolves.toBe(1000);
   });
 });
 

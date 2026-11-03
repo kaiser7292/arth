@@ -58,6 +58,7 @@ function seed() {
     );
     CREATE TABLE expense_investment_links (id TEXT, expense_id TEXT, contribution_amount REAL);
     CREATE TABLE expense_loan_links (id TEXT, expense_id TEXT);
+    CREATE TABLE hisaab_entries (id TEXT, linked_expense_id TEXT, type TEXT);
     CREATE TABLE account_transfers (id TEXT, from_account_id TEXT, to_account_id TEXT, amount REAL, date TEXT, deleted_at TEXT);
     CREATE TABLE investment_products (id TEXT, financial_account_id TEXT, valuation TEXT, start_date TEXT);
     CREATE TABLE yearly_plans (id TEXT, user_id TEXT, financial_year TEXT, total_planned_expenses REAL, total_planned_investments REAL);
