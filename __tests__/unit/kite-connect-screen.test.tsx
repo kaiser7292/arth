@@ -6,7 +6,7 @@ jest.mock("nativewind", () => ({
 }));
 jest.mock("expo-router", () => {
   const { useEffect } = require("react");
-  return { router: { push: jest.fn() }, useFocusEffect: (cb: () => void) => useEffect(cb, [cb]) };
+  return { router: { push: jest.fn(), back: jest.fn(), canGoBack: () => true }, useLocalSearchParams: () => ({}), useFocusEffect: (cb: () => void) => useEffect(cb, [cb]) };
 });
 jest.mock("expo-linking", () => ({
   parse: (u: string) => ({ queryParams: Object.fromEntries(new URL(u).searchParams) }),
@@ -79,6 +79,7 @@ jest.mock("../../services/kite-connect", () => ({
   setLinkedAccountId: jest.fn(),
   storeKiteAccessToken: jest.fn(),
   syncKiteData: jest.fn(),
+  getCachedDayOrders: () => ({ bought: 0, sold: 0, holdingsChange: 0, count: 0 }),
 }));
 
 import KiteConnectScreen from "../../app/settings/kite-connect";

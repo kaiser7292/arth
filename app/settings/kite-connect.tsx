@@ -1,6 +1,7 @@
+import { NO_DAY_ORDERS, type DayOrderTally } from '@/services/kite-day-orders';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Linking from 'expo-linking';
 import * as Clipboard from 'expo-clipboard';
@@ -57,6 +58,7 @@ import {
   getKiteLoginUrl,
   getLastSynced,
   getLinkedAccountId,
+  getCachedDayOrders,
   isKiteAuthenticated,
   isKiteTokenExpired,
   setLinkedAccountId,
@@ -72,6 +74,9 @@ import {
 
 export default function KiteConnectScreen() {
   const alert = useAlert();
+  // Sent here by Sync in Investments: go straight to the login, then back so that sync carries on.
+  const { loginForSync } = useLocalSearchParams<{ loginForSync?: string }>();
+  const loginStarted = useRef(false);
   const { colors } = useColorScheme();
   const theme = useTheme();
 
@@ -111,6 +116,7 @@ export default function KiteConnectScreen() {
   const [portfolioTotal, setPortfolioTotal]   = useState(0);
   const [equityTotal, setEquityTotal]         = useState(0);
   const [mfTotal, setMFTotal]                 = useState(0);
+  const [dayOrders, setDayOrders]             = useState<DayOrderTally>(NO_DAY_ORDERS);
   const [fundsAvailable, setFundsAvailable]   = useState(0);
   const [hasCachedData, setHasCachedData]     = useState(false);
   const { query, setQuery, sort, changeSort, view } = usePortfolioView('kite');
@@ -141,6 +147,7 @@ export default function KiteConnectScreen() {
           setOrders(getCachedOrders());
           setMFOrders(getCachedMFOrders());
           setPortfolioTotal(totals.portfolio);
+          setDayOrders(getCachedDayOrders());
           setEquityTotal(cached.reduce((s, h) => s + (h.quantity + (h.t1_quantity ?? 0)) * h.last_price, 0));
           setMFTotal(cachedMF.reduce((s, h) => s + h.quantity * h.last_price, 0));
           setFundsAvailable(totals.funds);
@@ -153,6 +160,13 @@ export default function KiteConnectScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    if (!loginForSync || isLoading || loginStarted.current) return;
+    loginStarted.current = true;
+    void handleConnectPress();
+    // Runs once, as soon as the screen has loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loginForSync, isLoading]);
 
   // Coming back from the credentials screen: pick up a newly saved login.
   useFocusEffect(
@@ -326,6 +340,10 @@ export default function KiteConnectScreen() {
     } finally {
       setIsLoading(false);
     }
+    if (connected && loginForSync && router.canGoBack()) {
+      router.back();
+      return;
+    }
     if (connected) await handleSync();
   };
 
@@ -353,6 +371,7 @@ export default function KiteConnectScreen() {
       setOrders(result.orders);
       setMFOrders(result.mfOrders);
       setPortfolioTotal(result.portfolioTotal);
+      setDayOrders(result.dayOrders ?? NO_DAY_ORDERS);
       setEquityTotal(result.equityTotal);
       setMFTotal(result.mfTotal);
       setFundsAvailable(result.fundsAvailable);
@@ -604,13 +623,20 @@ export default function KiteConnectScreen() {
               breakdown={[
                 { label: 'Stocks', value: equityTotal },
                 { label: 'Mutual funds', value: mfTotal },
-              ].filter((b) => b.value > 0)}
+                // Not in holdings until the day ends, so it's added here (a sell takes away).
+                { label: "Today's orders", value: dayOrders.holdingsChange },
+              ].filter((b) => b.value !== 0)}
               invested={investedTotal}
               funds={fundsAvailable}
               onSaveSnapshot={handleUpdateSnapshot}
               saving={savingSnapshot}
               saveDisabled={!linkedAccountId}
             />
+            {dayOrders.count > 0 && (
+              <Text className="text-xs text-muted-foreground mx-4 mb-3">
+                Today: bought {formatAmount(dayOrders.bought)}, sold {formatAmount(dayOrders.sold)}. Included above until they reach your holdings.
+              </Text>
+            )}
 
             {allRowCount > 0 && (
               <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={changeSort} />

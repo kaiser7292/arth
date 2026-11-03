@@ -1,3 +1,4 @@
+import { NO_DAY_ORDERS, tallyDayOrders, type DayOrderTally } from '@/services/kite-day-orders';
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { settingsStorage } from '@/services/storage';
@@ -18,6 +19,7 @@ const MMKV_HOLDINGS_CACHE    = 'kite_holdings_cache';      // JSON — equity
 const MMKV_MF_HOLDINGS_CACHE = 'kite_mf_holdings_cache';  // JSON — mutual funds
 const MMKV_PORTFOLIO_TOTAL   = 'kite_portfolio_total';     // number string (equity + MF)
 const MMKV_FUNDS_TOTAL       = 'kite_funds_total';         // number string
+const MMKV_DAY_ORDERS_CACHE  = 'kite_day_orders_cache';
 const MMKV_POSITIONS_CACHE   = 'kite_positions_cache';     // JSON — net positions
 const MMKV_SIPS_CACHE        = 'kite_sips_cache';          // JSON — active SIPs
 const MMKV_ORDERS_CACHE      = 'kite_orders_cache';        // JSON — recent equity orders
@@ -128,7 +130,8 @@ export interface KiteSyncResult {
   sips: KiteSIP[];               // Active SIPs
   orders: KiteOrder[];           // Recent equity orders
   mfOrders: KiteMFOrder[];       // Recent MF orders
-  portfolioTotal: number;        // equity market value + MF market value
+  portfolioTotal: number;        // equity + MF market value + today's filled delivery orders
+  dayOrders: DayOrderTally;
   equityTotal: number;
   mfTotal: number;
   fundsAvailable: number;        // equity cash margin
@@ -368,6 +371,12 @@ export function getCachedTotals(): { portfolio: number; funds: number } {
   };
 }
 
+export function getCachedDayOrders(): DayOrderTally {
+  const raw = settingsStorage.getString(MMKV_DAY_ORDERS_CACHE);
+  if (!raw) return NO_DAY_ORDERS;
+  try { return JSON.parse(raw); } catch { return NO_DAY_ORDERS; }
+}
+
 export function getCachedPositions(): KitePosition[] {
   const raw = settingsStorage.getString(MMKV_POSITIONS_CACHE);
   if (!raw) return [];
@@ -470,7 +479,9 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
     (sum, h) => sum + h.quantity * h.last_price,
     0,
   );
-  const portfolioTotal = equityTotal + mfTotal;
+  // From the whole order book, before it's trimmed for display below.
+  const dayOrders = tallyDayOrders(ordersRaw ?? [], [...holdingsRaw, ...(positionsRaw.day ?? []), ...(positionsRaw.net ?? [])]);
+  const portfolioTotal = Math.max(0, equityTotal + mfTotal + dayOrders.holdingsChange);
   const fundsAvailable = margins.equity?.available?.live_balance
     ?? margins.equity?.available?.cash
     ?? margins.equity?.net
@@ -491,6 +502,7 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
   settingsStorage.set(MMKV_HOLDINGS_CACHE,    JSON.stringify(holdingsRaw));
   settingsStorage.set(MMKV_MF_HOLDINGS_CACHE, JSON.stringify(mfHoldingsRaw));
   settingsStorage.set(MMKV_PORTFOLIO_TOTAL,   portfolioTotal.toString());
+  settingsStorage.set(MMKV_DAY_ORDERS_CACHE,  JSON.stringify(dayOrders));
   settingsStorage.set(MMKV_FUNDS_TOTAL,       fundsAvailable.toString());
   settingsStorage.set(MMKV_POSITIONS_CACHE,   JSON.stringify(positions));
   settingsStorage.set(MMKV_SIPS_CACHE,        JSON.stringify(sips));
@@ -506,6 +518,7 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
     orders,
     mfOrders,
     portfolioTotal,
+    dayOrders,
     equityTotal,
     mfTotal,
     fundsAvailable,
