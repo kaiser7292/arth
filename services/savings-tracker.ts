@@ -56,7 +56,7 @@ async function getTotalExpensesInRange(
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
        AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
        AND date >= ? AND date <= ?
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
     userId,
     startDate,
@@ -83,7 +83,7 @@ async function getMonthlyExpensesByFiscalMonth(
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ?
        AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY month_str
      ORDER BY month_str;`,
@@ -235,7 +235,7 @@ export async function getDistinctExpenseMonthsInRange(
   const row = await db.getFirstAsync<{ cnt: number }>(
     `SELECT COUNT(DISTINCT strftime('%Y-%m', date)) as cnt FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND date >= ? AND date <= ?
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id)
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
     userId,
     startDate,

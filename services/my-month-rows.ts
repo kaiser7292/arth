@@ -189,14 +189,14 @@ export async function getMyMonthGroups(
       case "left":
         return [...(await all()), ...(await out())];
       case "budget":
-        // Budget's own rule (getExpenseTotal): fixed deposits and SIPs not yet set up still count.
+        // Budget's own rule (getExpenseTotal): nothing moved to an FD, a SIP or your own account.
         return [
           group(
             "Spent against budget",
             expenses(
               await db.getAllAsync<Expense>(
                 `SELECT *, ${amount} AS amount FROM expenses
-                 WHERE user_id = ? AND date >= ? AND date <= ? AND ${NOT_PUT_AWAY}
+                 WHERE user_id = ? AND date >= ? AND date <= ? AND ${NOT_PUT_AWAY} AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
                  ORDER BY date DESC;`,
                 ...range,
               ),

@@ -22,7 +22,7 @@ const NOT_LINKED_E = `
   AND NOT EXISTS (
     SELECT 1 FROM expense_investment_links l
     WHERE l.expense_id = e.id
-  )
+  ) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
   AND NOT EXISTS (
     SELECT 1 FROM expense_loan_links ll
     WHERE ll.expense_id = e.id
@@ -32,7 +32,7 @@ const NOT_LINKED_BARE = `
   AND NOT EXISTS (
     SELECT 1 FROM expense_investment_links l
     WHERE l.expense_id = expenses.id
-  )
+  ) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
   AND NOT EXISTS (
     SELECT 1 FROM expense_loan_links ll
     WHERE ll.expense_id = expenses.id
@@ -144,7 +144,7 @@ async function detectBudgetBreaches(userId: string, yearMonth: string): Promise<
      FROM expenses e
      JOIN categories c ON c.id = e.category_id
      JOIN budgets b ON b.category_id = e.category_id AND b.month = ?
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        AND e.category_id IS NOT NULL
        ${NOT_LINKED_E}
@@ -188,14 +188,14 @@ async function detectLifestyleCreep(userId: string, yearMonth: string): Promise<
   const [currentRow, lastYearRow] = await Promise.all([
     db.getFirstAsync<{ avg: number | null }>(
       `SELECT SUM(${effectiveAmountSql("expenses")}) / 3.0 as avg FROM expenses
-       WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+       WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
          AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
          ${NOT_LINKED_BARE};`,
       userId, currentStart, currentEnd,
     ),
     db.getFirstAsync<{ avg: number | null }>(
       `SELECT SUM(${effectiveAmountSql("expenses")}) / 3.0 as avg FROM expenses
-       WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+       WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
          AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
          ${NOT_LINKED_BARE};`,
       userId, lastYearStart, lastYearEnd,
@@ -236,7 +236,7 @@ async function detectSavingsWins(userId: string, yearMonth: string): Promise<Ins
     `SELECT e.category_id, c.name as category_name, SUM(${effectiveAmountSql("e")}) as current_total
      FROM expenses e
      JOIN categories c ON c.id = e.category_id
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        AND e.category_id IS NOT NULL
        ${NOT_LINKED_E}
@@ -249,7 +249,7 @@ async function detectSavingsWins(userId: string, yearMonth: string): Promise<Ins
     prev_total: number;
   }>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) as prev_total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ? AND category_id IS NOT NULL
        ${NOT_LINKED_BARE}
      GROUP BY category_id;`,
@@ -292,7 +292,7 @@ async function detectMicroLeaks(userId: string, yearMonth: string): Promise<Insi
   // refunded in full no longer shows as a "leak".
   const row = await db.getFirstAsync<{ total: number | null; count: number }>(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total, COUNT(*) as count FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ? AND amount < 500 AND amount > 0
        ${NOT_LINKED_BARE};`,
     userId, startDate, endDate,
@@ -376,7 +376,7 @@ async function getLifestyleCreepDrill(
               GROUP_CONCAT(e.id) as expense_ids
        FROM expenses e
        LEFT JOIN categories c ON c.id = e.category_id
-       WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
+       WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
          AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        GROUP BY e.category_id
        ORDER BY total DESC;`,
@@ -388,7 +388,7 @@ async function getLifestyleCreepDrill(
     }>(
       `SELECT e.category_id, SUM(${effectiveAmountSql("e")}) as total
        FROM expenses e
-       WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
+       WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
          AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        GROUP BY e.category_id;`,
       userId, lastYearStart, lastYearEnd,
@@ -471,7 +471,7 @@ async function getBudgetBreachDrill(
             SUM(${effectiveAmountSql("expenses")}) as total, COUNT(*) as count,
             GROUP_CONCAT(id) as expense_ids
      FROM expenses
-     WHERE user_id = ? AND category_id = ? AND status = 'approved' AND nature = 'realized'
+     WHERE user_id = ? AND category_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND deleted_at IS NULL AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
      GROUP BY merchant_name
      ORDER BY total DESC;`,
@@ -536,7 +536,7 @@ async function getSavingsWinDrill(
             SUM(${effectiveAmountSql("expenses")}) as total, COUNT(*) as count,
             GROUP_CONCAT(id) as expense_ids
      FROM expenses
-     WHERE user_id = ? AND category_id = ? AND status = 'approved' AND nature = 'realized'
+     WHERE user_id = ? AND category_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND deleted_at IS NULL AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
      GROUP BY merchant_name
      ORDER BY total DESC;`,
@@ -590,7 +590,7 @@ async function getMicroLeaksDrill(
             GROUP_CONCAT(e.id) as expense_ids
      FROM expenses e
      LEFT JOIN categories c ON c.id = e.category_id
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        AND e.amount < 500 AND e.amount > 0
      GROUP BY e.category_id
