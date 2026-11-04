@@ -63,8 +63,9 @@ export function InsightsPage() {
       setThisMonthTotal(totals.currentMonth);
       setLastMonthTotal(totals.previousMonth);
       setLoadFailed(false);
-    } catch { /* DB not ready */ }
+    } catch {
       setLoadFailed(true);
+    }
 
     try {
       const [forecastData, insightData] = await Promise.all([
