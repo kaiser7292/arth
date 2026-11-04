@@ -12,7 +12,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { Tabs } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { Text } from "@/components/ui";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -75,8 +75,9 @@ export default function TabLayout() {
         ),
         headerShown: false,
         // Switching tabs: a short cross-fade with a slight sideways shift instead of a hard cut.
-        // JS-driven here, so it's switched off explicitly for "Remove animations".
-        animation: reduceMotion ? "none" : "shift",
+        // Off for "Remove animations", and on iPhone, where a tab could stay invisible after the fade
+        // and leave a blank screen above the tab bar until you switched away and back.
+        animation: reduceMotion || Platform.OS === "ios" ? "none" : "shift",
         // Each tab paints Arth's background itself, so nothing behind it shows through mid-fade.
         sceneStyle: { backgroundColor: theme.background },
       }}
