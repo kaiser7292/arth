@@ -94,7 +94,9 @@ export interface Destination {
  */
 export async function destinationForDebit(
   userId: string,
-  debit: { account_id: string; merchant_name: string | null; raw_source_text: string | null },
+  // namedAccountLast4: the other account as the caller already read it. A template's "Other account"
+  // is only known from that parse - re-reading the message below sees the built-in formats alone.
+  debit: { account_id: string; merchant_name: string | null; raw_source_text: string | null; namedAccountLast4?: string | null },
   accounts?: Account[],
 ): Promise<Destination | null> {
   const list = (accounts ?? (await openAccounts(userId))).filter((a) => a.id !== debit.account_id);
@@ -102,7 +104,7 @@ export async function destinationForDebit(
   const parsed = debit.raw_source_text ? parseBankSMS(debit.raw_source_text) : null;
 
   // 1. The message names the other account outright ("To A/c xxxx0006").
-  const named = parsed?.counterpartyAcctLast4 ?? null;
+  const named = debit.namedAccountLast4 ?? parsed?.counterpartyAcctLast4 ?? null;
   if (named) {
     const hits = list.filter((a) => endsWithDigits(a.account_identifier, named));
     if (hits.length === 1) return { accountId: hits[0].id, kind: hits[0].account_type === "credit_card" ? "card" : "account" };

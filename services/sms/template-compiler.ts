@@ -137,6 +137,12 @@ export interface CompileError {
 
 export type CompileResult = CompileSuccess | CompileError;
 
+/** "14:05", "02:12pm", "11:05:30 a.m.", with the padding senders put around the colons. */
+const TIME_REGEX = "\\d{1,2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?(?:\\s*[AaPp]\\.?[Mm]\\.?)?";
+/** A date alone: the formats listed at FIELD_REGEX.date, without a time. */
+const DATE_REGEX =
+  "(?:\\d{4}\\s*-\\s*\\d{1,2}\\s*-\\s*\\d{1,2}|\\d{1,2}\\s*[-/.]\\s*(?:[A-Za-z]{3}|\\d{1,2})\\s*[-/.]\\s*\\d{2,4}|\\d{1,2}[A-Za-z]{3}\\d{2,4}|\\d{1,2}(?:st|nd|rd|th)?\\s+[A-Za-z]{3,9}\\.?,?\\s*['’]?\\d{2,4}|[A-Za-z]{3}(?:\\s*[-/\\s'’]\\s*\\d{2,4}))";
+
 // Field-specific capture regex — chosen to be tight enough to not
 // over-match but loose enough to tolerate variance banks throw at us.
 //
@@ -164,7 +170,9 @@ const FIELD_REGEX: Record<TaggedField, string> = {
   //   MMM[-/ ]YYYY or MMM-YY (month-year only, e.g. JAN 2026)
   // Spaces are allowed around every separator ("17 - 10 - 26", "17 / Oct / 2026",
   // "2026 - 10 - 17"), and day and month may be one or two digits.
-  date: "(?:\\d{4}\\s*-\\s*\\d{1,2}\\s*-\\s*\\d{1,2}(?:[T: ]\\s*\\d{2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?)?|\\d{1,2}\\s*[-/.]\\s*(?:[A-Za-z]{3}|\\d{1,2})\\s*[-/.]\\s*\\d{2,4}(?:\\s+\\d{2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?)?|\\d{1,2}[A-Za-z]{3}\\d{2,4}|\\d{1,2}(?:st|nd|rd|th)\\s+[A-Za-z]{3}\\s+\\d{4}|\\d{1,2}\\s+[A-Za-z]{3}\\s+\\d{4}|[A-Za-z]{3}(?:\\s*[-/\\s]\\s*\\d{2,4}))",
+  // A time may sit on either side when it was tagged with the date: "02:12pm, 4th nov'26",
+  // "4 Nov 26 at 14:05", "2026-04-07:19:25".
+  date: `(?:${TIME_REGEX}[,\\s]+(?:on\\s+)?)?${DATE_REGEX}(?:(?:[T:]\\s*|[,\\s]+(?:at\\s+)?)${TIME_REGEX})?`,
   balance: "\\d[\\d,]*(?:\\s*,\\s*\\d+)*(?:\\s*\\.\\s*\\d{1,2})?",
   // ref is the free-text "remarks / description" field — may be a UPI/NEFT
   // id, a multi-word remark, or a slash-separated payload. Non-greedy so
@@ -190,9 +198,7 @@ function fieldRegexFor(field: TaggedField, tagged: string): string {
   return FIELD_REGEX[field];
 }
 
-const DATE_NO_TIME = FIELD_REGEX.date
-  .replace("(?:[T: ]\\s*\\d{2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?)?", "")
-  .replace("(?:\\s+\\d{2}\\s*:\\s*\\d{2}(?:\\s*:\\s*\\d{2})?)?", "");
+const DATE_NO_TIME = DATE_REGEX;
 
 /** Fields that capture free text and stop at the next anchor (non-greedy). */
 const LAZY_FIELDS = new Set<TaggedField>(["merchant", "ref", "counterparty"]);
@@ -304,12 +310,17 @@ function escapeLiteral(text: string): string {
   const { out: pbkMasked, passbookPlaceholders } = wildcardizePassbookIds(text);
   const { out: urlMasked, urlPlaceholders } = wildcardizeUrls(pbkMasked);
 
+  // A clock time left untagged ("on 02:12pm, 4th nov'26" with only the date tagged) differs in every
+  // message, so it can't be literal or the template would only ever match this one.
+  const TIME_SENTINEL = "\x00TIME\x00";
+  const timeMasked = urlMasked.replace(/\b\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\b\.?)?/gi, TIME_SENTINEL);
+
   const WS_SENTINEL = "\x00WS\x00";
-  const wsMasked = urlMasked.replace(/\s+/g, WS_SENTINEL);
+  const wsMasked = timeMasked.replace(/\s+/g, WS_SENTINEL);
 
   const escaped = escapeRegexSpecials(wsMasked);
 
-  const withWs = escaped.replace(new RegExp(WS_SENTINEL, "g"), "\\s+");
+  const withWs = escaped.replace(new RegExp(WS_SENTINEL, "g"), "\\s+").replace(new RegExp(TIME_SENTINEL, "g"), () => TIME_REGEX);
 
   // Swap passbook sentinels back FIRST (before URLs) to avoid any
   // potential collision if a passbook ID somehow appears in a URL.
@@ -816,14 +827,25 @@ export function autoTag(smsBody: string): TaggedSpan[] {
     1,
   );
 
+  // A day with the month in words, with its time if the time is right next to it:
+  // "02:12pm, 4th nov'26", "4 November 2026 at 14:05". Tried first because the general pattern
+  // below stops at the first word that looks like a month-year.
+  pushFirst(
+    "date",
+    /(?:\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:[ap]\.?m\.?)?[,\s]+(?:on\s+)?)?\b\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?,?\s*['’]?\d{2,4}\b(?:[,\s]+(?:at\s+)?\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\b\.?)?)?/i,
+    0,
+  );
+
   // DATE: all formats handled by parseDateAny — ISO, DD-MMM-YY, DD/MM/YYYY,
   // dot-sep, compact DDMmmYY, ordinal "10th Apr 2026", spaced "25 Apr 2026",
   // month-year "JAN 2026". Most-specific alternatives first.
-  pushFirst(
-    "date",
-    /\b(?:\d{4}-\d{2}-\d{2}(?:[T: ]\d{2}:\d{2}(?::\d{2})?)?|\d{1,2}[-\/.][A-Za-z0-9]{2,4}[-\/.]\d{2,4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|\d{1,2}[A-Za-z]{3}\d{2,4}|\d{1,2}(?:st|nd|rd|th)\s+[A-Za-z]{3}\s+\d{4}|\d{1,2}\s+[A-Za-z]{3}\s+\d{4}|[A-Za-z]{3}(?:[-\/\s]\d{2,4})?)\b/i,
-    0,
-  );
+  if (!spans.some((s) => s.field === "date")) {
+    pushFirst(
+      "date",
+      /\b(?:\d{4}-\d{2}-\d{2}(?:[T: ]\d{2}:\d{2}(?::\d{2})?)?|\d{1,2}[-\/.][A-Za-z0-9]{2,4}[-\/.]\d{2,4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|\d{1,2}[A-Za-z]{3}\d{2,4}|\d{1,2}(?:st|nd|rd|th)\s+[A-Za-z]{3}\s+\d{4}|\d{1,2}\s+[A-Za-z]{3}\s+\d{4}|[A-Za-z]{3}(?:[-\/\s]\d{2,4})?)\b/i,
+      0,
+    );
+  }
 
   // REF: "UPI Ref no 123456789012" / "RRN 12345" / "IMPS ref 555"
   pushFirst(

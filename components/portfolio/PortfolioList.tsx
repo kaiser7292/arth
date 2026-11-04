@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Fragment, useCallback, useState } from 'react';
+import { Fragment, useCallback, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { Badge, Card, FilterChip, ListSeparator, SectionHeader, Text } from '@/components/ui';
@@ -161,13 +161,14 @@ export function PortfolioRowView({ row }: { row: PortfolioRow }) {
 }
 
 /** A titled card of rows split by hairlines. Renders nothing when there are no rows. */
-export function PortfolioSection({ title, rows, total }: { title: string; rows: PortfolioRow[]; total?: number }) {
+export function PortfolioSection({ title, rows, total, top }: { title: string; rows: PortfolioRow[]; total?: number; top?: ReactNode }) {
   if (rows.length === 0) return null;
   const count = total != null && total !== rows.length ? `${rows.length} of ${total}` : `${rows.length}`;
   return (
     <View className="mx-4 mb-3">
       <SectionHeader title={`${title} (${count})`} />
       <Card className="py-1">
+        {top}
         {rows.map((r, i) => (
           <Fragment key={r.key}>
             {i > 0 && <ListSeparator />}
@@ -201,6 +202,26 @@ function SummaryLine({ label, value, color, bold, indent }: {
       >
         {value}
       </Text>
+    </View>
+  );
+}
+
+/** A holdings list's totals, shown at the top of its card. Invested and P&L only when the buy prices are known. */
+export function HoldingsTotals({ current, invested, caption }: { current: number; invested: number | null; caption?: string }) {
+  const theme = useTheme();
+  const pnl = invested != null && invested > 0 ? current - invested : null;
+  return (
+    <View className="py-2 border-b border-border">
+      <SummaryLine label="Current value" value={formatAmount(current)} bold />
+      {pnl != null && <SummaryLine label="Invested" value={formatAmount(invested as number)} />}
+      {pnl != null && (
+        <SummaryLine
+          label="P&L"
+          value={pnlText({ amount: pnl, pct: (pnl / (invested as number)) * 100 })}
+          color={pnl >= 0 ? theme.success : theme.danger}
+        />
+      )}
+      {caption ? <Text className="text-label text-faint-foreground mt-1">{caption}</Text> : null}
     </View>
   );
 }

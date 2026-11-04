@@ -76,6 +76,8 @@ export interface ParsedSMS {
   counterpartyName?: string | null;
   /** Last 4 digits of the other account, when the SMS names it ("To A/c xxxxxxxxxx0006"). */
   counterpartyAcctLast4?: string | null;
+  /** The user's template says this message is always a transfer between their own accounts. */
+  declaredTransfer?: boolean;
   /** This debit funds a fixed/term deposit ("open") or this credit closes one ("closure"). */
   fdEvent?: "open" | "closure" | null;
   /** Deposit account digits from the SMS ("Closure of TD A/c XXXXX031705" → "031705"). */
@@ -233,7 +235,7 @@ function parseDDMMMYYYYSpaced(raw: string): string | null {
 
 /** Parse "JAN 2026" or "JAN-26" or "SEP-25" (month-year) → end-of-month date "2026-01-31" */
 function parseMonthYear(raw: string): string | null {
-  const m = raw.match(/([A-Za-z]{3})(?:[-/\s](\d{2,4}))?/);
+  const m = raw.match(/([A-Za-z]{3})(?:[-/\s'’](\d{2,4}))?/);
   if (!m) return null;
   const monthKey = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase();
   const month = MONTH_MAP[monthKey];
@@ -280,10 +282,32 @@ export function parseDateAny(raw: string): string | null {
     parseDDMMYYYYDot(raw) ??      // 10.04.2026 or 10.04.26
     parseDDMMYY(raw) ??           // 11-04-26
     parseDDMMYYTime(raw) ??       // 09-09-25 02:31:10
+    parseDayWordMonth(raw) ??     // 4th nov'26, 4 November 2026, 02:12pm, 4 Nov 26
     parseMonthYear(raw) ??        // JAN 2026 / JAN-26
     parseLooseDMY(raw) ??         // 3-11-26, 3/1/2026 (one-digit day or month)
     null
   );
+}
+
+const FULL_MONTHS = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+
+/**
+ * A day, a month in words and a year, however they're joined: "4th nov'26", "4 November 2026",
+ * "4 Nov, 26". Must run before parseMonthYear, which would read the "nov" alone as 30 November of
+ * the current year.
+ */
+function parseDayWordMonth(raw: string): string | null {
+  // Every candidate: a word that isn't a month ("12 items 2026") mustn't hide the date after it.
+  for (const m of raw.matchAll(/\b(\d{1,2})(?:st|nd|rd|th)?\s*([A-Za-z]{3,9})\.?,?\s*['’]?(\d{4}|\d{2})\b/gi)) {
+    const word = m[2].toLowerCase();
+    const index = FULL_MONTHS.findIndex((name) => name.startsWith(word));
+    const day = parseInt(m[1], 10);
+    if (index < 0 || day < 1 || day > 31) continue;
+    const y = parseInt(m[3], 10);
+    const year = y < 100 ? (y < 50 ? 2000 + y : 1900 + y) : y;
+    return `${year}-${String(index + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  return null;
 }
 
 /** Day-month-year with one- or two-digit day and month and any of - / . between: "3-11-26" → "2026-11-03". */
@@ -349,6 +373,19 @@ function parseDDOrdMMMYYYY(raw: string): string | null {
  *   "11/04/2026"                → null (no time)
  */
 export function extractTime(raw: string): string | null {
+  // "02:12pm", "2:12 PM", "11:05:30 a.m." — checked first: the patterns below would read
+  // "04-11-26 02:31:10 PM" as 2:31 in the morning.
+  const clock = raw.match(/(?:^|[^\d:])(\d{1,2}):(\d{2})(?::(\d{2}))?\s*([ap])\.?m\b/i);
+  if (clock) {
+    let hour = parseInt(clock[1], 10);
+    const pm = clock[4].toLowerCase() === "p";
+    if (hour >= 1 && hour <= 12 && parseInt(clock[2], 10) < 60) {
+      if (pm && hour < 12) hour += 12;
+      if (!pm && hour === 12) hour = 0;
+      return `${String(hour).padStart(2, "0")}:${clock[2]}:${clock[3] ?? "00"}`;
+    }
+  }
+
   // "DD-MM-YY, HH:MM:SS" (Axis UPI format)
   const commaTime = raw.match(/\d{2}-\d{2}-\d{2},\s*(\d{2}:\d{2}:\d{2})/);
   if (commaTime) return commaTime[1];
@@ -364,6 +401,15 @@ export function extractTime(raw: string): string | null {
   // "on DD-MM-YY at HH:MM:SS IST" (Axis NEFT credit format)
   const atTime = raw.match(/at\s+(\d{2}:\d{2}:\d{2})/i);
   if (atTime) return atTime[1];
+
+  // No seconds: "at 14:05", "2026-04-07:19:25", "04/11/2026 14:05", "4 Nov 2026, 14:05". Only next
+  // to "at" or a date, so a stray "12:30" elsewhere in the message isn't taken for the time.
+  const short = raw.match(
+    /(?:\bat\s+|\d{4}-\d{2}-\d{2}[T: ]|\b\d{1,2}[-/.](?:\d{1,2}|[A-Za-z]{3})[-/.]\d{2,4},?\s+|\b\d{1,2}(?:st|nd|rd|th)?\s+[A-Za-z]{3,9}\.?,?\s*['’]?\d{2,4},?\s+(?:at\s+)?)(\d{1,2}):(\d{2})\b(?!:)/i,
+  );
+  if (short && parseInt(short[1], 10) < 24 && parseInt(short[2], 10) < 60) {
+    return `${short[1].padStart(2, "0")}:${short[2]}:00`;
+  }
 
   return null;
 }

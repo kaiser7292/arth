@@ -23,6 +23,7 @@ import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { useGuardedLoad } from "@/hooks/use-guarded-load";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { OpeningBalanceBanner } from "@/components/account/OpeningBalanceBanner";
 
 const preloaded = consumeWalletsPreload();
 
@@ -222,17 +223,7 @@ export default function WalletsScreen() {
                 <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
               </View>
 
-              {!seeded && (
-                <View
-                  className="flex-row items-center px-3 py-2 rounded-lg mb-3"
-                  style={{ backgroundColor: theme.warning + "14" }}
-                >
-                  <Ionicons name="alert-circle" size={14} color={theme.warning} />
-                  <Text className="text-label font-medium ml-2" style={{ color: theme.warning }}>
-                    No opening balance set - showing from ₹0
-                  </Text>
-                </View>
-              )}
+              {!seeded && <OpeningBalanceBanner accountId={account.id} message="No opening balance set - showing from ₹0" />}
 
               <View className="flex-row justify-between mb-1">
                 <Text className="text-xs text-muted-foreground">Opening Balance</Text>

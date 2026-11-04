@@ -29,6 +29,15 @@ import { getInvestmentProduct, setInvestmentInstrument, type InvestmentInstrumen
 import { SegmentedControl } from "@/components/motion";
 import { todayIso } from "@/utils/local-date";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { HoldingsTotals, PortfolioSection } from "@/components/portfolio/PortfolioList";
+import { getHoldingsForAccount, type AccountHoldings } from "@/services/demat-holdings";
+import { formatDisplayDate } from "@/utils/date";
+
+function formatSyncedAt(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  return `${formatDisplayDate(d)}, ${d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}`;
+}
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -78,6 +87,7 @@ export default function DematSnapshotsScreen() {
   const [days, setDays] = useState<DematDay[]>([]);
   const [gains, setGains] = useState<AccountGains | null>(null);
   const [taxType, setTaxType] = useState<TaxType>("equity");
+  const [holdings, setHoldings] = useState<AccountHoldings[]>([]);
 
   // The day open in the edit pop-up
   const [editingDate, setEditingDate] = useState<string | null>(null);
@@ -123,6 +133,12 @@ export default function DematSnapshotsScreen() {
     } catch {
       setLoadFailed(true);
       // db not ready
+    }
+    // Apart from the rest: a bad saved sync must not take the account's figures down with it.
+    try {
+      setHoldings(getHoldingsForAccount(id));
+    } catch {
+      setHoldings([]);
     }
   }, [id, selectedMonth]);
 
@@ -342,6 +358,33 @@ export default function DematSnapshotsScreen() {
               <Text className="text-label text-faint-foreground mt-1">{TAX_TYPE_NOTE[taxType]}</Text>
             </View>
           </Card>
+
+          {/* What the linked broker held at its last sync */}
+          {holdings.map((h) => (
+            <View key={h.broker}>
+              <PortfolioSection
+                title={holdings.length > 1 ? `${h.brokerLabel} holdings` : "Holdings"}
+                rows={h.rows}
+                top={
+                  <HoldingsTotals
+                    current={h.current}
+                    invested={h.invested}
+                    caption={`${h.brokerLabel}${h.lastSynced && formatSyncedAt(h.lastSynced) ? ` · as of ${formatSyncedAt(h.lastSynced)}` : ""}`}
+                  />
+                }
+              />
+              <Pressable
+                onPress={() => router.push(h.route)}
+                className="flex-row items-center justify-end mx-4 mb-3 -mt-1 py-1"
+                accessibilityRole="link"
+              >
+                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+                  Open {h.brokerLabel} to sync
+                </Text>
+                <Ionicons name="chevron-forward" size={12} color={theme.primary} style={{ marginLeft: 2 }} />
+              </Pressable>
+            </View>
+          ))}
 
           {/* Inline add form — appears above the table when FAB is tapped */}
           {showAddForm && (

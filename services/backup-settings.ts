@@ -105,6 +105,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("year_review_card_dismissed_fy", "number"),
   S("year_review_music", "boolean"),
   S("duplicate_accounts_dismissed", "string"),
+  S("opening_balance_banner_dismissed", "string"),
   S("ignored_accounts", "string"),
   S("ignore_before_date", "string"),
   // Other stores

@@ -75,6 +75,8 @@ export interface TransferSignals {
   ownCounterpartyAccountId: string | null;
   /** IMPS/NEFT/net-banking or UPI person-to-account — the shape a self-transfer has. */
   transferLike: boolean;
+  /** The user's template says this message is always a transfer between their own accounts. */
+  declared: boolean;
 }
 
 export async function readTransferSignals(userId: string, parsed: ParsedSMS): Promise<TransferSignals> {
@@ -83,6 +85,7 @@ export async function readTransferSignals(userId: string, parsed: ParsedSMS): Pr
     selfName: isSelfName(parsed.counterpartyName),
     ownCounterpartyAccountId: own?.id ?? null,
     transferLike: parsed.paymentMode === "net_banking" || parsed.upiSubtype === "p2a",
+    declared: parsed.declaredTransfer === true,
   };
 }
 
@@ -93,7 +96,7 @@ async function signalsForRow(userId: string, rawSourceText: string | null): Prom
   return parsed ? readTransferSignals(userId, parsed) : null;
 }
 
-const strong = (s: TransferSignals | null) => !!s && (s.selfName || s.ownCounterpartyAccountId != null);
+const strong = (s: TransferSignals | null) => !!s && (s.selfName || s.ownCounterpartyAccountId != null || s.declared);
 
 // ─── Self-transfer pairing ───────────────────────────────────────────────────
 
@@ -227,7 +230,12 @@ export async function resolveSelfTransfer(
         `SELECT merchant_name, raw_source_text FROM expenses WHERE id = ?;`,
         row.id,
       );
-      const dest = await destinationForDebit(userId, { account_id: row.account_id, merchant_name: full?.merchant_name ?? null, raw_source_text: full?.raw_source_text ?? null });
+      const dest = await destinationForDebit(userId, {
+        account_id: row.account_id,
+        merchant_name: full?.merchant_name ?? null,
+        raw_source_text: full?.raw_source_text ?? null,
+        namedAccountLast4: parsed.counterpartyAcctLast4 ?? null,
+      });
       if (dest) {
         await convertDebitToTransfer(userId, row.id, dest.accountId);
         return "paired";

@@ -29,6 +29,8 @@ jest.mock("react-native-mmkv", () => ({
 }));
 
 import { runMigrations } from "../../database/migrations";
+import { resolveSelfTransfer } from "../../services/money-events";
+import { matchTemplateRow } from "../../services/public-data/sms-template-matcher";
 import { undoTransfer } from "../../services/account-transfer";
 import {
   attachCreditToWaitingTransfer,
@@ -125,5 +127,55 @@ describe("findTransferCandidates", () => {
       expect.arrayContaining([["d1", "kotak", null], ["d2", "card", null], ["d3", null, "5150"]]),
     );
     expect(isTransfer("d1")).toBe(false);
+  });
+});
+
+describe("an SMS template marked as a transfer", () => {
+  const row = (txType: string) => ({
+    id: "t1",
+    bank_name: "HDFC",
+    template_id: "t1",
+    pattern_regex: String.raw`Rs (?<amount>\d+) (?:debited|credited) a/c (?<account>\d{4})(?: to a/c (?<other_account>\d{4}))?`,
+    tx_type: txType,
+    priority: 100,
+    source: "user",
+  });
+  const match = (txType: string, body: string) => matchTemplateRow(row(txType) as never, body, "HDFC")!;
+  const event = (id: string) => one(`SELECT money_event m FROM expenses WHERE id = '${id}'`).m;
+
+  it("reads the side from the words and says it's a transfer; other types don't", () => {
+    expect(match("transfer", "Rs 500 debited a/c 0221")).toMatchObject({ type: "debit", declaredTransfer: true });
+    expect(match("transfer", "Rs 500 credited a/c 0006")).toMatchObject({ type: "credit", declaredTransfer: true });
+    expect(match("auto", "Rs 500 debited a/c 0221").declaredTransfer).toBeUndefined();
+  });
+
+  it("becomes a transfer to the account the template tagged, though the message's format is unknown to Arth", async () => {
+    debit("d1", "Some payee", 500);
+    const parsed = match("transfer", "Rs 500 debited a/c 0221 to a/c 0006");
+    expect(await resolveSelfTransfer(U, "d1", "debit", parsed)).toBe("paired");
+    expect(isTransfer("d1")).toBe(true);
+    expect(one("SELECT to_account_id t FROM account_transfers WHERE deleted_at IS NULL").t).toBe("kotak");
+  });
+
+  it("pairs with the other side when the message names no account", async () => {
+    debit("d1", "Some payee", 500);
+    credit("c1", 500, "kotak");
+    const parsed = match("transfer", "Rs 500 debited a/c 0221");
+    expect(await resolveSelfTransfer(U, "d1", "debit", parsed)).toBe("paired");
+    expect([isTransfer("d1"), isTransfer("c1")]).toEqual([true, true]);
+  });
+
+  it("with no other side yet, is flagged as a self-transfer rather than left as spending", async () => {
+    debit("d1", "Some payee", 500);
+    const parsed = match("transfer", "Rs 500 debited a/c 0221");
+    expect(await resolveSelfTransfer(U, "d1", "debit", parsed)).toBe("flagged");
+    expect(event("d1")).toBe("self_transfer");
+  });
+
+  it("the same message on an ordinary template stays spending", async () => {
+    debit("d1", "Some payee", 500);
+    const parsed = match("debit", "Rs 500 debited a/c 0221");
+    expect(await resolveSelfTransfer(U, "d1", "debit", parsed)).toBe("none");
+    expect(event("d1")).toBeNull();
   });
 });

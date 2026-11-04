@@ -26,7 +26,7 @@ import { looksLikeTransaction } from "./bank-senders";
 import { backlogSinceMs } from "./backlog-days";
 
 /** "auto" works out money in / out / refund from the SMS words at match time. */
-export type UserTxType = "auto" | "debit" | "credit" | "refund";
+export type UserTxType = "auto" | "debit" | "credit" | "refund" | "transfer";
 
 /**
  * v15.11.0 — how to match a template's saved sender against an incoming SMS's

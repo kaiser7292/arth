@@ -299,7 +299,7 @@ export default function SmartSmsTemplatesListScreen() {
                               </Text>
                               <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.alpha("foreground", 0.06) }}>
                                 <Text className="text-label text-muted-foreground">
-                                  {item.tx_type === "credit" ? "Money in" : item.tx_type === "debit" ? "Money out" : item.tx_type === "refund" ? "Refund" : "Auto"}
+                                  {item.tx_type === "credit" ? "Money in" : item.tx_type === "debit" ? "Money out" : item.tx_type === "refund" ? "Refund" : item.tx_type === "transfer" ? "Transfer" : "Auto"}
                                 </Text>
                               </View>
                             </View>

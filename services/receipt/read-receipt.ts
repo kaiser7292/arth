@@ -116,12 +116,32 @@ const isLabel = (l: string) => PARTY_LABEL.test(l) || ACCOUNT_LABEL.test(l) || /
 /** Status bar bits at the very top of a screenshot: the clock, network, battery. */
 const STATUS_BAR = /^(?:\d{1,2}:\d{2}|vo\s*lte|lte|5g|4g|\d{1,3}%?|[\s|•·⋅*]+|wi-?fi)$/i;
 
+/** O / I / l read for 0 / 1 where only a digit can be. */
+const asDigits = (s: string) => s.replace(/[Oo]/g, "0").replace(/[Il|]/g, "1");
+
+/**
+ * The text reader confuses O and 0, and I and 1. Corrected only where the value must be a number:
+ * after an account mask ("XXXXXXO006") and after a rupee sign ("₹1,1O2.87"). Reference ids, names
+ * and UPI IDs really do mix letters and digits, so they're left alone.
+ */
+export function fixMisreadDigits(text: string): string {
+  return text
+    .replace(
+      /(^|[^A-Za-z])([xX*•·]{2,}\s*)([\dOoIl|]{3,6})(?![\w@.])/g,
+      (all, lead: string, mask: string, digits: string) => (/\d/.test(digits) ? lead + mask + asDigits(digits) : all),
+    )
+    .replace(
+      /(₹|\brs\.?|\binr)(\s*)([\d,.OoIl|]*\d[\d,.OoIl|]*)(?![A-Za-z])/gi,
+      (_all, symbol: string, gap: string, amount: string) => symbol + gap + asDigits(amount),
+    );
+}
+
 function toLines(input: (string | TextLine)[]): Line[] {
   if (input.length === 0) return [];
   if (typeof input[0] === "string") {
     return (input as string[])
       .flatMap((l) => l.split(/\r?\n/))
-      .map((l) => l.replace(/\s+/g, " ").trim())
+      .map((l) => fixMisreadDigits(l.replace(/\s+/g, " ").trim()))
       .filter(Boolean)
       .map((text, i) => ({ text, y: i / 1000, height: 0 }));
   }
@@ -138,7 +158,11 @@ function toLines(input: (string | TextLine)[]): Line[] {
  * (short clock / signal / battery bits in the top 4%). Shared with image templates.
  */
 export function pictureRows(input: TextLine[]): TextLine[][] {
-  const raw = input.filter((l) => l.text.trim()).map((l) => ({ ...l, text: l.text.replace(/\s+/g, " ").trim() }));
+  const raw = input.filter((l) => l.text.trim()).map((l) => ({
+    ...l,
+    text: fixMisreadDigits(l.text.replace(/\s+/g, " ").trim()),
+    ...(l.words ? { words: l.words.map((w) => ({ ...w, text: fixMisreadDigits(w.text) })) } : {}),
+  }));
   const body = raw.filter((l) => !(l.y < 0.04 && STATUS_BAR.test(l.text)));
   body.sort((a, b) => a.y - b.y || a.x - b.x);
   const rows: TextLine[][] = [];
@@ -197,9 +221,9 @@ export function parseDate(text: string, today: Date = new Date()): string | null
     m >= 1 && m <= 12 && d >= 1 && d <= 31 ? `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}` : null;
   const year = (y: string) => (y.length === 2 ? 2000 + Number(y) : Number(y));
   // "18 Oct 2026", "18th October, 26", "18 Oct '26" (ICICI iMobile), "24 October 2026 at 3:11 PM"
-  // (PhonePe).
+  // (PhonePe), "4th nov'26" (Amazon Pay: no space before the year).
   // Every candidate, not just the first: "12 items 2026" earlier on the line mustn't hide the date.
-  for (const c of t.matchAll(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,9})\.?,?\s+['’]?(\d{2,4})\b/g)) {
+  for (const c of t.matchAll(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,9})\.?,?\s*['’]?(\d{2,4})\b/g)) {
     const month = monthOf(c[2]);
     if (month) return iso(year(c[3]), month, Number(c[1]));
   }

@@ -249,10 +249,12 @@ export function matchTemplateRow(row: TemplateRow, normalizedBody: string, bank:
   // "auto": money in / out / refund from the words, nearest to the amount.
   let txType: TransactionType = TX_TYPE_ALIASES[row.tx_type] ?? "debit";
   let autoUnsure = false;
-  if (row.tx_type === "auto") {
+  // A transfer template reads its side the same way: money leaving, or money arriving.
+  const declaredTransfer = row.tx_type === "transfer";
+  if (row.tx_type === "auto" || declaredTransfer) {
     const amountAt = amountRaw ? normalizedBody.indexOf(amountRaw, match.index) : normalizedBody.length;
     const dir = inferDirection(normalizedBody, amountAt >= 0 ? amountAt : normalizedBody.length);
-    txType = dir.type;
+    txType = declaredTransfer && dir.type === "refund" ? "debit" : dir.type;
     autoUnsure = !dir.confident;
   }
   // v15.5: user-authored templates get lower confidence than system ones
@@ -335,6 +337,7 @@ export function matchTemplateRow(row: TemplateRow, normalizedBody: string, bank:
     ...(balanceRaw && isCardLimit ? { availableCreditLimit: parseAmount(balanceRaw) } : {}),
     counterpartyName,
     counterpartyAcctLast4,
+    ...(declaredTransfer ? { declaredTransfer: true } : {}),
     _matchSource: "template" as const,
     _matchedTemplateId: row.id,
   };

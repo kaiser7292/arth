@@ -941,8 +941,8 @@ export default function TagSmsTemplateScreen() {
           </Text>
 
           <Text className="text-xs text-faint-foreground mb-1.5">Transaction type</Text>
-          <View className="flex-row mb-3" style={{ gap: 8 }}>
-            {(["auto", "debit", "credit", "refund"] as const).map((t) => (
+          <View className="flex-row mb-3" style={{ gap: 6 }}>
+            {(["auto", "debit", "credit", "refund", "transfer"] as const).map((t) => (
               <Pressable
                 key={t}
                 onPress={() => setTxType(t)}
@@ -954,7 +954,8 @@ export default function TagSmsTemplateScreen() {
                 }}
               >
                 <Text
-                  className="text-sm font-semibold"
+                  className="text-xs font-semibold"
+                  numberOfLines={1}
                   style={{
                     color: txType === t ? "#FFFFFF" : colors.text,
                     textTransform: "capitalize",
@@ -968,6 +969,11 @@ export default function TagSmsTemplateScreen() {
           {txType === "auto" && (
             <Text className="text-label text-faint-foreground -mt-1.5 mb-3">
               Arth reads money in or out from the words — “credited”, “debited”, “refund” — so one template covers both.
+            </Text>
+          )}
+          {txType === "transfer" && (
+            <Text className="text-label text-faint-foreground -mt-1.5 mb-3">
+              Money moving between your own accounts, so it never counts as spending or income. Tag “Other account” if the message names it.
             </Text>
           )}
 

@@ -1,4 +1,5 @@
 import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { OpeningBalanceBanner } from "@/components/account/OpeningBalanceBanner";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -232,17 +233,7 @@ export default function PensionAccountsScreen() {
               </View>
 
               {/* Not seeded warning */}
-              {!seeded && (
-                <View
-                  className="flex-row items-center px-3 py-2 rounded-lg mb-3"
-                  style={{ backgroundColor: theme.warning + "14" }}
-                >
-                  <Ionicons name="alert-circle" size={14} color={theme.warning} />
-                  <Text className="text-label font-medium ml-2" style={{ color: theme.warning }}>
-                    No opening balance set - showing from ₹0
-                  </Text>
-                </View>
-              )}
+              {!seeded && <OpeningBalanceBanner accountId={account.id} message="No opening balance set - showing from ₹0" />}
 
               {/* Balance breakdown */}
               <View className="flex-row justify-between mb-1">

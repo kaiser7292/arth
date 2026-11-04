@@ -38,6 +38,7 @@ import {
 import { getCurrentMonth } from "@/services/budget";
 import { handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import { isDematLikeAccountById } from "@/services/investment-accounts";
+import { OpeningBalanceBanner } from "@/components/account/OpeningBalanceBanner";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
 import { getVaultEntriesForAccount } from "@/services/vault";
@@ -735,17 +736,7 @@ const loadData = useCallback(async () => {
         >
           {/* Balance summary card */}
           <Card className="mx-4 mt-3 mb-2">
-            {!seeded && (
-              <View
-                className="flex-row items-center px-3 py-2 rounded-lg mb-3"
-                style={{ backgroundColor: theme.warning + "14" }}
-              >
-                <Ionicons name="alert-circle" size={14} color={theme.warning} />
-                <Text className="text-label font-medium ml-2" style={{ color: theme.warning }}>
-                  No opening balance set - computed from ₹0
-                </Text>
-              </View>
-            )}
+            {!seeded && <OpeningBalanceBanner accountId={accountId} message="No opening balance set - computed from ₹0" />}
 
             {/*
               The number this screen exists to answer, so it leads rather than sitting last in a
@@ -1100,44 +1091,46 @@ const loadData = useCallback(async () => {
                         {entry.type === "transfer_in" ? "From" : "To"} {entry.counterAccountName}
                       </Text>
                     )}
-                    <View className="flex-row items-center mt-0.5">
+                    {/* Wraps: a row can have more tags than fit beside the amount. */}
+                    <View className="flex-row flex-wrap items-center mt-0.5" style={{ columnGap: 6, rowGap: 4 }}>
                       <Text className="text-label text-muted-foreground">
                         {formatEntryDate(entry.date)}
                       </Text>
                       {poolSiblings.length > 1 && entry.cardLast4 && (
-                        <Text className="text-label text-faint-foreground ml-1.5">
+                        <Text className="text-label text-faint-foreground">
                           · {"••••"} {entry.cardLast4}
                         </Text>
                       )}
                       {(entry.source === "sms_auto" || (isTransfer && !!entry.rawSourceText)) && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded bg-primary/15">
+                        <View className="px-1 py-0.5 rounded bg-primary/15">
                           <Text className="text-label font-semibold text-primary">SMS</Text>
                         </View>
                       )}
-                      {!entry.isRefund && !isTransfer && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: entryColor + "14" }}>
+                      {/* A Hisaab credit's own tag below already says what it is. */}
+                      {!entry.isRefund && !isTransfer && !(entry.type === "credit" && entry.linkedHisaabPersonName) && (
+                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: entryColor + "14" }}>
                           <Text className="text-label font-semibold" style={{ color: entryColor }}>
                             {entry.isAdjustment ? "ADJUSTMENT" : entry.type === "credit" ? (entry.creditType?.name.toUpperCase() ?? "CREDIT") : "EXPENSE"}
                           </Text>
                         </View>
                       )}
                       {entry.isRefund && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: theme.success + "14" }}>
+                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: theme.success + "14" }}>
                           <Text className="text-label font-semibold" style={{ color: theme.success }}>REFUND</Text>
                         </View>
                       )}
                       {isTransfer && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: transferColor + "14" }}>
+                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: transferColor + "14" }}>
                           <Text className="text-label font-semibold" style={{ color: transferColor }}>TRANSFER</Text>
                         </View>
                       )}
                       {isTransfer && entry.linkedExpenseId && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded bg-warning/15">
+                        <View className="px-1 py-0.5 rounded bg-warning/15">
                           <Text className="text-label font-semibold text-warning">RECLASSIFIED</Text>
                         </View>
                       )}
                       {entry.type === "credit" && entry.linkedHisaabPersonName && (
-                        <View className="ml-1.5 px-1 py-0.5 rounded" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: theme.alpha("primary", 0.1), maxWidth: "100%" }}>
                           <Text className="text-label font-semibold" style={{ color: theme.primary }} numberOfLines={1}>
                             HISAAB · {entry.linkedHisaabPersonName.toUpperCase()}
                           </Text>
@@ -1160,7 +1153,7 @@ const loadData = useCallback(async () => {
                       style={{ color: isTransfer ? transferColor : entryColor }}
                     />
                     {entry.splitPersonName && (
-                      <Text className="text-label text-muted-foreground mt-0.5">
+                      <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1} style={{ maxWidth: 130 }}>
                         Split w/ {entry.splitPersonName}
                       </Text>
                     )}

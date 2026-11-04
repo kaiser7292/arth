@@ -6,7 +6,7 @@ import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text } from "
 import { useAlert } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
 import { DATA_HEX } from "@/constants/brand";
-import { parseDateAny } from "@/services/sms/bank-patterns";
+import { extractTime, parseDateAny } from "@/services/sms/bank-patterns";
 import { inferDirection } from "@/services/sms/money-signals";
 import { normalizeSms } from "@/services/sms/sms-normalize";
 import { resolveSenderBank } from "@/services/public-data/sms-template-matcher";
@@ -43,6 +43,7 @@ const TYPE_OPTIONS: { value: UserTxType; label: string }[] = [
   { value: "debit", label: "Money out" },
   { value: "credit", label: "Money in" },
   { value: "refund", label: "Refund" },
+  { value: "transfer", label: "Transfer between my accounts" },
 ];
 
 /** Words of a message with their positions, for tap-to-pick. */
@@ -114,10 +115,11 @@ export default function ConfirmTemplateScreen() {
 
   const body = group?.messages[0].body ?? "";
   const direction = useMemo(() => {
+    if (txType === "transfer") return "transfer";
     if (txType !== "auto" || !body) return txType;
     return inferDirection(normalizeSms(body).text).type;
   }, [txType, body]);
-  const typeLabel = direction === "credit" ? "money in" : direction === "refund" ? "refund" : "money out";
+  const typeLabel = direction === "transfer" ? "transfer" : direction === "credit" ? "money in" : direction === "refund" ? "refund" : "money out";
 
   // A name until the user types their own: "HDFC Bank · money out".
   useEffect(() => {
@@ -133,8 +135,11 @@ export default function ConfirmTemplateScreen() {
       return Number.isFinite(n) ? formatAmount(n) : raw;
     }
     if (field === "date") {
-      const d = parseDateAny(raw.trim().replace(/\s*([-/.:])\s*/g, "$1"));
-      return d ? formatDisplayDate(d) : raw;
+      const cleaned = raw.trim().replace(/\s*([-/.:])\s*/g, "$1");
+      const d = parseDateAny(cleaned);
+      if (!d) return raw;
+      const time = extractTime(cleaned);
+      return time ? `${formatDisplayDate(d)}, ${time.slice(0, 5)}` : formatDisplayDate(d);
     }
     if (field === "account") return `${bank ? `${bank} ` : ""}••${raw.replace(/\D/g, "").slice(-4)}`;
     return raw;
@@ -365,7 +370,7 @@ export default function ConfirmTemplateScreen() {
   }
 
   // ── The guess ──
-  const shown = [...new Set<TaggedField>([...CORE_FIELDS, ...spans.map((s) => s.field)])];
+  const shown = [...new Set<TaggedField>([...CORE_FIELDS, ...(txType === "transfer" ? (["other_account"] as const) : []), ...spans.map((s) => s.field)])];
   const highlighted = (() => {
     const parts: { text: string; field?: TaggedField }[] = [];
     let at = 0;
@@ -429,13 +434,13 @@ export default function ConfirmTemplateScreen() {
             accessibilityRole="button"
           >
             <Ionicons
-              name={direction === "credit" ? "arrow-down-outline" : direction === "refund" ? "return-down-back-outline" : "arrow-up-outline"}
+              name={direction === "transfer" ? "swap-horizontal" : direction === "credit" ? "arrow-down-outline" : direction === "refund" ? "return-down-back-outline" : "arrow-up-outline"}
               size={14}
-              color={direction === "debit" ? theme.danger : theme.success}
+              color={direction === "transfer" ? theme.primary : direction === "debit" ? theme.danger : theme.success}
               style={{ marginRight: 6 }}
             />
             <Text className="text-sm text-foreground flex-1">
-              {direction === "credit" ? "Money in" : direction === "refund" ? "Refund" : "Money out"}
+              {direction === "transfer" ? "Transfer between my accounts" : direction === "credit" ? "Money in" : direction === "refund" ? "Refund" : "Money out"}
               {txType === "auto" ? <Text className="text-xs text-muted-foreground"> · from the words</Text> : null}
             </Text>
             <Text className="text-xs font-medium" style={{ color: theme.primary }}>Change</Text>
