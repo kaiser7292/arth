@@ -29,9 +29,15 @@ import { getInvestmentProduct, setInvestmentInstrument, type InvestmentInstrumen
 import { SegmentedControl } from "@/components/motion";
 import { todayIso } from "@/utils/local-date";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
-import { HoldingsTotals, PortfolioSection } from "@/components/portfolio/PortfolioList";
-import { getHoldingsForAccount, type AccountHoldings } from "@/services/demat-holdings";
+import { HoldingsTotals, PortfolioNoMatches, PortfolioSearchSort, PortfolioSection, usePortfolioView } from "@/components/portfolio/PortfolioList";
+import { BROKER_SCREENS, getHoldingsForAccount, type AccountHoldings } from "@/services/demat-holdings";
 import { formatDisplayDate } from "@/utils/date";
+
+type AccountTab = "snapshot" | "holding";
+const ACCOUNT_TABS: { value: AccountTab; label: string }[] = [
+  { value: "snapshot", label: "Snapshot" },
+  { value: "holding", label: "Holding" },
+];
 
 function formatSyncedAt(iso: string): string {
   const d = new Date(iso);
@@ -88,6 +94,9 @@ export default function DematSnapshotsScreen() {
   const [gains, setGains] = useState<AccountGains | null>(null);
   const [taxType, setTaxType] = useState<TaxType>("equity");
   const [holdings, setHoldings] = useState<AccountHoldings[]>([]);
+  // Not remembered: the page always opens on Snapshot.
+  const [tab, setTab] = useState<AccountTab>("snapshot");
+  const { query, setQuery, sort, chooseSort, view } = usePortfolioView("demat");
 
   // The day open in the edit pop-up
   const [editingDate, setEditingDate] = useState<string | null>(null);
@@ -262,6 +271,7 @@ export default function DematSnapshotsScreen() {
         <ScrollView
           contentContainerStyle={{ paddingBottom: 100 }}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
           }
@@ -359,12 +369,52 @@ export default function DematSnapshotsScreen() {
             </View>
           </Card>
 
-          {/* What the linked broker held at its last sync */}
-          {holdings.map((h) => (
+          <SegmentedControl
+            accessibilityLabel="Snapshot or holding"
+            className="mx-4 mb-3"
+            options={ACCOUNT_TABS}
+            value={tab}
+            onChange={setTab}
+          />
+
+          {/* What the linked broker held at its last sync. */}
+          {tab === "holding" && holdings.length > 0 && (
+            <View className="-mt-2 mb-2">
+              <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={chooseSort} />
+            </View>
+          )}
+          {tab === "holding" && holdings.length === 0 && (
+            <Card className="mx-4 mb-3">
+              <View className="items-center py-4">
+                <Ionicons name="pulse-outline" size={28} color={colors.textSecondary} />
+                <Text className="text-sm font-semibold text-foreground mt-2">No holdings for this account</Text>
+                <Text className="text-xs text-muted-foreground text-center mt-1">
+                  Holdings come from your broker. Link one to see them here.
+                </Text>
+                <View className="flex-row flex-wrap justify-center mt-3" style={{ gap: 8 }}>
+                  {BROKER_SCREENS.map((b) => (
+                    <Pressable
+                      key={b.broker}
+                      onPress={() => router.push(b.route)}
+                      className="rounded-full border border-border px-3 py-1.5"
+                      accessibilityRole="link"
+                    >
+                      <Text className="text-xs font-medium text-foreground">{b.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </Card>
+          )}
+          {tab === "holding" && holdings.length > 0 && holdings.every((h) => view(h.rows).length === 0) && (
+            <PortfolioNoMatches query={query} />
+          )}
+          {tab === "holding" && holdings.map((h) => (
             <View key={h.broker}>
               <PortfolioSection
                 title={holdings.length > 1 ? `${h.brokerLabel} holdings` : "Holdings"}
-                rows={h.rows}
+                rows={view(h.rows)}
+                total={h.rows.length}
                 top={
                   <HoldingsTotals
                     current={h.current}
@@ -387,7 +437,7 @@ export default function DematSnapshotsScreen() {
           ))}
 
           {/* Inline add form — appears above the table when FAB is tapped */}
-          {showAddForm && (
+          {tab === "snapshot" && showAddForm && (
             <Card className="mx-4 mb-3">
               <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                 Add snapshot
@@ -450,7 +500,7 @@ export default function DematSnapshotsScreen() {
 
           {/* Day by day for the month: each snapshot, the money added or withdrawn that day,
               and the gain or loss the market made (value change minus your own money). */}
-          <Card className="mx-4 mb-3">
+          {tab === "snapshot" && <Card className="mx-4 mb-3">
             <PeriodNavigator
               mode="month"
               value={selectedMonth}
@@ -553,7 +603,7 @@ export default function DematSnapshotsScreen() {
                 );
               })
             )}
-          </Card>
+          </Card>}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -617,7 +667,7 @@ export default function DematSnapshotsScreen() {
       </Modal>
 
       {/* FAB — hidden while add form is open */}
-      {!showAddForm && (
+      {tab === "snapshot" && !showAddForm && (
         <FAB icon="add" onPress={handleOpenAdd} accessibilityLabel="Add snapshot" />
       )}
     </ScreenContainer>

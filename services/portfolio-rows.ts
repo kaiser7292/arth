@@ -22,16 +22,22 @@ export interface PortfolioRow {
   pnl?: { amount: number; pct: number | null };
   /** Muted/coloured line under the value when there is no P&L (order status, next date). */
   note?: { text: string; tone: RowTone };
+  /** What it cost, when the buy price is known. */
+  invested?: number | null;
+  /** Today's price move in %, when the broker reports it. Shown after the last detail line. */
+  dayChangePct?: number | null;
 }
 
-export type SortKey = 'value' | 'pnl' | 'pnlPct' | 'name';
+export type SortKey = 'value' | 'invested' | 'pnl' | 'pnlPct' | 'dayChangePct' | 'name';
 export interface SortState { key: SortKey; dir: 'asc' | 'desc' }
 export const DEFAULT_SORT: SortState = { key: 'value', dir: 'desc' };
 
 export const SORT_LABELS: Record<SortKey, string> = {
   value: 'Value',
+  invested: 'Invested',
   pnl: 'P&L',
   pnlPct: 'P&L %',
+  dayChangePct: "Today's change",
   name: 'Name',
 };
 
@@ -112,6 +118,7 @@ function holdingRow(
     details: [qtyLine, priceLine].filter(Boolean),
     value: qty * price,
     pnl: pnl != null ? { amount: pnl, pct: pctOf(pnl, invested) } : undefined,
+    invested: avg != null && avg > 0 ? invested : null,
   };
 }
 
@@ -137,10 +144,12 @@ function orderRow(
 
 export function kiteHoldingRow(h: KiteHolding): PortfolioRow {
   const t1 = num(h.t1_quantity);
-  return holdingRow(
+  const row = holdingRow(
     `kite-eq-${str(h.isin) || str(h.tradingsymbol)}`, str(h.tradingsymbol), num(h.quantity) + t1, 'shares',
     h.average_price, 'LTP', h.last_price, '', h.pnl, undefined, t1 > 0 ? `${formatQty(t1)} pending` : undefined,
   );
+  row.dayChangePct = h.day_change_percentage == null ? null : num(h.day_change_percentage);
+  return row;
 }
 
 export function kiteMFRow(h: KiteMFHolding): PortfolioRow {
@@ -209,6 +218,9 @@ export function angelHoldingRow(h: AngelHolding): PortfolioRow {
   );
   // Angel reports its own P&L %; prefer it so the number matches the Angel app.
   if (row.pnl && h.pnlpercentage != null) row.pnl.pct = num(h.pnlpercentage);
+  // Angel sends no day change, but does send the previous close.
+  const close = num(h.close);
+  row.dayChangePct = close > 0 && num(h.ltp) > 0 ? ((num(h.ltp) - close) / close) * 100 : null;
   return row;
 }
 
@@ -258,8 +270,10 @@ export function filterRows(rows: PortfolioRow[], query: string): PortfolioRow[] 
 
 function metric(r: PortfolioRow, key: SortKey): number | null {
   if (key === 'value') return r.value;
+  if (key === 'invested') return r.invested ?? null;
   if (key === 'pnl') return r.pnl?.amount ?? null;
   if (key === 'pnlPct') return r.pnl?.pct ?? null;
+  if (key === 'dayChangePct') return r.dayChangePct ?? null;
   return null;
 }
 

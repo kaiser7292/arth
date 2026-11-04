@@ -71,8 +71,10 @@ export function usePortfolioView(broker: string) {
 
 const DIRECTIONS: Record<SortKey, { desc: string; asc: string }> = {
   value: { desc: 'Value (highest first)', asc: 'Value (lowest first)' },
+  invested: { desc: 'Invested (highest first)', asc: 'Invested (lowest first)' },
   pnl: { desc: 'P&L (highest first)', asc: 'P&L (lowest first)' },
   pnlPct: { desc: 'P&L % (highest first)', asc: 'P&L % (lowest first)' },
+  dayChangePct: { desc: "Today's change (highest first)", asc: "Today's change (lowest first)" },
   name: { asc: 'Name (A–Z)', desc: 'Name (Z–A)' },
 };
 const SORT_OPTIONS = (Object.keys(DIRECTIONS) as SortKey[]).flatMap((key) =>
@@ -137,6 +139,14 @@ export function PortfolioRowView({ row }: { row: PortfolioRow }) {
         {row.details.map((d, i) => (
           <Text key={i} className="text-xs text-muted-foreground mt-0.5" style={TABULAR}>
             {d}
+            {i === row.details.length - 1 && row.dayChangePct != null && (
+              <>
+                {' · today '}
+                <Text className="text-xs" style={{ color: tone(row.dayChangePct >= 0 ? 'success' : 'danger') }}>
+                  {`${row.dayChangePct >= 0 ? '+' : ''}${row.dayChangePct.toFixed(2)}%`}
+                </Text>
+              </>
+            )}
           </Text>
         ))}
       </View>
@@ -212,7 +222,7 @@ export function HoldingsTotals({ current, invested, caption }: { current: number
   const pnl = invested != null && invested > 0 ? current - invested : null;
   return (
     <View className="py-2 border-b border-border">
-      <SummaryLine label="Current value" value={formatAmount(current)} bold />
+      <SummaryLine label="Holdings value" value={formatAmount(current)} bold />
       {pnl != null && <SummaryLine label="Invested" value={formatAmount(invested as number)} />}
       {pnl != null && (
         <SummaryLine

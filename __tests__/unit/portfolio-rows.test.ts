@@ -152,3 +152,32 @@ describe("search and sort", () => {
     expect(getSortPref("angel")).toEqual(DEFAULT_SORT);
   });
 });
+
+describe("sorting holdings by invested value and today's change", () => {
+  const holding = (tradingsymbol: string, quantity: number, average_price: number, day_change_percentage: number | null) =>
+    kiteHoldingRow({ tradingsymbol, isin: tradingsymbol, exchange: "NSE", quantity, t1_quantity: 0, average_price, last_price: 10, close_price: 10, pnl: 0, day_change_percentage } as never);
+
+  it("reads both from the broker's data", () => {
+    const row = holding("A", 10, 5, 1.5);
+    expect(row.invested).toBe(50);
+    expect(row.dayChangePct).toBe(1.5);
+  });
+
+  it("works out Angel's day change from the previous close", () => {
+    const row = angelHoldingRow({ tradingsymbol: "A", isin: "A", quantity: 1, t1quantity: 0, averageprice: 5, ltp: 110, close: 100, profitandloss: 0, pnlpercentage: 0 } as never);
+    expect(row.dayChangePct).toBeCloseTo(10);
+  });
+
+  it("sorts on them, with rows missing the number last in either direction", () => {
+    const rows = [holding("LOW", 1, 5, -2), holding("HIGH", 100, 5, 3), holding("NONE", 10, 0, null)];
+    expect(sortRows(rows, { key: "invested", dir: "desc" }).map((r) => r.title)).toEqual(["HIGH", "LOW", "NONE"]);
+    expect(sortRows(rows, { key: "invested", dir: "asc" }).map((r) => r.title)).toEqual(["LOW", "HIGH", "NONE"]);
+    expect(sortRows(rows, { key: "dayChangePct", dir: "desc" }).map((r) => r.title)).toEqual(["HIGH", "LOW", "NONE"]);
+    expect(sortRows(rows, { key: "dayChangePct", dir: "asc" }).map((r) => r.title)).toEqual(["LOW", "HIGH", "NONE"]);
+  });
+
+  it("a saved sort on either is kept", () => {
+    mockStorage.set("portfolio_sort:demat", '{"key":"dayChangePct","dir":"asc"}');
+    expect(getSortPref("demat")).toEqual({ key: "dayChangePct", dir: "asc" });
+  });
+});

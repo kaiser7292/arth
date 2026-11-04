@@ -41,6 +41,13 @@ function holdings(broker: Broker, rows: PortfolioRow[], invested: number | null,
   };
 }
 
+/** Where to link each broker, for an account with no holdings yet. */
+export const BROKER_SCREENS: { broker: Broker; label: string; route: Href }[] = [
+  { broker: "kite", label: brokerName("kite"), route: "/settings/kite-connect" },
+  { broker: "angel", label: brokerName("angel"), route: "/settings/angel-connect" },
+  { broker: "zebpay", label: brokerName("zebpay"), route: "/settings/zebpay-connect" },
+];
+
 /**
  * What the brokers linked to this account held at their last sync. Read from the saved sync data,
  * so opening an account never calls a broker. Empty for an account no broker is linked to: such
