@@ -80,6 +80,14 @@ My Month keeps money with other people apart from income and spending. On a bill
 
 **iPhone / iPad?** Auto-SMS on iOS is restricted by the OS, so you'd log manually. The rest of Arth works the same.
 
+## Ignoring older transactions
+
+If your older data is incomplete and skews your figures, go to Settings > Transactions > Start date and pick a date. Expenses, money in and transfers before it stop counting anywhere in Arth, and older messages are skipped.
+
+Arth then asks what was in each bank and wallet account on that day, so balances stay right. Loans, investments and Hisaab stay as they are, so a few older transactions linked to a loan or an investment still appear.
+
+Nothing is deleted. Moving the date earlier, or tapping Count everything again, brings those transactions back.
+
 ## Related
 
 - [Privacy and offline-first](privacy-offline)

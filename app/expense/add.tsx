@@ -1,3 +1,4 @@
+import { applyStartDate, isBeforeStartDate } from "@/services/start-date";
 import { isPartOn } from "@/services/customise";
 import { CreditSalaryMonth } from "@/components/expense/CreditSalaryMonth";
 import { setCreditSalaryMonth } from "@/services/salary-periods";
@@ -484,6 +485,7 @@ export default function AddExpenseScreen() {
     router.back();
   }, [router, copyFromExpenseId, isRefund, isCreditDuplicate, params.afterSave]);
 
+  const olderDateOk = useRef(false);
   const handleSave = useCallback(async () => {
     const validationErrors = validateExpense({
       amount,
@@ -498,6 +500,21 @@ export default function AddExpenseScreen() {
       setErrors(validationErrors);
       return;
     }
+
+    if (isBeforeStartDate(date) && !olderDateOk.current) {
+      alert("Before your start date", "This is before your start date, so it won't be counted.", [
+        { text: "Change date", style: "cancel" },
+        {
+          text: "Save anyway",
+          onPress: () => {
+            olderDateOk.current = true;
+            void handleSave();
+          },
+        },
+      ]);
+      return;
+    }
+    olderDateOk.current = false;
 
     // Extra-leg validation
     if (extraLegs.length > 0) {
@@ -546,6 +563,7 @@ export default function AddExpenseScreen() {
         });
         rememberAccount("transfer_from", accountId);
         rememberAccount("transfer_to", toAccountId);
+        if (isBeforeStartDate(date)) await applyStartDate(DEFAULT_USER_ID);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         // Out of a demat account: comes off its idle cash snapshot.
         const fromAccount = accounts.find((a) => a.id === accountId);
@@ -697,6 +715,7 @@ export default function AddExpenseScreen() {
 
       if (isCredit && creditKind === "salary" && salaryForMonth) await setCreditSalaryMonth(createdId, salaryForMonth);
       rememberAccount(isCredit ? "received" : "spent", accountId);
+      if (isBeforeStartDate(date)) await applyStartDate(DEFAULT_USER_ID);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       navigateAfterSave(createdId);
     } catch (e) {

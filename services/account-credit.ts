@@ -9,6 +9,7 @@
  * table is kept until a later cleanup migration.
  */
 
+import { IN_RECYCLE_BIN } from "@/utils/start-date-marker";
 import { getDatabase } from "@/database";
 import { bumpDataVersion } from "@/services/settings";
 import { round2 } from "@/utils/math";
@@ -248,7 +249,7 @@ export async function getDeletedCredits(userId: string): Promise<AccountCredit[]
   return db.getAllAsync<AccountCredit>(
     `SELECT id, account_id, user_id, amount, description, date, source, created_at, updated_at, deleted_at
      FROM expenses
-     WHERE user_id = ? AND nature = 'credit' AND deleted_at IS NOT NULL
+     WHERE user_id = ? AND nature = 'credit' AND ${IN_RECYCLE_BIN}
      ORDER BY deleted_at DESC;`,
     userId,
   );
@@ -274,7 +275,7 @@ export async function restoreAllCredits(userId: string): Promise<number> {
   const db = getDatabase();
   const result = await db.runAsync(
     `UPDATE expenses SET deleted_at = NULL, updated_at = datetime('now')
-     WHERE user_id = ? AND nature = 'credit' AND deleted_at IS NOT NULL;`,
+     WHERE user_id = ? AND nature = 'credit' AND ${IN_RECYCLE_BIN};`,
     userId,
   );
   if (result.changes > 0) await bumpDataVersion();
@@ -311,7 +312,7 @@ export async function hardDeleteCredit(creditId: string): Promise<void> {
       creditId,
     );
     await db.runAsync(
-      `DELETE FROM expenses WHERE id = ? AND nature = 'credit' AND deleted_at IS NOT NULL;`,
+      `DELETE FROM expenses WHERE id = ? AND nature = 'credit' AND ${IN_RECYCLE_BIN};`,
       creditId,
     );
   });
@@ -329,25 +330,25 @@ export async function purgeAllDeletedCredits(userId: string): Promise<number> {
     await db.runAsync(
       `UPDATE hisaab_entries SET linked_expense_id = NULL
        WHERE linked_expense_id IN (
-         SELECT id FROM expenses WHERE user_id = ? AND nature = 'credit' AND deleted_at IS NOT NULL
+         SELECT id FROM expenses WHERE user_id = ? AND nature = 'credit' AND ${IN_RECYCLE_BIN}
        );`,
       userId,
     );
     await db.runAsync(
       `UPDATE hisaab_entries SET linked_account_credit_id = NULL
        WHERE linked_account_credit_id IN (
-         SELECT id FROM expenses WHERE user_id = ? AND nature = 'credit' AND deleted_at IS NOT NULL
+         SELECT id FROM expenses WHERE user_id = ? AND nature = 'credit' AND ${IN_RECYCLE_BIN}
        );`,
       userId,
     );
     await db.runAsync(
       `DELETE FROM pending_sms WHERE expense_id IN (
-         SELECT id FROM expenses WHERE user_id = ? AND nature = 'credit' AND deleted_at IS NOT NULL
+         SELECT id FROM expenses WHERE user_id = ? AND nature = 'credit' AND ${IN_RECYCLE_BIN}
        );`,
       userId,
     );
     const result = await db.runAsync(
-      `DELETE FROM expenses WHERE user_id = ? AND nature = 'credit' AND deleted_at IS NOT NULL;`,
+      `DELETE FROM expenses WHERE user_id = ? AND nature = 'credit' AND ${IN_RECYCLE_BIN};`,
       userId,
     );
     changes = result.changes;

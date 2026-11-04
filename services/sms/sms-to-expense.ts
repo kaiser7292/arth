@@ -12,6 +12,7 @@
  * but never logged or transmitted.
  */
 
+import { isBeforeStartDate } from "@/services/start-date";
 import { cleanDueLabel } from "@/services/sms/due-description";
 import { FILL_MODE_FROM_ACCOUNT_SQL } from "@/services/expense-defaults";
 import { createTransfer } from "@/services/account-transfer";
@@ -66,6 +67,13 @@ export async function createExpenseFromSms(
       await markSmsIgnored(pendingSmsId);
       return { success: true, expenseId: null, isCredit: false, error: null };
     }
+  }
+
+  // Before the start date: not read at all. Removed rather than marked, so that moving the date back
+  // and scanning again finds it.
+  if (isBeforeStartDate(parsed.date ?? (smsDate ? formatLocalDate(new Date(smsDate)) : null))) {
+    await getDatabase().runAsync(`DELETE FROM pending_sms WHERE id = ?;`, pendingSmsId);
+    return { success: true, expenseId: null, isCredit: false, error: null };
   }
 
   // Don't create expenses for skipped SMS or balance inquiries.

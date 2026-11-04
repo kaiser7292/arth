@@ -1,3 +1,4 @@
+import { applyStartDate, isBeforeStartDate } from "@/services/start-date";
 import { useState, useCallback } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, Pressable, ScrollView, ActivityIndicator } from "react-native";
@@ -238,11 +239,16 @@ export default function ImportExcelScreen() {
       const result = await importTransactions(DEFAULT_USER_ID, plan.ready);
       setImportResult(result);
       setStep("done");
+      const older = plan.ready.filter((r) => isBeforeStartDate(r.date)).length;
+      if (older > 0) {
+        await applyStartDate(DEFAULT_USER_ID);
+        alert("Before your start date", `${older.toLocaleString("en-IN")} of these ${older === 1 ? "is" : "are"} before your start date, so ${older === 1 ? "it won't" : "they won't"} be counted.`);
+      }
     } catch (e) {
       setError(`Import failed: ${e instanceof Error ? e.message : String(e)}`);
       setStep("preview");
     }
-  }, [plan]);
+  }, [plan, alert]);
 
   // Import hisaab entries
   const handleHisaabImport = useCallback(async () => {

@@ -5,6 +5,7 @@
  */
 
 import { bumpDataVersion } from "@/services/settings";
+import { startDateMs } from "@/services/start-date";
 import { settingsStorage } from "@/services/storage";
 
 const BACKLOG_DAYS_KEY = "template_backlog_days";
@@ -24,5 +25,6 @@ export function setBacklogDays(days: number): void {
 
 /** Start of the look-back window, epoch ms. */
 export function backlogSinceMs(days: number = getBacklogDays()): number {
-  return Date.now() - days * 24 * 60 * 60 * 1000;
+  // Unread messages from before the start date aren't worth teaching Arth about.
+  return Math.max(Date.now() - days * 24 * 60 * 60 * 1000, startDateMs());
 }

@@ -1,3 +1,4 @@
+import { IN_RECYCLE_BIN } from "@/utils/start-date-marker";
 import { getDatabase } from "@/database";
 import { FILL_MODE_FROM_ACCOUNT_SQL, FOLLOW_CATEGORY_SQL } from "@/services/expense-defaults";
 import { syncSettlementLinkedHisaabEntry } from "@/services/account-credit";
@@ -716,7 +717,7 @@ export async function getDeletedExpenses(userId: string): Promise<Expense[]> {
   const db = getDatabase();
   return db.getAllAsync<Expense>(
     `SELECT * FROM expenses
-     WHERE user_id = ? AND deleted_at IS NOT NULL AND nature != 'credit'
+     WHERE user_id = ? AND ${IN_RECYCLE_BIN} AND nature != 'credit'
      ORDER BY deleted_at DESC;`,
     userId,
   );
@@ -745,8 +746,8 @@ export async function purgeOldDeletedExpenses(userId: string, daysOld = 30): Pro
   const db = getDatabase();
   // Build the target condition for soft-deleted expenses
   const condition = daysOld === 0
-    ? "user_id = ? AND deleted_at IS NOT NULL"
-    : "user_id = ? AND deleted_at IS NOT NULL AND deleted_at < datetime('now', '-' || ? || ' days')";
+    ? `user_id = ? AND ${IN_RECYCLE_BIN}`
+    : `user_id = ? AND ${IN_RECYCLE_BIN} AND deleted_at < datetime('now', '-' || ? || ' days')`;
   const params = daysOld === 0 ? [userId] : [userId, daysOld];
 
   let changes = 0;
@@ -835,7 +836,7 @@ export async function purgeOldDeletedExpenses(userId: string, daysOld = 30): Pro
 export async function restoreAllDeletedExpenses(userId: string): Promise<number> {
   const db = getDatabase();
   const result = await db.runAsync(
-    "UPDATE expenses SET deleted_at = NULL, updated_at = datetime('now') WHERE user_id = ? AND deleted_at IS NOT NULL;",
+    `UPDATE expenses SET deleted_at = NULL, updated_at = datetime('now') WHERE user_id = ? AND ${IN_RECYCLE_BIN};`,
     userId,
   );
   if (result.changes > 0) bumpDataVersion();

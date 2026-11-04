@@ -35,6 +35,8 @@
 
 ## 2. Expenses & Smart Automation
 
+**Start date (ignore older transactions):** `app/settings/start-date.tsx`, `services/start-date.ts`. Hidden rows carry `START_DATE_HIDDEN` in `deleted_at` (`utils/start-date-marker.ts`), not a status: the recycle bin and the Hisaab link checks must tell it apart from a real delete.
+
 **What it does:** Add/edit/review every transaction — manual entry or SMS auto-detected. Auto-detected items sit in a **review queue** until you approve/edit/reject them; nothing reaches your reports unapproved. Smart Rules can auto-categorize by merchant/amount/account. Smart Categorizer (separate, simpler engine) has built-in keyword rules for 200+ Indian merchants and learns from your corrections.
 
 **Where:** `app/(tabs)/expenses.tsx`, `app/expense/add.tsx`, `app/expense/review-queue.tsx`, `app/expense/[id].tsx`, `app/settings/categories.tsx`, `app/settings/recurring-rules.tsx`, `app/settings/merchant-aliases.tsx`, `app/settings/dismissed-duplicates.tsx`

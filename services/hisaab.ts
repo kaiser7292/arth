@@ -8,6 +8,7 @@
  * Positive = they owe you, Negative = you owe them.
  */
 
+import { START_DATE_HIDDEN } from "@/utils/start-date-marker";
 import { getDatabase } from "@/database";
 import { reconcileSettlementKinds } from "@/database/credit-kind-backfill";
 import { bumpDataVersion } from "@/services/settings";
@@ -300,7 +301,7 @@ export function hisaabCreditSumExpr(entryAlias = "e"): string {
 /** Exclude hisaab entries whose linked expense has been soft-deleted (linked_expense_id IS NULL entries are always kept). */
 export function hisaabExcludeDeletedLinkSql(entryAlias = "e"): string {
   return `(${entryAlias}.linked_expense_id IS NULL OR NOT EXISTS (
-    SELECT 1 FROM expenses x WHERE x.id = ${entryAlias}.linked_expense_id AND x.deleted_at IS NOT NULL
+    SELECT 1 FROM expenses x WHERE x.id = ${entryAlias}.linked_expense_id AND x.deleted_at IS NOT NULL AND x.deleted_at <> '${START_DATE_HIDDEN}'
   ))`;
 }
 

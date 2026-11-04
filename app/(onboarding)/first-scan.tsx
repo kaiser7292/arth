@@ -19,6 +19,7 @@ import {
   type LookbackMonths,
 } from "@/services/first-scan";
 import { runSmsScan, type ScanProgress } from "@/services/sms/sms-orchestrator";
+import { setStartDate } from "@/services/start-date";
 import { formatCompact } from "@/utils/format";
 import { logger } from "@/utils/logger";
 
@@ -41,6 +42,7 @@ export default function OnboardingFirstScan() {
   const router = useRouter();
   const theme = useTheme();
   const [months, setMonths] = useState<LookbackMonths>(DEFAULT_LOOKBACK);
+  const [ignoreOlder, setIgnoreOlder] = useState(false);
   const [phase, setPhase] = useState<Phase>("choose");
   const [summary, setSummary] = useState<FirstScanSummary | null>(null);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -59,11 +61,12 @@ export default function OnboardingFirstScan() {
     };
   }, [phase]);
 
-  const next = () => router.replace("/(onboarding)/accounts-preview");
+  const next = () => router.replace(ignoreOlder ? "/settings/start-date?onboarding=1" : "/(onboarding)/accounts-preview");
 
   const start = async () => {
     setPhase("scanning");
     const since = lookbackStartDate(months);
+    if (ignoreOlder) await setStartDate(DEFAULT_USER_ID, since).catch((e) => logger.warn("Start date failed:", e));
     let feedId = 0;
     const promise = startFirstScan(since, () =>
       runSmsScan({
@@ -178,6 +181,19 @@ export default function OnboardingFirstScan() {
             </Pressable>
           );
         })}
+        <Pressable
+          onPress={() => setIgnoreOlder((v) => !v)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: ignoreOlder }}
+          className="flex-row items-center mt-3 py-2"
+        >
+          <Ionicons
+            name={ignoreOlder ? "checkbox" : "square-outline"}
+            size={20}
+            color={ignoreOlder ? theme.primary : theme.mutedForeground}
+          />
+          <Text className="text-sm text-foreground ml-2 flex-1">Ignore anything older than this across Arth</Text>
+        </Pressable>
       </ScrollView>
       <View className="px-6 pb-6 pt-2">
         <Button title="Start reading" onPress={() => void start()} />

@@ -18,6 +18,7 @@
  *  - Hisaab: negative balances (I owe them, shown as positive liability)
  */
 
+import { START_DATE_HIDDEN } from "@/utils/start-date-marker";
 import { getDatabase } from "@/database";
 import { computeClosing, computeUnseededBalance } from "@/services/account-balance";
 import { V15_FLAGS } from "@/services/feature-flags";
@@ -180,7 +181,7 @@ async function batchHisaabAsOf(
        FROM hisaab_persons p
        LEFT JOIN hisaab_entries e ON p.id = e.hisaab_person_id
          AND (e.linked_expense_id IS NULL OR NOT EXISTS (
-           SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL
+           SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL AND x.deleted_at <> '${START_DATE_HIDDEN}'
          ))
        WHERE p.owner_user_id = ? AND p.is_active = 1
          AND COALESCE(p.exclude_from_net_worth, 0) = 0
@@ -216,7 +217,7 @@ async function batchHisaabAsOf(
      INNER JOIN hisaab_entries e ON p.id = e.hisaab_person_id
        AND e.date < ?
        AND (e.linked_expense_id IS NULL OR NOT EXISTS (
-         SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL
+         SELECT 1 FROM expenses x WHERE x.id = e.linked_expense_id AND x.deleted_at IS NOT NULL AND x.deleted_at <> '${START_DATE_HIDDEN}'
        ))
      WHERE p.owner_user_id = ? AND p.is_active = 1
        AND COALESCE(p.exclude_from_net_worth, 0) = 0

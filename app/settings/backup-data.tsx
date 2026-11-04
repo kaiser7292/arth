@@ -1,3 +1,4 @@
+import { IN_RECYCLE_BIN } from "@/utils/start-date-marker";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
@@ -33,7 +34,7 @@ export default function BackupDataScreen() {
       setKeptDupes(getDismissedDuplicateCount());
       try {
         const row = await getDatabase().getFirstAsync<{ n: number }>(
-          "SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND deleted_at IS NOT NULL;",
+          `SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND ${IN_RECYCLE_BIN};`,
           DEFAULT_USER_ID,
         );
         setBinCount(row?.n ?? 0);

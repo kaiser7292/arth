@@ -24,6 +24,7 @@ import {
 } from "@/services/sms";
 import { getScanRuns, type ScanRunRow } from "@/services/sms/sms-scan-logging";
 import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
+import { getStartDate } from "@/services/start-date";
 import { formatDisplayDate } from "@/utils/date";
 
 const PRESETS = [
@@ -280,6 +281,11 @@ export default function TransactionMessagesScreen() {
                     <Chip icon="calendar-outline" label={rangeLabel} onPress={() => setRangeSheet(true)} />
                     <Chip icon="wallet-outline" label={accountsLabel} onPress={() => setAccountSheet(true)} />
                   </View>
+                  {getStartDate() && (
+                    <Text className="text-xs text-muted-foreground mt-2">
+                      Messages before {formatDisplayDate(getStartDate()!)} are skipped. Change your start date in Settings.
+                    </Text>
+                  )}
                   {customOpen && (
                     <View className="mt-3">
                       <View className="flex-row">
@@ -343,6 +349,7 @@ export default function TransactionMessagesScreen() {
                   subtitle="Teach it the format once and it reads them from then on"
                   badge={String(unread)}
                   onPress={() => router.push("/settings/sms-templates/unrecognised")}
+                  first
                 />
               )}
               {dupGroups > 0 && (

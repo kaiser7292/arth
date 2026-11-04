@@ -23,6 +23,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="customise" options={{ title: "Customise Arth" }} />
       <Stack.Screen name="transaction-messages" options={{ title: "Transaction Messages" }} />
       <Stack.Screen name="merchants" options={{ title: "Merchants" }} />
+      <Stack.Screen name="start-date" options={{ title: "Start date" }} />
       <Stack.Screen name="merchant-detail" options={{ title: "Merchant" }} />
       <Stack.Screen name="backup-data" options={{ title: "Backup and Data" }} />
       <Stack.Screen name="clean-up" options={{ title: "Permanently Delete Data" }} />

@@ -1,3 +1,5 @@
+import { formatDisplayDate } from "@/utils/date";
+import { getStartDate } from "@/services/start-date";
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
 import { Card, ContextualHeader, ScreenContainer, Text } from "@/components/ui";
@@ -76,9 +78,11 @@ export default function SettingsScreen() {
   // Status lines for the combined screens.
   const [messagesLine, setMessagesLine] = useState("Scan, templates, your name, duplicates");
   const [backupLine, setBackupLine] = useState("Backups, recycle bin, import, clean up");
+  const [startDate, setStartDateLine] = useState<string | null>(getStartDate);
 
   useFocusEffect(
     useCallback(() => {
+      setStartDateLine(getStartDate());
       const manual = getLastBackupAt();
       const auto = getLastScheduledBackupAt();
       const last = !manual ? auto : !auto ? manual : manual > auto ? manual : auto;
@@ -129,6 +133,7 @@ export default function SettingsScreen() {
           <Card title="Transactions" className="mb-4">
             <SettingsRow icon="chatbubbles-outline" label="Transaction Messages" subtitle={messagesLine} onPress={() => router.push("/settings/transaction-messages")} />
             <SettingsRow icon="storefront-outline" label="Merchants" subtitle="Names, merged names and the category each one goes to" onPress={() => router.push("/settings/merchants")} />
+            <SettingsRow icon="calendar-clear-outline" label="Start date" subtitle={startDate ? `Ignoring before ${formatDisplayDate(startDate)}` : "Counting everything"} onPress={() => router.push("/settings/start-date")} />
           </Card>
 
           <Card title="Automation" className="mb-4">
