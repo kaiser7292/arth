@@ -60,18 +60,18 @@ Search by name or symbol, and sort by Value, P&L, P&L % or Name.
 
 ## Save the value to your demat account
 
-1. Tap **Link a Demat Account** and pick your Angel One demat account. Arth remembers the choice on this phone.
-2. Tap **Update Snapshot with These Values**. Arth saves today's **portfolio value** and **funds** together.
+1. Tap **Link a demat account** and pick your Angel One demat account. Arth remembers the choice on this phone.
+2. Tap **Update snapshot with these values**. Arth saves today's **portfolio value** and **funds** together.
 
 ## Disconnecting
 
-Tap **Disconnect Angel One** on the Angel One screen to end the session. To delete your saved credentials too, tap **Update Credentials → Remove**. To revoke access fully, delete the app on the SmartAPI dashboard.
+Tap **Disconnect Angel One** on the Angel One screen to end the session. To delete your saved credentials too, tap **Update credentials → Remove**. To revoke access fully, delete the app on the SmartAPI dashboard.
 
 ## Common situations
 
 **"Connect fails."** Check the TOTP secret is the text key (not a 6-digit code), and that your Client ID and MPIN are correct.
 
-**"My demat value didn't change."** Tap **Update Snapshot with These Values** after syncing.
+**"My demat value didn't change."** Tap **Update snapshot with these values** after syncing.
 
 ## Related
 

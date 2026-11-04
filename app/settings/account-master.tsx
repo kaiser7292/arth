@@ -378,7 +378,7 @@ export default function AccountMasterScreen() {
       )}
       </View>
 
-      {/* FAB — Add Account */}
+      {/* FAB — Add account */}
       <FAB
         icon="add"
         onPress={() => router.push("/settings/account-add")}

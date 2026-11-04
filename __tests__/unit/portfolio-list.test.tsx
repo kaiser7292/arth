@@ -1,6 +1,13 @@
 import React from "react";
 import { fireEvent, render, within } from "@testing-library/react-native";
 
+jest.mock("../../components/ui/Sheet", () => ({
+  Sheet: ({ visible, children }: { visible: boolean; children: unknown }) => (visible ? children : null),
+}));
+jest.mock("react-native-safe-area-context", () => ({
+  ...jest.requireActual("react-native-safe-area-context"),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock("nativewind", () => ({
   useColorScheme: () => ({ colorScheme: "light", setColorScheme: jest.fn() }),
 }));
@@ -28,10 +35,10 @@ const rows: PortfolioRow[] = [
 ];
 
 function Harness() {
-  const { query, setQuery, sort, changeSort, view } = usePortfolioView("test");
+  const { query, setQuery, sort, chooseSort, view } = usePortfolioView("test");
   return (
     <>
-      <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={changeSort} />
+      <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={chooseSort} />
       <PortfolioSection title="Mutual funds" rows={view(rows)} total={rows.length} />
     </>
   );
@@ -54,16 +61,18 @@ describe("PortfolioList", () => {
 
   it("filters by search and shows the matched count", () => {
     const { getByPlaceholderText, getByText, getAllByText } = render(<Harness />);
-    fireEvent.changeText(getByPlaceholderText("Search by name or symbol"), "elss");
+    fireEvent.changeText(getByPlaceholderText("Search name or >5000"), "elss");
     expect(getByText("Mutual funds (2 of 3)")).toBeTruthy();
     expect(titles(getAllByText)).toEqual(["Mirae ELSS", "ICICI ELSS"]);
   });
 
-  it("sorts by P&L % and flips on a second tap, remembering the choice", () => {
-    const { getByText, getAllByText } = render(<Harness />);
-    fireEvent.press(getByText("P&L %"));
+  it("sorts from the toolbar in either direction, remembering the choice", () => {
+    const { getByLabelText, getByText, getAllByText } = render(<Harness />);
+    fireEvent.press(getByLabelText("Sort"));
+    fireEvent.press(getByText("P&L % (highest first)"));
     expect(titles(getAllByText)).toEqual(["Mirae ELSS", "ICICI ELSS", "HDFC Nifty 50"]);
-    fireEvent.press(getByText("P&L % ↓"));
+    fireEvent.press(getByLabelText("Sort, on"));
+    fireEvent.press(getByText("P&L % (lowest first)"));
     expect(titles(getAllByText)).toEqual(["HDFC Nifty 50", "ICICI ELSS", "Mirae ELSS"]);
     expect(JSON.parse(mockStorage.get("portfolio_sort:test")!)).toEqual({ key: "pnlPct", dir: "asc" });
   });

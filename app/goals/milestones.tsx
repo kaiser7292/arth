@@ -125,11 +125,11 @@ export default function MilestonesScreen() {
     const name = formName.trim();
     const target = parseFloat(formTarget);
     if (!name) {
-      alert("Missing Name", "Enter a milestone name.");
+      alert("Missing name", "Enter a milestone name.");
       return;
     }
     if (isNaN(target) || target <= 0) {
-      alert("Invalid Target", "Enter a valid target amount.");
+      alert("Invalid target", "Enter a valid target amount.");
       return;
     }
 
@@ -140,7 +140,7 @@ export default function MilestonesScreen() {
     const durationMonths = parseInt(formDurationMonths, 10) || 0;
 
     if (durationYears === 0 && durationMonths === 0) {
-      alert("Invalid Duration", "Duration must be at least 1 month.");
+      alert("Invalid duration", "Duration must be at least 1 month.");
       return;
     }
 
@@ -175,10 +175,10 @@ export default function MilestonesScreen() {
     alert(m.name, "Choose an action:", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Reset Progress",
+        text: "Reset progress",
         onPress: () => {
           alert(
-            "Reset Progress",
+            "Reset progress",
             `This will clear all contributions for "${m.name}" and set saved amount to zero. The milestone structure is kept.\n\nContinue?`,
             [
               { text: "Cancel", style: "cancel" },
@@ -199,7 +199,7 @@ export default function MilestonesScreen() {
         style: "destructive",
         onPress: async () => {
           alert(
-            "Delete Milestone",
+            "Delete milestone",
             `Delete "${m.name}" and all its contributions? This cannot be undone.`,
             [
               { text: "Cancel", style: "cancel" },

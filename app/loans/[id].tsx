@@ -293,7 +293,7 @@ export default function LoanDetailScreen() {
         {loan.status === "active" && (
           <View className="mb-3">
             <Button
-              title="Record Prepayment"
+              title="Record prepayment"
               onPress={() => router.push({
                 pathname: "/loans/[id]/prepayment",
                 params: { id: loan.id }

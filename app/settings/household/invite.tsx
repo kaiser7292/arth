@@ -8,6 +8,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { approveJoin, createInvite, declineJoin, getJoinRequests, type Invite, type JoinRequest } from "@/services/household/household";
 import { getActiveHousehold } from "@/services/household/store";
 import { formatError } from "@/utils/error-message";
+import { LoadingState } from "@/components/ui";
 
 const POLL_MS = 4000;
 
@@ -108,9 +109,7 @@ export default function InviteScreen() {
           {error ? (
             <Text className="text-sm text-danger">{error}</Text>
           ) : !invite ? (
-            <View className="items-center py-10">
-              <ActivityIndicator />
-            </View>
+            <LoadingState rows={3} />
           ) : (
             <View className="items-center">
               <View style={{ padding: 12, backgroundColor: "#FFFFFF", borderRadius: 12 }}>

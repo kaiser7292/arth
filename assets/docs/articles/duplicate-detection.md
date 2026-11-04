@@ -47,7 +47,7 @@ Open **Review Queue → Duplicates**. Each group shows its members with the olde
 - Tap any individual row to open it; you can also tap **Reject** on just one.
 
 **Bulk action:**
-- **Resolve All N Groups** button at the top - applies "keep oldest" to every group at once.
+- **Resolve all N Groups** button at the top - applies "keep oldest" to every group at once.
 
 ## Undo
 

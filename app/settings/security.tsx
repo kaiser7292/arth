@@ -121,7 +121,7 @@ export default function SecuritySettingsScreen() {
               <Ionicons name="lock-closed" size={20} color={accentColor} />
               <View className="flex-1 ml-3">
                 <Text className="text-base text-foreground font-semibold">
-                  Enable App Lock
+                  Enable app lock
                 </Text>
                 <Text className="text-xs text-faint-foreground mt-0.5">
                   {canEnable
@@ -174,7 +174,7 @@ export default function SecuritySettingsScreen() {
                   <Ionicons name="log-out-outline" size={20} color={theme.foreground} />
                   <View className="flex-1 ml-3">
                     <Text className="text-base text-foreground font-semibold">
-                      Lock Now
+                      Lock now
                     </Text>
                     <Text className="text-xs text-faint-foreground mt-0.5">
                       Immediately lock Arth

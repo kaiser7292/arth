@@ -68,13 +68,13 @@ My Month keeps money with other people apart from income and spending. On a bill
 3. **Turn on SMS detection** (if you skipped it). Settings tab → Transactions → Transaction Messages → **Enable**.
 4. **Open the Review Queue** after a day - approve what Arth auto-captured. This is the main loop of Arth.
 5. **Set one budget.** Budget tab → tap a category → set a monthly cap. Watch it fill up over the month.
-6. **Create your first backup.** Settings tab → Backup and Data → Back up or restore → **Create Encrypted Backup**. Save the `.arth` file somewhere safe (Drive, email to yourself, etc.). You can also turn on **Auto backup** on the same screen.
+6. **Create your first backup.** Settings tab → Backup and Data → Back up or restore → **Create encrypted backup**. Save the `.arth` file somewhere safe (Drive, email to yourself, etc.). You can also turn on **Auto backup** on the same screen.
 
 ## Common situations
 
 **Pull down to refresh.** On the Home tab and most account screens (Bank Accounts, Credit Cards, Wallets, Account Ledger, Account Detail, Demat Account Details), pull down to reload all data.
 
-**Review Queue shows 20+ items from old SMS.** Arth scans the last 180 days by default. Tap **Catch up** to swipe through them quickly, or go to Review Queue → filter to **Auto-Detected** → **Reject All** / **Approve All**.
+**Review Queue shows 20+ items from old SMS.** Arth scans the last 180 days by default. Tap **Catch up** to swipe through them quickly, or go to Review Queue → filter to **Auto-Detected** → **Reject all** / **Approve all**.
 
 **I don't want SMS detection.** Skip it - SMS is off by default until you enable it. Everything works manually. Tap **+** on Home or Transactions to log.
 

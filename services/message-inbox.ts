@@ -84,6 +84,8 @@ async function readInbox(): Promise<ScanOutcome | null> {
     }
     const messages = parseInbox(await reading.text());
     const outcome = messages.length ? await runSmsScan({ manual: false, messages }) : null;
+    // A scan that failed hasn't read them. Keep the file, and the next open tries again.
+    if (outcome?.reason === "error") return outcome;
     reading.delete();
     if (outcome) recordArrival(messages, outcome);
     return outcome;
@@ -250,7 +252,7 @@ export function takeOpenRequest(): boolean {
 export async function addMessageText(text: string): Promise<ScanOutcome | null> {
   const body = text.trim();
   if (!body) return null;
-  const message = { _id: `pasted-${Date.now()}`, address: "Pasted", body, date: Date.now(), type: 1 } as RawSMS;
+  const message = { _id: `pasted-${Date.now()}`, address: "Shortcuts", body, date: Date.now(), type: 1 } as RawSMS;
   const outcome = await runSmsScan({ manual: true, messages: [message] });
   recordArrival([message], outcome);
   return outcome;

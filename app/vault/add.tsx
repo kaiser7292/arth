@@ -28,6 +28,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { getErrorMessage } from "@/utils/error-message";
 import { isValidTotpSecret } from "@/utils/totp";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 const ALL_CATEGORIES = VAULT_CATEGORY_GROUPS.flatMap((g) => g.categories);
 
@@ -311,9 +312,7 @@ export default function VaultAddScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }
@@ -979,7 +978,7 @@ export default function VaultAddScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text className="text-base font-semibold text-primary-foreground">
-              {editId ? "Save Changes" : "Save to Vault"}
+              {editId ? "Save changes" : "Save to Vault"}
             </Text>
           )}
         </Pressable>

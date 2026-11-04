@@ -357,7 +357,7 @@ export default function AccountAddScreen() {
           )}
 
           <Button
-            title="Add Account"
+            title="Add account"
             onPress={handleSave}
             loading={loading}
           />

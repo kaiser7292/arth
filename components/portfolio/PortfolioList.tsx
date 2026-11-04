@@ -6,8 +6,10 @@ import { Badge, Card, FilterChip, ListSeparator, SectionHeader, Text } from '@/c
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { formatAmount } from '@/utils/format';
+import { ListToolbar } from '@/components/ui/ListToolbar';
 import {
   SORT_LABELS,
+  DEFAULT_SORT,
   filterRows,
   getSortPref,
   nextSort,
@@ -60,8 +62,25 @@ export function usePortfolioView(broker: string) {
     },
     [query, sort],
   );
-  return { query, setQuery, sort, changeSort, view };
+  const chooseSort = useCallback((next: SortState) => {
+    setSort(next);
+    setSortPref(broker, next);
+  }, [broker]);
+  return { query, setQuery, sort, changeSort, chooseSort, view };
 }
+
+const DIRECTIONS: Record<SortKey, { desc: string; asc: string }> = {
+  value: { desc: 'Value (highest first)', asc: 'Value (lowest first)' },
+  pnl: { desc: 'P&L (highest first)', asc: 'P&L (lowest first)' },
+  pnlPct: { desc: 'P&L % (highest first)', asc: 'P&L % (lowest first)' },
+  name: { asc: 'Name (A–Z)', desc: 'Name (Z–A)' },
+};
+const SORT_OPTIONS = (Object.keys(DIRECTIONS) as SortKey[]).flatMap((key) =>
+  (key === 'name' ? (['asc', 'desc'] as const) : (['desc', 'asc'] as const)).map((dir) => ({
+    value: `${key}:${dir}`,
+    label: DIRECTIONS[key][dir],
+  })),
+);
 
 export function PortfolioSearchSort({
   query,
@@ -72,39 +91,26 @@ export function PortfolioSearchSort({
   query: string;
   onQuery: (q: string) => void;
   sort: SortState;
-  onSort: (key: SortKey) => void;
+  onSort: (sort: SortState) => void;
 }) {
-  const { colors } = useColorScheme();
   return (
-    <View className="mx-4 mb-3">
-      <View className="flex-row items-center border border-border rounded-lg px-3 py-2 mb-2">
-        <Ionicons name="search-outline" size={18} color={colors.textSecondary} />
-        <TextInput
-          value={query}
-          onChangeText={onQuery}
-          placeholder="Search by name or symbol"
-          placeholderTextColor={colors.textSecondary}
-          autoCorrect={false}
-          autoCapitalize="none"
-          maxLength={60}
-          className="flex-1 ml-2 text-sm text-foreground"
-        />
-        {query.length > 0 && (
-          <Pressable onPress={() => onQuery('')} hitSlop={8} accessibilityLabel="Clear search">
-            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
-          </Pressable>
-        )}
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => {
-          const active = sort.key === key;
-          const arrow = active ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : '';
-          return (
-            <FilterChip key={key} label={`${SORT_LABELS[key]}${arrow}`} active={active} onPress={() => onSort(key)} />
-          );
-        })}
-      </ScrollView>
-    </View>
+    <ListToolbar
+      search={{
+        value: query,
+        onChangeText: onQuery,
+        placeholder: 'Search name or >5000',
+        input: { autoCorrect: false, autoCapitalize: 'none', maxLength: 60 },
+      }}
+      sort={{
+        value: `${sort.key}:${sort.dir}`,
+        defaultValue: `${DEFAULT_SORT.key}:${DEFAULT_SORT.dir}`,
+        options: SORT_OPTIONS,
+        onChange: (v) => {
+          const [key, dir] = v.split(':');
+          onSort({ key: key as SortKey, dir: dir as SortState['dir'] });
+        },
+      }}
+    />
   );
 }
 
@@ -260,7 +266,7 @@ export function PortfolioSummary({
               <Ionicons name="save-outline" size={16} color={theme.primary} />
             )}
             <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
-              {saving ? 'Saving…' : 'Update Snapshot with These Values'}
+              {saving ? 'Saving…' : 'Update snapshot with these values'}
             </Text>
           </Pressable>
         </View>

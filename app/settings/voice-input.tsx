@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { Pressable, ScrollView, Switch, View } from "react-native";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Speech from "expo-speech";
@@ -8,6 +8,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getVoiceSettings, saveVoiceSettings } from "@/services/voice-settings";
 import type { VoiceSettings } from "@/services/voice-settings";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 interface DisplayVoice {
   identifier: string;
@@ -175,12 +176,7 @@ export default function VoiceInputSettingsScreen() {
           </Text>
 
           {loading ? (
-            <View className="py-6 items-center">
-              <ActivityIndicator color={accentColor} />
-              <Text className="text-xs text-faint-foreground mt-2">
-                Loading voices…
-              </Text>
-            </View>
+            <LoadingState message="Loading voices…" rows={3} />
           ) : voices.length === 0 ? (
             <Text className="text-sm text-muted-foreground py-3 text-center">
               No English voices found. Install Google Text-to-Speech for more options.

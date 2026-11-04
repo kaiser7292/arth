@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { View, Pressable, FlatList, ActivityIndicator } from "react-native";
+import { View, Pressable, FlatList } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ScreenContainer, Text } from "@/components/ui";
@@ -15,6 +15,10 @@ import type { ReminderWithSource } from "@/services/expense";
 import { formatDate } from "@/utils/date";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
+import { GroupHeading, ListToolbar } from "@/components/ui";
+import { useListTools } from "@/hooks/use-list-tools";
+import type { ListField, ListSort } from "@/utils/list-tools";
 
 /**
  * Settings → Reminders.
@@ -24,6 +28,21 @@ import { useTheme } from "@/hooks/use-theme";
  * date and last fulfillment amount/date. Tap a row → opens the source
  * expense detail for editing. Pause button stops the rule.
  */
+
+const STATE_LABELS: Record<string, string> = { overdue: "Overdue", due_soon: "Due soon", upcoming: "Upcoming" };
+const reminderName = (r: ReminderWithSource) => r.source?.description ?? r.source?.merchant_name ?? "Recurring expense";
+const REMINDER_FIELDS: ListField<ReminderWithSource>[] = [
+  { id: "state", label: "Status", keyOf: (r) => r.state, labelOf: (k) => STATE_LABELS[k] ?? k, filter: true, group: true },
+];
+const REMINDER_SORTS: ListSort<ReminderWithSource>[] = [
+  { id: "due", label: "Due soonest" , compare: (a, b) => (a.rule.next_due_date ?? "").localeCompare(b.rule.next_due_date ?? "") },
+  { id: "amount", label: "Amount (highest first)", compare: (a, b) => (b.source?.amount ?? 0) - (a.source?.amount ?? 0) },
+  { id: "name", label: "Name (A–Z)", compare: (a, b) => reminderName(a).localeCompare(reminderName(b)) },
+];
+const reminderSearch = (r: ReminderWithSource) => ({
+  texts: [r.source?.description, r.source?.merchant_name],
+  amounts: r.source ? [r.source.amount] : [],
+});
 
 export default function RecurringRulesScreen() {
   const router = useRouter();
@@ -80,10 +99,20 @@ export default function RecurringRulesScreen() {
     [alert],
   );
 
+  const tools = useListTools<ReminderWithSource>({
+    screen: "reminders",
+    rows: reminders,
+    fields: REMINDER_FIELDS,
+    sorts: REMINDER_SORTS,
+    search: reminderSearch,
+    searchPlaceholder: "Search name or >5000",
+    amountOf: (r) => -(r.source?.amount ?? 0),
+  });
+
   if (loading) {
     return (
-      <ScreenContainer padTop={false} centered>
-        <ActivityIndicator size="large" color={colors.blue} />
+      <ScreenContainer padTop={false}>
+        <LoadingState />
       </ScreenContainer>
     );
   }
@@ -111,13 +140,19 @@ export default function RecurringRulesScreen() {
           {reminders.length} active reminder{reminders.length !== 1 ? "s" : ""}
         </Text>
       </View>
+      <ListToolbar {...tools.toolbar} />
+      {tools.filterSheet}
       <FlatList
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}
-        data={reminders}
-        keyExtractor={(item) => item.rule.id}
-        renderItem={({ item }) => {
+        data={tools.grouped}
+        keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.rule.id)}
+        keyboardShouldPersistTaps="handled"
+        ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
+        renderItem={({ item: row }) => {
+          if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} />;
+          const item = row.item;
           const description =
             item.source?.description ??
             item.source?.merchant_name ??

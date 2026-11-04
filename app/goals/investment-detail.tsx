@@ -206,7 +206,7 @@ export default function InvestmentDetailScreen() {
     if (!bucket) return;
     const amount = parseFloat(contribAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert("Invalid Amount", "Enter a valid amount.");
+      alert("Invalid amount", "Enter a valid amount.");
       return;
     }
 
@@ -482,9 +482,9 @@ export default function InvestmentDetailScreen() {
               </Card>
             )}
 
-            {/* Add Contribution Form */}
+            {/* Add contribution Form */}
             {showAddForm ? (
-              <Card title={editingContrib ? "Edit Contribution" : "Add Contribution"} className="mb-4">
+              <Card title={editingContrib ? "Edit Contribution" : "Add contribution"} className="mb-4">
                 <Input
                   label="Amount"
                   value={contribAmount}
@@ -538,7 +538,7 @@ export default function InvestmentDetailScreen() {
                   color={colors.blue}
                 />
                 <Text className="text-sm font-medium ml-1" style={{ color: theme.primary }}>
-                  Add Contribution
+                  Add contribution
                 </Text>
               </Pressable>
             )}
@@ -630,7 +630,7 @@ export default function InvestmentDetailScreen() {
           </View>
         </ScrollView>
 
-        {/* FAB: Add Contribution (when form is hidden) */}
+        {/* FAB: Add contribution (when form is hidden) */}
         {!showAddForm && (
           <FAB icon="add" onPress={() => setShowAddForm(true)} />
         )}

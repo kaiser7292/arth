@@ -17,7 +17,7 @@ interface DuplicateGroupCardProps {
   onTapExpense: (expenseId: string) => void;
   /**
    * Read-only mode (used on the Dismissed Duplicates screen). Hides the
-   * Keep Both / Auto-Resolve / per-row reject actions and shows a single
+   * Keep both / Auto-resolve / per-row reject actions and shows a single
    * "Restore" button instead.
    */
   readOnly?: boolean;
@@ -172,7 +172,7 @@ export function DuplicateGroupCard({
           >
             <Ionicons name="refresh-outline" size={16} color={warn} />
             <Text className="text-xs font-semibold ml-1.5" style={{ color: warn }}>
-              Restore for Re-review
+              Restore for re-review
             </Text>
           </Pressable>
         </View>
@@ -187,7 +187,7 @@ export function DuplicateGroupCard({
           >
             <Ionicons name="checkmark-circle-outline" size={16} color={success} />
             <Text className="text-xs font-semibold ml-1.5" style={{ color: success }}>
-              Keep Both
+              Keep both
             </Text>
           </Pressable>
           <Pressable
@@ -199,7 +199,7 @@ export function DuplicateGroupCard({
           >
             <Ionicons name="flash-outline" size={16} color={danger} />
             <Text className="text-xs font-semibold ml-1.5" style={{ color: danger }}>
-              Auto-Resolve
+              Auto-resolve
             </Text>
           </Pressable>
         </View>
@@ -210,7 +210,7 @@ export function DuplicateGroupCard({
         <Text className="text-label text-faint-foreground">
           {readOnly
             ? "You marked this group as 'not duplicates'. Restore to flag it again on the next scan."
-            : "Auto-Resolve keeps the latest and rejects the rest. Use the trash icons to manually keep whichever entry you prefer. Keep Both marks them as not duplicates."}
+            : "Auto-resolve keeps the latest and rejects the rest. Use the trash icons to manually keep whichever entry you prefer. Keep both marks them as not duplicates."}
         </Text>
       </View>
     </Rows>

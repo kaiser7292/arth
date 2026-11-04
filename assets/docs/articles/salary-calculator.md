@@ -76,7 +76,7 @@ Business income gets **no standard deduction** (that's only for salary and pensi
 
 **Advance tax** - if the tax left after TDS is ₹10,000 or more, you pay it during the year: 15% by 15 June, 45% by 15 September, 75% by 15 December and 100% by 15 March. On a presumptive scheme you can pay it all by 15 March. Arth shows each instalment with its amount.
 
-**Actual receipts** - pick the accounts your clients pay into and Arth adds up the credits there this year (leaving out refunds, transfers between your own accounts and family settlements). It undoes GST and TDS, compares the total with your estimate, and projects the full year. Tap **Use This as My Estimate** to update your figure.
+**Actual receipts** - pick the accounts your clients pay into and Arth adds up the credits there this year (leaving out refunds, transfers between your own accounts and family settlements). It undoes GST and TDS, compares the total with your estimate, and projects the full year. Tap **Use this as my estimate** to update your figure.
 
 ## Other income
 

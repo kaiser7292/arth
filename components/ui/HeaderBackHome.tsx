@@ -29,7 +29,7 @@ export function HeaderBackHome() {
       <Pressable
         onPress={() => router.replace("/(tabs)")}
         hitSlop={8}
-        accessibilityLabel="Go to Home"
+        accessibilityLabel="Go to home"
         style={{ padding: 4 }}
       >
         <Ionicons name="home-outline" size={20} color={colors.tint} />

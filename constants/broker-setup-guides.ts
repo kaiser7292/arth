@@ -77,7 +77,7 @@ export const BROKER_SETUP_GUIDES: Record<BrokerId, BrokerGuide> = {
         steps: [
           { text: "Below, enter your API Key, your Client ID (the ID you log in with), your MPIN and the TOTP Secret." },
           { text: "Read the card, tick the box and tap Connect." },
-          { text: "Back on the Angel One screen, tap Link a Demat Account, then Update Snapshot with These Values." },
+          { text: "Back on the Angel One screen, tap Link a demat account, then Update snapshot with these values." },
         ],
       },
     ],
@@ -124,7 +124,7 @@ export const BROKER_SETUP_GUIDES: Record<BrokerId, BrokerGuide> = {
           { text: "Below, enter your API Key and API Secret." },
           { text: "Optional: add your User ID, Password and TOTP key under Zerodha login. Arth fills them in on Zerodha's page, and you still tap Login yourself." },
           { text: "Read the card, tick the box and tap Connect. Zerodha's own login page opens, so log in there." },
-          { text: "Back on the Zerodha screen, link your demat account, then tap Update Snapshot with These Values." },
+          { text: "Back on the Zerodha screen, link your demat account, then tap Update snapshot with these values." },
           { text: "Zerodha asks you to log in again each day. That's Zerodha's rule, and it applies to every app that connects to Kite." },
         ],
       },
@@ -160,7 +160,7 @@ export const BROKER_SETUP_GUIDES: Record<BrokerId, BrokerGuide> = {
         steps: [
           { text: "Below, paste your API Key and Secret Key." },
           { text: "Read the card, tick the box and tap Connect." },
-          { text: "Back on the ZebPay screen, tap Sync, then Link an Account, then Update Snapshot with These Values." },
+          { text: "Back on the ZebPay screen, tap Sync, then Link an account, then Update snapshot with these values." },
         ],
       },
     ],

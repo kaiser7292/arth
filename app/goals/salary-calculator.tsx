@@ -789,7 +789,7 @@ export default function SalaryCalculatorScreen() {
                   <View className="flex-row gap-2">
                     <View className="flex-1">
                       <Button
-                        title="Copy As-Is"
+                        title="Copy as is"
                         variant="outline"
                         onPress={() => {
                           populateFormFromProfile(prevYearProfile);
@@ -799,7 +799,7 @@ export default function SalaryCalculatorScreen() {
                     </View>
                     <View className="flex-1">
                       <Button
-                        title={prevKind === "business" ? "Copy with Growth %" : "Copy with Hike %"}
+                        title={prevKind === "business" ? "Copy with Growth %" : "Copy with hike %"}
                         onPress={() => setShowHikeInput(true)}
                       />
                     </View>

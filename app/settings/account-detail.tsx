@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 
 import { logger } from "@/utils/logger";
-import { View, ScrollView, Pressable, Keyboard, RefreshControl, ActivityIndicator, TextInput } from "react-native";
+import { View, ScrollView, Pressable, Keyboard, RefreshControl, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -50,6 +50,7 @@ import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { addUpiId, parseUpiIds, removeUpiId } from "@/services/account-upi";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { LoadingState } from "@/components/ui";
 
 const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   savings: "wallet-outline",
@@ -343,7 +344,7 @@ export default function AccountDetailScreen() {
   const handleRemoveAdjustment = useCallback(async (month: string) => {
     if (!accountId) return;
     alert(
-      "Remove Override",
+      "Remove override",
       "Delete the opening-balance adjustment for this month? The balance will revert to the chained value from the previous month.",
       [
         { text: "Cancel", style: "cancel" },
@@ -428,7 +429,7 @@ export default function AccountDetailScreen() {
       account.account_label ??
       `${account.bank_name} ****${account.account_identifier}`;
     alert(
-      "Remove Account",
+      "Remove account",
       `Remove "${displayName}"? The account will be hidden but linked expenses are preserved.`,
       [
         { text: "Cancel", style: "cancel" },
@@ -448,7 +449,7 @@ export default function AccountDetailScreen() {
     async (mode: PaymentMode, isLinked: boolean) => {
       if (!account) return;
       if (isLinked) {
-        alert("Remove Link", `Remove "${mode.name}" from this account?`, [
+        alert("Remove link", `Remove "${mode.name}" from this account?`, [
           { text: "Cancel", style: "cancel" },
           {
             text: "Remove",
@@ -483,9 +484,7 @@ export default function AccountDetailScreen() {
         <ScreenContainer padTop={false} keyboardAware>
           {loadFailed && <LoadFailedBanner onRetry={loadData} />}
           {!loaded ? (
-            <View className="items-center py-16">
-              <ActivityIndicator color={colors.textSecondary} />
-            </View>
+            <LoadingState />
           ) : (
             <View className="items-center py-16">
               <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
@@ -816,7 +815,7 @@ export default function AccountDetailScreen() {
             </Pressable>
           )}
 
-          {/* Fixed deposit created via "Mark as Fixed Deposit" without a rate/
+          {/* Fixed deposit created via "Mark as fixed deposit" without a rate/
               maturity date yet (services/investment-accounts.ts:createFDAccountShell) —
               prompts to fill them in so the schedule/maturity value can be computed. */}
           {investmentProduct && isFDIncomplete(investmentProduct) && (
@@ -923,7 +922,7 @@ export default function AccountDetailScreen() {
                   containerClassName="mb-4"
                 />
                 <Button
-                  title="Start Tracking"
+                  title="Start tracking"
                   onPress={handleSeedBalance}
                   variant="outline"
                 />
@@ -1158,7 +1157,7 @@ export default function AccountDetailScreen() {
           {/* Save button */}
           {dirty && (
             <View className="mb-4">
-              <Button title="Save Changes" onPress={handleSave} loading={saving} />
+              <Button title="Save changes" onPress={handleSave} loading={saving} />
             </View>
           )}
 

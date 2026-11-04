@@ -47,7 +47,7 @@ Accounts represent where your money actually lives - savings, credit cards, wall
 ## Adding an account
 
 1. **Settings tab → Data Management → Accounts → tap +** (top-right).
-2. Pick a type: **Savings**, **Credit Card**, **Wallet**, **Loan**, **Demat** or **Pension**. (Fixed deposits are added from the Investments screen, or with **Mark as Fixed Deposit** on the debit that funded them.)
+2. Pick a type: **Savings**, **Credit Card**, **Wallet**, **Loan**, **Demat** or **Pension**. (Fixed deposits are added from the Investments screen, or with **Mark as fixed deposit** on the debit that funded them.)
 3. Fill in:
    - **Name** (e.g. "HDFC Savings")
    - **Last 4 digits** of the card/account (used to match bank SMS)

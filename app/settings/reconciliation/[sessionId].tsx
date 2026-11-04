@@ -35,6 +35,7 @@ import {
 import { generateReconciliationPdf } from "@/services/reconciliation/reconciliation-export-pdf";
 import { useTheme } from "@/hooks/use-theme";
 import { shareFile } from "@/services/share-file";
+import { LoadingState } from "@/components/ui";
 
 type Tab = "matched" | "missing" | "extra" | "excluded";
 
@@ -464,9 +465,7 @@ export default function ReconciliationSessionScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

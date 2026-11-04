@@ -382,7 +382,7 @@ export default function ImportExcelScreen() {
                 Accepts .csv and .xlsx files
               </Text>
               <Button
-                title="Choose File"
+                title="Choose file"
                 onPress={handlePickFile}
                 disabled={loading}
                 loading={loading}

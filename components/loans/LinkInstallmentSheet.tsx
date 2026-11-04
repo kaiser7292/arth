@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Sheet, Text } from "@/components/ui";
-import { ActivityIndicator, FlatList,  Pressable, TextInput, View } from "react-native";
+import { FlatList,  Pressable, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -16,6 +16,7 @@ import {
 } from "@/services/loan-accounts";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 interface Candidate {
   id: string;
@@ -233,9 +234,7 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
           </Text>
 
           {loading ? (
-            <View className="items-center py-6">
-              <ActivityIndicator color={colors.textSecondary} />
-            </View>
+            <LoadingState rows={3} />
           ) : filtered.length === 0 ? (
             <Text className="text-sm py-4" style={{ color: colors.textSecondary }}>
               {query ? "No transactions match your search." : "No matching expenses found in the last 60 days."}

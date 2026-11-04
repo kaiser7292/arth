@@ -212,7 +212,7 @@ export default function LedgerScreen() {
   const handleSaveEntry = async () => {
     const amount = parseFloat(formAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert("Invalid Amount", "Enter a valid positive amount.");
+      alert("Invalid amount", "Enter a valid positive amount.");
       return;
     }
 
@@ -240,7 +240,7 @@ export default function LedgerScreen() {
   const handleSettlement = async () => {
     const amount = parseFloat(settleAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert("Invalid Amount", "Enter a valid settlement amount.");
+      alert("Invalid amount", "Enter a valid settlement amount.");
       return;
     }
 
@@ -269,7 +269,7 @@ export default function LedgerScreen() {
       );
       return;
     }
-    alert("Delete Entry", `Delete this ${entry.type} of ${formatAmount(entry.amount)}?`, [
+    alert("Delete entry", `Delete this ${entry.type} of ${formatAmount(entry.amount)}?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",
@@ -346,7 +346,7 @@ export default function LedgerScreen() {
     rows: entries,
     fields,
     search: hisaabSearch,
-    searchPlaceholder: "Search name or amount",
+    searchPlaceholder: "Search name or >5000",
     sorts: HISAAB_SORTS,
     amountOf: hisaabAmount,
     // Dates decide what gets loaded and the opening and closing balance, so they stay this screen's.
@@ -611,6 +611,7 @@ export default function LedgerScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {(entries.length > 0 || filterActive) && <ListToolbar {...tools.toolbar} />}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -786,7 +787,6 @@ export default function LedgerScreen() {
             );
           })()}
 
-          {(entries.length > 0 || filterActive) && <ListToolbar {...tools.toolbar} inset={false} />}
           {tools.filterSheet}
 
           {/* Entry count */}

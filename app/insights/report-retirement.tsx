@@ -1,7 +1,7 @@
 import { drawsOwnDivider } from "@/components/ui/Rows";
 import { useState } from "react";
 
-import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
+import { View, ScrollView, Pressable, TextInput } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, LoadingState, ProgressBar, ScreenContainer, SectionHeader, Sheet, Text } from "@/components/ui";
@@ -21,6 +21,7 @@ import {
   sharePDF,
 } from "@/services/reports/report-pdf-export";
 import { useTheme } from "@/hooks/use-theme";
+import { useAlert } from "@/hooks/use-alert";
 
 const INPUTS_KEY = "report_retirement_inputs";
 
@@ -132,6 +133,7 @@ function MetricBox({ label, value, color }: { label: string; value: string; colo
 }
 
 export default function RetirementReportScreen() {
+  const alert = useAlert();
   const { colorScheme, colors } = useColorScheme();
   const theme = useTheme();
   const tint = colors.tint;
@@ -162,7 +164,7 @@ export default function RetirementReportScreen() {
       const uri = await exportRetirementPDF(report);
       await sharePDF(uri);
     } catch (e: any) {
-      Alert.alert("Export failed", e?.message || "Could not generate PDF");
+      alert("Export failed", e?.message || "Could not generate PDF");
     }
     setExporting(false);
   }
@@ -287,7 +289,7 @@ export default function RetirementReportScreen() {
               style={{ backgroundColor: tint }}
               accessibilityRole="button"
             >
-              <Text className="text-sm font-semibold text-primary-foreground">Generate Report</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Generate report</Text>
             </Pressable>
           </View>
         </ScrollView>

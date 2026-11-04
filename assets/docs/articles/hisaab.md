@@ -87,7 +87,7 @@ The settlement shows up in the ledger and nets the balance down. If you picked a
 When you see an incoming credit (a UPI payment SMS, a bank transfer notification) that was actually a friend paying you back:
 
 1. Open the credit from the Transactions tab.
-2. Tap **Mark as Settlement**.
+2. Tap **Mark as settlement**.
 3. Pick the hisaab person from the list (people who currently owe you are listed first).
 
 The credit stays as-is on your account ledger, and a settlement entry appears in the person's hisaab ledger with the same amount and date. The expense detail now shows **Settlement from [person]** with a "View ledger" button.

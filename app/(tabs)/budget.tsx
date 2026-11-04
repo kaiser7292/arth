@@ -300,7 +300,7 @@ export default function BudgetScreen() {
       {activePageIndex === 0 && showWidgetManager && (
         <Rows className="mx-4 mt-2 mb-1 p-3 rounded-xl bg-card border border-border">
           <Text className="text-xs font-semibold text-muted-foreground mb-2">
-            Manage Widgets
+            Manage widgets
           </Text>
           {WIDGET_CONFIG.map((w) => (
             <View

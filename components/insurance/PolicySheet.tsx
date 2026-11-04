@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, ScrollView, Pressable, Alert } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { DateInput, Input, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -16,6 +16,7 @@ import {
   type PremiumFrequency,
 } from "@/services/insurance-policy";
 import { useTheme } from "@/hooks/use-theme";
+import { useAlert } from "@/hooks/use-alert";
 
 interface Props {
   visible: boolean;
@@ -41,6 +42,7 @@ const FREQ_OPTIONS: Array<{ value: PremiumFrequency; label: string }> = [
 ];
 
 export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
+  const alert = useAlert();
   const { colors } = useColorScheme();
   const theme = useTheme();
   const isEdit = !!policy;
@@ -90,12 +92,12 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
 
   const handleSave = async () => {
     if (!providerName.trim()) {
-      Alert.alert("Missing field", "Provider name is required.");
+      alert("Missing field", "Provider name is required.");
       return;
     }
     const sum = parseFloat(sumInsured) || 0;
     if (sum <= 0) {
-      Alert.alert("Missing field", "Sum insured must be greater than zero.");
+      alert("Missing field", "Sum insured must be greater than zero.");
       return;
     }
 
@@ -122,7 +124,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
       }
       onSaved();
     } catch (e) {
-      Alert.alert("Error", "Could not save policy. Please try again.");
+      alert("Error", "Could not save policy. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -130,7 +132,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
 
   const handleDelete = () => {
     if (!policy) return;
-    Alert.alert("Delete Policy", `Delete "${policy.provider_name}" policy?`, [
+    alert("Delete policy", `Delete "${policy.provider_name}" policy?`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Delete",

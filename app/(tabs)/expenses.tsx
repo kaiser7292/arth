@@ -434,7 +434,7 @@ export default function ExpensesScreen() {
       const desc = expense.description || expense.merchant_name || formatAmount(expense.amount);
       const isSplit = expense.split_hisaab_entry_id != null;
       alert(
-        "Delete Expense",
+        "Delete expense",
         isSplit
           ? `Delete "${desc}"? This will also remove the linked hisaab entry.`
           : `Delete "${desc}"?`,
@@ -821,7 +821,7 @@ export default function ExpensesScreen() {
             </Text>
             <Pressable
               onPress={() => {
-                alert("Delete Transfer", "Are you sure you want to delete this transfer?", [
+                alert("Delete transfer", "Are you sure you want to delete this transfer?", [
                   { text: "Cancel", style: "cancel" },
                   {
                     text: "Delete",
@@ -983,7 +983,7 @@ export default function ExpensesScreen() {
     ...(filterRefundedStatus ? [{ key: "refund", label: filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded", onRemove: () => setFilterRefundedStatus("") }] : []),
     ...(filterStatus ? [{ key: "status", label: filterStatus === "pending_review" ? "Pending Review" : "Approved", onRemove: () => setFilterStatus("") }] : []),
     ...(filterAvoidability
-      ? [{ key: "avoid", label: filterAvoidability === "avoidable" ? "Avoidable" : filterAvoidability === "unavoidable" ? "Unavoidable" : "Not classified", onRemove: () => setFilterAvoidability("") }]
+      ? [{ key: "avoid", label: filterAvoidability === "avoidable" ? "Discretionary" : filterAvoidability === "unavoidable" ? "Unavoidable" : "Not classified", onRemove: () => setFilterAvoidability("") }]
       : []),
   ];
 
@@ -1071,7 +1071,7 @@ export default function ExpensesScreen() {
           value: search,
           onChangeText: handleSearchChange,
           onClear: () => setSearch(""),
-          placeholder: "Try 'food last month'",
+          placeholder: "Search or try >5000",
           input: {
             onSubmitEditing: applyNLSearch,
             returnKeyType: "go",
@@ -1204,7 +1204,7 @@ export default function ExpensesScreen() {
           ] : []),
           ...(filterNature === "realized" ? [
             { key: "refundStatus", label: "Refund Status", type: "single" as const, options: [{ id: "refunded", label: "Refunded" }, { id: "not_refunded", label: "Not Refunded" }], selectedIds: filterRefundedStatus ? [filterRefundedStatus] : [] },
-            { key: "avoidability", label: "Avoidability", type: "single" as const, options: [{ id: "unavoidable", label: "Unavoidable" }, { id: "avoidable", label: "Avoidable" }, { id: "unclassified", label: "Not classified" }], selectedIds: filterAvoidability ? [filterAvoidability] : [] },
+            { key: "avoidability", label: "Unavoidable or discretionary", type: "single" as const, options: [{ id: "unavoidable", label: "Unavoidable" }, { id: "avoidable", label: "Discretionary" }, { id: "unclassified", label: "Not classified" }], selectedIds: filterAvoidability ? [filterAvoidability] : [] },
           ] : []),
         ]}
         onApply={(selections) => {
@@ -1395,7 +1395,7 @@ export default function ExpensesScreen() {
           },
           {
             icon: "arrow-down-outline",
-            label: "Add Credit",
+            label: "Add credit",
             color: theme.success,
             onPress: () => router.push({ pathname: "/expense/add", params: { type: "credit" } }),
           },
@@ -1418,9 +1418,9 @@ export default function ExpensesScreen() {
             : []),
           {
             icon: "swap-horizontal",
-            label: "Add Transfer",
+            label: "Add transfer",
             color: TRANSFER_COLOR,
-            // The same form as Add Expense and Add Credit, on Transfer.
+            // The same form as Add Expense and Add credit, on Transfer.
             onPress: () => router.push({ pathname: "/expense/add", params: { type: "transfer" } }),
           },
         ] satisfies FABMenuItem[]}
@@ -1503,7 +1503,7 @@ export default function ExpensesScreen() {
         <View className="absolute left-0 right-0 bottom-0 top-0 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.4)", zIndex: 100 }}>
           <Pressable className="flex-1" onPress={() => setBulkPickerType(null)} />
           <View className="rounded-t-2xl px-4 pt-4 pb-8" style={{ backgroundColor: colors.background }}>
-            <Text className="text-sm font-semibold text-foreground mb-3">Set Date</Text>
+            <Text className="text-sm font-semibold text-foreground mb-3">Set date</Text>
             <DateInput
               label=""
               value=""

@@ -15,10 +15,11 @@ import { formatDateTimeInTimezone } from "@/utils/timezone";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, SectionList, View } from "react-native";
+import { Pressable, SectionList, View } from "react-native";
 import { useTheme, type Theme } from "@/hooks/use-theme";
 import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 import { isoDate } from "@/utils/local-date";
+import { LoadingState } from "@/components/ui";
 
 /**
  * Settings → Automation → Audit Log (v15.12.1 new).
@@ -54,7 +55,7 @@ const ACTION_OPTIONS: { key: AuditActionType; label: string }[] = [
   { key: "created", label: "Created" },
   { key: "edited", label: "Edited" },
   { key: "deleted", label: "Deleted" },
-  { key: "marked_as_transfer", label: "Marked as Transfer" },
+  { key: "marked_as_transfer", label: "Marked as transfer" },
   { key: "marked_as_cc_bill", label: "Marked as CC Bill" },
   { key: "marked_as_settlement", label: "Marked as Settlement" },
   { key: "linked_to_reminder", label: "Linked to Reminder" },
@@ -541,12 +542,7 @@ export default function AuditLogScreen() {
 
       {/* Results */}
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.textSecondary} />
-          <Text className="text-sm mt-2" style={{ color: colors.textSecondary }}>
-            Loading audit log…
-          </Text>
-        </View>
+        <LoadingState message="Loading audit log…" />
       ) : entries.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="list-outline" size={48} color={colors.textSecondary} />

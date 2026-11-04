@@ -9,7 +9,7 @@ phrasings:
   - Track my FD in Arth
   - Where are my investments?
   - Investments card on home
-  - Mark as Fixed Deposit
+  - Mark as fixed deposit
   - I booked an FD from my savings account
   - FD maturity
   - What happens when my FD matures?
@@ -75,7 +75,7 @@ There are two ways.
 When you book an FD, your bank usually sends a debit SMS from your savings account. Turn that debit straight into the FD:
 
 1. Open the debit (Transactions tab → tap it).
-2. Tap **Mark as Fixed Deposit**.
+2. Tap **Mark as fixed deposit**.
 3. Amount, date and funding account are already filled in. Add the **bank name**, the **FD account / receipt number**, and a **name** for the deposit so you can tell FDs apart.
 4. Optionally add the **interest rate** and **maturity date** now - or leave them blank and fill them in later.
 5. Save. The debit becomes the transfer that funded the FD - it no longer counts as spending.
@@ -113,9 +113,9 @@ It looks on the funding account (or any savings account, if none was recorded) f
 
 ## Undo a fixed deposit
 
-Open the original debit. It shows a **Fixed Deposit** card with the principal, rate, maturity, status and bucket. Tap **Undo Fixed Deposit** to turn it back into an ordinary debit.
+Open the original debit. It shows a **Fixed Deposit** card with the principal, rate, maturity, status and bucket. Tap **Undo fixed deposit** to turn it back into an ordinary debit.
 
-**Mark as Transfer**, **Mark as Fixed Deposit**, **Mark as Investment** and **Mark as Loan Payment** can't all be used together. One debit can only be one of them - otherwise it would be counted twice.
+**Mark as transfer**, **Mark as fixed deposit**, **Mark as investment** and **Mark as loan payment** can't all be used together. One debit can only be one of them - otherwise it would be counted twice.
 
 ## In your Net Worth
 

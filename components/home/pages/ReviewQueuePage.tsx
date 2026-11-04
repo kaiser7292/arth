@@ -42,6 +42,8 @@ import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
 import { LoadFailed } from "@/components/ui/ListToolbar";
+import { ListToolbar } from "@/components/ui/ListToolbar";
+import { matchesSearch } from "@/utils/amount-search";
 
 type SectionFilter = "all" | "auto" | "matched" | "overdue" | "upcoming" | "duplicates" | "uncategorized";
 
@@ -94,6 +96,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const [categories, setCategories] = useState<Category[]>([]);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
 
   // Uncategorized selection + category picker
@@ -226,7 +229,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
 
   const handleReject = useCallback(async (id: string) => {
     alert(
-      "Reject Expense",
+      "Reject expense",
       "This expense will be rejected and won't count in your budget. Continue?",
       [
         { text: "Cancel", style: "cancel" },
@@ -294,12 +297,12 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const handleApproveAutoDetected = useCallback(async () => {
     if (realized.length === 0) return;
     alert(
-      "Approve Auto-Detected",
+      "Approve auto-detected",
       `Approve all ${realized.length} auto-detected expense${realized.length > 1 ? "s" : ""}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Approve All",
+          text: "Approve all",
           onPress: async () => {
             try {
               await approveExpenses(realized.map((item) => item.id));
@@ -318,12 +321,12 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const handleRejectAutoDetected = useCallback(async () => {
     if (realized.length === 0) return;
     alert(
-      "Reject Auto-Detected",
+      "Reject auto-detected",
       `Reject all ${realized.length} auto-detected expense${realized.length > 1 ? "s" : ""}? They won't count in your budget.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Reject All",
+          text: "Reject all",
           style: "destructive",
           onPress: async () => {
             try {
@@ -344,7 +347,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
     const overdueCount = overdueForecasts.length;
     if (overdueCount === 0) return;
     alert(
-      "Dismiss Overdue",
+      "Dismiss overdue",
       `Reject ${overdueCount} overdue forecast${overdueCount > 1 ? "s" : ""}? These likely already happened or are no longer relevant.`,
       [
         { text: "Cancel", style: "cancel" },
@@ -368,7 +371,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   // Duplicate handlers
   const handleRejectDuplicate = useCallback(async (expenseId: string) => {
     alert(
-      "Reject Duplicate",
+      "Reject duplicate",
       "This expense will be rejected and won't count in your budget. Continue?",
       [
         { text: "Cancel", style: "cancel" },
@@ -401,7 +404,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Reject Duplicates",
+          text: "Reject duplicates",
           style: "destructive",
           onPress: async () => {
             try {
@@ -422,12 +425,12 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const handleKeepBothGroup = useCallback((group: DuplicateGroup) => {
     const merchant = group.expenses[0]?.merchant_name ?? "these transactions";
     alert(
-      "Keep Both",
+      "Keep both",
       `Mark ${group.expenses.length} transactions at ${merchant} as not duplicates? They'll stay as-is and won't be flagged again.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Keep Both",
+          text: "Keep both",
           onPress: () => {
             dismissDuplicateGroup(group.expenses);
             loadItems();
@@ -440,12 +443,12 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const handleKeepBothAllDuplicates = useCallback(() => {
     if (duplicateGroups.length === 0) return;
     alert(
-      "Keep Both - All Groups",
+      "Keep both - All Groups",
       `Mark all ${duplicateGroups.length} duplicate group${duplicateGroups.length !== 1 ? "s" : ""} as not duplicates? They'll stay as-is and won't be flagged again.`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Keep All",
+          text: "Keep all",
           onPress: () => {
             for (const group of duplicateGroups) {
               dismissDuplicateGroup(group.expenses);
@@ -467,12 +470,12 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
     }, 0);
 
     alert(
-      "Resolve All Duplicates",
+      "Resolve all duplicates",
       `Keep the oldest in each group and reject ${totalToReject} duplicate${totalToReject !== 1 ? "s" : ""} across ${duplicateGroups.length} group${duplicateGroups.length !== 1 ? "s" : ""}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Resolve All",
+          text: "Resolve all",
           style: "destructive",
           onPress: async () => {
             try {
@@ -545,6 +548,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
     | { type: "uncat_actions"; sectionKey: string }
     | { type: "uncat_select_all"; sectionKey: string };
 
+  const searching = query.trim() !== "";
   const listData: ListItem[] = [];
   const isAll = activeFilter === "all";
 
@@ -556,7 +560,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
     if (isAll) {
       listData.push({ type: "header", key, title: "Matched Forecasts", count: matchedPairs.length, icon: "git-compare-outline", color: theme.warning });
     }
-    if (!isAll || openSections[key]) {
+    if (!isAll || (searching || openSections[key])) {
       matchedPairs.forEach((p) => listData.push({ type: "match_pair", pair: p, sectionKey: key }));
     }
   }
@@ -567,7 +571,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       listData.push({ type: "header", key, title: "Overdue", count: overdueForecasts.length, icon: "alert-circle-outline", color: theme.danger });
     }
     listData.push({ type: "dismiss_overdue", count: overdueForecasts.length, sectionKey: key });
-    if (!isAll || openSections[key]) {
+    if (!isAll || (searching || openSections[key])) {
       overdueForecasts.forEach((e) => listData.push({ type: "expense", expense: e, sectionKey: key }));
     }
   }
@@ -577,7 +581,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
     if (isAll) {
       listData.push({ type: "header", key, title: "Upcoming (Forecast)", count: activeForecasts.length, icon: "time-outline", color: theme.warning });
     }
-    if (!isAll || openSections[key]) {
+    if (!isAll || (searching || openSections[key])) {
       activeForecasts.forEach((e) => listData.push({ type: "expense", expense: e, sectionKey: key }));
     }
   }
@@ -588,7 +592,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       listData.push({ type: "header", key, title: "Auto-Detected", count: realized.length, icon: "swap-horizontal-outline", color: colors.blue });
     }
     listData.push({ type: "approve_auto_detected", count: realized.length, sectionKey: key });
-    if (!isAll || openSections[key]) {
+    if (!isAll || (searching || openSections[key])) {
       realized.forEach((e) => listData.push({ type: "expense", expense: e, sectionKey: key }));
     }
   }
@@ -599,7 +603,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       listData.push({ type: "header", key, title: "Possible Duplicates", count: duplicateGroups.length, icon: "copy-outline", color: theme.warning });
     }
     listData.push({ type: "duplicate_bulk_actions", count: duplicateGroups.length, sectionKey: key });
-    if (!isAll || openSections[key]) {
+    if (!isAll || (searching || openSections[key])) {
       duplicateGroups.forEach((g, i) => listData.push({ type: "duplicate_group", group: g, index: i, sectionKey: key }));
     }
   }
@@ -610,7 +614,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       listData.push({ type: "header", key, title: "Uncategorized", count: uncategorizedItems.length, icon: "help-circle-outline", color: theme.faintForeground });
     }
     listData.push({ type: "uncat_select_all", sectionKey: key });
-    if (!isAll || openSections[key]) {
+    if (!isAll || (searching || openSections[key])) {
       uncategorizedItems.forEach((e) => listData.push({ type: "uncat_expense", expense: e, sectionKey: key }));
     }
   }
@@ -657,6 +661,14 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const catchUpCount = counts.auto + counts.matched + counts.duplicates + counts.uncategorized;
   const hasBottomBar = selectedUncat.size > 0;
 
+  // While searching, the rows with a transaction: headings and section actions step aside.
+  const shownList = !searching
+    ? listData
+    : listData.filter((row) => {
+        const e = (row as { expense?: Expense }).expense ?? (row as { pair?: { realized?: Expense } }).pair?.realized;
+        return !!e && matchesSearch(query, [e.merchant_name, e.description], [e.amount]);
+      });
+
   if (loadFailed) return <LoadFailed onRetry={loadItems} />;
   if (loading && items.length === 0) {
     return (
@@ -675,7 +687,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
           <Pressable onPress={() => router.back()} className="p-2">
             <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
           </Pressable>
-          <Pressable onPress={() => router.replace("/(tabs)")} className="p-2" hitSlop={8} accessibilityLabel="Go to Home">
+          <Pressable onPress={() => router.replace("/(tabs)")} className="p-2" hitSlop={8} accessibilityLabel="Go to home">
             <Ionicons name="home-outline" size={20} color={colors.tint} />
           </Pressable>
         </View>
@@ -689,9 +701,9 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
             if (outcome.reason === "sms_disabled") {
               alert("SMS Disabled", "Turn on SMS detection in Settings to scan for new transactions.");
             } else if (outcome.reason === "no_permission") {
-              alert("Permission Needed", "Grant SMS permission in device settings to scan.");
+              alert("Permission needed", "Grant SMS permission in device settings to scan.");
             } else if (outcome.ran && outcome.created === 0 && outcome.credits === 0 && outcome.totalScanned === 0) {
-              alert("Scan Complete", "No new bank SMS found.");
+              alert("Scan complete", "No new bank SMS found.");
             }
           }}
           disabled={scanning}
@@ -793,12 +805,14 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
         </ScrollView>
       </View>
 
+      <ListToolbar search={{ value: query, onChangeText: setQuery, placeholder: "Search name or >5000" }} />
+
       {/* List */}
       <FlatList
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}
-        data={listData}
+        data={shownList}
         keyExtractor={(item, index) => {
           if (item.type === "expense") return item.expense.id;
           if (item.type === "uncat_expense") return `uncat-${item.expense.id}`;
@@ -871,7 +885,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                 >
                   <Ionicons name="checkmark-done-outline" size={16} color={theme.success} />
                   <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.success }}>
-                    Approve All
+                    Approve all
                   </Text>
                 </Pressable>
                 <Pressable
@@ -881,14 +895,14 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                 >
                   <Ionicons name="close-circle-outline" size={16} color={theme.danger} />
                   <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.danger }}>
-                    Reject All
+                    Reject all
                   </Text>
                 </Pressable>
               </View>
             );
           }
 
-          // Duplicate bulk actions — Keep All + Resolve All side by side
+          // Duplicate bulk actions — Keep all + Resolve all side by side
           if (item.type === "duplicate_bulk_actions") {
             return (
               <View className="flex-row mx-4 my-2 gap-2">
@@ -899,7 +913,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                 >
                   <Ionicons name="checkmark-done-circle-outline" size={15} color={theme.success} />
                   <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.success }}>
-                    Keep All
+                    Keep all
                   </Text>
                 </Pressable>
                 <Pressable
@@ -909,7 +923,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                 >
                   <Ionicons name="checkmark-done-outline" size={15} color={theme.danger} />
                   <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.danger }}>
-                    Resolve All
+                    Resolve all
                   </Text>
                 </Pressable>
               </View>

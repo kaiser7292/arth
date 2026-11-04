@@ -49,6 +49,7 @@ import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 function prettyDate(ymd: string): string {
   if (!ymd) return "";
@@ -421,12 +422,7 @@ export default function ScenarioDetailScreen() {
   if (loading || !overview) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={colors.textSecondary} />
-          <Text className="text-sm mt-2" style={{ color: colors.textSecondary }}>
-            Loading scenario…
-          </Text>
-        </View>
+        <LoadingState message="Loading scenario…" />
       </ScreenContainer>
     );
   }

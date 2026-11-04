@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Sheet, Text } from "@/components/ui";
-import { View, Pressable,  ScrollView, TextInput, ActivityIndicator } from "react-native";
+import { View, Pressable,  ScrollView, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -9,6 +9,7 @@ import { formatAmount } from "@/utils/format";
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 interface ExpenseRow {
   id: string;
@@ -146,9 +147,7 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
 
       {/* List */}
       {loading ? (
-        <View className="items-center justify-center py-10">
-          <ActivityIndicator color={tint} />
-        </View>
+        <LoadingState rows={3} />
       ) : expenses.length === 0 ? (
         <View className="items-center justify-center py-10 px-5">
           <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />

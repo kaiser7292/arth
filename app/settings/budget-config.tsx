@@ -139,9 +139,9 @@ export default function BudgetConfigScreen() {
   // Intercept period navigation — prompt to save if there are unsaved edits.
   const handleMonthChange = useCallback((newMonth: string) => {
     if (!hasChanges) { setMonth(newMonth); return; }
-    alert("Unsaved Changes", `Save changes for ${monthLabel} before switching?`, [
+    alert("Unsaved changes", `Save changes for ${monthLabel} before switching?`, [
       {
-        text: "Save & Switch",
+        text: "Save and switch",
         onPress: async () => {
           setSaving(true);
           try { await saveSilent(); } catch (e) { logger.error("Save before switch failed:", e); } finally { setSaving(false); }
@@ -158,7 +158,7 @@ export default function BudgetConfigScreen() {
     try {
       const prevBudgets = await getBudgetsForMonth(DEFAULT_USER_ID, previousMonth);
       if (prevBudgets.length === 0 || prevBudgets.every((b) => b.amount === 0)) {
-        alert("No Data", `No budget configured for ${previousMonthLabel} either.`);
+        alert("No data", `No budget configured for ${previousMonthLabel} either.`);
         return;
       }
       const prevMap = new Map(prevBudgets.map((b) => [b.category_id, b.amount]));
@@ -216,9 +216,9 @@ export default function BudgetConfigScreen() {
     const onwardsMonths = getMonthsOnwards();
     const fyLabel = getFYLabel();
 
-    alert("Apply To", "Which months should this budget apply to?", [
+    alert("Apply to", "Which months should this budget apply to?", [
       {
-        text: "This Month Only",
+        text: "This month only",
         onPress: () => saveBudgetsToMonths([month]),
       },
       {

@@ -29,7 +29,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="merchant-categories" options={{ title: "Merchant Categories" }} />
       <Stack.Screen name="account-master" options={{ title: "Accounts" }} />
       <Stack.Screen name="account-detail" options={{ title: "Account" }} />
-      <Stack.Screen name="account-add" options={{ title: "Add Account" }} />
+      <Stack.Screen name="account-add" options={{ title: "Add account" }} />
       <Stack.Screen name="duplicate-accounts" options={{ title: "Accounts Recorded Twice" }} />
       <Stack.Screen name="transfer-review" options={{ title: "Payments Between Accounts" }} />
       <Stack.Screen name="recycle-bin" options={{ title: "Recycle Bin" }} />

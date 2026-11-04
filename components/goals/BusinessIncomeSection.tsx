@@ -396,7 +396,7 @@ export function ReceiptsTracker({
                 <BreakdownRow label="Advance Tax Due by Now" annual={projectedDueByNow} />
               )}
               <View className="mt-2">
-                <Button title="Use This as My Estimate" variant="outline" onPress={onUseProjected} />
+                <Button title="Use this as my estimate" variant="outline" onPress={onUseProjected} />
               </View>
             </View>
           ) : (

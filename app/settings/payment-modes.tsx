@@ -65,12 +65,12 @@ export default function PaymentModesScreen() {
       const count = await getPaymentModeExpenseCount(pm.id);
       if (count > 0) {
         alert(
-          "Cannot Delete",
+          "Cannot delete",
           `"${pm.name}" has ${count} expense${count > 1 ? "s" : ""} linked to it. Remove or reassign them first.`,
         );
         return;
       }
-      alert("Delete Payment Mode", `Permanently delete "${pm.name}"? This cannot be undone.`, [
+      alert("Delete payment mode", `Permanently delete "${pm.name}"? This cannot be undone.`, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",

@@ -16,6 +16,7 @@ import {
   type InviteLink,
 } from "@/services/household/household";
 import { formatError } from "@/utils/error-message";
+import { LoadingState } from "@/components/ui";
 
 const POLL_MS = 3000;
 
@@ -118,9 +119,7 @@ export default function JoinScreen() {
   if (!step) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState rows={3} />
       </ScreenContainer>
     );
   }

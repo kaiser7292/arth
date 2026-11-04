@@ -2690,6 +2690,37 @@ export const BANK_PATTERNS: BankPattern[] = [
     },
   },
 
+  // ═══ Pluxee Wallet Spend ═══
+  // "Rs. 250.00 spent from Pluxee  Meal wallet, card no.xx1234 on 3-11-2026 19:29:22 at SHOP . Avl bal Rs.900.00."
+  {
+    name: "Pluxee Wallet Spend",
+    bank: "Pluxee",
+    type: "debit",
+    test: /Rs\.?\s*[\d,.]+\s+spent\s+from\s+Pluxee\b/i,
+    parse: (body) => {
+      const m = body.match(
+        /Rs\.?\s*(\d[\d,]*(?:\.\d{1,2})?)\s+spent\s+from\s+Pluxee\s+.*?wallet,?\s*card\s*no\.?\s*[xX*]*(\d{4})\s+on\s+(\d{1,2}-\d{1,2}-\d{4})(?:\s+(\d{1,2}:\d{2}:\d{2}))?\s+at\s+(.+?)\s*(?:\.\s*Avl|\.\s*$|$)/i,
+      );
+      if (!m) return null;
+      const bal = body.match(/Avl\s*bal\s*Rs\.?\s*(\d[\d,]*(?:\.\d{1,2})?)/i);
+      return {
+        amount: parseAmount(m[1]),
+        merchant: m[5].trim(),
+        cardLast4: m[2],
+        date: parseDateAny(m[3]),
+        transactionTime: m[4] ?? null,
+        bank: "Pluxee",
+        type: "debit",
+        accountType: "wallet",
+        skip: false,
+        dueDate: null,
+        isForecast: false,
+        confidence: 0.9,
+        availableBalance: bal ? parseAmount(bal[1]) : undefined,
+      };
+    },
+  },
+
   // ═══ Paytm Wallet Debit ═══
   // "Rs.350 debited from Paytm Wallet for MERCHANT. Balance: Rs.1500."
   {

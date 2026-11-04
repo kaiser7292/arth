@@ -31,6 +31,8 @@ import { LoadFailedBanner } from "@/components/ui/ListToolbar";
  * Shows the last batch (services/message-inbox.ts: getLastArrival); reads anything still waiting
  * first, so a notification tapped before Arth opened still finds its message.
  */
+const READ_NOT_ADDED_MS = 7 * 24 * 60 * 60 * 1000;
+
 export default function JustArrivedScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -111,6 +113,8 @@ export default function JustArrivedScreen() {
   const handled = items.filter((e) => e.status !== "pending_review");
   const unreadable = arrival?.unreadable ?? [];
   const nothing = pending.length === 0 && unreadable.length === 0;
+  // Messages came in and none became a transaction: say so, or it looks as if they vanished.
+  const readButNotAdded = nothing && items.length === 0 && !!arrival && arrival.read > 0 && Date.now() - arrival.at < READ_NOT_ADDED_MS;
 
   return (
     <ScreenContainer padTop={false}>
@@ -120,14 +124,17 @@ export default function JustArrivedScreen() {
           <View className="items-center py-10 px-6">
             <Ionicons name="checkmark-done-outline" size={44} color={theme.success} />
             <Text className="text-lg font-semibold text-foreground mt-3">
-              {items.length > 0 ? "All done" : "Nothing new"}
+              {items.length > 0 ? "All done" : readButNotAdded ? "Nothing to review" : "Nothing new"}
             </Text>
             <Text className="text-sm text-muted-foreground text-center mt-1 leading-5">
               {items.length > 0
                 ? "Everything that came in has been reviewed."
-                : "Bank messages appear here as the Shortcut hands them to Arth."}
+                : readButNotAdded
+                  ? `Arth read ${arrival!.read === 1 ? "the message" : `${arrival!.read} messages`} but didn't add a transaction. The scan log shows why.`
+                  : "Bank messages appear here as the Shortcut hands them to Arth."}
             </Text>
-            <Button title="Go to Home" variant="outline" onPress={() => router.replace("/(tabs)")} className="mt-5" />
+            {readButNotAdded && <Button title="See scan log" onPress={() => router.push("/settings/sms-scan-runs")} className="mt-4" />}
+            <Button title="Go to home" variant="outline" onPress={() => router.replace("/(tabs)")} className="mt-5" />
           </View>
         ) : (
           <Text className="text-sm text-muted-foreground mb-3 leading-5">

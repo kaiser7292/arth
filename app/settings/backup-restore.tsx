@@ -100,7 +100,7 @@ export default function BackupRestoreScreen() {
     if (mode === "menu") reloadSchedBackups();
   }, [mode, reloadSchedBackups]);
 
-  // Android-only: Save to Phone via Storage Access Framework (SAF).
+  // Android-only: Save to phone via Storage Access Framework (SAF).
   const doSaveToPhone = useCallback(async (filePath: string) => {
     const r = await saveBackupToStorage(filePath);
     if (r.ok) {
@@ -108,20 +108,20 @@ export default function BackupRestoreScreen() {
     } else if (r.cancelled) {
       // user cancelled picker — fall back silently
     } else if (r.unsupported) {
-      alert("Not Supported", "Save to Phone is Android-only. Use Share instead.");
+      alert("Not supported", "Save to phone is Android-only. Use Share instead.");
     } else {
-      alert("Save Failed", r.error ?? "Unknown error.");
+      alert("Save failed", r.error ?? "Unknown error.");
     }
   }, [alert]);
 
   // --- Backup ---
   const handleCreateBackup = useCallback(async () => {
     if (password.length < MIN_PASSWORD_LENGTH) {
-      alert("Password Too Short", `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      alert("Password too short", `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
     if (password !== confirmPassword) {
-      alert("Passwords Don't Match", "Please enter the same password in both fields.");
+      alert("Passwords don't match", "Please enter the same password in both fields.");
       return;
     }
 
@@ -139,7 +139,7 @@ export default function BackupRestoreScreen() {
         // iPhone has no folder picker: its share sheet saves to Files as well as sending (WhatsApp...).
         { text: Platform.OS === "ios" ? "Save or share" : "Share", onPress: () => shareBackup(result.filePath!) },
       ];
-      alert("Backup Created", "Where would you like to save it?", buttons);
+      alert("Backup created", "Where would you like to save it?", buttons);
     }
   }, [password, confirmPassword, alert, doSaveToPhone]);
 
@@ -159,12 +159,12 @@ export default function BackupRestoreScreen() {
     if (!pickedFile) return;
 
     if (!pickedFile.isAutoBackup && password.length < MIN_PASSWORD_LENGTH) {
-      alert("Enter Password", `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+      alert("Enter password", `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
       return;
     }
 
     alert(
-      "Restore Backup",
+      "Restore backup",
       "This will REPLACE all current data with the backup. This cannot be undone. Continue?",
       [
         { text: "Cancel", style: "cancel" },
@@ -203,7 +203,7 @@ export default function BackupRestoreScreen() {
 
   const handleRestoreScheduled = useCallback((info: ScheduledBackupInfo) => {
     alert(
-      "Restore Backup",
+      "Restore backup",
       `Restore to the backup from ${info.timestamp.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}?\n\nThis will REPLACE all current data. Cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
@@ -219,7 +219,7 @@ export default function BackupRestoreScreen() {
               alert("Restored", `Backup restored — ${result.totalRows} records loaded.${suffix}`);
               reloadSchedBackups();
             } else {
-              alert("Restore Failed", result.error ?? "Unknown error");
+              alert("Restore failed", result.error ?? "Unknown error");
             }
           },
         },
@@ -229,7 +229,7 @@ export default function BackupRestoreScreen() {
 
   const handleDeleteScheduled = useCallback((info: ScheduledBackupInfo) => {
     alert(
-      "Delete Backup",
+      "Delete backup",
       "Remove this backup? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
@@ -281,7 +281,7 @@ export default function BackupRestoreScreen() {
               </View>
               <View className="flex-1">
                 <Text className="text-base font-semibold text-foreground">
-                  Create Backup
+                  Create backup
                 </Text>
                 <Text className="text-sm text-muted-foreground">
                   Save all your data as an encrypted file
@@ -299,7 +299,7 @@ export default function BackupRestoreScreen() {
               </View>
               <View className="flex-1">
                 <Text className="text-base font-semibold text-foreground">
-                  Restore from Backup
+                  Restore from backup
                 </Text>
                 <Text className="text-sm text-muted-foreground">
                   Load data from an .arth backup file
@@ -436,7 +436,7 @@ export default function BackupRestoreScreen() {
           </View>
         )}
 
-        {/* Create Backup */}
+        {/* Create backup */}
         {mode === "backup" && !backupResult && (
           <View className="py-4">
             <Pressable onPress={resetState} className="flex-row items-center mb-4">
@@ -447,7 +447,7 @@ export default function BackupRestoreScreen() {
             </Pressable>
 
             <Text className="text-xl font-bold text-foreground mb-2">
-              Create Backup
+              Create backup
             </Text>
             <Text className="text-sm text-muted-foreground mb-6">
               Set a password to encrypt your backup. You'll need this password to restore.
@@ -492,7 +492,7 @@ export default function BackupRestoreScreen() {
             </View>
 
             <Button
-              title="Create Encrypted Backup"
+              title="Create encrypted backup"
               onPress={handleCreateBackup}
               disabled={loading}
               loading={loading}
@@ -516,7 +516,7 @@ export default function BackupRestoreScreen() {
             </View>
 
             <Text className="text-xl font-bold text-foreground mb-2">
-              {backupResult.success ? "Backup Created" : "Backup Failed"}
+              {backupResult.success ? "Backup created" : "Backup Failed"}
             </Text>
 
             {backupResult.success && backupResult.metadata && (
@@ -581,7 +581,7 @@ export default function BackupRestoreScreen() {
             </Pressable>
 
             <Text className="text-xl font-bold text-foreground mb-2">
-              Restore from Backup
+              Restore from backup
             </Text>
             <Text className="text-sm text-muted-foreground mb-6">
               Select your .arth backup file (or a .json auto-backup), then enter the password to decrypt.
@@ -589,7 +589,7 @@ export default function BackupRestoreScreen() {
 
             {!pickedFile ? (
               <View>
-                <Button title="Select Backup File" onPress={handlePickFile} variant="outline" />
+                <Button title="Select backup file" onPress={handlePickFile} variant="outline" />
                 {fileError && (
                   <View className="mt-3 p-3 rounded-lg bg-danger/8">
                     <Text className="text-sm text-danger font-medium">{fileError}</Text>
@@ -672,7 +672,7 @@ export default function BackupRestoreScreen() {
             </View>
 
             <Text className="text-xl font-bold text-foreground mb-2">
-              {restoreResult.success ? "Restore Complete" : "Restore Failed"}
+              {restoreResult.success ? "Restore Complete" : "Restore failed"}
             </Text>
 
             {restoreResult.success && (

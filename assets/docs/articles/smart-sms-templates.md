@@ -32,6 +32,8 @@ phrasings:
 
 Arth ships with parsers for ~30 Indian banks. If your bank isn't in that list - or it sends a format Arth hasn't seen before - you can teach it in a minute.
 
+**On iPhone:** messages come in through the Shortcut, and templates work the same way. Go to **Settings → Transaction Messages → Message templates**, or tap **Teach Arth** on a message Arth couldn't read in **Just arrived**. Messages it couldn't read are also listed under **Needs you** on the Transaction Messages screen.
+
 ## Where to find it
 
 **Settings tab → Transactions → Transaction Messages → Message templates.**
@@ -202,7 +204,7 @@ Templates never leave your device. No cloud, no shared library, no analytics.
 
 **Delete a template.** List screen → tap **Delete** on the card.
 
-**I already have a template for this bank - Arth won't let me make a second.** Arth warns you to prevent accidental duplicates. Choose **Edit Existing** to update the old one, or **Save Anyway** if you genuinely want two templates for the same bank + type.
+**I already have a template for this bank - Arth won't let me make a second.** Arth warns you to prevent accidental duplicates. Choose **Edit existing** to update the old one, or **Save anyway** if you genuinely want two templates for the same bank + type.
 
 ## Related
 

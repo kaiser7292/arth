@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
-import { View, FlatList, Pressable, ActivityIndicator, BackHandler } from "react-native";
+import { View, FlatList, Pressable, BackHandler } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text } from "@/components/ui";
@@ -277,7 +277,7 @@ export default function SmsScanRunsScreen() {
 
         {/* Category cards */}
         {detailsLoading ? (
-          <ActivityIndicator size="small" color={theme.primary} className="mt-4" />
+          <LoadingState rows={3} />
         ) : (
           <FlatList
             initialNumToRender={12}

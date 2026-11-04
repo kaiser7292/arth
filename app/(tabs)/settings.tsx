@@ -91,7 +91,7 @@ export default function SettingsScreen() {
       const android = Platform.OS === "android";
       const smsOn = android && isSmsDetectionEnabled();
       Promise.all([
-        android ? countUnrecognisedSms().catch(() => 0) : Promise.resolve(0),
+        countUnrecognisedSms().catch(() => 0),
         scanAllDuplicatesCached(DEFAULT_USER_ID).then((r) => r.duplicateGroupCount).catch(() => 0),
       ]).then(([unread, dupes]) => {
         const needs: string[] = [];

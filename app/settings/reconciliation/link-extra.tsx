@@ -13,6 +13,7 @@ import {
 } from "@/services/reconciliation/reconciliation-crud";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
+import { LoadingState } from "@/components/ui";
 
 // mode="find_missing" — initiated from Extra tab: show unmatched statement rows to pair with
 // mode="find_extra"   — initiated from Missing tab: show extra Arth entries to pair with
@@ -223,9 +224,7 @@ export default function LinkExtraScreen() {
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       ) : (
         <FlatList
           initialNumToRender={12}

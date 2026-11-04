@@ -131,6 +131,7 @@ export const BANK_SENDERS: BankSender[] = [
 
   // UPI / Wallets
   { code: "PAYTMB", bank: "Paytm Payments Bank", type: "wallet" },
+  { code: "PLUXEE", bank: "Pluxee", type: "wallet" },
   { code: "PYTM", bank: "Paytm", type: "wallet" },
   { code: "JIOPAY", bank: "Jio Payments", type: "wallet" },
   { code: "GOOGLP", bank: "Google Pay", type: "upi" },

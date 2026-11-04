@@ -61,7 +61,7 @@ Tap any row in the list to see its actions. There are two per item:
 
 Top-right menu on the screen:
 
-- **Restore All** (on each filter tab) - restores everything currently visible on that tab.
+- **Restore all** (on each filter tab) - restores everything currently visible on that tab.
 - **Empty All** - permanently deletes everything in the bin. Asks for a confirm, then wipes.
 
 ## Auto-purge

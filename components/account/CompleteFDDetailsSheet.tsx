@@ -44,7 +44,7 @@ interface CompleteFDDetailsSheetProps {
  * link and a manual maturity-amount correction.
  *
  * First-time completion (product.interest_rate_pa == null, from
- * createFDAccountShell's "Mark as Fixed Deposit" quick-create) calls
+ * createFDAccountShell's "Mark as fixed deposit" quick-create) calls
  * completeFDDetails. Editing an already-completed FD calls updateFDDetails
  * instead, which regenerates the schedule — blocked once `editable` is false
  * (a schedule entry has already materialised, i.e. money has moved).

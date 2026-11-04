@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
-import { View, ScrollView, Pressable, Alert } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
@@ -24,6 +24,7 @@ import {
 } from "@/services/reports/report-pdf-export";
 import { useTheme, type Theme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { useAlert } from "@/hooks/use-alert";
 
 /** Takes the theme as an argument: this is a plain helper, not a component, so it must not
  *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
@@ -59,6 +60,7 @@ const DIMENSION_ICONS: Record<string, string> = {
 };
 
 export default function FinancialHealthReportScreen() {
+  const alert = useAlert();
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -88,7 +90,7 @@ export default function FinancialHealthReportScreen() {
       const uri = await exportFinancialHealthPDF(report);
       await sharePDF(uri);
     } catch (e: any) {
-      Alert.alert("Export failed", e?.message || "Could not generate PDF");
+      alert("Export failed", e?.message || "Could not generate PDF");
     }
     setExporting(false);
   }

@@ -1,4 +1,4 @@
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { trimEdgeDividers } from "./Rows";
 import { Text } from "./Text";
 import { Shadows } from "@/constants/theme";
@@ -20,7 +20,7 @@ export function Card({
   return (
     <View
       className={`${COMPONENTS.card.base} ${
-        elevated ? "" : "border border-border"
+        elevated && Platform.OS !== "android" ? "" : "border border-border"
       } ${className}`}
       style={elevated ? Shadows.card : undefined}
     >

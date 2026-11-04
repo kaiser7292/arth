@@ -12,6 +12,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
+import { LoadingState } from "@/components/ui";
 import {
   connectZebpay,
   getZebpayCredentials,
@@ -45,7 +46,7 @@ export default function ZebpayConnectCredentialsScreen() {
 
   const handleConnect = async () => {
     if (!apiKey.trim() || !secretKey.trim()) {
-      alert('Missing Fields', 'Enter both API Key and Secret Key.');
+      alert('Missing fields', 'Enter both API Key and Secret Key.');
       return;
     }
     if (!agreed) return;
@@ -57,7 +58,7 @@ export default function ZebpayConnectCredentialsScreen() {
       router.back();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      alert('Connection Failed', msg || 'Could not connect. Check your API key and secret.');
+      alert('Connection failed', msg || 'Could not connect. Check your API key and secret.');
     } finally {
       setIsBusy(false);
     }
@@ -65,7 +66,7 @@ export default function ZebpayConnectCredentialsScreen() {
 
   const handleClear = () => {
     alert(
-      'Remove Credentials',
+      'Remove credentials',
       'This will disconnect your Zebpay account.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -102,9 +103,7 @@ export default function ZebpayConnectCredentialsScreen() {
   if (isLoading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={theme.primary} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

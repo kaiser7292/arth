@@ -532,7 +532,7 @@ export default function CreditCardsScreen() {
                           onPress={(e) => {
                             e.stopPropagation();
                             alert(
-                              "Clear Dues",
+                              "Clear dues",
                               "Mark this card's dues as paid/resolved? This removes the overdue indicator.",
                               [
                                 { text: "Cancel", style: "cancel" },

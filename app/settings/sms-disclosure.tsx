@@ -26,7 +26,7 @@ export default function SmsDisclosureScreen() {
       router.back();
     } else {
       alert(
-        "Permission Denied",
+        "Permission denied",
         "SMS reading requires SMS permission. You can allow it from Android settings → Apps → Arth → Permissions.",
         [{ text: "OK", onPress: () => router.back() }],
       );

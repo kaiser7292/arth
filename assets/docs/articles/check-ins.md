@@ -33,7 +33,7 @@ phrasings:
 
 **Home tab → Check-ins card.** It only appears when a check-in has something for you, and it shows how many cards each one has. Tap a check-in to start it.
 
-When you finish one, Arth moves you on to the next check-in that has cards. After the last one you see **You're all caught up**, with a summary and a **Back to Home** button.
+When you finish one, Arth moves you on to the next check-in that has cards. After the last one you see **You're all caught up**, with a summary and a **Back to home** button.
 
 To hide the card, go to Settings tab → Preferences & Security → Customise Arth → **Check-ins**.
 

@@ -125,7 +125,7 @@ export default function CleanUpScreen() {
               if (result.salaryProfilesDeleted > 0) parts.push(`${result.salaryProfilesDeleted} salary profiles`);
               if (result.accountsDeleted > 0) parts.push(`${result.accountsDeleted} accounts`);
               if (result.auditLogDeleted > 0) parts.push(`${result.auditLogDeleted} audit log entries`);
-              alert("Cleanup Complete",
+              alert("Cleanup complete",
                 parts.length > 0
                   ? `Deleted ${parts.join(", ")}.` + (result.errors.length > 0 ? `\n${result.errors.length} errors occurred.` : "")
                   : "No records matched the selected criteria.",
@@ -185,7 +185,7 @@ export default function CleanUpScreen() {
                   </View>
                   {cleanupDateError && <Text className="text-xs text-danger mb-2">{cleanupDateError}</Text>}
                   <Pressable onPress={handleCleanupCustomApply} className="py-2 rounded-lg items-center" style={{ backgroundColor: uiTheme.danger }}>
-                    <Text className="text-sm font-medium text-white">Apply Range</Text>
+                    <Text className="text-sm font-medium text-white">Apply range</Text>
                   </Pressable>
                   {cleanupCustomRange && (
                     <Text className="text-xs text-muted-foreground mt-1.5 text-center">
@@ -240,7 +240,7 @@ export default function CleanUpScreen() {
                     style={{ backgroundColor: cleanupObjects.size === 0 ? "#9CA3AF40" : uiTheme.danger }}
                   >
                     <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
-                    <Text className="text-sm font-semibold text-white ml-2">Delete Selected</Text>
+                    <Text className="text-sm font-semibold text-white ml-2">Delete selected</Text>
                   </Pressable>
                 </>
               )}

@@ -2,7 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 
 /**
  * createFDAccountShell / completeFDDetails against a REAL SQLite engine.
- * The thing that matters here: "Mark as Fixed Deposit" (app/expense/[id].tsx)
+ * The thing that matters here: "Mark as fixed deposit" (app/expense/[id].tsx)
  * needs to create an FD account with NO deposit transfer of its own (the
  * SMS-detected expense becomes that transfer via reclassifyExpenseAsTransfer
  * instead), and with rate/maturity optional — a debit alert rarely carries

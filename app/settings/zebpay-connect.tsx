@@ -48,7 +48,7 @@ export default function ZebpayConnectScreen() {
   const [linkedAccountId, setLinkedAccountId] = useState<string | null>(() => getBrokerLinkedAccount('zebpay'));
   const [showAccountPicker, setShowAccountPicker] = useState(false);
   const [pickerAccounts, setPickerAccounts] = useState<{ id: string; label: string }[]>([]);
-  const { query, setQuery, sort, changeSort, view } = usePortfolioView('zebpay');
+  const { query, setQuery, sort, chooseSort, view } = usePortfolioView('zebpay');
 
   const load = useCallback(() => {
     const conn = isZebpayConnected();
@@ -76,7 +76,7 @@ export default function ZebpayConnectScreen() {
       setLastSynced(getZebpayLastSynced());
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      alert('Sync Failed', msg);
+      alert('Sync failed', msg);
     } finally {
       setSyncing(false);
     }
@@ -96,7 +96,7 @@ export default function ZebpayConnectScreen() {
     try {
       // Crypto holdings are the portfolio; the INR wallet balance is the fund (0 when empty).
       const saved = await saveBrokerSnapshot(accountId, totalInr, inrBalance);
-      alert('Snapshot Saved', `Crypto portfolio ${formatAmount(saved.portfolio)} and INR funds ${formatAmount(saved.fund)} saved for today.`);
+      alert('Snapshot saved', `Crypto portfolio ${formatAmount(saved.portfolio)} and INR funds ${formatAmount(saved.fund)} saved for today.`);
     } catch (err: any) {
       alert('Error', err.message || 'Failed to save snapshot');
     } finally {
@@ -187,6 +187,7 @@ export default function ZebpayConnectScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {allRowCount > 0 && <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={chooseSort} />}
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="mt-3">
 
@@ -232,9 +233,6 @@ export default function ZebpayConnectScreen() {
             />
           )}
 
-          {allRowCount > 0 && (
-            <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={changeSort} />
-          )}
           <PortfolioSection title="Crypto" rows={balanceRows} total={balances.length} />
           <PortfolioSection title="Open orders" rows={orderRows} total={openOrders.length} />
           {query.trim() !== '' && balanceRows.length + orderRows.length === 0 && allRowCount > 0 && (
@@ -256,7 +254,7 @@ export default function ZebpayConnectScreen() {
               className="flex-row items-center py-2.5 border-b border-border"
             >
               <Ionicons name="key-outline" size={16} color={colors.text} />
-              <Text className="text-sm text-foreground ml-3 flex-1">Update Credentials</Text>
+              <Text className="text-sm text-foreground ml-3 flex-1">Update credentials</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
             </Pressable>
             <Pressable onPress={handleDisconnect} className="flex-row items-center py-2.5">
@@ -274,7 +272,7 @@ export default function ZebpayConnectScreen() {
       <Modal visible={showAccountPicker} transparent animationType="slide">
         <Pressable className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setShowAccountPicker(false)} />
         <View className="bg-background rounded-t-2xl p-4 pb-8" style={{ maxHeight: '60%' }}>
-          <Text className="text-base font-bold text-foreground mb-1">Link an Account</Text>
+          <Text className="text-base font-bold text-foreground mb-1">Link an account</Text>
           <Text className="text-xs text-muted-foreground mb-4">
             Choose the account where Zebpay portfolio snapshots will be saved.
           </Text>

@@ -3,7 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Clipboard from "expo-clipboard";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { Card, ScreenContainer, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -20,6 +20,7 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { normalizeCustomFields } from "@/services/broker-vault";
 import { generateTOTP, totpSecondsRemaining } from "@/utils/totp";
+import { LoadingState } from "@/components/ui";
 
 const CLIPBOARD_TTL_MS = 30_000;
 
@@ -91,7 +92,7 @@ export default function VaultEntryScreen() {
   const handleDelete = useCallback(() => {
     if (!entry) return;
     alert(
-      "Delete Entry",
+      "Delete entry",
       `Delete "${entry.title}" from your vault? This cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
@@ -110,9 +111,7 @@ export default function VaultEntryScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

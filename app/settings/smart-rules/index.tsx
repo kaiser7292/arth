@@ -127,7 +127,7 @@ export default function SmartRulesListScreen() {
     alert("Restore all deleted rules?", `${deletedRules.length} deleted rule${deletedRules.length === 1 ? "" : "s"} will be restored.`, [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Restore All",
+        text: "Restore all",
         onPress: async () => {
           try {
             await restoreAllRules();
@@ -144,7 +144,7 @@ export default function SmartRulesListScreen() {
     alert("Permanently delete all?", "This cannot be undone.", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Delete Forever",
+        text: "Delete forever",
         style: "destructive",
         onPress: async () => {
           try {
@@ -256,10 +256,10 @@ export default function SmartRulesListScreen() {
         <>
           <View className="flex-row gap-2 mb-3">
             <Pressable onPress={confirmRestoreAll} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: colors.tint + "20" }}>
-              <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore All</Text>
+              <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore all</Text>
             </Pressable>
             <Pressable onPress={confirmPurge} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: theme.danger + "14" }}>
-              <Text className="text-xs font-semibold" style={{ color: theme.danger }}>Delete Forever</Text>
+              <Text className="text-xs font-semibold" style={{ color: theme.danger }}>Delete forever</Text>
             </Pressable>
           </View>
           {deletedRules.map((item) => (
@@ -307,9 +307,10 @@ export default function SmartRulesListScreen() {
             {deletedSection}
           </ScrollView>
         ) : (
-          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }} keyboardShouldPersistTaps="handled">
-            <ListToolbar {...tools.toolbar} inset={false} />
-            {tools.filterSheet}
+          <>
+          <ListToolbar {...tools.toolbar} />
+          {tools.filterSheet}
+          <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 96 }} keyboardShouldPersistTaps="handled">
             {tools.rows.length === 0 && <Text className="text-sm text-muted-foreground text-center py-8">Nothing matches.</Text>}
             {tools.grouped.map((row) => {
               if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} />;
@@ -378,6 +379,7 @@ export default function SmartRulesListScreen() {
             })}
             {deletedSection}
           </ScrollView>
+          </>
         )}
 
         <FAB

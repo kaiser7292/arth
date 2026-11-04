@@ -26,7 +26,7 @@ interface MoneyEventPanelProps {
   expense: Expense;
   /** Bank of the expense's account, to pre-fill a new FD. */
   bankName: string | null;
-  /** Debit: open "Mark as Fixed Deposit" for this row. */
+  /** Debit: open "Mark as fixed deposit" for this row. */
   onSetUpFD: () => void;
   /** Debit → "Transfer to which account?"; credit → "Money came from which account?". */
   onPickTransferAccount: () => void;

@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, View } from "react-native";
+import { FlatList, Pressable, View } from "react-native";
 import { FAB, ListSeparator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -10,6 +10,7 @@ import { getActiveAccounts, type FinancialAccount } from "@/services/financial-a
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getSessions, deleteSession, type ReconciliationSession } from "@/services/reconciliation/reconciliation-crud";
 import { useTheme, type Theme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 function statusLabel(status: string): string {
   if (status === "completed") return "Completed";
@@ -145,9 +146,7 @@ export default function ReconciliationHubScreen() {
   return (
     <ScreenContainer padTop={false}>
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       ) : sessions.length === 0 ? (
         <View className="flex-1 items-center justify-center pb-16 px-10">
           <Ionicons name="checkmark-done-outline" size={48} color={colors.textSecondary} />

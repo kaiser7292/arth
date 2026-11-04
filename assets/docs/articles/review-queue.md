@@ -53,7 +53,7 @@ You can also approve or reject new transactions straight from a notification. Se
 SMS entries Arth parsed into an expense or a credit. They are NOT in your ledger yet.
 - **Green tick** (per row) → approve. The expense enters your budget, category totals, and account balance.
 - **Red cross** (per row) → reject. The row is kept in the recycle bin for 30 days but does not count anywhere.
-- **Approve All / Reject All** buttons at the top of this section.
+- **Approve all / Reject all** buttons at the top of this section.
 - Tap a row to edit merchant, amount, category, account, or payment mode **before** approving.
 
 ### Matches
@@ -74,7 +74,7 @@ Forecasts due today or later. These just sit here so you know what's coming. No 
 Two or more expenses that look like the same transaction (same amount + same merchant or card, dates within a few days).
 - **Keep oldest, reject others** → the first-created row stays; the rest go to the recycle bin.
 - **Keep both** → marks this group as "not a duplicate" so it never re-appears.
-- **Resolve All N Groups** button at the top applies "keep oldest" to every group.
+- **Resolve all N Groups** button at the top applies "keep oldest" to every group.
 
 ### Uncategorized
 Realized, approved expenses that never got a category.

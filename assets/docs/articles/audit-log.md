@@ -31,7 +31,7 @@ The Audit Log is a read-only timeline of every action you've taken on records in
 - **Rejected** - you rejected an SMS item, or dismissed an expense forecast.
 - **Created** - you manually added an expense, credit, or transfer.
 - **Deleted** - you deleted a record (soft delete - still in Recycle Bin until purged).
-- **Marked as Transfer** - you reclassified an expense or credit as an inter-account transfer.
+- **Marked as transfer** - you reclassified an expense or credit as an inter-account transfer.
 - **Marked as CC Bill** - you paid a CC repayment forecast, or reclassified an incoming credit on a credit card.
 - **Marked as Settlement** - you linked an incoming credit to a hisaab person as a settlement.
 - **Linked to Reminder** - an expense was matched to a recurring reminder.
@@ -61,7 +61,7 @@ The list is grouped by day. Only **today** starts open; tap any other day to exp
 Date: 30 days → Source: SMS → Action: Rejected. Scan the list, tap any to inspect.
 
 **"Which credits did I convert to transfers? Were those the right calls?"**
-Source: SMS → Action: Marked as Transfer. Tap each to see the underlying transfer in the account ledger.
+Source: SMS → Action: Marked as transfer. Tap each to see the underlying transfer in the account ledger.
 
 **"What happened to my ₹50,000 settlement credit last week?"**
 Type: Credit + Hisaab → last 7 days. Tap the entry to deep-link to the person's hisaab ledger.

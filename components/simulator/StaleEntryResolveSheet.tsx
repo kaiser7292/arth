@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 import { Sheet, Text } from "@/components/ui";
-import { View, TextInput, Pressable,  FlatList, ActivityIndicator } from "react-native";
+import { View, TextInput, Pressable,  FlatList } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -11,6 +11,7 @@ import { CalendarModal } from "@/components/ui/CalendarModal";
 import type { SimulationEntry } from "@/services/simulator";
 import { getDatabase } from "@/database";
 import { useTheme, type Theme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 interface Candidate {
   id: string;
@@ -314,9 +315,7 @@ export function StaleEntryResolveSheet({
           </Text>
 
           {loadingCandidates ? (
-            <View className="items-center py-6">
-              <ActivityIndicator color={colors.textSecondary} />
-            </View>
+            <LoadingState rows={3} />
           ) : filteredCandidates.length === 0 ? (
             <Text className="text-sm py-4" style={{ color: colors.textSecondary }}>
               {query ? "No transactions match your search." : "No recent transactions to pick from. Try Reschedule or Remove."}

@@ -234,7 +234,7 @@ export function CheckInDeck<T>({
           }
           action={
             <View className="w-full px-4 mt-4">
-              <Button title="Back to Home" onPress={() => router.dismissTo("/(tabs)")} />
+              <Button title="Back to home" onPress={() => router.dismissTo("/(tabs)")} />
             </View>
           }
         />

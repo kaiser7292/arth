@@ -31,7 +31,7 @@ Arth keeps your data on your phone - there is no cloud copy of it. (A household 
 
 ## Make an encrypted backup
 
-1. Tap **Create Encrypted Backup**.
+1. Tap **Create encrypted backup**.
 2. Enter a password (at least 8 characters). Pick something you'll remember - **there is no reset**. If you forget it, the file can't be opened.
 3. Confirm the password.
 4. Choose **Save to phone** (pick a folder) or **Share** (Google Drive, email, etc.). The file is named like `arth-backup-2026-09-27….arth`.
@@ -62,7 +62,7 @@ Turn on **Auto backup** in the Scheduled Backup section and choose how often: ev
 ## Restore
 
 1. Install Arth, open it, complete onboarding (you can skip any step).
-2. **Settings tab → Backup and Data → Back up or restore → Select Backup File.**
+2. **Settings tab → Backup and Data → Back up or restore → Select backup file.**
 3. Pick an `.arth` file (older `.artha` files work too) or an auto-backup `.json` file.
 4. For an `.arth` file, enter its password.
 5. Confirm. Arth **replaces all your current data** with the backup, then restores your settings.

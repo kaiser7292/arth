@@ -26,8 +26,29 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { GroupHeading, ListToolbar } from "@/components/ui";
+import { useListTools } from "@/hooks/use-list-tools";
+import type { ListField, ListSort } from "@/utils/list-tools";
 
 type ViewMode = "list" | "add_person";
+
+const PEOPLE_FIELDS: ListField<HisaabPersonWithBalance>[] = [
+  {
+    id: "status",
+    label: "Who owes",
+    keyOf: (p) => (p.balance > 0 ? "They owe you" : p.balance < 0 ? "You owe" : "All settled"),
+    filter: true,
+    group: true,
+  },
+];
+const PEOPLE_SORTS: ListSort<HisaabPersonWithBalance>[] = [
+  { id: "listed", label: "As listed" },
+  { id: "name", label: "Name (A–Z)", compare: (a, b) => a.name.localeCompare(b.name) },
+  { id: "owed", label: "Owed to you (most first)", compare: (a, b) => b.balance - a.balance },
+  { id: "owe", label: "You owe (most first)", compare: (a, b) => a.balance - b.balance },
+  { id: "recent", label: "Latest entry first", compare: (a, b) => (b.lastEntryDate ?? "").localeCompare(a.lastEntryDate ?? "") },
+];
+const peopleSearch = (p: HisaabPersonWithBalance) => ({ texts: [p.name, p.phone, p.email], amounts: [Math.abs(p.balance)] });
 
 export default function HisaabPersonsScreen() {
   const alert = useAlert();
@@ -90,7 +111,7 @@ export default function HisaabPersonsScreen() {
   const handleSave = async () => {
     const name = formName.trim();
     if (!name) {
-      alert("Missing Name", "Enter the person's name.");
+      alert("Missing name", "Enter the person's name.");
       return;
     }
 
@@ -121,7 +142,7 @@ export default function HisaabPersonsScreen() {
 
   const handleDeactivate = (p: HisaabPersonWithBalance) => {
     alert(
-      "Remove Person",
+      "Remove person",
       `Remove "${p.name}" from your hisaab? Their records will be preserved.`,
       [
         { text: "Cancel", style: "cancel" },
@@ -161,6 +182,16 @@ export default function HisaabPersonsScreen() {
   };
 
   // ─── Loading ───────────────────────────────────────────
+
+  const tools = useListTools<HisaabPersonWithBalance>({
+    screen: "hisaab_people",
+    rows: persons,
+    fields: PEOPLE_FIELDS,
+    sorts: PEOPLE_SORTS,
+    search: peopleSearch,
+    searchPlaceholder: "Search name or >5000",
+    amountOf: (p) => p.balance,
+  });
 
   if (!loaded) {
     return (
@@ -263,6 +294,8 @@ export default function HisaabPersonsScreen() {
   return (
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
+      {persons.length > 0 && <ListToolbar {...tools.toolbar} />}
+      {tools.filterSheet}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -318,7 +351,13 @@ export default function HisaabPersonsScreen() {
           )}
 
           {/* Person Cards */}
-          {persons.map((p) => (
+          {tools.rows.length === 0 && tools.narrowed && (
+            <Text className="text-sm text-muted-foreground text-center py-8">Nothing matches.</Text>
+          )}
+          {tools.grouped.map((row) => {
+            if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} />;
+            const p = row.item;
+            return (
             <PersonCard
               key={p.id}
               person={p}
@@ -331,7 +370,8 @@ export default function HisaabPersonsScreen() {
               onLongPress={() => handleDeactivate(p)}
               onEdit={() => handleEdit(p)}
             />
-          ))}
+            );
+          })}
 
           {persons.length > 0 && (
             <Text className="text-xs text-faint-foreground text-center mt-2 mb-4">

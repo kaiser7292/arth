@@ -162,11 +162,11 @@ export default function InvestmentBucketsScreen() {
     const name = newBucketName.trim();
     const target = parseFloat(newBucketTarget);
     if (!name) {
-      alert("Missing Name", "Enter a bucket name.");
+      alert("Missing name", "Enter a bucket name.");
       return;
     }
     if (isNaN(target) || target <= 0) {
-      alert("Invalid Target", newBucketDate ? "Enter a valid target amount." : "Enter a valid annual target amount.");
+      alert("Invalid target", newBucketDate ? "Enter a valid target amount." : "Enter a valid annual target amount.");
       return;
     }
 
@@ -223,10 +223,10 @@ export default function InvestmentBucketsScreen() {
     alert(bucket.name, "Choose an action:", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Reset Contributions",
+        text: "Reset contributions",
         onPress: () => {
           alert(
-            "Reset Contributions",
+            "Reset contributions",
             `This will clear all contributions for "${bucket.name}" and set invested amount to zero. The bucket structure and target are kept.\n\nContinue?`,
             [
               { text: "Cancel", style: "cancel" },
@@ -253,7 +253,7 @@ export default function InvestmentBucketsScreen() {
             logger.warn("Bucket usage lookup failed:", e);
           }
           alert(
-            "Delete Bucket",
+            "Delete bucket",
             describeBucketDelete(bucket.name, usage),
             [
               { text: "Cancel", style: "cancel" },
@@ -344,7 +344,7 @@ export default function InvestmentBucketsScreen() {
   const handleApplyUniformHike = () => {
     const hike = parseFloat(uniformHike);
     if (isNaN(hike) || hike <= 0) {
-      alert("Invalid Hike", "Enter a valid percentage.");
+      alert("Invalid hike", "Enter a valid percentage.");
       return;
     }
     const newHikes: Record<string, string> = {};
@@ -360,7 +360,7 @@ export default function InvestmentBucketsScreen() {
       const hikeStr = bucketHikes[bucket.id] ?? "";
       const hike = hikeStr ? parseFloat(hikeStr) : 0;
       if (hikeStr && isNaN(hike)) {
-        alert("Invalid Hike", `"${bucket.name}" has an invalid hike percentage.`);
+        alert("Invalid hike", `"${bucket.name}" has an invalid hike percentage.`);
         return;
       }
     }
@@ -613,7 +613,7 @@ export default function InvestmentBucketsScreen() {
                     <View className="flex-row w-full gap-2">
                       <View className="flex-1">
                         <Button
-                          title="Copy As-Is"
+                          title="Copy as is"
                           variant="outline"
                           onPress={handleCopyAsIs}
                           loading={copying}
@@ -622,7 +622,7 @@ export default function InvestmentBucketsScreen() {
                       </View>
                       <View className="flex-1">
                         <Button
-                          title="Copy with Hike"
+                          title="Copy with hike"
                           onPress={() => setShowHikeInput(true)}
                           disabled={copying}
                         />
@@ -635,7 +635,7 @@ export default function InvestmentBucketsScreen() {
                     <View className="flex-row items-end gap-2 mb-3">
                       <View className="flex-1">
                         <Input
-                          label="Set All Hike %"
+                          label="Set all Hike %"
                           value={uniformHike}
                           onChangeText={setUniformHike}
                           keyboardType="numeric"
@@ -643,7 +643,7 @@ export default function InvestmentBucketsScreen() {
                         />
                       </View>
                       <View className="mb-0.5">
-                        <Button title="Set All" variant="outline" onPress={handleApplyUniformHike} />
+                        <Button title="Set all" variant="outline" onPress={handleApplyUniformHike} />
                       </View>
                     </View>
 
@@ -692,7 +692,7 @@ export default function InvestmentBucketsScreen() {
                         <Button title="Cancel" variant="outline" onPress={() => { setShowHikeInput(false); setUniformHike(""); setBucketHikes({}); }} disabled={copying} />
                       </View>
                       <View className="flex-1">
-                        <Button title="Apply & Save" onPress={handleCopyWithHike} loading={copying} disabled={copying} />
+                        <Button title="Apply and save" onPress={handleCopyWithHike} loading={copying} disabled={copying} />
                       </View>
                     </View>
                   </View>

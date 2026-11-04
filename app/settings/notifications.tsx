@@ -91,7 +91,7 @@ export default function NotificationPreferencesScreen() {
       setPermissionGranted(granted);
       if (!granted) {
         alert(
-          "Permission Required",
+          "Permission required",
           "Notification permission is needed to send alerts. You can enable it in your device settings.",
         );
         return;

@@ -202,7 +202,7 @@ export function PatternEditSheet({ visible, pattern, onSave, onNotBill, onClose 
                 Not a bill
               </Text>
             </Pressable>
-            <Button title="Save Changes" onPress={handleSave} disabled={saving} />
+            <Button title="Save changes" onPress={handleSave} disabled={saving} />
           </View>
           <Text className="text-xs text-muted-foreground mt-3">
             {pattern.is_active === 1

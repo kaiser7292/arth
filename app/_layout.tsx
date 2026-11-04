@@ -81,7 +81,7 @@ function ErrorFallback({ error }: { error: Error }) {
           alignItems: "center",
         }}
       >
-        <Text style={{ color: theme.primaryForeground, fontWeight: "600" }}>Close App</Text>
+        <Text style={{ color: theme.primaryForeground, fontWeight: "600" }}>Close app</Text>
       </TouchableOpacity>
       {__DEV__ && (
         <ScrollView style={{ marginTop: 16 }}>
@@ -585,13 +585,13 @@ export default function RootLayout(): React.JSX.Element {
           onPress={retryInit}
           style={{ backgroundColor: "#134E4A", padding: 14, borderRadius: 10, alignItems: "center", marginBottom: 12 }}
         >
-          <Text style={{ color: "#FFFFFF", fontWeight: "600" }}>Try Again</Text>
+          <Text style={{ color: "#FFFFFF", fontWeight: "600" }}>Try again</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => BackHandler.exitApp()}
           style={{ borderWidth: 1, borderColor: "#374151", padding: 14, borderRadius: 10, alignItems: "center" }}
         >
-          <Text style={{ color: theme.faintForeground, fontWeight: "600" }}>Close App</Text>
+          <Text style={{ color: theme.faintForeground, fontWeight: "600" }}>Close app</Text>
         </TouchableOpacity>
         {/* Shown in release too: the logger is silent there, so this is the only way to see why. */}
         <ScrollView style={{ marginTop: 16 }}>

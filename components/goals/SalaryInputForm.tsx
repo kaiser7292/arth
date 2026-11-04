@@ -193,7 +193,7 @@ export function SalaryInputForm({
                 hitSlop={8}
               >
                 <Text className="text-xs text-danger">
-                  Reset All
+                  Reset all
                 </Text>
               </Pressable>
             )}

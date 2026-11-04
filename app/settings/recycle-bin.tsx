@@ -43,6 +43,7 @@ import { getDeletedUserTemplates, restoreUserTemplate, restoreAllUserTemplates, 
 import type { UserSmsTemplate } from "@/services/sms/user-sms-templates";
 import { useTheme, type Theme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { LoadingState } from "@/components/ui";
 
 type SectionFilter = "deleted" | "rejected" | "categories" | "payment_modes" | "accounts" | "hisaab" | "credits" | "recurring" | "sms" | "vault" | "smart_rules" | "sms_templates";
 
@@ -287,7 +288,7 @@ export default function RecycleBinScreen() {
                 className="flex-row items-center py-1.5 px-3 rounded-lg bg-success/8 mr-2">
                 <Ionicons name="refresh-outline" size={14} color={theme.success} />
                 <Text className="text-xs font-medium ml-1" style={{ color: theme.success }}>
-                  {restoreLabel ?? "Restore All"}
+                  {restoreLabel ?? "Restore all"}
                 </Text>
               </Pressable>
             )}
@@ -326,7 +327,7 @@ export default function RecycleBinScreen() {
           })} className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-2">
             <Ionicons name="refresh-outline" size={18} color={theme.success} />
           </Pressable>
-          <Pressable onPress={() => confirm("Delete Forever", `Permanently delete "${item.description || "Expense"}"? Cannot be undone.`, "Delete", true, async () => {
+          <Pressable onPress={() => confirm("Delete forever", `Permanently delete "${item.description || "Expense"}"? Cannot be undone.`, "Delete", true, async () => {
             await permanentlyDeleteExpense(item.id); setDeletedExpenses((p) => p.filter((e) => e.id !== item.id));
           })} className="w-9 h-9 rounded-full bg-danger/8 items-center justify-center">
             <Ionicons name="close-outline" size={18} color={theme.danger} />
@@ -371,9 +372,9 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Category", `Restore "${item.name}"?`, "Restore", false, async () => {
         await restoreCategory(item.id); setInactiveCategories((p) => p.filter((c) => c.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete "${item.name}"? Linked budgets/baselines will also be removed.`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete "${item.name}"? Linked budgets/baselines will also be removed.`, "Delete", true, async () => {
         const ok = await hardDeleteCategory(item.id);
-        if (!ok) { alert("Cannot Delete", "This category still has linked expenses. Delete or reassign them first."); return; }
+        if (!ok) { alert("Cannot delete", "This category still has linked expenses. Delete or reassign them first."); return; }
         setInactiveCategories((p) => p.filter((c) => c.id !== item.id));
       })}
     />
@@ -387,9 +388,9 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Payment Mode", `Restore "${item.name}"?`, "Restore", false, async () => {
         await restorePaymentMode(item.id); setInactivePaymentModes((p) => p.filter((pm) => pm.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete "${item.name}"?`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete "${item.name}"?`, "Delete", true, async () => {
         const ok = await hardDeletePaymentMode(item.id);
-        if (!ok) { alert("Cannot Delete", "This payment mode still has linked expenses."); return; }
+        if (!ok) { alert("Cannot delete", "This payment mode still has linked expenses."); return; }
         setInactivePaymentModes((p) => p.filter((pm) => pm.id !== item.id));
       })}
     />
@@ -403,7 +404,7 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Account", `Restore "${item.account_label || item.bank_name}"?`, "Restore", false, async () => {
         await restoreAccount(item.id); setInactiveAccounts((p) => p.filter((a) => a.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete this account and all its balances/credits?`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete this account and all its balances/credits?`, "Delete", true, async () => {
         await hardDeleteAccount(item.id); setInactiveAccounts((p) => p.filter((a) => a.id !== item.id));
       })}
     />
@@ -417,7 +418,7 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Person", `Restore "${item.name}"?`, "Restore", false, async () => {
         await restorePerson(item.id); setInactivePersons((p) => p.filter((pr) => pr.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete "${item.name}" and all their ledger entries?`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete "${item.name}" and all their ledger entries?`, "Delete", true, async () => {
         await hardDeletePerson(item.id); setInactivePersons((p) => p.filter((pr) => pr.id !== item.id));
       })}
     />
@@ -431,7 +432,7 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Credit", `Restore this ${formatAmount(item.amount)} credit?`, "Restore", false, async () => {
         await restoreCredit(item.id); setDeletedCredits((p) => p.filter((c) => c.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete this credit entry?`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete this credit entry?`, "Delete", true, async () => {
         await hardDeleteCredit(item.id); setDeletedCredits((p) => p.filter((c) => c.id !== item.id));
       })}
     />
@@ -454,7 +455,7 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Vault Entry", `Restore "${item.title}"?`, "Restore", false, async () => {
         await restoreVaultEntry(item.id); setDeletedVaultEntries((p) => p.filter((v) => v.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete "${item.title}"? All saved credentials will be erased.`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete "${item.title}"? All saved credentials will be erased.`, "Delete", true, async () => {
         await hardDeleteVaultEntry(item.id); setDeletedVaultEntries((p) => p.filter((v) => v.id !== item.id));
       })}
     />
@@ -468,7 +469,7 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Rule", `Restore "${item.name}"? It will become active again.`, "Restore", false, async () => {
         await restoreRule(item.id); setDeletedSmartRules((p) => p.filter((r) => r.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete rule "${item.name}"?`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete rule "${item.name}"?`, "Delete", true, async () => {
         await hardDeleteRule(item.id); setDeletedSmartRules((p) => p.filter((r) => r.id !== item.id));
       })}
     />
@@ -482,7 +483,7 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Template", `Restore SMS template for "${item.bank_name}"?`, "Restore", false, async () => {
         await restoreUserTemplate(item.id); setDeletedSmsTemplates((p) => p.filter((t) => t.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete this SMS template for "${item.bank_name}"?`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete this SMS template for "${item.bank_name}"?`, "Delete", true, async () => {
         await hardDeleteUserTemplate(item.id); setDeletedSmsTemplates((p) => p.filter((t) => t.id !== item.id));
       })}
     />
@@ -496,7 +497,7 @@ export default function RecycleBinScreen() {
       onRestore={() => confirm("Restore Pattern", `Restore "${item.merchant_normalized}"?`, "Restore", false, async () => {
         await restoreRecurring(item.id); setDismissedRecurring((p) => p.filter((r) => r.id !== item.id));
       })}
-      onDelete={() => confirm("Delete Forever", `Permanently delete this detected pattern?`, "Delete", true, async () => {
+      onDelete={() => confirm("Delete forever", `Permanently delete this detected pattern?`, "Delete", true, async () => {
         await hardDeleteRecurring(item.id); setDismissedRecurring((p) => p.filter((r) => r.id !== item.id));
       })}
     />
@@ -576,7 +577,7 @@ export default function RecycleBinScreen() {
   });
 
   if (loading) {
-    return <ScreenContainer padTop={false} centered><ActivityIndicator size="large" color={colors.blue} /></ScreenContainer>;
+    return <ScreenContainer padTop={false}><LoadingState /></ScreenContainer>;
   }
 
 
@@ -627,49 +628,49 @@ export default function RecycleBinScreen() {
 
       {/* Bulk action bar per section */}
       {!tools.narrowed && activeFilter === "deleted" && <BulkBar count={deletedExpenses.length} label={`deleted expense${deletedExpenses.length !== 1 ? "s" : ""}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${deletedExpenses.length} expenses?`, "Restore All", false, async () => { await restoreAllDeletedExpenses(DEFAULT_USER_ID); setDeletedExpenses([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${deletedExpenses.length} expenses?`, "Restore all", false, async () => { await restoreAllDeletedExpenses(DEFAULT_USER_ID); setDeletedExpenses([]); })}
         onPurgeAll={() => confirm("Empty All", `Permanently delete all ${deletedExpenses.length} expenses? Cannot be undone.`, "Delete All", true, async () => { await purgeOldDeletedExpenses(DEFAULT_USER_ID, 0); setDeletedExpenses([]); })}
         purgeLabel="Empty All" />}
 
       {!tools.narrowed && activeFilter === "rejected" && <BulkBar count={rejectedExpenses.length} label={`rejected expense${rejectedExpenses.length !== 1 ? "s" : ""}`}
-        restoreLabel="Approve All"
-        onRestoreAll={() => confirm("Approve All", `Re-approve all ${rejectedExpenses.length} expenses?`, "Approve All", false, async () => { await approveAllRejectedExpenses(DEFAULT_USER_ID); setRejectedExpenses([]); })}
+        restoreLabel="Approve all"
+        onRestoreAll={() => confirm("Approve all", `Re-approve all ${rejectedExpenses.length} expenses?`, "Approve all", false, async () => { await approveAllRejectedExpenses(DEFAULT_USER_ID); setRejectedExpenses([]); })}
         onPurgeAll={() => confirm("Delete All", `Move all rejected to recycle bin?`, "Delete All", true, async () => { await deleteAllRejectedExpenses(DEFAULT_USER_ID); setRejectedExpenses([]); loadData(); })} />}
 
       {!tools.narrowed && activeFilter === "categories" && <BulkBar count={inactiveCategories.length} label={`deleted categor${inactiveCategories.length !== 1 ? "ies" : "y"}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${inactiveCategories.length} categories?`, "Restore All", false, async () => { await restoreAllCategories(DEFAULT_USER_ID); setInactiveCategories([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${inactiveCategories.length} categories?`, "Restore all", false, async () => { await restoreAllCategories(DEFAULT_USER_ID); setInactiveCategories([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive categories?`, "Delete All", true, async () => { await purgeAllInactiveCategories(DEFAULT_USER_ID); setInactiveCategories([]); })} />}
 
       {!tools.narrowed && activeFilter === "payment_modes" && <BulkBar count={inactivePaymentModes.length} label={`deleted payment mode${inactivePaymentModes.length !== 1 ? "s" : ""}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${inactivePaymentModes.length} payment modes?`, "Restore All", false, async () => { await restoreAllPaymentModes(DEFAULT_USER_ID); setInactivePaymentModes([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${inactivePaymentModes.length} payment modes?`, "Restore all", false, async () => { await restoreAllPaymentModes(DEFAULT_USER_ID); setInactivePaymentModes([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive payment modes?`, "Delete All", true, async () => { await purgeAllInactivePaymentModes(DEFAULT_USER_ID); setInactivePaymentModes([]); })} />}
 
       {!tools.narrowed && activeFilter === "accounts" && <BulkBar count={inactiveAccounts.length} label={`deleted account${inactiveAccounts.length !== 1 ? "s" : ""}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${inactiveAccounts.length} accounts?`, "Restore All", false, async () => { await restoreAllAccounts(DEFAULT_USER_ID); setInactiveAccounts([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${inactiveAccounts.length} accounts?`, "Restore all", false, async () => { await restoreAllAccounts(DEFAULT_USER_ID); setInactiveAccounts([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive accounts and their data?`, "Delete All", true, async () => { await purgeAllInactiveAccounts(DEFAULT_USER_ID); setInactiveAccounts([]); })} />}
 
       {!tools.narrowed && activeFilter === "hisaab" && <BulkBar count={inactivePersons.length} label={`deleted person${inactivePersons.length !== 1 ? "s" : ""}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${inactivePersons.length} persons?`, "Restore All", false, async () => { await restoreAllPersons(DEFAULT_USER_ID); setInactivePersons([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${inactivePersons.length} persons?`, "Restore all", false, async () => { await restoreAllPersons(DEFAULT_USER_ID); setInactivePersons([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive persons and their entries?`, "Delete All", true, async () => { await purgeAllInactivePersons(DEFAULT_USER_ID); setInactivePersons([]); })} />}
 
       {!tools.narrowed && activeFilter === "credits" && <BulkBar count={deletedCredits.length} label={`deleted credit${deletedCredits.length !== 1 ? "s" : ""}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${deletedCredits.length} credits?`, "Restore All", false, async () => { await restoreAllCredits(DEFAULT_USER_ID); setDeletedCredits([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${deletedCredits.length} credits?`, "Restore all", false, async () => { await restoreAllCredits(DEFAULT_USER_ID); setDeletedCredits([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted credits?`, "Delete All", true, async () => { await purgeAllDeletedCredits(DEFAULT_USER_ID); setDeletedCredits([]); })} />}
 
       {!tools.narrowed && activeFilter === "recurring" && <BulkBar count={dismissedRecurring.length} label={`dismissed pattern${dismissedRecurring.length !== 1 ? "s" : ""}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${dismissedRecurring.length} patterns?`, "Restore All", false, async () => { await restoreAllRecurring(DEFAULT_USER_ID); setDismissedRecurring([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${dismissedRecurring.length} patterns?`, "Restore all", false, async () => { await restoreAllRecurring(DEFAULT_USER_ID); setDismissedRecurring([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all dismissed patterns?`, "Delete All", true, async () => { await purgeAllDismissedRecurring(DEFAULT_USER_ID); setDismissedRecurring([]); })} />}
 
       {!tools.narrowed && activeFilter === "vault" && <BulkBar count={deletedVaultEntries.length} label={`deleted vault entr${deletedVaultEntries.length !== 1 ? "ies" : "y"}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${deletedVaultEntries.length} vault entries?`, "Restore All", false, async () => { await restoreAllVaultEntries(); setDeletedVaultEntries([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${deletedVaultEntries.length} vault entries?`, "Restore all", false, async () => { await restoreAllVaultEntries(); setDeletedVaultEntries([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all vault entries? All saved credentials will be erased.`, "Delete All", true, async () => { await purgeAllDeletedVaultEntries(); setDeletedVaultEntries([]); })} />}
 
       {!tools.narrowed && activeFilter === "smart_rules" && <BulkBar count={deletedSmartRules.length} label={`deleted rule${deletedSmartRules.length !== 1 ? "s" : ""}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${deletedSmartRules.length} rules?`, "Restore All", false, async () => { await restoreAllRules(); setDeletedSmartRules([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${deletedSmartRules.length} rules?`, "Restore all", false, async () => { await restoreAllRules(); setDeletedSmartRules([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted rules?`, "Delete All", true, async () => { await purgeDeletedRules(); setDeletedSmartRules([]); })} />}
 
       {!tools.narrowed && activeFilter === "sms_templates" && <BulkBar count={deletedSmsTemplates.length} label={`deleted template${deletedSmsTemplates.length !== 1 ? "s" : ""}`}
-        onRestoreAll={() => confirm("Restore All", `Restore all ${deletedSmsTemplates.length} SMS templates?`, "Restore All", false, async () => { await restoreAllUserTemplates(); setDeletedSmsTemplates([]); })}
+        onRestoreAll={() => confirm("Restore all", `Restore all ${deletedSmsTemplates.length} SMS templates?`, "Restore all", false, async () => { await restoreAllUserTemplates(); setDeletedSmsTemplates([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted SMS templates?`, "Delete All", true, async () => { await purgeDeletedUserTemplates(); setDeletedSmsTemplates([]); })} />}
 
       {!tools.narrowed && activeFilter === "sms" && smsRecords.length > 0 && (
@@ -685,13 +686,13 @@ export default function RecycleBinScreen() {
             const msg = withLinks > 0
               ? `Delete all ${smsRecords.length} SMS records? ${withLinks} linked expense/credit entr${withLinks === 1 ? "y" : "ies"} will also be permanently deleted. This cannot be undone.`
               : `Delete all ${smsRecords.length} SMS records?`;
-            confirm("Clear All", msg, "Clear All", true, async () => { await deleteAllSmsRecords(DEFAULT_USER_ID); setSmsRecords([]); loadData(); });
+            confirm("Clear all", msg, "Clear all", true, async () => { await deleteAllSmsRecords(DEFAULT_USER_ID); setSmsRecords([]); loadData(); });
           }}
             disabled={purging} className="flex-row items-center py-1.5 px-3 rounded-lg bg-danger/8">
             {purging ? <ActivityIndicator size="small" color={theme.danger} /> : (
               <>
                 <Ionicons name="trash-outline" size={14} color={theme.danger} />
-                <Text className="text-xs font-medium text-danger ml-1">Clear All</Text>
+                <Text className="text-xs font-medium text-danger ml-1">Clear all</Text>
               </>
             )}
           </Pressable>

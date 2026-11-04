@@ -4,6 +4,7 @@ import { settingsStorage } from '@/services/storage';
 import type { KiteHolding, KiteMFHolding, KiteMFOrder, KiteOrder, KitePosition, KiteSIP } from '@/services/kite-connect';
 import type { AngelHolding, AngelOrder, AngelPosition } from '@/services/angel-connect';
 import type { ZebpayBalance, ZebpayOrder } from '@/services/zebpay-connect';
+import { matchesSearch } from '@/utils/amount-search';
 
 // One row shape for every broker list: holdings, funds, crypto, positions, SIPs and orders.
 
@@ -252,7 +253,7 @@ export function zebpayOrderRow(o: ZebpayOrder): PortfolioRow {
 export function filterRows(rows: PortfolioRow[], query: string): PortfolioRow[] {
   const q = query.trim().toLowerCase();
   if (!q) return rows;
-  return rows.filter((r) => str(r.title).toLowerCase().includes(q) || r.badge?.label.toLowerCase().includes(q));
+  return rows.filter((r) => matchesSearch(q, [str(r.title), r.badge?.label], [r.value]));
 }
 
 function metric(r: PortfolioRow, key: SortKey): number | null {

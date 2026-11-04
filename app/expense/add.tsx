@@ -504,19 +504,19 @@ export default function AddExpenseScreen() {
       for (const leg of extraLegs) {
         const legAmt = parseAmount(leg.amount);
         if (legAmt == null || legAmt <= 0) {
-          alert("Check Payment Sources", "Every extra payment leg needs a positive amount.");
+          alert("Check payment sources", "Every extra payment leg needs a positive amount.");
           return;
         }
       }
       if (splitConfig) {
         alert(
-          "Can't Combine",
+          "Can't combine",
           "Split-with-someone and multi-payment sources can't be used together. Remove one before saving.",
         );
         return;
       }
       if (isRefund) {
-        alert("Not Supported", "Refunds can't be split across multiple payment sources.");
+        alert("Not supported", "Refunds can't be split across multiple payment sources.");
         return;
       }
     }
@@ -597,7 +597,7 @@ export default function AddExpenseScreen() {
           const alreadyRefunded = await getRefundedAmount(refundOf);
           const remainingRefundable = Math.max(0, originalAmount - alreadyRefunded);
           if (parsedAmount > remainingRefundable) {
-            alert("Invalid Refund Amount", `Refund amount cannot exceed the remaining refundable amount of ₹${remainingRefundable.toLocaleString("en-IN")}.`);
+            alert("Invalid refund amount", `Refund amount cannot exceed the remaining refundable amount of ₹${remainingRefundable.toLocaleString("en-IN")}.`);
             setSaving(false);
             return;
           }

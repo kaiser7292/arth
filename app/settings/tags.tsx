@@ -61,7 +61,7 @@ export default function TagsSettingsScreen() {
   const handleAdd = useCallback(async () => {
     const name = newTagName.trim();
     if (!name) {
-      alert("Missing Name", "Please enter a tag name.");
+      alert("Missing name", "Please enter a tag name.");
       return;
     }
     try {
@@ -78,7 +78,7 @@ export default function TagsSettingsScreen() {
     (tag: Tag) => {
       const count = usageCounts[tag.id] ?? 0;
       alert(
-        "Delete Tag",
+        "Delete tag",
         count > 0
           ? `"${tag.name}" is used on ${count} expense${count > 1 ? "s" : ""}. Delete it? It will be removed from all expenses.`
           : `Delete "${tag.name}"?`,
@@ -251,7 +251,7 @@ export default function TagsSettingsScreen() {
               className="flex-1 py-2.5 rounded-xl items-center"
               style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-sm font-semibold text-primary-foreground">Create Tag</Text>
+              <Text className="text-sm font-semibold text-primary-foreground">Create tag</Text>
             </Pressable>
           </View>
         </Card>

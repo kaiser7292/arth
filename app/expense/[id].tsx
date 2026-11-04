@@ -774,7 +774,7 @@ export default function ExpenseDetailScreen() {
   const handleDelete = useCallback(() => {
     const isSplit = expense?.split_hisaab_entry_id != null;
     alert(
-      "Delete Expense",
+      "Delete expense",
       isSplit
         ? "This is a split expense. Deleting it will also remove the linked hisaab entry. Continue?"
         : "This expense will be moved to the Recycle Bin. You can restore it from Settings.",
@@ -873,7 +873,7 @@ export default function ExpenseDetailScreen() {
   // Forecast lifecycle actions
   const [repaymentPickerVisible, setRepaymentPickerVisible] = useState(false);
   const [transferPickerVisible, setTransferPickerVisible] = useState(false);
-  // Mark as Fixed Deposit — reclassify a savings debit directly into a new FD's funding transfer.
+  // Mark as fixed deposit — reclassify a savings debit directly into a new FD's funding transfer.
   const [markAsFDVisible, setMarkAsFDVisible] = useState(false);
   // Credit → transfer reclassification (incoming money that was actually a self-transfer or CC bill payment).
   const [creditTransferPickerVisible, setCreditTransferPickerVisible] = useState(false);
@@ -910,7 +910,7 @@ export default function ExpenseDetailScreen() {
 
   // v15.12.0: hisaab-settlement state — for credits that the user wants to
   // mark as "settlement from [person]". Loaded on mount; the picker sheet is
-  // shown when the user taps the "Mark as Settlement" action row.
+  // shown when the user taps the "Mark as settlement" action row.
   const [hisaabSettlementSheetVisible, setHisaabSettlementSheetVisible] = useState(false);
   const [linkedSettlement, setLinkedSettlement] = useState<{
     entryId: string;
@@ -955,7 +955,7 @@ export default function ExpenseDetailScreen() {
     })();
   }, [expense?.id, expense?.nature, expense?.updated_at]);
 
-  // "Tag as Refund" — for credits that already exist and should be linked to an expense.
+  // "Tag as refund" — for credits that already exist and should be linked to an expense.
   const [refundExpensePickerVisible, setRefundExpensePickerVisible] = useState(false);
   // Expense name shown in the badge when this credit is already linked as a refund.
   const [linkedExpenseSummary, setLinkedExpenseSummary] = useState<string | null>(null);
@@ -1011,7 +1011,7 @@ export default function ExpenseDetailScreen() {
   }, [expense, alert]);
 
   // v15.12.0: load any existing hisaab-settlement link for this credit so we
-  // can render the badge + Undo action instead of the "Mark as Settlement" row.
+  // can render the badge + Undo action instead of the "Mark as settlement" row.
   useEffect(() => {
     if (!expense?.id || expense.nature !== "credit") {
       setLinkedSettlement(null);
@@ -1284,7 +1284,7 @@ export default function ExpenseDetailScreen() {
     try {
       const result = await markForecastAsPaid(forecastId);
       alert(
-        "Marked as Paid",
+        "Marked as paid",
         result.linked
           ? "Forecast dismissed and linked to a matching transaction."
           : "Forecast dismissed. No matching transaction was found.",
@@ -1323,7 +1323,7 @@ export default function ExpenseDetailScreen() {
   const handleForecastPaidExternally = useCallback(async (forecastId: string) => {
     try {
       await markForecastPaidExternally(forecastId);
-      alert("Paid Externally", "Forecast dismissed. No savings account was debited.");
+      alert("Paid externally", "Forecast dismissed. No savings account was debited.");
       router.back();
     } catch (e) {
       logger.error("Mark forecast paid externally failed:", e);
@@ -1357,7 +1357,7 @@ export default function ExpenseDetailScreen() {
     }
   }, [router]);
 
-  // Mark as Transfer — reclassify a savings debit as inter-account transfer.
+  // Mark as transfer — reclassify a savings debit as inter-account transfer.
   // If the destination is a demat account, pause before navigating back so
   // the user can declare fund/portfolio + optional bucket.
   const handleTransferAccountSelected = useCallback(async (toAccountId: string) => {
@@ -1387,7 +1387,7 @@ export default function ExpenseDetailScreen() {
     }
   }, [id, router, accounts, expense]);
 
-  // Mark as Fixed Deposit — the sheet itself creates the FD account and
+  // Mark as fixed deposit — the sheet itself creates the FD account and
   // reclassifies this expense into its funding transfer; this just closes
   // the sheet and leaves the screen once it reports success.
   const handleFDCreated = useCallback(() => {
@@ -1545,7 +1545,7 @@ export default function ExpenseDetailScreen() {
     }
   }, [transfer, alert, router]);
 
-  // Undo "Mark as Fixed Deposit" — reverses the deposit transfer (restores
+  // Undo "Mark as fixed deposit" — reverses the deposit transfer (restores
   // this expense) and then removes the FD account it created.
   const handleUndoFD = useCallback(async () => {
     if (!transfer || !fdProduct) return;
@@ -1620,7 +1620,7 @@ export default function ExpenseDetailScreen() {
 
   const handleReject = useCallback(() => {
     alert(
-      "Reject Expense",
+      "Reject expense",
       "This will reject the auto-detected expense. You can find it in the Review Queue if needed.",
       [
         { text: "Cancel", style: "cancel" },
@@ -1704,7 +1704,7 @@ export default function ExpenseDetailScreen() {
             <Pressable onPress={() => router.back()} className="p-2">
               <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
             </Pressable>
-            <Pressable onPress={() => router.replace("/(tabs)")} className="p-2" hitSlop={8} accessibilityLabel="Go to Home">
+            <Pressable onPress={() => router.replace("/(tabs)")} className="p-2" hitSlop={8} accessibilityLabel="Go to home">
               <Ionicons name="home-outline" size={20} color={colors.tint} />
             </Pressable>
           </View>
@@ -2528,7 +2528,7 @@ export default function ExpenseDetailScreen() {
                       </View>
                       <View className="flex-1">
                         <Text className="text-sm font-semibold text-foreground">
-                          Marked as Transfer
+                          Marked as transfer
                         </Text>
                       </View>
                     </View>
@@ -2570,7 +2570,7 @@ export default function ExpenseDetailScreen() {
                     </View>
                     <View className="flex-1">
                       <Text className="text-sm font-semibold text-foreground">
-                        Undo Transfer
+                        Undo transfer
                       </Text>
                       <Text className="text-xs text-muted-foreground mt-0.5">
                         Convert back to expense
@@ -2581,7 +2581,7 @@ export default function ExpenseDetailScreen() {
               )}
 
               {/* 4d-ii. Fixed Deposit Details (shown when this expense is the deposit
-                  transfer for an FD created via "Mark as Fixed Deposit"). */}
+                  transfer for an FD created via "Mark as fixed deposit"). */}
               {transfer && fdProduct && (
                 <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
                   <View className="px-4 pt-3 pb-1">
@@ -2664,7 +2664,7 @@ export default function ExpenseDetailScreen() {
                       </View>
                       <View className="flex-1">
                         <Text className="text-sm font-semibold text-foreground">
-                          Undo Fixed Deposit
+                          Undo fixed deposit
                         </Text>
                         <Text className="text-xs text-muted-foreground mt-0.5">
                           Convert back to expense
@@ -2681,7 +2681,7 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* 4e. Mark as Transfer (realized savings debits only, shown when not
+              {/* 4e. Mark as transfer (realized savings debits only, shown when not
                    already reclassified, nor marked as an investment or loan payment —
                    these four "Mark as" actions are mutually exclusive). */}
               {!transfer && !investmentLink && !loanLink && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
@@ -2694,7 +2694,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">
-                      Mark as Transfer
+                      Mark as transfer
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       This was a transfer, not spending
@@ -2704,7 +2704,7 @@ export default function ExpenseDetailScreen() {
                 </Pressable>
               )}
 
-              {/* 4e. Mark as Fixed Deposit (realized savings debits only) — a shortcut
+              {/* 4e. Mark as fixed deposit (realized savings debits only) — a shortcut
                    for the common case where an SMS-detected debit is actually the
                    deposit that opened a new FD, so it doesn't have to be manually
                    reclassified as a transfer to an FD account created separately. */}
@@ -2718,7 +2718,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">
-                      Mark as Fixed Deposit
+                      Mark as fixed deposit
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       This debit opened a new FD
@@ -2728,7 +2728,7 @@ export default function ExpenseDetailScreen() {
                 </Pressable>
               )}
 
-              {/* 4e. Mark as Transfer (credits) — for incoming SMS credits that were
+              {/* 4e. Mark as transfer (credits) — for incoming SMS credits that were
                    actually a CC bill payment or a self-transfer. Labels differ for
                    CC credits (bill payment mental model) vs savings credits.
                    Hidden once a settlement link is in place (the credit's
@@ -2745,7 +2745,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">
-                      {expenseAccount?.account_type === "credit_card" ? "Mark as CC Bill Payment" : "Mark as Transfer"}
+                      {expenseAccount?.account_type === "credit_card" ? "Mark as CC Bill Payment" : "Mark as transfer"}
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       {expenseAccount?.account_type === "credit_card"
@@ -2817,7 +2817,7 @@ export default function ExpenseDetailScreen() {
                 </Pressable>
               )}
 
-              {/* 4f. v15.12.0: Mark as Settlement (credits only, non-CC). For
+              {/* 4f. v15.12.0: Mark as settlement (credits only, non-CC). For
                    incoming money that was actually a friend/family settling
                    up a hisaab balance. Hidden for credit-card accounts (a CC
                    credit is always a bill payment/refund, not a settlement)
@@ -2837,7 +2837,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">
-                      Mark as Settlement
+                      Mark as settlement
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       Someone paid you back from hisaab
@@ -2900,7 +2900,7 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* Tag as Refund (credits only) — links this credit to the expense it
+              {/* Tag as refund (credits only) — links this credit to the expense it
                    refunded. Hidden when already linked, or already classified
                    as settlement/transfer (mutually exclusive). */}
               {expense.nature === "credit"
@@ -2918,7 +2918,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">
-                      Tag as Refund
+                      Tag as refund
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       Link to the expense this money came back for
@@ -2980,7 +2980,7 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* v17.0.0: Mark as Investment (realized, non-credit, non-refund,
+              {/* v17.0.0: Mark as investment (realized, non-credit, non-refund,
                    non-split, non-transfer, non-loan-linked — these four
                    "Mark as" actions are mutually exclusive: a transaction can
                    only be one of a transfer/FD, an investment contribution,
@@ -3005,7 +3005,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">
-                      Mark as Investment
+                      Mark as investment
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       Credits an Investment Bucket instead of counting as spend
@@ -3066,7 +3066,7 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* v17.4.0: Mark as Loan Payment (realized, non-credit, non-refund,
+              {/* v17.4.0: Mark as loan payment (realized, non-credit, non-refund,
                    non-split, non-investment-linked, non-transfer). Same
                    mutual-exclusion guard family as Mark-as-Investment. */}
               {V15_FLAGS.v17_loans_v1
@@ -3087,7 +3087,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">
-                      Mark as Loan Payment
+                      Mark as loan payment
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       EMI or prepayment. Excluded from budget.
@@ -3390,7 +3390,7 @@ export default function ExpenseDetailScreen() {
                         </View>
                         <View className="flex-1">
                           <Text className="text-sm font-semibold text-foreground">
-                            Undo Refund
+                            Undo refund
                           </Text>
                           <Text className="text-xs text-muted-foreground mt-0.5">
                             Remove this refund record
@@ -3415,7 +3415,7 @@ export default function ExpenseDetailScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="text-sm font-semibold text-foreground">
-                      Record a Refund
+                      Record a refund
                     </Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       Money came back for this expense
@@ -3539,7 +3539,7 @@ export default function ExpenseDetailScreen() {
         />
       )}
 
-      {/* Tag as Refund — expense picker for existing credits. */}
+      {/* Tag as refund — expense picker for existing credits. */}
       {expense && (
         <RefundExpensePickerSheet
           visible={refundExpensePickerVisible}

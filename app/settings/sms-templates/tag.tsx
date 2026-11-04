@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { View, TextInput, ScrollView, Pressable, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import { View, TextInput, ScrollView, Pressable, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LoadingState, ScreenContainer, Text } from "@/components/ui";
@@ -572,9 +572,9 @@ export default function TagSmsTemplateScreen() {
         "A template already reads this message",
         `Your "${duplicateFound.label}" template already reads this exact message. Saving another one for the same format usually isn't needed - edit that one instead if it gets something wrong.`,
         [
-          { text: "Save Anyway", onPress: () => void doSave() },
+          { text: "Save anyway", onPress: () => void doSave() },
           {
-            text: "Edit Existing",
+            text: "Edit existing",
             onPress: () => {
               clearDraft();
               router.replace(`/settings/sms-templates/${duplicateFound.id}`);
@@ -1179,7 +1179,7 @@ export default function TagSmsTemplateScreen() {
                   <Pressable
                     onPress={() => {
                       const regexToCopy = useManualRegex ? manualRegex : compiled.patternRegex;
-                      Alert.alert("Copied", "Regex copied to clipboard");
+                      alert("Copied", "Regex copied to clipboard");
                     }}
                     className="flex-row items-center px-2 py-1 rounded"
                     style={{ backgroundColor: theme.alpha("primary", 0.13) }}
@@ -1320,7 +1320,7 @@ export default function TagSmsTemplateScreen() {
         </Card>
 
         <Button
-          title={saving ? "Saving…" : draft?.editingId ? "Save Changes" : "Save Template"}
+          title={saving ? "Saving…" : draft?.editingId ? "Save changes" : "Save Template"}
           onPress={handleSave}
           disabled={saving || (!useManualRegex && (!compiled || !compiled.ok))}
           loading={saving}

@@ -63,7 +63,7 @@ Committed is spending that is tied to a loan or an investment bucket, as on the 
 
 ## Step 2 - Run the import
 
-1. Tap **Choose File** and select your Excel / CSV.
+1. Tap **Choose file** and select your Excel / CSV.
 2. If the file has multiple sheets, pick the sheet to import.
 3. The **Preview** shows how many of each type will be imported with totals, and every row that will be left out with its reason (unreadable date, unknown account, transfer missing an account, and so on).
 4. Fix the sheet and re-pick if needed, then tap **Import**.

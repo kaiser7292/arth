@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Sheet, Text } from "@/components/ui";
-import { View, Pressable,  FlatList, ActivityIndicator } from "react-native";
+import { View, Pressable,  FlatList } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -8,6 +8,7 @@ import { findReminderCandidateExpenses } from "@/services/expense";
 import type { Expense } from "@/services/expense";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 /**
  * "Link to an existing expense" sheet. Shown when the user taps a pending
@@ -94,9 +95,7 @@ export function LinkExpenseSheet({
       {/* Candidate list */}
       <View className="px-2" style={{ maxHeight: 320 }}>
         {loading ? (
-          <View className="items-center py-8">
-            <ActivityIndicator size="small" color={colors.blue} />
-          </View>
+          <LoadingState rows={3} />
         ) : candidates.length === 0 ? (
           <View className="px-3 py-6">
             <Text className="text-sm text-center" style={{ color: colors.textSecondary }}>

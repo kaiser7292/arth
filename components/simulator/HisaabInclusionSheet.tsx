@@ -1,7 +1,7 @@
 import { FormulaTextInput } from "@/components/ui";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Sheet, Text } from "@/components/ui";
-import { View, Pressable,  TextInput, ScrollView,  Platform, ActivityIndicator } from "react-native";
+import { View, Pressable,  TextInput, ScrollView,  Platform } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,6 +15,7 @@ import {
   type HisaabInclusionCandidate,
 } from "@/services/simulator";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 /**
  * v16.0.5 — per-scenario hisaab inclusion sheet.
@@ -248,9 +249,7 @@ export function HisaabInclusionSheet({
       </View>
 
       {loading ? (
-        <View className="items-center py-8">
-          <ActivityIndicator color={colors.textSecondary} />
-        </View>
+        <LoadingState rows={3} />
       ) : rows.length === 0 ? (
         <View className="items-center py-8 px-6">
           <Ionicons name="people-outline" size={28} color={colors.textSecondary} />

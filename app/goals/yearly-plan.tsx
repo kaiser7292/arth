@@ -559,7 +559,7 @@ export default function YearlyPlanScreen() {
               >
                 <Ionicons name="create-outline" size={14} color={colors.blue} />
                 <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
-                  Edit Budget
+                  Edit budget
                 </Text>
               </Pressable>
             </View>

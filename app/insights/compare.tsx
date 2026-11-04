@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -19,6 +19,7 @@ import { formatDisplayDate as formatDateShort } from "@/utils/date";
 import { changePctColor } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadingState } from "@/components/ui";
 
 
 function changeArrow(pct: number): keyof typeof Ionicons.glyphMap {
@@ -214,9 +215,7 @@ export default function PeriodComparisonScreen() {
 
         {/* Loading */}
         {loading && (
-          <View className="items-center py-8">
-            <ActivityIndicator size="small" color={theme.primary} />
-          </View>
+          <LoadingState />
         )}
 
         {/* Results */}

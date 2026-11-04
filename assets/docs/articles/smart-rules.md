@@ -63,7 +63,7 @@ Every action works on SMS-detected transactions, manual entries, past transactio
 5. (Optional) **Retroactive apply** - see below.
 6. Tap **Save**.
 
-After you save a new rule, Arth opens **Apply to past expenses** straight away (see below). After editing a rule, it asks whether to **Apply to Past** or **Skip**.
+After you save a new rule, Arth opens **Apply to past expenses** straight away (see below). After editing a rule, it asks whether to **Apply to past** or **Skip**.
 
 From now on, every new transaction that satisfies the conditions has the actions applied. A **Processed by rule** badge on the transaction shows which rule fired; if more than one rule matched, all of them are listed.
 

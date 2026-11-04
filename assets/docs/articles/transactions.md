@@ -50,7 +50,7 @@ Each **date heading** shows that day's net total, so you can see what a day cost
 
 ## Add a transaction
 
-Tap **+** (bottom-right) and pick **Add Expense**, **Add Credit** or **Add Transfer**. They all open the same form, with a switch at the top:
+Tap **+** (bottom-right) and pick **Add Expense**, **Add credit** or **Add transfer**. They all open the same form, with a switch at the top:
 
 - **Spent** - who you paid, the category (Arth suggests one as you type), and which account it was paid from.
 - **Received** - who sent it, what it is (Salary, Interest, Refund, Cashback, Reimbursement, Gift or Other), a category (the same categories as spending) and which account it went into. Picking **Refund** lets you choose the expense it refunds.
@@ -125,7 +125,7 @@ Long lists all have the same bar: a search box, then icons for **Filter**, **Sor
 
 The audit log also has a calendar icon: it shows the last 7 days until you pick 30 days, 90 days or a custom range.
 
-You'll find the bar on Transactions, Together, a person's Hisaab, an account's ledger, the lists behind My Month, Budget and Insights, and in Settings on merchants, keyword rules, accounts, Smart Rules, the recycle bin, the audit log and SMS scan runs.
+You'll find the bar on Transactions, Together, a person's Hisaab, an account's ledger, the lists behind My Month, Budget and Insights, and in Settings on merchants, keyword rules, accounts, Smart Rules, reminders, the recycle bin, the audit log and SMS scan runs. Hisaab people, Holdings, Vault and the review queue have it too. Where a list shows amounts, search understands them: try `>5000`, `<100` or `1000-2000`.
 
 The summary card at the top of Transactions has its own breakdown, and it doesn't change with the list.
 

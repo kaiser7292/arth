@@ -1,6 +1,6 @@
 import { FormulaTextInput } from "@/components/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as ImagePicker from "expo-image-picker";
@@ -40,6 +40,7 @@ import {
 import { addUpiId } from "@/services/account-upi";
 import { formatAmount } from "@/utils/format";
 import { formatDisplayDate } from "@/utils/date";
+import { LoadingState } from "@/components/ui";
 
 const KINDS: { kind: ReceiptKind; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { kind: "expense", label: "Expense", icon: "arrow-up-outline" },
@@ -711,10 +712,7 @@ export default function FromScreenshotScreen() {
         )}
 
         {phase === "reading" && (
-          <View className="items-center py-8">
-            <ActivityIndicator color={theme.primary} />
-            <Text className="text-sm text-muted-foreground mt-3">Reading the picture…</Text>
-          </View>
+          <LoadingState message="Reading the picture…" rows={3} />
         )}
 
         {phase === "failed" && (

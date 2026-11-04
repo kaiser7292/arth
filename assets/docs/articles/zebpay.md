@@ -36,7 +36,7 @@ No TOTP is needed. The key is all Arth uses to connect.
 
 5. **Settings tab → Integrations → Zebpay.** Paste your **API Key** and **Secret Key**.
 6. Read the card, tick the box and tap **Connect Zebpay**.
-7. Tap **Sync**, then **Link an Account**, then **Update Snapshot with These Values**.
+7. Tap **Sync**, then **Link an account**, then **Update snapshot with these values**.
 
 ## Where your credentials go
 
@@ -52,14 +52,14 @@ Search and sort work the same way as for Zerodha and Angel One.
 
 ## Save the value to an account
 
-1. Tap **Link an Account** and choose the investment account that should hold your crypto value. Arth remembers the choice on this phone.
-2. Tap **Update Snapshot with These Values**. Arth saves today's crypto value as the portfolio and your INR wallet balance as the funds.
+1. Tap **Link an account** and choose the investment account that should hold your crypto value. Arth remembers the choice on this phone.
+2. Tap **Update snapshot with these values**. Arth saves today's crypto value as the portfolio and your INR wallet balance as the funds.
 
 The value then shows on the Investments card and in [Net Worth](balance-sheet).
 
 ## Disconnecting
 
-Tap **Disconnect Zebpay** on the Zebpay screen. To delete your saved key too, tap **Update Credentials → Remove**. To revoke access fully, delete the app on build.zebpay.com.
+Tap **Disconnect Zebpay** on the Zebpay screen. To delete your saved key too, tap **Update credentials → Remove**. To revoke access fully, delete the app on build.zebpay.com.
 
 ## Related
 

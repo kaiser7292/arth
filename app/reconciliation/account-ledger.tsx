@@ -236,7 +236,7 @@ export default function AccountLedgerScreen() {
     rows: ledgerRowsIn,
     fields: ledgerFields,
     search: ledgerSearch,
-    searchPlaceholder: "Search name or amount",
+    searchPlaceholder: "Search name or >5000",
     sorts: LEDGER_SORTS,
     amountOf: ledgerAmount,
   });
@@ -557,12 +557,12 @@ const loadData = useCallback(async () => {
     if (!accountId) return;
     const amount = parseFloat(creditAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert("Invalid Amount", "Please enter a valid positive amount.");
+      alert("Invalid amount", "Please enter a valid positive amount.");
       return;
     }
     const date = creditDate.trim() || todayIso();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      alert("Invalid Date", "Please pick a valid date.");
+      alert("Invalid date", "Please pick a valid date.");
       return;
     }
 
@@ -588,7 +588,7 @@ const loadData = useCallback(async () => {
 
   const handleDeleteCredit = useCallback(
     (id: string, description: string) => {
-      alert("Delete Credit", `Delete "${description}"?`, [
+      alert("Delete credit", `Delete "${description}"?`, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
@@ -604,7 +604,7 @@ const loadData = useCallback(async () => {
 
   const handleDeleteTransfer = useCallback(
     (id: string, description: string) => {
-      alert("Delete Transfer", `Delete "${description}"?`, [
+      alert("Delete transfer", `Delete "${description}"?`, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
@@ -670,7 +670,7 @@ const loadData = useCallback(async () => {
     if (!accountId) return;
     const actual = parseFloat(adjustActual.replace(/,/g, ""));
     if (isNaN(actual)) {
-      alert("Invalid Amount", "Enter the actual available balance.");
+      alert("Invalid amount", "Enter the actual available balance.");
       return;
     }
     const trimmed = adjustDescription.trim();
@@ -686,19 +686,19 @@ const loadData = useCallback(async () => {
     setAdjustActual("");
     setAdjustDescription("");
     if (delta === 0) {
-      alert("No Change", "Ledger already matches the actual available.");
+      alert("No change", "Ledger already matches the actual available.");
     }
   }, [accountId, adjustActual, adjustDescription, alert]);
 
   const handleClearLedger = useCallback(() => {
     if (!accountId) return;
     alert(
-      "Clear All Ledger Data",
+      "Clear all ledger data",
       "This will delete all opening balance records and manual credits for this account. Expenses are not affected. Continue?",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Clear All",
+          text: "Clear all",
           style: "destructive",
           onPress: async () => {
             await clearAccountLedger(accountId);
@@ -723,6 +723,7 @@ const loadData = useCallback(async () => {
         behavior="padding"
         keyboardVerticalOffset={100}
       >
+        {entries.length > 0 && <ListToolbar {...tools.toolbar} />}
         <ScrollView
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
@@ -893,7 +894,7 @@ const loadData = useCallback(async () => {
                   className="flex-1 py-2.5 rounded-lg items-center"
                   style={{ backgroundColor: theme.primary }}
                 >
-                  <Text className="text-meta font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add Credit"}</Text>
+                  <Text className="text-meta font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add credit"}</Text>
                 </Pressable>
               </View>
             </Card>
@@ -961,7 +962,6 @@ const loadData = useCallback(async () => {
             </Text>
           </View>
 
-          {entries.length > 0 && <ListToolbar {...tools.toolbar} />}
           {tools.filterSheet}
 
           {/* Transaction list */}
@@ -1038,10 +1038,10 @@ const loadData = useCallback(async () => {
                 onLongPress={
                   entry.type === "credit" && entry.canDelete
                     ? () => {
-                          alert("Credit Options", `"${entry.description}"`, [
+                          alert("Credit options", `"${entry.description}"`, [
                             { text: "Cancel", style: "cancel" },
                             {
-                              text: "Convert to Transfer",
+                              text: "Convert to transfer",
                               onPress: () => handleConvertCreditToTransfer(entry.id, entry.updatedAt || "", entry.amount, entry.date),
                             },
                             {
@@ -1241,7 +1241,7 @@ const loadData = useCallback(async () => {
         items={[
           {
             icon: "arrow-down-outline",
-            label: "Add Credit",
+            label: "Add credit",
             color: theme.success,
             onPress: () => {
               // Same form as everywhere else, already on Received and this account. Date: today if
@@ -1260,10 +1260,10 @@ const loadData = useCallback(async () => {
           },
           {
             icon: "swap-horizontal",
-            label: "Add Transfer",
+            label: "Add transfer",
             color: TRANSFER_COLOR,
             onPress: () => {
-              // The same form as Add Credit, on Transfer and out of this account; date as for credits.
+              // The same form as Add credit, on Transfer and out of this account; date as for credits.
               const today = formatLocalDate(new Date());
               router.push({
                 pathname: "/expense/add",

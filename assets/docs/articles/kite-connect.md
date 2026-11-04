@@ -57,7 +57,7 @@ Already using TOTP? Use the key you saved when you set it up. If you don't have 
 9. **Settings tab → Integrations → Zerodha Kite.** Enter your **API Key** and **API Secret**.
 10. Optional: add your **User ID**, **Password** and **TOTP key** under **Zerodha login**. Arth fills them in on Zerodha's page, and you still tap Login yourself.
 11. Read the card, tick the box and tap **Connect**. Zerodha's own login page opens, so log in there.
-12. Link your demat account, then tap **Update Snapshot with These Values**.
+12. Link your demat account, then tap **Update snapshot with these values**.
 
 Zerodha asks you to log in again each day. That's Zerodha's rule, and it applies to every app that connects to Kite.
 
@@ -80,8 +80,8 @@ Search by name or symbol, and sort by Value, P&L, P&L % or Name. Arth remembers 
 
 ## Save the value to your demat account
 
-1. The first time, tap **Link Demat Account** and pick your Zerodha demat account. Arth tries to match it automatically by your BO number.
-2. Tap **Update Snapshot with These Values**. Arth saves today's **portfolio value** and **funds** (idle cash) together to that demat account.
+1. The first time, tap **Link demat account** and pick your Zerodha demat account. Arth tries to match it automatically by your BO number.
+2. Tap **Update snapshot with these values**. Arth saves today's **portfolio value** and **funds** (idle cash) together to that demat account.
 
 The snapshot feeds the Investments card, your demat account, and [Net Worth](balance-sheet).
 
@@ -99,7 +99,7 @@ Tap **Disconnect Kite** at the bottom of the Zerodha screen. Arth removes the se
 
 **"Connect fails straight away."** Check the API key and API secret are copied exactly, with no extra spaces, and that the redirect URL is set in your Kite Connect app.
 
-**"My demat value didn't change."** Syncing only shows the numbers. Tap **Update Snapshot with These Values** to save them to your demat account.
+**"My demat value didn't change."** Syncing only shows the numbers. Tap **Update snapshot with these values** to save them to your demat account.
 
 **"I don't have Kite Connect."** You can still track the account - record a snapshot yourself on the demat account screen.
 

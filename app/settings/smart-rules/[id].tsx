@@ -438,7 +438,7 @@ export default function SmartRuleDetailScreen() {
           "Apply this rule to past expenses?",
           [
             { text: "Skip", style: "cancel", onPress: () => router.back() },
-            { text: "Apply to Past", onPress: openRetroSheet },
+            { text: "Apply to past", onPress: openRetroSheet },
           ],
         );
       }
@@ -1461,7 +1461,7 @@ export default function SmartRuleDetailScreen() {
           )}
 
           <Button
-            title={saving ? "Saving..." : isCreate ? "Create Rule" : "Save Changes"}
+            title={saving ? "Saving..." : isCreate ? "Create Rule" : "Save changes"}
             onPress={onSave}
             disabled={saving}
             loading={saving}
@@ -1621,7 +1621,7 @@ export default function SmartRuleDetailScreen() {
                 onPress={() => { setRetroPreview(null); }}
                 className="flex-1 py-3 rounded-xl items-center border border-border"
               >
-                <Text className="text-sm font-semibold text-muted-foreground">Re-Preview</Text>
+                <Text className="text-sm font-semibold text-muted-foreground">Re-preview</Text>
               </Pressable>
               <Pressable
                 onPress={onRetroApply}

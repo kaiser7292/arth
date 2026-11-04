@@ -12,6 +12,10 @@ jest.mock("expo-linking", () => ({
   parse: (u: string) => ({ queryParams: Object.fromEntries(new URL(u).searchParams) }),
 }));
 jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn() }));
+jest.mock("react-native-safe-area-context", () => ({
+  ...jest.requireActual("react-native-safe-area-context"),
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 const mockInject = jest.fn();
 let mockWebView: any = null;
 jest.mock("react-native-webview", () => {

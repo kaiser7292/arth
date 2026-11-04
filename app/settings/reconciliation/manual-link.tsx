@@ -8,6 +8,7 @@ import { getDatabase } from "@/database";
 import { updateItem } from "@/services/reconciliation/reconciliation-crud";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
+import { LoadingState } from "@/components/ui";
 
 interface ArthEntry {
   id: string;
@@ -272,9 +273,7 @@ export default function ManualLinkScreen() {
       </View>
 
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       ) : (
         <FlatList
           initialNumToRender={12}

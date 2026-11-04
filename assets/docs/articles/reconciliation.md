@@ -57,7 +57,7 @@ The two should match. If they don't, either an SMS wasn't parsed, or a charge/pa
    - **Missing expense** - an SMS never arrived or was rejected. Add it: **+ Add Entry** on the ledger.
    - **Missing credit** - a refund or salary credit that didn't come through SMS. Add it the same way.
    - **Duplicate** - one transaction entered twice. Delete the extra.
-   - **Wrong direction** - an expense that should be a transfer (money moved to your own other account). Edit the expense → **Mark as Transfer**.
+   - **Wrong direction** - an expense that should be a transfer (money moved to your own other account). Edit the expense → **Mark as transfer**.
    - **Wrong amount** - edit the row.
    - **Wrong date** - edit the date; the running balance will recompute.
 5. Repeat until the ledger matches for the current month.

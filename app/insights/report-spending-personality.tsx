@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-import { View, ScrollView, Pressable, Alert } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
@@ -22,6 +22,7 @@ import {
 } from "@/services/reports/report-pdf-export";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { useAlert } from "@/hooks/use-alert";
 
 function PersonalityBadge({ archetype, colorScheme }: { archetype: SpendingPersonalityReport["archetype"]; colorScheme: "light" | "dark" }) {
   return (
@@ -53,6 +54,7 @@ const SENTIMENT_COLORS = {
 };
 
 export default function SpendingPersonalityReportScreen() {
+  const alert = useAlert();
   const router = useRouter();
   const { colorScheme, colors } = useColorScheme();
   const theme = useTheme();
@@ -128,7 +130,7 @@ export default function SpendingPersonalityReportScreen() {
       const uri = await exportSpendingPersonalityPDF(report);
       await sharePDF(uri);
     } catch (e: any) {
-      Alert.alert("Export failed", e?.message || "Could not generate PDF");
+      alert("Export failed", e?.message || "Could not generate PDF");
     }
     setExporting(false);
   }

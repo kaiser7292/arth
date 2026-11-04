@@ -176,7 +176,7 @@ export default function DematSnapshotsScreen() {
 
   const handleDeletePortfolio = useCallback((snap: PortfolioSnapshot) => {
     alert(
-      "Delete Snapshot",
+      "Delete snapshot",
       `Delete portfolio value for ${formatSnapshotDate(snap.snapshot_date)}?`,
       [
         { text: "Cancel", style: "cancel" },
@@ -191,7 +191,7 @@ export default function DematSnapshotsScreen() {
 
   const handleDeleteFund = useCallback((snap: FundSnapshot) => {
     alert(
-      "Delete Fund Snapshot",
+      "Delete fund snapshot",
       `Delete fund value for ${formatSnapshotDate(snap.snapshot_date)}?`,
       [
         { text: "Cancel", style: "cancel" },
@@ -347,7 +347,7 @@ export default function DematSnapshotsScreen() {
           {showAddForm && (
             <Card className="mx-4 mb-3">
               <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Add Snapshot
+                Add snapshot
               </Text>
               <DateInput
                 label="Date"

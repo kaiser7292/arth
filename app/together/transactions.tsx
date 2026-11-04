@@ -191,7 +191,7 @@ export default function TogetherTransactionsScreen() {
     <ScreenContainer padTop={false}>
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
       <ListToolbar
-        search={{ value: query, onChangeText: setQuery, placeholder: "Search name, person or amount" }}
+        search={{ value: query, onChangeText: setQuery, placeholder: "Search name or >5000" }}
         filter={{ onPress: () => setFiltersOpen(true), activeCount: active.length }}
         sort={{ value: sortBy, defaultValue: "date_desc", options: SORT_OPTIONS, onChange: setSortBy }}
         group={{ value: listBy, defaultValue: "date", options: LIST_GROUP_OPTIONS, onChange: setListBy }}

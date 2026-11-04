@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { View, ScrollView, ActivityIndicator, Pressable } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ScreenContainer, Text } from "@/components/ui";
@@ -16,6 +16,7 @@ import {
 } from "@/services/duplicate-detection";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { LoadingState } from "@/components/ui";
 
 export default function DismissedDuplicatesScreen() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function DismissedDuplicatesScreen() {
   const handleRestoreOne = useCallback(
     (key: string) => {
       alert(
-        "Restore Group",
+        "Restore group",
         "Flag this group again on the next duplicate scan?",
         [
           { text: "Cancel", style: "cancel" },
@@ -84,12 +85,12 @@ export default function DismissedDuplicatesScreen() {
 
   const handleRestoreAll = useCallback(() => {
     alert(
-      "Restore All",
+      "Restore all",
       `Flag all ${groups.length} dismissed groups again on the next scan?`,
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Restore All",
+          text: "Restore all",
           onPress: () => {
             clearDismissedDuplicates();
             setGroups([]);
@@ -101,9 +102,9 @@ export default function DismissedDuplicatesScreen() {
 
   if (loading) {
     return (
-      <ScreenContainer padTop={false} centered>
+      <ScreenContainer padTop={false}>
         {loadFailed && <LoadFailedBanner onRetry={load} />}
-        <ActivityIndicator size="large" color={colors.blue} />
+        <LoadingState />
       </ScreenContainer>
     );
   }
@@ -118,7 +119,7 @@ export default function DismissedDuplicatesScreen() {
             Nothing dismissed
           </Text>
           <Text className="text-sm text-muted-foreground text-center mt-2">
-            Groups you mark as "Keep Both" will appear here so you can restore them later.
+            Groups you mark as "Keep both" will appear here so you can restore them later.
           </Text>
         </View>
       </ScreenContainer>
@@ -142,7 +143,7 @@ export default function DismissedDuplicatesScreen() {
         >
           <Ionicons name="refresh-outline" size={14} color={warn} />
           <Text className="text-xs font-semibold ml-1" style={{ color: warn }}>
-            Restore All
+            Restore all
           </Text>
         </Pressable>
       </View>
@@ -172,7 +173,7 @@ export default function DismissedDuplicatesScreen() {
         <View className="px-4 mt-2">
           <Text className="text-label text-faint-foreground">
             Tip: restoring a group makes it appear in the duplicate review again. To permanently
-            dismiss, use "Keep Both" during review - dismissed groups re-surface only if you restore
+            dismiss, use "Keep both" during review - dismissed groups re-surface only if you restore
             them or if a new duplicate joins the cluster.
           </Text>
         </View>

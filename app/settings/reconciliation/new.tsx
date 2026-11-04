@@ -30,6 +30,7 @@ import {
 import type { AlertButton } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
+import { LoadingState } from "@/components/ui";
 
 const ACCOUNT_SUFFIX_MAP_KEY = "recon_account_suffix_map";
 
@@ -432,7 +433,7 @@ export default function NewReconciliationScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
-          <ActivityIndicator size="large" color={theme.primary} />
+          <LoadingState />
           <Text className="text-base font-semibold text-foreground mt-5 text-center">
             Matching transactions…
           </Text>
@@ -708,7 +709,7 @@ export default function NewReconciliationScreen() {
           style={{ backgroundColor: parsed ? theme.primary : colors.border, opacity: parsed ? 1 : 0.5 }}
         >
           <Text className="text-base font-semibold text-white">
-            Start Matching
+            Start matching
           </Text>
         </Pressable>
       </View>

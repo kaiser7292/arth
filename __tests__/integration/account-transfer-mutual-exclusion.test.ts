@@ -2,8 +2,8 @@ import { DatabaseSync } from "node:sqlite";
 
 /**
  * reclassifyExpenseAsTransfer must refuse when the expense is already linked
- * to an investment bucket or a loan payment — Mark as Transfer / Mark as
- * Fixed Deposit, Mark as Investment, and Mark as Loan Payment are mutually
+ * to an investment bucket or a loan payment — Mark as transfer / Mark as
+ * Fixed Deposit, Mark as investment, and Mark as loan payment are mutually
  * exclusive (three contradictory categorizations of one transaction would
  * otherwise double-count it). expense-investment-link.ts and
  * expense-loan-link.ts already refused the reverse direction; this is the

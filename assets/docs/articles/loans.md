@@ -60,7 +60,7 @@ If you already paid some EMIs before adding the loan, enter the count in **EMIs 
 
 - **Hero card** - Outstanding principal, current EMI (this reflects any EMI reductions from prepayments), progress bar, % paid, principal paid vs disbursed.
 - **Manage this loan** - action tiles:
-  - **Record Prepayment** (primary button)
+  - **Record prepayment** (primary button)
   - **Foreclose quote** - preview the total to close the loan today
   - **Manual correction** - override outstanding / EMI / remaining EMIs (see below)
   - **Edit loan details** - change rate, tenure, fees, etc.
@@ -72,7 +72,7 @@ If you already paid some EMIs before adding the loan, enter the count in **EMIs 
 
 ## Recording a prepayment
 
-Tap **Record Prepayment** on loan detail. Enter:
+Tap **Record prepayment** on loan detail. Enter:
 
 - **Amount** (what you're paying extra, on top of your usual EMI)
 - **Prepayment date**
@@ -108,7 +108,7 @@ From the correction forward, Arth regenerates the amortization using your overri
 
 Tap **Foreclose quote** to see what it would cost to close the loan today - principal outstanding + accrued interest + foreclosure charge + GST, minus any applicable waiver.
 
-If you want to actually foreclose, use **Record Prepayment** and change the kind to Foreclosure. The loan gets marked closed and the schedule stops.
+If you want to actually foreclose, use **Record prepayment** and change the kind to Foreclosure. The loan gets marked closed and the schedule stops.
 
 ## Loan accounts in Account Master
 

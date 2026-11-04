@@ -37,7 +37,7 @@ interface MarkAsFDSheetProps {
 }
 
 /**
- * "Mark as Fixed Deposit" — reclassifies an SMS-detected debit as the funding
+ * "Mark as fixed deposit" — reclassifies an SMS-detected debit as the funding
  * transfer for a brand-new FD account, in one step, instead of requiring the
  * FD to be created separately first (the full /investments/add-fd form) and
  * then reclassified as a transfer to it via the generic account picker.
@@ -181,7 +181,7 @@ export function MarkAsFDSheet({
     <Sheet visible={visible} onClose={handleClose}>
       <View className="px-5 pb-3">
         <Text className="text-base font-bold" style={{ color: colors.text }}>
-          Mark as Fixed Deposit
+          Mark as fixed deposit
         </Text>
         <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
           {title} becomes the deposit into a new FD account.

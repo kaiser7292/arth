@@ -64,7 +64,7 @@ export default function TransferDetailScreen() {
   const handleDelete = useCallback(() => {
     if (!transfer) return;
     alert(
-      "Delete Transfer",
+      "Delete transfer",
       "Are you sure you want to delete this transfer?",
       [
         { text: "Cancel", style: "cancel" },

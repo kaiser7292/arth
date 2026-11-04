@@ -198,7 +198,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
 
       handleClose();
 
-      // v16.0.8 — on Android offer 3-way choice: Save to Phone (SAF folder
+      // v16.0.8 — on Android offer 3-way choice: Save to phone (SAF folder
       // picker), Share (system share sheet), or Later. On iOS there's no
       // SAF equivalent, so jump straight to Share.
       if (Platform.OS === "android") {
@@ -208,7 +208,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
           [
             { text: "Later", style: "cancel" },
             {
-              text: "Save to Phone",
+              text: "Save to phone",
               onPress: async () => {
                 const result = await saveToPhone({
                   sourcePath: shareUri,
@@ -237,7 +237,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
         await shareFile(shareUri, { mimeType });
       }
     } catch (e) {
-      alert("Export Failed", e instanceof Error ? e.message : String(e));
+      alert("Export failed", e instanceof Error ? e.message : String(e));
     }
 
     setExporting(false);

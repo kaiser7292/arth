@@ -19,6 +19,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { getAccountOrigin, getIgnoredAccountIds, ignoreAccount, keepAccount, type AccountOrigin } from "@/services/account-ignore";
 import { findTransferCandidates } from "@/services/transfer-detect";
 import { formatDisplayDate } from "@/utils/date";
+import { LoadingState } from "@/components/ui";
 
 const TYPE_LABEL: Record<string, string> = {
   savings: "Savings",
@@ -159,9 +160,7 @@ export default function OnboardingAccountsPreview() {
         </Text>
 
         {loading && (
-          <View className="items-center py-12">
-            <ActivityIndicator size="small" color={theme.primary} />
-          </View>
+          <LoadingState />
         )}
 
         {!loading && accounts.length > 0 && (

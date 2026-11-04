@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
@@ -13,6 +13,7 @@ import { ensureMemberLinks, linkMember, linkMemberToNewPerson, type LinkSuggesti
 import { syncHousehold, requestSync } from "@/services/household/sync";
 import { getBudgetState, getGoals, type BudgetState, type Goal } from "@/services/household/plans";
 import { getTheirCategories } from "@/services/household/their-categories";
+import { LoadingState } from "@/components/ui";
 
 const thisMonth = () => {
   const d = new Date();
@@ -61,9 +62,7 @@ export default function TogetherScreen() {
   if (s === undefined) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

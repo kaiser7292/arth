@@ -1,6 +1,6 @@
 import { drawsOwnDivider } from "@/components/ui/Rows";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, Switch, View } from "react-native";
+import { Pressable, ScrollView, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, ScreenContainer, Text, useToast } from "@/components/ui";
@@ -13,6 +13,7 @@ import { choicesOf, getActiveHousehold, getBalanceAccountIds, setBalanceAccounts
 import type { Household, SharingChoices } from "@/services/household/types";
 import { formatAmount } from "@/utils/format";
 import { formatError } from "@/utils/error-message";
+import { LoadingState } from "@/components/ui";
 
 const SHARED_ACCOUNT_TYPES = new Set(["savings", "bank", "credit_card", "wallet"]);
 
@@ -68,9 +69,7 @@ export default function ShareScreen() {
   if (!h || !choices) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }
@@ -147,7 +146,7 @@ export default function ShareScreen() {
         <Card className="mb-3">
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Others will see · this month</Text>
           {preview === null ? (
-            <ActivityIndicator />
+            <LoadingState rows={3} />
           ) : preview.length === 0 ? (
             <Text className="text-sm text-muted-foreground">No spending this month with these choices.</Text>
           ) : (

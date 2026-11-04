@@ -71,7 +71,7 @@ This is separate from your **fiscal year** (Settings tab → Fiscal Year) - FY d
 - **Transfers between your own accounts** → do NOT count.
 - **Split-tender legs** → each leg counts on whichever category it was tagged with. Your share is whatever leg you paid.
 - **Hisaab splits** (you paid ₹1,000, friend owes ₹500) → only YOUR share (₹500) counts against your budget. A refund on a split purchase comes back against the whole bill, so your share shrinks in proportion: a ₹400 refund on that ₹1,000 bill leaves your share at ₹300.
-- **Credits that aren't linked to an expense** (cashback, a refund you haven't linked) → do NOT reduce the budget. Link it to the purchase with **Record a Refund** if it should.
+- **Credits that aren't linked to an expense** (cashback, a refund you haven't linked) → do NOT reduce the budget. Link it to the purchase with **Record a refund** if it should.
 - **Payments linked to an investment or a loan** (SIPs, EMIs) → do NOT count; they're savings and debt, not spending.
 
 Tap a category on the Budget tab to see the transactions behind its number. The list counts exactly what the bar counts: refunded expenses show struck through or reduced.
@@ -102,7 +102,7 @@ Arth doesn't auto-carry. Deliberately lower next month's cap by the overage amou
 Forecast rows have a "FORECAST" pill and are grey - they don't inflate actuals. When the real rent SMS arrives and you approve it (or tap "Realize" on the match), the forecast goes away and the real expense counts.
 
 **"I refunded a big-ticket purchase. Why is my category still over budget?"**
-If the refund hasn't been recorded yet, open the original expense → tap **Record a Refund** → pick the destination account → fill in the amount. The budget will update as soon as the refund is saved (approved). Refunds link to the original expense via the "Refund of" line in expense metadata.
+If the refund hasn't been recorded yet, open the original expense → tap **Record a refund** → pick the destination account → fill in the amount. The budget will update as soon as the refund is saved (approved). Refunds link to the original expense via the "Refund of" line in expense metadata.
 
 ## Related
 - How categories are decided: [Categories and how they're decided](categories)

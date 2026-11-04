@@ -81,7 +81,7 @@ export default function CategoriesScreen() {
           const count = await getCategoryExpenseCount(cat.id);
           if (count > 0) {
             alert(
-              "Cannot Deactivate",
+              "Cannot deactivate",
               `"${cat.name}" has ${count} expense${count > 1 ? "s" : ""} linked to it. Remove or reassign them first.`,
             );
             return;
@@ -143,13 +143,13 @@ export default function CategoriesScreen() {
       const count = await getCategoryExpenseCount(cat.id);
       if (count > 0) {
         alert(
-          "Cannot Delete",
+          "Cannot delete",
           `"${cat.name}" has ${count} expense${count > 1 ? "s" : ""} linked to it. Remove or reassign them first.`,
         );
         return;
       }
       if (!(await confirmMerchantRules(cat, "delete"))) return;
-      alert("Delete Category", `Permanently delete "${cat.name}"? This cannot be undone.`, [
+      alert("Delete category", `Permanently delete "${cat.name}"? This cannot be undone.`, [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",

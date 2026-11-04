@@ -76,7 +76,7 @@ export default function AngelConnectScreen() {
   const [positions, setPositions] = useState<AngelPosition[]>([]);
   const [orders, setOrders] = useState<AngelOrder[]>([]);
   const [funds, setFunds] = useState<AngelFunds | null>(null);
-  const { query, setQuery, sort, changeSort, view } = usePortfolioView('angel');
+  const { query, setQuery, sort, chooseSort, view } = usePortfolioView('angel');
 
   useFocusEffect(
     useCallback(() => {
@@ -111,7 +111,7 @@ export default function AngelConnectScreen() {
       setTokenExpired(false);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      alert('Sync Failed', msg || 'Could not sync Angel One data.');
+      alert('Sync failed', msg || 'Could not sync Angel One data.');
     } finally {
       setSyncing(false);
     }
@@ -134,7 +134,7 @@ export default function AngelConnectScreen() {
     try {
       // Portfolio and funds are always saved together; funds of 0 are saved as 0.
       const saved = await saveBrokerSnapshot(accountId, portfolioTotal, fundsAvailable);
-      alert('Snapshot Saved', `Portfolio ${formatAmount(saved.portfolio)} and funds ${formatAmount(saved.fund)} saved for today.`);
+      alert('Snapshot saved', `Portfolio ${formatAmount(saved.portfolio)} and funds ${formatAmount(saved.fund)} saved for today.`);
     } catch (err: any) {
       alert('Error', err.message || 'Failed to save snapshot');
     } finally {
@@ -236,6 +236,7 @@ export default function AngelConnectScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {allRowCount > 0 && <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={chooseSort} />}
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="mt-3">
 
@@ -246,7 +247,7 @@ export default function AngelConnectScreen() {
                 <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: tokenExpired ? theme.warning : theme.success }} />
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-foreground">
-                    {tokenExpired ? 'Session Expired' : 'Connected'}
+                    {tokenExpired ? 'Session expired' : 'Connected'}
                     {clientId ? ` · ${clientId}` : ''}
                   </Text>
                   {lastSynced && (
@@ -287,9 +288,6 @@ export default function AngelConnectScreen() {
             />
           )}
 
-          {allRowCount > 0 && (
-            <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={changeSort} />
-          )}
           <PortfolioSection title="Stocks" rows={holdingRows} total={holdings.length} />
           <PortfolioSection title="Open positions" rows={positionRows} total={openPositions.length} />
           <PortfolioSection title="Recent orders" rows={orderRows} total={recentOrders.length} />
@@ -304,7 +302,7 @@ export default function AngelConnectScreen() {
               className="flex-row items-center py-2.5 border-b border-border"
             >
               <Ionicons name="key-outline" size={16} color={colors.text} />
-              <Text className="text-sm text-foreground ml-3 flex-1">Update Credentials</Text>
+              <Text className="text-sm text-foreground ml-3 flex-1">Update credentials</Text>
               <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
             </Pressable>
             <Pressable onPress={handleDisconnect} className="flex-row items-center py-2.5">
@@ -322,7 +320,7 @@ export default function AngelConnectScreen() {
       <Modal visible={showAccountPicker} transparent animationType="slide">
         <Pressable className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setShowAccountPicker(false)} />
         <View className="bg-background rounded-t-2xl p-4 pb-8" style={{ maxHeight: '60%' }}>
-          <Text className="text-base font-bold text-foreground mb-1">Link a Demat Account</Text>
+          <Text className="text-base font-bold text-foreground mb-1">Link a demat account</Text>
           <Text className="text-xs text-muted-foreground mb-4">
             Choose the account where Angel One portfolio snapshots will be saved.
           </Text>

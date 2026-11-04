@@ -13,6 +13,7 @@ import { useAlert } from '@/hooks/use-alert';
 import { logger } from '@/utils/logger';
 import { connectAngel, getAngelCredentials, clearAngelCredentials } from '@/services/angel-connect';
 import { BrokerVaultActions } from '@/components/broker/BrokerVaultActions';
+import { LoadingState } from "@/components/ui";
 
 function CredentialField({
   label,
@@ -90,7 +91,7 @@ export default function AngelConnectCredentialsScreen() {
 
   const handleConnect = async () => {
     if (!apiKey.trim() || !clientId.trim() || !password.trim() || !totpSecret.trim()) {
-      alert('Missing Fields', 'Please fill in all four fields before connecting.');
+      alert('Missing fields', 'Please fill in all four fields before connecting.');
       return;
     }
     if (!agreed) return;
@@ -102,7 +103,7 @@ export default function AngelConnectCredentialsScreen() {
       router.back();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      alert('Connection Failed', msg || 'Could not connect to Angel One. Check your credentials and try again.');
+      alert('Connection failed', msg || 'Could not connect to Angel One. Check your credentials and try again.');
     } finally {
       setIsSaving(false);
     }
@@ -110,7 +111,7 @@ export default function AngelConnectCredentialsScreen() {
 
   const handleClear = () => {
     alert(
-      'Remove Credentials',
+      'Remove credentials',
       'This will disconnect your Angel One account and remove all stored credentials.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -135,9 +136,7 @@ export default function AngelConnectCredentialsScreen() {
   if (isLoading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={theme.primary} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

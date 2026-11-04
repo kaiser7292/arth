@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ActivityIndicator, Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 
 import { Button, Sheet, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
@@ -7,6 +7,7 @@ import type { BacklogMatch } from "@/services/sms/template-backlog";
 import { formatAmount } from "@/utils/format";
 import { formatDateForDisplay } from "@/utils/expense-validation";
 import { isoDate } from "@/utils/local-date";
+import { LoadingState } from "@/components/ui";
 
 interface TemplatePreviewSheetProps {
   visible: boolean;
@@ -61,9 +62,7 @@ export function TemplatePreviewSheet({
           {total} unread from {sender || "this sender"} in the last {days} days. Untick any it reads wrongly.
         </Text>
         {loading ? (
-          <View className="py-8 items-center">
-            <ActivityIndicator color={theme.primary} />
-          </View>
+          <LoadingState rows={3} />
         ) : (
           <ScrollView style={{ maxHeight: 360 }}>
             {matches.length === 0 && (

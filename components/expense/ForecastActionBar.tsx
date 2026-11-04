@@ -40,18 +40,18 @@ export function ForecastActionBar({
       return;
     }
     alert(
-      "Mark as Paid",
+      "Mark as paid",
       "This forecast will be dismissed. If a matching transaction exists, it will be linked.",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Mark Paid", onPress: () => onMarkAsPaid(forecastId) },
+        { text: "Mark paid", onPress: () => onMarkAsPaid(forecastId) },
       ],
     );
   };
 
   const handlePaidExternally = () => {
     alert(
-      "Paid Externally",
+      "Paid externally",
       isRepayment
         ? "CC dues will be reduced, but no savings account will be debited."
         : "This forecast will be dismissed without any balance changes.",
@@ -64,7 +64,7 @@ export function ForecastActionBar({
 
   const handleRealiseNow = () => {
     alert(
-      "Realise Now",
+      "Realise now",
       "Convert this forecast to an actual expense? It will count in your budget from today.",
       [
         { text: "Cancel", style: "cancel" },
@@ -75,7 +75,7 @@ export function ForecastActionBar({
 
   const handleDelete = () => {
     alert(
-      "Delete Forecast",
+      "Delete forecast",
       "Remove this forecast? It will no longer appear in upcoming dues.",
       [
         { text: "Cancel", style: "cancel" },
@@ -153,7 +153,7 @@ export function ForecastActionBar({
       >
         <Ionicons name="checkmark-circle-outline" size={20} color={theme.success} />
         <Text className="text-xs font-medium text-success mt-1">
-          {isRepayment ? "Pay Bill" : "Mark as Paid"}
+          {isRepayment ? "Pay Bill" : "Mark as paid"}
         </Text>
       </Pressable>
       <View className="w-px h-8 bg-border" />
@@ -166,7 +166,7 @@ export function ForecastActionBar({
         >
           <Ionicons name="exit-outline" size={20} color={colors.textSecondary} />
           <Text className="text-xs font-medium mt-1" style={{ color: colors.textSecondary }}>
-            Paid Externally
+            Paid externally
           </Text>
         </Pressable>
       ) : (
@@ -178,7 +178,7 @@ export function ForecastActionBar({
         >
           <Ionicons name="arrow-forward-circle-outline" size={20} color={colors.blue} />
           <Text className="text-xs font-medium mt-1" style={{ color: theme.primary }}>
-            Realise Now
+            Realise now
           </Text>
         </Pressable>
       )}

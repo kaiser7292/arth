@@ -22,6 +22,7 @@ import { BrokerVaultActions } from '@/components/broker/BrokerVaultActions';
 import { loadBrokerSecretsFromVault, saveBrokerSecretsToVault } from '@/services/broker-vault';
 import { setKiteVaultEntryId } from '@/services/kite-login-autofill';
 import { isValidTotpSecret } from '@/utils/totp';
+import { LoadingState } from "@/components/ui";
 
 export default function KiteConnectApiKeyScreen() {
   const alert = useAlert();
@@ -137,9 +138,7 @@ export default function KiteConnectApiKeyScreen() {
   if (isLoading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={theme.primary} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

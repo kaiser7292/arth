@@ -363,7 +363,7 @@ export function LoanPaymentPickerSheet({
           )}
           <Text className="text-base font-bold flex-1" style={{ color: colors.text }}>
             {step === "loan"
-              ? "Mark as Loan Payment"
+              ? "Mark as loan payment"
               : step === "emi_installment"
                 ? selectedLoan
                   ? `${selectedLoan.agreement_id ?? "Loan"} - pick installment`

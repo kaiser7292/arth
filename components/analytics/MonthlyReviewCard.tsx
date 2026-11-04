@@ -96,10 +96,10 @@ export function MonthlyReviewCard({
       </Rows>
 
       <View className="flex-row items-center justify-between mt-4">
-        <Button title="Confirm All" onPress={onConfirmAll} />
+        <Button title="Confirm all" onPress={onConfirmAll} />
         <Pressable onPress={onSkip}>
           <Text className="text-xs font-medium text-muted-foreground">
-            Skip for Now
+            Skip for now
           </Text>
         </Pressable>
       </View>

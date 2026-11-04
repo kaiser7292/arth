@@ -119,13 +119,6 @@ export default function MerchantCategoriesScreen() {
           <LearnMoreChip contextKey="settings-merchant-categories" />
         </View>
       </Card>
-      <ListToolbar
-        inset={false}
-        search={{ value: query, onChangeText: setQuery, placeholder: "Search merchants or categories" }}
-        filter={{ onPress: () => setFilterOpen(true), activeCount: filter === "all" ? 0 : 1 }}
-        chips={filter === "all" ? [] : [{ key: filter, label: FILTERS.find((f) => f.id === filter)?.label ?? filter, onRemove: () => setFilter("all") }]}
-        onClearAll={() => setFilter("all")}
-      />
       {filter === "learned" ? (
         <Text className="text-xs text-muted-foreground mb-2 leading-4">
           When you change a merchant's category {LEARNED_THRESHOLD} times, Arth starts filing it that way. Forget one
@@ -149,6 +142,12 @@ export default function MerchantCategoriesScreen() {
         onApply={(selections) => setFilter((selections.show?.[0] as Filter | undefined) ?? "all")}
         onReset={() => setFilter("all")}
         onClose={() => setFilterOpen(false)}
+      />
+      <ListToolbar
+        search={{ value: query, onChangeText: setQuery, placeholder: "Search merchants or categories" }}
+        filter={{ onPress: () => setFilterOpen(true), activeCount: filter === "all" ? 0 : 1 }}
+        chips={filter === "all" ? [] : [{ key: filter, label: FILTERS.find((f) => f.id === filter)?.label ?? filter, onRemove: () => setFilter("all") }]}
+        onClearAll={() => setFilter("all")}
       />
       {filter === "learned" ? (
         <FlatList

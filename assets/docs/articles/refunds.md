@@ -30,7 +30,7 @@ This is automatic once the refund is linked. No config needed.
 ## Record a refund
 
 1. Open the **original expense** - Transactions tab → tap it.
-2. Scroll down to the **Record a Refund** action.
+2. Scroll down to the **Record a refund** action.
 3. Arth asks **where the refund landed**:
    - **Same account** - credited back to the original card or wallet (common for card purchases).
    - **Different account** - refund came into a different account (e.g. original paid on credit card, refund went to savings).

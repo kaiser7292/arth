@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StatusBar, Switch, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StatusBar, Switch, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -37,6 +37,7 @@ import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
 import { shareFile } from "@/services/share-file";
+import { useAlert } from "@/hooks/use-alert";
 
 /** How long each slide plays before moving on. */
 const SLIDE_MS = 7000;
@@ -52,6 +53,7 @@ const MUSIC = require("../../assets/audio/year-review-loop.wav");
  * once you turn it on with the speaker button; the choice is remembered. It stops when you leave.
  */
 export default function YearReviewScreen() {
+  const alert = useAlert();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ fy?: string }>();
@@ -206,7 +208,7 @@ export default function YearReviewScreen() {
       }
     } catch (e) {
       logger.warn("Year review image share failed:", e);
-      Alert.alert("Couldn't share", "Something went wrong making the image. Try the PDF instead.");
+      alert("Couldn't share", "Something went wrong making the image. Try the PDF instead.");
     } finally {
       setSharing(null);
     }
@@ -219,7 +221,7 @@ export default function YearReviewScreen() {
       await sharePDF(uri);
     } catch (e) {
       logger.warn("Year review PDF share failed:", e);
-      Alert.alert("Couldn't share", "Something went wrong making the PDF.");
+      alert("Couldn't share", "Something went wrong making the PDF.");
     } finally {
       setSharing(null);
     }

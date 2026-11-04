@@ -68,7 +68,7 @@ FDs that have matured or closed are left out, so the payout isn't counted twice.
 
 ## Common situations
 
-**"My net worth is lower than expected."** Check your demat accounts have a recent snapshot. If the last one is old or missing, the value is understated. Sync your broker and tap **Update Snapshot with These Values**, or record a snapshot on the demat account.
+**"My net worth is lower than expected."** Check your demat accounts have a recent snapshot. If the last one is old or missing, the value is understated. Sync your broker and tap **Update snapshot with these values**, or record a snapshot on the demat account.
 
 **"My FD isn't listed."** Look under the savings account that funded it and tap to expand. If it has no funding account, it appears as its own line under Investments.
 

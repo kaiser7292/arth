@@ -24,6 +24,7 @@ import {
 import { getEvents, getHousehold, getItems, getMembers } from "@/services/household/store";
 import { syncHousehold } from "@/services/household/sync";
 import type { Household, HouseholdEvent, HouseholdItem, HouseholdMember } from "@/services/household/types";
+import { LoadingState } from "@/components/ui";
 
 const ENDED: Record<string, { title: string; body: string }> = {
   removed: { title: "You were removed", body: "You're no longer in this household. What others shared has been removed from this phone; your own data is untouched." },
@@ -128,9 +129,7 @@ export default function HouseholdScreen() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }

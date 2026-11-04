@@ -333,11 +333,11 @@ export default function TransactionMessagesScreen() {
           </>
         )}
 
-        {((isAndroid && unread > 0) || dupGroups > 0) && (
+        {(unread > 0 || dupGroups > 0) && (
           <>
             <SectionLabel>Needs you</SectionLabel>
             <Card>
-              {isAndroid && unread > 0 && (
+              {unread > 0 && (
                 <Row
                   title={`${unread} message${unread === 1 ? "" : "s"} Arth couldn't read`}
                   subtitle="Teach it the format once and it reads them from then on"
@@ -351,7 +351,7 @@ export default function TransactionMessagesScreen() {
                   subtitle="Same amount, account, merchant and day"
                   badge={String(dupGroups)}
                   onPress={() => router.push({ pathname: "/expense/review-queue", params: { filter: "duplicates" } })}
-                  first={!(isAndroid && unread > 0)}
+                  first={unread === 0}
                 />
               )}
             </Card>
@@ -360,19 +360,16 @@ export default function TransactionMessagesScreen() {
 
         <SectionLabel>How Arth reads them</SectionLabel>
         <Card>
-          {isAndroid && (
-            <Row
-              title="Message templates"
-              subtitle="Teach Arth a message format it doesn't know yet"
-              onPress={() => router.push("/settings/sms-templates")}
-              first
-            />
-          )}
+          <Row
+            title="Message templates"
+            subtitle="Teach Arth a message format it doesn't know yet"
+            onPress={() => router.push("/settings/sms-templates")}
+            first
+          />
           <Row
             title="Picture templates"
             subtitle="Payment picture layouts you taught Arth"
             onPress={() => router.push("/settings/image-templates")}
-            first={!isAndroid}
           />
           {isAndroid && (
             <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
@@ -422,7 +419,7 @@ export default function TransactionMessagesScreen() {
               </View>
             </View>
           )}
-          <View className="py-3" style={isAndroid ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined}>
+          <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
             <Text className="text-sm font-medium text-foreground">Duplicates</Text>
             <Text className="text-xs text-muted-foreground mt-0.5">
               Arth checks for duplicates after every scan: same amount, account, merchant and day.
@@ -438,14 +435,10 @@ export default function TransactionMessagesScreen() {
           </View>
         </Card>
 
-        {isAndroid && (
-          <>
-            <SectionLabel>History</SectionLabel>
-            <Card>
-              <Row title="Scan history" subtitle="Every scan, message by message, and what happened to each" onPress={() => router.push("/settings/sms-scan-runs")} first />
-            </Card>
-          </>
-        )}
+        <SectionLabel>History</SectionLabel>
+        <Card>
+          <Row title="Scan history" subtitle="Every scan, message by message, and what happened to each" onPress={() => router.push("/settings/sms-scan-runs")} first />
+        </Card>
       </ScrollView>
 
       <SelectSheet

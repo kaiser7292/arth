@@ -21,6 +21,7 @@ import {
 import { consumeVaultPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailed } from "@/components/ui/ListToolbar";
+import { ListToolbar } from "@/components/ui/ListToolbar";
 
 const LINK_CATEGORIES = ["banking", "card", "demat", "statement_pwd"];
 // statement_pwd isn't offered for new entries, but older ones still need to be reachable.
@@ -126,27 +127,9 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Search bar */}
-      <View
-        className="mx-4 mt-3 mb-2 flex-row items-center rounded-xl px-3 py-2.5"
-        style={{ backgroundColor: colors.border + "55" }}
-      >
-        <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Search vault..."
-          placeholderTextColor={colors.textSecondary}
-          className="flex-1 ml-2 text-sm text-foreground"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {query.length > 0 && (
-          <Pressable onPress={() => setQuery("")} hitSlop={8}>
-            <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
-          </Pressable>
-        )}
-      </View>
+      <ListToolbar
+        search={{ value: query, onChangeText: setQuery, placeholder: "Search vault", input: { autoCapitalize: "none", autoCorrect: false } }}
+      />
 
       {showInlineAdd && (
         <Pressable

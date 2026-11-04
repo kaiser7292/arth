@@ -1,6 +1,6 @@
 import { FormulaTextInput } from "@/components/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { View, Pressable, ScrollView, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView } from "react-native";
+import { View, Pressable, ScrollView, TextInput, Modal, KeyboardAvoidingView } from "react-native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, ScreenContainer, Sheet, Text } from "@/components/ui";
@@ -17,6 +17,7 @@ import { getErrorMessage } from "@/utils/error-message";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
 import { Rows } from "@/components/ui/Rows";
+import { LoadingState } from "@/components/ui";
 
 const FREQUENCIES: RecurringFrequency[] = ["weekly", "monthly", "quarterly", "yearly", "last_day_of_month", "nth_weekday"];
 const FREQ_LABEL: Record<RecurringFrequency, string> = {
@@ -182,8 +183,8 @@ export default function RecurringRuleDetailScreen() {
 
   if (loading) {
     return (
-      <ScreenContainer padTop={false} centered>
-        <ActivityIndicator size="large" color={colors.blue} />
+      <ScreenContainer padTop={false}>
+        <LoadingState />
       </ScreenContainer>
     );
   }
@@ -438,7 +439,7 @@ export default function RecurringRuleDetailScreen() {
       {/* Edit sheet */}
       <Sheet visible={editVisible} onClose={() => setEditVisible(false)}>
             <View className="flex-row items-center justify-between px-5 pb-3">
-              <Text className="text-base font-bold text-foreground">Edit Reminder</Text>
+              <Text className="text-base font-bold text-foreground">Edit reminder</Text>
               <Pressable onPress={() => setEditVisible(false)} hitSlop={8}>
                 <Ionicons name="close" size={20} color={colors.textSecondary} />
               </Pressable>

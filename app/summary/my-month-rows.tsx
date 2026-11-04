@@ -121,7 +121,7 @@ export default function MyMonthRowsScreen() {
     rows: allRows,
     fields,
     search: rowSearch,
-    searchPlaceholder: "Search name or amount",
+    searchPlaceholder: "Search name or >5000",
     sorts: ROW_SORTS,
     amountOf,
     // "Other money in" is every kind of credit in one list, so it starts split up by type.

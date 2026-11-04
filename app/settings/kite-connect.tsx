@@ -42,6 +42,7 @@ import {
   usePortfolioView,
 } from '@/components/portfolio/PortfolioList';
 import { saveBrokerSnapshot } from '@/services/financial-account';
+import { LoadingState } from "@/components/ui";
 import {
   clearKiteCredentials,
   clearKiteSession,
@@ -119,7 +120,7 @@ export default function KiteConnectScreen() {
   const [dayOrders, setDayOrders]             = useState<DayOrderTally>(NO_DAY_ORDERS);
   const [fundsAvailable, setFundsAvailable]   = useState(0);
   const [hasCachedData, setHasCachedData]     = useState(false);
-  const { query, setQuery, sort, changeSort, view } = usePortfolioView('kite');
+  const { query, setQuery, sort, chooseSort, view } = usePortfolioView('kite');
 
   const load = useCallback(async () => {
     try {
@@ -387,13 +388,13 @@ export default function KiteConnectScreen() {
 
       if (isAuthError) {
         setTokenExpired(true);
-        alert('Session Expired', 'Your Kite session has expired. Tap "Reconnect" to log in again.');
+        alert('Session expired', 'Your Kite session has expired. Tap "Reconnect" to log in again.');
       } else if (msg === 'NO_ACCOUNT_LINKED') {
         const accounts = await getDematAccountsForPicker();
         setPickerAccounts(accounts);
         setShowAccountPicker(true);
       } else {
-        alert('Sync Failed', msg || 'Could not fetch data from Kite');
+        alert('Sync failed', msg || 'Could not fetch data from Kite');
       }
     } finally {
       setSyncing(false);
@@ -404,14 +405,14 @@ export default function KiteConnectScreen() {
 
   const handleUpdateSnapshot = async () => {
     if (!linkedAccountId) {
-      alert('No Account Linked', 'Link a demat account first by tapping Sync Now.');
+      alert('No account linked', 'Link a demat account first by tapping Sync Now.');
       return;
     }
     setSavingSnapshot(true);
     try {
       // Portfolio and funds are always saved together; funds of 0 are saved as 0.
       const saved = await saveBrokerSnapshot(linkedAccountId, portfolioTotal, fundsAvailable);
-      alert('Snapshot Saved', `Portfolio ${formatAmount(saved.portfolio)} and funds ${formatAmount(saved.fund)} saved for today.`);
+      alert('Snapshot saved', `Portfolio ${formatAmount(saved.portfolio)} and funds ${formatAmount(saved.fund)} saved for today.`);
     } catch (err: any) {
       alert('Error', err.message || 'Failed to save snapshot');
     } finally {
@@ -501,9 +502,7 @@ export default function KiteConnectScreen() {
   if (isLoading) {
     return (
       <ScreenContainer padTop={false}>
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={theme.primary} />
-        </View>
+        <LoadingState />
       </ScreenContainer>
     );
   }
@@ -526,6 +525,7 @@ export default function KiteConnectScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {allRowCount > 0 && <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={chooseSort} />}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
         {/* ── Status card ── */}
@@ -544,7 +544,7 @@ export default function KiteConnectScreen() {
               />
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-foreground">
-                  {!isAuthenticated ? 'Not connected' : tokenExpired ? 'Session Expired' : 'Connected'}
+                  {!isAuthenticated ? 'Not connected' : tokenExpired ? 'Session expired' : 'Connected'}
                 </Text>
                 <Text className="text-xs text-muted-foreground mt-0.5">
                   {!isAuthenticated
@@ -638,9 +638,6 @@ export default function KiteConnectScreen() {
               </Text>
             )}
 
-            {allRowCount > 0 && (
-              <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={changeSort} />
-            )}
             <PortfolioSection title="Stocks" rows={stockRows} total={holdings.length} />
             <PortfolioSection title="Mutual funds" rows={mfRows} total={mfHoldings.length} />
             <PortfolioSection title="Open positions" rows={positionRows} total={positions.length} />
@@ -679,7 +676,7 @@ export default function KiteConnectScreen() {
       <Modal visible={showAccountPicker} transparent animationType="slide">
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <View style={{ backgroundColor: colors.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
-            <Text className="text-base font-bold text-foreground mb-1">Link Demat Account</Text>
+            <Text className="text-base font-bold text-foreground mb-1">Link demat account</Text>
             <Text className="text-xs text-muted-foreground mb-4">
               Which account is your Zerodha demat? This is a one-time setup.
             </Text>

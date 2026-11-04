@@ -52,7 +52,7 @@ export function useExpenseTools({
     fields,
     sort,
     amountOf: (e) => signedNet(e, refunds?.get(e.id) ?? 0),
-    searchPlaceholder: "Search name or amount",
+    searchPlaceholder: "Search name or >5000",
     search: (e) => ({
       texts: [
         e.merchant_name,

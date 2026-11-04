@@ -38,9 +38,9 @@ Arth can require a biometric check (Face ID / fingerprint) before opening. This 
 
 Same screen - toggle off. **Turning off ALSO requires a biometric check**, so someone with physical access to your unlocked phone can't silently disable the lock.
 
-## Lock Now button
+## Lock now button
 
-On the same Security screen there's a **Lock Now** button. Useful if you're handing your phone to someone for a second and want to force a re-auth on next open.
+On the same Security screen there's a **Lock now** button. Useful if you're handing your phone to someone for a second and want to force a re-auth on next open.
 
 ## Fallbacks
 

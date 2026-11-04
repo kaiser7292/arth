@@ -257,7 +257,7 @@ export default function CorrectionForm() {
                 className="mb-3 py-3 rounded-xl items-center"
                 style={{ backgroundColor: theme.danger }}
               >
-                <Text className="text-sm font-medium text-white">Deactivate This Correction</Text>
+                <Text className="text-sm font-medium text-white">Deactivate this correction</Text>
               </Pressable>
             )}
 

@@ -1,7 +1,7 @@
 import { FormulaTextInput } from "@/components/ui";
 import { useState } from "react";
 
-import { View, ScrollView, Pressable, Alert, TextInput } from "react-native";
+import { View, ScrollView, Pressable, TextInput } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, EmptyState, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
@@ -21,6 +21,7 @@ import {
   sharePDF,
 } from "@/services/reports/report-pdf-export";
 import { useTheme } from "@/hooks/use-theme";
+import { useAlert } from "@/hooks/use-alert";
 
 const INPUTS_KEY = "report_loan_payoff_inputs";
 
@@ -101,6 +102,7 @@ function StrategyCard({
 }
 
 export default function LoanPayoffReportScreen() {
+  const alert = useAlert();
   const { colorScheme, colors } = useColorScheme();
   const theme = useTheme();
   const tint = colors.tint;
@@ -138,7 +140,7 @@ export default function LoanPayoffReportScreen() {
       const uri = await exportLoanPayoffPDF(report);
       await sharePDF(uri);
     } catch (e: any) {
-      Alert.alert("Export failed", e?.message || "Could not generate PDF");
+      alert("Export failed", e?.message || "Could not generate PDF");
     }
     setExporting(false);
   }

@@ -9,9 +9,11 @@ import { Platform } from "react-native";
  * stays as plain constants.
  */
 export const Shadows = {
+  // No elevation on Android: mid-transition it draws as dark boxes on a light background.
+  // Cards there get a hairline border instead (components/ui/Card.tsx).
   card: Platform.select({
     ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
-    default: { elevation: 2 },
+    default: {},
   }),
   dropdown: Platform.select({
     ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
