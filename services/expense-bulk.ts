@@ -125,3 +125,17 @@ export async function bulkSetCreditKind(
   const changed = await bulkUpdateExpenses(rows.map((r) => r.id), { credit_kind: kind });
   return { changed, skipped: expenseIds.length - rows.length };
 }
+
+/** Sets a category on what can have one. Credits show their type instead, so they're left out. */
+export async function bulkSetCategory(
+  expenseIds: string[],
+  categoryId: string,
+): Promise<{ changed: number; skipped: number }> {
+  if (expenseIds.length === 0) return { changed: 0, skipped: 0 };
+  const rows = await getDatabase().getAllAsync<{ id: string }>(
+    `SELECT id FROM expenses WHERE id IN (${expenseIds.map(() => "?").join(",")}) AND nature <> 'credit';`,
+    ...expenseIds,
+  );
+  const changed = await bulkUpdateExpenses(rows.map((r) => r.id), { category_id: categoryId });
+  return { changed, skipped: expenseIds.length - rows.length };
+}

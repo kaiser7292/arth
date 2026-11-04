@@ -20,6 +20,7 @@ import type { Expense } from "@/services/expense-types";
 import type { MonthEndForecast } from "@/utils/forecast-engine";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 export default function ForecastDetailScreen() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function ForecastDetailScreen() {
   const [categoryNames, setCategoryNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const [fData, cats] = await Promise.all([
@@ -71,7 +73,9 @@ export default function ForecastDetailScreen() {
         const catForecast = await getMonthEndForecast(DEFAULT_USER_ID);
         setCategoryForecast(catForecast);
       }
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     } finally {
       setLoading(false);
@@ -83,6 +87,7 @@ export default function ForecastDetailScreen() {
   if (loading || !forecast) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Loading forecast..." />
       </ScreenContainer>
     );
@@ -102,6 +107,7 @@ export default function ForecastDetailScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Where the likely total comes from: the three parts add up to it. */}
         <View className="px-4 mt-3">

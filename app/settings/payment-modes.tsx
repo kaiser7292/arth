@@ -18,6 +18,7 @@ import type { PaymentMode, PaymentModeType } from "@/services/payment-mode";
 import { TYPE_ICONS } from "@/constants/icons";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 
 
@@ -28,11 +29,14 @@ export default function PaymentModesScreen() {
   const { colors } = useColorScheme();
   const [modes, setModes] = useState<PaymentMode[]>([]);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadModes = useCallback(async () => {
     try {
       const data = await getAllPaymentModes(DEFAULT_USER_ID);
       setModes(data);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // Database not initialized
     }
   }, []);
@@ -136,6 +140,7 @@ export default function PaymentModesScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadModes} />}
       <FlatList
         initialNumToRender={12}
         maxToRenderPerBatch={10}

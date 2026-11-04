@@ -1,3 +1,4 @@
+import { isoDate } from "@/utils/local-date";
 export interface VoiceParseResult {
   amount?: number;
   merchant?: string;
@@ -101,11 +102,11 @@ export function parseVoiceInput(raw: string): VoiceParseResult {
   if (/\bday\s*before\s*yesterday\b/i.test(raw)) {
     const d = new Date();
     d.setDate(d.getDate() - 2);
-    result.dateIso = d.toISOString().slice(0, 10);
+    result.dateIso = isoDate(d);
   } else if (/\byesterday\b/i.test(raw)) {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    result.dateIso = d.toISOString().slice(0, 10);
+    result.dateIso = isoDate(d);
   }
 
   return result;

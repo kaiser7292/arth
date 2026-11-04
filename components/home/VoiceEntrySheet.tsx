@@ -23,6 +23,8 @@ import { bumpDataVersion } from "@/services/settings";
 import { getVoiceSettings } from "@/services/voice-settings";
 import type { VoiceSettings } from "@/services/voice-settings";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
+import { isoDate } from "@/utils/local-date";
 
 type VoiceState = "idle" | "listening" | "speaking";
 type SessionType = "expense" | "transfer";
@@ -299,7 +301,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     setCurrentQuestion("");
     currentQuestionRef.current = "";
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayIso();
       await createTransfer({
         userId: DEFAULT_USER_ID,
         fromAccountId: s.transferFromAccountId,
@@ -726,7 +728,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
             <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
               <Ionicons name="checkmark-circle" size={13} color={accentColor} />
               <Text className="text-sm ml-1.5 font-medium text-foreground">
-                {session.dateIso === new Date(Date.now() - 864e5).toISOString().slice(0, 10) ? "Yesterday" : session.dateIso}
+                {session.dateIso === isoDate(new Date(Date.now() - 864e5)) ? "Yesterday" : session.dateIso}
               </Text>
             </View>
           ) : null}

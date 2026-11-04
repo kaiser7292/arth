@@ -13,6 +13,7 @@
 import { getDatabase } from "@/database";
 import { logger } from "@/utils/logger";
 import { bumpDataVersion } from "@/services/settings";
+import { isoDate } from "@/utils/local-date";
 
 interface MatchCandidate {
   schedule_id: string;
@@ -134,5 +135,5 @@ export async function onLinkedExpenseDeleted(expenseId: string): Promise<void> {
 function shiftDate(yyyymmdd: string, days: number): string {
   const d = new Date(yyyymmdd + "T00:00:00");
   d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  return isoDate(d);
 }

@@ -14,6 +14,7 @@ import {
 } from "@/services/loan-accounts";
 import { computeForeclosureQuote } from "@/services/loan-engine";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 /**
  * ForeclosureQuoteSheet (v17.1.0)
@@ -50,7 +51,7 @@ export function ForeclosureQuoteSheet({
 }: Props) {
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayIso();
 
   useEffect(() => {
 

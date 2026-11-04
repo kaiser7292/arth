@@ -24,6 +24,8 @@ import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const preloaded = consumePensionAccountsPreload();
 
@@ -121,7 +123,8 @@ export default function PensionAccountsScreen() {
       setYtdPerAccount(ytdMap);
   }, [month, startDate, endDate]);
 
-  useDataRefresh(loadData);
+  const guarded = useGuardedLoad(loadData);
+  useDataRefresh(guarded.load);
 
   // Overall totals
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
@@ -135,6 +138,7 @@ export default function PensionAccountsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       {/* Month navigator */}
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 

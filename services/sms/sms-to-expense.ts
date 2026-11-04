@@ -33,6 +33,7 @@ import type { ParsedSMS } from "./bank-patterns";
 import { detectInvestmentWithdrawal, detectSip, inferCreditKind, sipFundLabel } from "./money-signals";
 import { resolveFdClosure, resolveSelfTransfer, setMoneyEvent } from "@/services/money-events";
 import { markSmsFailed, markSmsIgnored, markSmsProcessed } from "./sms-parser";
+import { todayIso } from "@/utils/local-date";
 
 export interface SmsExpenseResult {
   success: boolean;
@@ -714,7 +715,7 @@ export async function createExpenseFromSms(
 
     // Forecast: create a forecast expense with due_date
     const expenseId = generateUUID();
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIso();
     const now = new Date().toISOString(); // Local time in ISO format
 
     const forecastType =

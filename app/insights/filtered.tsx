@@ -3,7 +3,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { GroupHeading, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -60,6 +60,7 @@ export default function InsightFilteredListScreen() {
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
     () => (settingsStorage.getString(INSIGHTS_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
   );
@@ -95,8 +96,9 @@ export default function InsightFilteredListScreen() {
       ]);
       setRefundedMap(refunds);
       setPersonMap(persons);
+      setLoadFailed(false);
     } catch {
-      // fall through — empty state handles it
+      setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -189,6 +191,7 @@ export default function InsightFilteredListScreen() {
     available: GROUPS,
     expenses: sortedExpenses,
     names: { categoryMap, accountMap, paymentModeMap },
+    refunds: refundedMap,
     sort: {
       value: sortBy,
       defaultValue: "date_desc",
@@ -247,6 +250,8 @@ export default function InsightFilteredListScreen() {
         {/* ── Transaction list ──────────────────────────────────────── */}
         {loading ? (
           <LoadingState />
+        ) : loadFailed ? (
+          <LoadFailed onRetry={() => { setLoading(true); load(); }} />
         ) : expenses.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
             <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />

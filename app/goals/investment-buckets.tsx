@@ -37,6 +37,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getFinancialCockpit, type FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 type ViewMode = "buckets" | "add_bucket";
 
@@ -84,6 +85,7 @@ export default function InvestmentBucketsScreen() {
   const [newBucketDate, setNewBucketDate] = useState("");
   const [goalMilestone, setGoalMilestone] = useState<LifeMilestone | null>(null);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     // Stamp includes what is being VIEWED, not just the data version. Version alone asks
     // "has anything been written?" - and changing the period writes nothing, so the guard
@@ -128,7 +130,9 @@ export default function InvestmentBucketsScreen() {
       } else {
         setPrevYearBuckets([]);
       }
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
     setLoaded(true);
@@ -404,6 +408,7 @@ export default function InvestmentBucketsScreen() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Loading investments..." icon="pie-chart-outline" />
       </ScreenContainer>
     );
@@ -416,6 +421,7 @@ export default function InvestmentBucketsScreen() {
   if (viewMode === "add_bucket") {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <KeyboardAvoidingView
           behavior="padding"
           className="flex-1"
@@ -561,6 +567,7 @@ export default function InvestmentBucketsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

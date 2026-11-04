@@ -29,6 +29,7 @@ import {
 } from "@/services/vault";
 import type { AlertButton } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 const ACCOUNT_SUFFIX_MAP_KEY = "recon_account_suffix_map";
 
@@ -347,7 +348,7 @@ export default function NewReconciliationScreen() {
       const pool = await buildArthPool(
         selectedAccountId,
         parsed.startDate ?? "2000-01-01",
-        parsed.endDate ?? new Date().toISOString().slice(0, 10),
+        parsed.endDate ?? todayIso(),
       );
 
       setProgress("Matching against your Arth ledger…");

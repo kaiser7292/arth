@@ -115,12 +115,28 @@ export function expenseFields(
 /** Money in adds, money out takes away, so a group with both comes to what it really moved. */
 export const signedAmount = (e: Pick<Expense, "nature" | "amount">) => (e.nature === "credit" ? e.amount : -e.amount);
 
-export function groupExpenses(expenses: readonly Expense[], by: ExpenseGroupBy, names: ExpenseGroupNames): GroupedRow<Expense>[] {
+/** What a spend comes to after its refunds: your share of what's left, as its row shows it. */
+export function netSpend(e: Pick<Expense, "amount" | "split_original_amount">, refunded: number): number {
+  const original = e.split_original_amount ?? e.amount;
+  const myProportion = original > 0 ? e.amount / original : 1;
+  return Math.max(0, Math.round((original - refunded) * myProportion * 100) / 100);
+}
+
+/** The same with its direction, for spending lists. On a list with credits too, refunds are their own rows. */
+export const signedNet = (e: Pick<Expense, "nature" | "amount" | "split_original_amount">, refunded: number) =>
+  e.nature === "credit" ? e.amount : -netSpend(e, refunded);
+
+export function groupExpenses(
+  expenses: readonly Expense[],
+  by: ExpenseGroupBy,
+  names: ExpenseGroupNames,
+  amountOf: (e: Expense) => number = signedAmount,
+): GroupedRow<Expense>[] {
   if (by === "none") return ungrouped(expenses);
   return groupRows(expenses, {
     keyOf: (e) => keyOf(e, by, names),
     labelOf: (key) => labelOf(key, by, names),
-    amountOf: signedAmount,
+    amountOf,
     order: by === "date" || by === "month" ? "first" : "size",
   });
 }

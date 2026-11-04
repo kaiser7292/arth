@@ -14,6 +14,7 @@ import { createInvestmentProductForAccount } from "@/services/investment-account
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AlertButton } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 const TYPE_OPTIONS: AccountType[] = [
   "savings",
@@ -69,7 +70,7 @@ export default function AccountAddScreen() {
   const [fundBalance, setFundBalance] = useState("");
   const [portfolioValue, setPortfolioValue] = useState("");
   const [snapshotDate, setSnapshotDate] = useState(
-    new Date().toISOString().split("T")[0],
+    todayIso(),
   );
 
   const [loading, setLoading] = useState(false);

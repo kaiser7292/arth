@@ -15,6 +15,7 @@ import {
   type DismissedGroup,
 } from "@/services/duplicate-detection";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 export default function DismissedDuplicatesScreen() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function DismissedDuplicatesScreen() {
   const [groups, setGroups] = useState<DismissedGroup[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const load = useCallback(async () => {
     try {
       const data = await getDismissedDuplicateGroups(DEFAULT_USER_ID);
@@ -39,7 +41,9 @@ export default function DismissedDuplicatesScreen() {
         return bd.localeCompare(ad);
       });
       setGroups(sorted);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     } finally {
       setLoading(false);
@@ -98,6 +102,7 @@ export default function DismissedDuplicatesScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false} centered>
+        {loadFailed && <LoadFailedBanner onRetry={load} />}
         <ActivityIndicator size="large" color={colors.blue} />
       </ScreenContainer>
     );
@@ -106,6 +111,7 @@ export default function DismissedDuplicatesScreen() {
   if (groups.length === 0) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={load} />}
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="checkmark-done-outline" size={48} color={colors.textSecondary} />
           <Text className="text-lg font-medium text-foreground mt-4">
@@ -121,6 +127,7 @@ export default function DismissedDuplicatesScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={load} />}
       {/* Summary + bulk action bar */}
       <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
         <Text className="text-sm text-muted-foreground flex-1 mr-2">

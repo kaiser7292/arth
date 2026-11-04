@@ -201,3 +201,45 @@ export function ListToolbar<S extends string = string, G extends string = string
     </View>
   );
 }
+
+/** At the end of a list that hit the most we load at once. */
+export function ListCapNote({ limit }: { limit: number }) {
+  return (
+    <Text className="text-xs text-muted-foreground text-center px-6 py-4">
+      Showing the first {limit.toLocaleString("en-IN")}. Narrow the dates or filters to see the rest.
+    </Text>
+  );
+}
+
+/** A list that couldn't load: not the same as having nothing in it. */
+export function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  const theme = useTheme();
+  return (
+    <View className="items-center px-8 py-12">
+      <Ionicons name="alert-circle-outline" size={40} color={theme.mutedForeground} />
+      <Text className="text-base font-medium text-foreground mt-3">Couldn&apos;t load this</Text>
+      <Text className="text-sm text-muted-foreground text-center mt-1">Your data is safe. This is a problem showing it.</Text>
+      <Pressable onPress={onRetry} hitSlop={8} className="mt-3" accessibilityRole="button">
+        <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Try again</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/** At the top of a screen that couldn't load everything, above whatever it could. */
+export function LoadFailedBanner({ onRetry }: { onRetry?: () => void }) {
+  const theme = useTheme();
+  return (
+    <View className="flex-row items-center mx-4 mt-3 mb-1 px-3 py-2.5 rounded-lg" style={{ backgroundColor: theme.alpha("warning", 0.12) }} accessibilityRole="alert">
+      <Ionicons name="alert-circle-outline" size={16} color={theme.warning} />
+      <Text className="flex-1 text-xs text-foreground ml-2">
+        Couldn&apos;t load everything here, so this may be incomplete. Your data is safe.
+      </Text>
+      {onRetry && (
+        <Pressable onPress={onRetry} hitSlop={8} className="ml-3" accessibilityRole="button">
+          <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Try again</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}

@@ -13,12 +13,14 @@ import type { MerchantInsight } from "@/utils/spending-insights";
 import type { Category } from "@/services/category";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
+import { isoDate } from "@/utils/local-date";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 type TimeRange = "1m" | "3m" | "6m";
 
 function getDateRange(range: TimeRange): { startDate: string; endDate: string } {
   const now = new Date();
-  const end = now.toISOString().split("T")[0];
+  const end = isoDate(now);
   const months = range === "1m" ? 1 : range === "3m" ? 3 : 6;
   const start = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
   const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
@@ -41,6 +43,7 @@ export default function MerchantAnalyticsScreen() {
   const [selectedMerchant, setSelectedMerchant] = useState<string | null>(null);
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof getMerchantDetail>> | null>(null);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const { startDate, endDate } = getDateRange(range);
@@ -52,7 +55,9 @@ export default function MerchantAnalyticsScreen() {
       setCategoryMap(new Map(cats.map((c) => [c.id, c])));
       setSelectedMerchant(null);
       setDetail(null);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
   }, [range]);
@@ -84,6 +89,7 @@ export default function MerchantAnalyticsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       {/* Time Range Selector */}
       <View className="flex-row px-4 py-3">
         {RANGE_LABELS.map((r) => (

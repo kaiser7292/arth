@@ -36,6 +36,8 @@ import { getFYStartMonth } from "@/services/settings";
 
 
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 export default function MilestoneDetailScreen() {
   const router = useRouter();
@@ -78,9 +80,10 @@ export default function MilestoneDetailScreen() {
 
   const [contribAmount, setContribAmount] = useState("");
   const [contribDate, setContribDate] = useState(
-    new Date().toISOString().split("T")[0],
+    todayIso(),
   );
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     if (!milestoneId) return;
     try {
@@ -152,7 +155,9 @@ export default function MilestoneDetailScreen() {
 
         setFyBreakdown(rows);
       }
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
     setLoaded(true);
@@ -343,7 +348,7 @@ export default function MilestoneDetailScreen() {
     }
 
     setContribAmount("");
-    setContribDate(new Date().toISOString().split("T")[0]);
+    setContribDate(todayIso());
     setEditingContrib(null);
     setShowAddForm(false);
     await loadData();
@@ -380,6 +385,7 @@ export default function MilestoneDetailScreen() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Loading milestone..." icon="flag-outline" />
       </ScreenContainer>
     );
@@ -388,6 +394,7 @@ export default function MilestoneDetailScreen() {
   if (!milestone) {
     return (
       <ScreenContainer centered padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
         <Text className="text-base font-medium text-foreground mt-4">
           Milestone not found
@@ -411,6 +418,7 @@ export default function MilestoneDetailScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <KeyboardAvoidingView
         behavior="padding"
         className="flex-1"

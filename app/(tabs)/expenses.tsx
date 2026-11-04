@@ -3,9 +3,11 @@ import { useCustomisation } from "@/hooks/use-customisation";
 import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, CREDIT_KINDS, PICKABLE_CREDIT_KINDS, creditLook, type CreditKind } from "@/services/expense-types";
 import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
 import { useGroupBy } from "@/hooks/use-group-by";
+import { setGroupByPreference } from "@/services/group-by-preference";
 import { formatMonthLabel } from "@/utils/date";
-import type { ExpenseGroupBy } from "@/utils/expense-grouping";
+import { signedAmount, signedNet, type ExpenseGroupBy } from "@/utils/expense-grouping";
 import { groupRows, NO_GROUP } from "@/utils/group-rows";
+import { LIST_ROW_LIMIT } from "@/utils/list-tools";
 import { restoreExpense } from "@/services/expense-crud";
 import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
@@ -19,7 +21,7 @@ import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListToolbar, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage, ToolbarChip } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -61,7 +63,7 @@ import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { FilterDropdown } from "@/components/expense/FilterDropdown";
 import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 import { BulkActionBar } from "@/components/expense/BulkActionBar";
-import { bulkSetCreditKind, bulkUpdateExpenses } from "@/services/expense-bulk";
+import { bulkSetCategory, bulkSetCreditKind, bulkUpdateExpenses } from "@/services/expense-bulk";
 import {
   getSavedFilterViews,
   saveFilterView,
@@ -89,7 +91,7 @@ const SORT_KEY = "expenses.sortBy";
 
 const PAGE_SIZE = 50;
 // Groups only add up with every row in them, so a list grouped by anything but date isn't paged.
-const ALL_ROWS = 5000;
+const ALL_ROWS = LIST_ROW_LIMIT;
 const SPEND_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "category", "merchant", "account", "payment_mode", "person"];
 const CREDIT_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "category", "merchant", "account", "person"];
 type TransferGroupBy = "date" | "month" | "from" | "to";
@@ -134,6 +136,7 @@ export default function ExpensesScreen() {
   const [allRules, setAllRules] = useState<SmartRule[]>(preloaded?.rules ?? []);
   const [filterRuleIds, setFilterRuleIds] = useState<string[]>([]);
   const [expenseTagMap, setExpenseTagMap] = useState<Record<string, Tag[]>>({});
+  const [loadFailed, setLoadFailed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [summary, setSummary] = useState<FilteredSummary | null>(null);
@@ -234,6 +237,12 @@ export default function ExpensesScreen() {
   const paymentModeMap = useMemo(() => new Map(paymentModes.map((p) => [p.id, p])), [paymentModes]);
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
 
+  // All has refunds as their own credit rows, so taking them off the spend too would count them twice.
+  const rowAmount = useCallback(
+    (e: Expense) => (filterNature === "all" ? signedAmount(e) : signedNet(e, refundedMap.get(e.id) ?? 0)),
+    [filterNature, refundedMap],
+  );
+
   const grouping = useExpenseGrouping({
     screen: `transactions_${filterNature}`,
     kind: filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "spend",
@@ -241,6 +250,7 @@ export default function ExpensesScreen() {
     fallback: "date",
     expenses,
     names: { categoryMap, accountMap, paymentModeMap },
+    amountOf: rowAmount,
   });
   const loadEverything = grouping.groupBy !== "date";
   const [transferGroupBy, setTransferGroupBy] = useGroupBy<TransferGroupBy>("transactions_transfers", TRANSFER_GROUPS, "date");
@@ -370,8 +380,11 @@ export default function ExpensesScreen() {
             return next;
           });
         }
+        setLoadFailed(false);
       } catch {
-        // Database not ready
+        // Not "No expenses yet": the list is empty because it failed. Forget the stamp so a retry runs.
+        lastVersionRef.current = null;
+        setLoadFailed(true);
       } finally {
         setLoading(false);
       }
@@ -520,7 +533,8 @@ export default function ExpensesScreen() {
     try {
       const f = view.filters;
       // Handle legacy views saved with old format (dateFilterMode instead of datePreset)
-      const preset: DatePreset = f.datePreset ?? (f as any).dateFilterMode === "all" ? "all" : (f as any).dateFilterMode === "custom" ? "custom" : "this_fy";
+      const legacyMode = (f as any).dateFilterMode;
+      const preset: DatePreset = f.datePreset ?? (legacyMode === "all" ? "all" : legacyMode === "custom" ? "custom" : "this_fy");
       setDatePreset(preset);
       if (f.customStartDate) setCustomStartDate(f.customStartDate);
       else setCustomStartDate("");
@@ -535,6 +549,13 @@ export default function ExpensesScreen() {
       setFilterMerchantNames(f.merchantNames ?? []);
       setFilterRefundedStatus(f.refundedStatus ?? "");
       setFilterAvoidability(f.avoidability ?? "");
+      setFilterRuleIds(f.ruleIds ?? []);
+      setFilterStatus(f.status ?? "");
+      if (f.sortBy) {
+        setSortBy(f.sortBy as ExpenseSortBy);
+        settingsStorage.set(SORT_KEY, f.sortBy);
+      }
+      if (f.groupBy) setGroupByPreference(`transactions_${f.nature ?? "realized"}`, f.groupBy);
       setSearch(f.search ?? "");
       setActiveViewId(view.id);
       setShowFilters(false);
@@ -557,7 +578,11 @@ export default function ExpensesScreen() {
     refundedStatus: filterRefundedStatus,
     avoidability: filterAvoidability,
     search,
-  }), [datePreset, customStartDate, customEndDate, filterNature, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, search]);
+    ruleIds: filterRuleIds,
+    status: filterStatus,
+    sortBy,
+    groupBy: grouping.groupBy,
+  }), [filterRuleIds, filterStatus, sortBy, grouping.groupBy, datePreset, customStartDate, customEndDate, filterNature, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, search]);
 
   const [saveViewName, setSaveViewName] = useState("");
   const [showSaveViewInput, setShowSaveViewInput] = useState(false);
@@ -716,15 +741,22 @@ export default function ExpensesScreen() {
     const ids = [...selectedExpenseIds];
     if (field === "creditType") {
       const { skipped } = await bulkSetCreditKind(ids, value);
-      if (skipped > 0) toast(`${skipped} kept their type: settlements and linked refunds get it from their link`);
+      if (skipped > 0) toast(`${skipped} kept as they are: only credits have a type, and settlements and linked refunds get theirs from the link`);
+      exitBulkMode();
+      setBulkPickerType(null);
+      loadExpenses(true);
+      return;
+    }
+    if (field === "category") {
+      const { skipped } = await bulkSetCategory(ids, value);
+      if (skipped > 0) toast(`${skipped} credit${skipped === 1 ? "" : "s"} kept their type instead`);
       exitBulkMode();
       setBulkPickerType(null);
       loadExpenses(true);
       return;
     }
     const fields: Record<string, string> = {};
-    if (field === "category") fields.category_id = value;
-    else if (field === "paymentMode") fields.payment_mode_id = value;
+    if (field === "paymentMode") fields.payment_mode_id = value;
     else if (field === "account") fields.account_id = value;
     else if (field === "merchant") fields.merchant_name = value;
     else if (field === "date") fields.date = value;
@@ -848,11 +880,11 @@ export default function ExpensesScreen() {
       // Signed by each row's OWN nature, not by the active tab, so the day total stays correct on
       // All where credits and debits are interleaved.
       if (currentHeader) {
-        currentHeader.total += expense.nature === "credit" ? expense.amount : -expense.amount;
+        currentHeader.total += rowAmount(expense);
       }
     }
     return rows;
-  }, [expenses, grouping.groupBy, grouping.rows]);
+  }, [expenses, grouping.groupBy, grouping.rows, rowAmount]);
 
   const renderExpenseItem = useCallback(
     ({ item }: { item: DateGroupRow }) => {
@@ -1320,7 +1352,7 @@ export default function ExpensesScreen() {
                     </>
                   }
                   ListEmptyComponent={
-                    loading ? <SkeletonList rows={7} /> : (() => {
+                    loadFailed ? <LoadFailed onRetry={() => loadExpenses(true)} /> : loading ? <SkeletonList rows={7} /> : (() => {
                       const isCreditView = filterNature === "credit";
                       const emptyIcon = isCreditView ? "arrow-down-circle-outline" : "receipt-outline";
                       const emptyTitle = hasActiveFilters
@@ -1335,6 +1367,7 @@ export default function ExpensesScreen() {
                     })()
                   }
                   ListFooterComponent={
+                    loadEverything && expenses.length >= ALL_ROWS ? <ListCapNote limit={ALL_ROWS} /> :
                     // Only while paginating: the empty state already covers the first load.
                     loading && expenses.length > 0 ? (
                       <View className="px-4 py-2">
@@ -1396,8 +1429,8 @@ export default function ExpensesScreen() {
       {bulkMode && (
         <BulkActionBar
           selectedCount={selectedExpenseIds.size}
-          onChangeCategory={() => pickBulkField("category")}
-          onChangeType={filterNature === "credit" ? () => pickBulkField("creditType") : undefined}
+          onChangeCategory={filterNature === "credit" ? undefined : () => pickBulkField("category")}
+          onChangeType={filterNature === "credit" || filterNature === "all" ? () => pickBulkField("creditType") : undefined}
           onChangePaymentMode={() => pickBulkField("paymentMode")}
           onChangeAccount={() => pickBulkField("account")}
           onChangeMerchant={() => pickBulkField("merchant")}

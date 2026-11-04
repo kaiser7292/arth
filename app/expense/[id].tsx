@@ -122,6 +122,7 @@ import { listRules, applyRuleActionsToExpense } from "@/services/smart-rules";
 import type { SmartRule } from "@/services/smart-rules";
 import { useTheme } from "@/hooks/use-theme";
 import { Rows } from "@/components/ui/Rows";
+import { todayIso } from "@/utils/local-date";
 
 
 
@@ -1332,7 +1333,7 @@ export default function ExpenseDetailScreen() {
 
   const handleForecastRealise = useCallback(async (forecastId: string) => {
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayIso();
       await realizeForecast(forecastId, today);
       alert("Realised", "Forecast converted to an actual expense. It now counts in your budget.");
       const updated = await getExpenseById(forecastId);

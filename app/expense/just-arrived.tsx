@@ -21,6 +21,7 @@ import { formatDate } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 /**
  * iPhone: what Arth just read from bank messages the Shortcut handed over (or one pasted in), with
@@ -42,6 +43,7 @@ export default function JustArrivedScreen() {
   const [accounts, setAccounts] = useState<Map<string, FinancialAccount>>(new Map());
   const [busy, setBusy] = useState<string | null>(null);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const load = useCallback(async () => {
     try {
       await importHandedMessages();
@@ -66,7 +68,9 @@ export default function JustArrivedScreen() {
           .catch(() => null);
       }
       setSuggested(next);
+      setLoadFailed(false);
     } catch (e) {
+      setLoadFailed(true);
       logger.error("Just arrived: load failed", e);
     } finally {
       setLoading(false);
@@ -97,6 +101,7 @@ export default function JustArrivedScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={load} />}
         <LoadingState message="Reading bank messages…" icon="chatbubble-ellipses-outline" />
       </ScreenContainer>
     );
@@ -109,6 +114,7 @@ export default function JustArrivedScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={load} />}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {nothing ? (
           <View className="items-center py-10 px-6">

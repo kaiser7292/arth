@@ -4,6 +4,7 @@ import { applyCcPayment } from "@/services/financial-account";
 import { bumpDataVersion } from "@/services/settings";
 import { generateUUID } from "@/utils/uuid";
 import type { Expense, ForecastMatch, ForecastMatchPair } from "./expense-types";
+import { todayIso } from "@/utils/local-date";
 
 /**
  * Get all forecast (upcoming) expenses for a user, ordered by due date ascending.
@@ -342,7 +343,7 @@ export async function markExpenseForecastAsPaid(
   const tolerance = forecast.amount * 0.02;
   const minAmount = Math.round((forecast.amount - tolerance) * 100) / 100;
   const maxAmount = Math.round((forecast.amount + tolerance) * 100) / 100;
-  const refDate = forecast.due_date ?? new Date().toISOString().split("T")[0];
+  const refDate = forecast.due_date ?? todayIso();
 
   let match: Expense | null = null;
 
@@ -510,7 +511,7 @@ export async function markRepaymentAsPaid(
   // Payment date = today. The user may pay before the forecast's due_date,
   // and the ledger must reflect when the money actually moved, not when the
   // bill was expected to be paid.
-  const paymentDate = new Date().toISOString().split("T")[0];
+  const paymentDate = todayIso();
 
   // Surface the due date in the ledger description so the reader can
   // distinguish payment date from bill due date at a glance.
@@ -582,7 +583,7 @@ export async function markForecastPaidExternally(
     // Date = today (when the user marked it paid); surface the due date in
     // the description so payment date vs bill due date are both visible.
     const creditId = generateUUID();
-    const paymentDate = new Date().toISOString().split("T")[0];
+    const paymentDate = todayIso();
     const merchantPart = forecast.merchant_name ? ` - ${forecast.merchant_name}` : "";
     const duePart = forecast.due_date ? ` (due ${forecast.due_date})` : "";
     const now = new Date().toISOString(); // Local time in ISO format

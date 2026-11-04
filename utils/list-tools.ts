@@ -6,6 +6,9 @@ import { groupRows, NO_GROUP, ungrouped, type GroupedRow } from "@/utils/group-r
  * and the toolbar and the rows both come from that. Pure, so it can be tested without a screen.
  */
 
+/** The most rows a list loads at once when it can't page: groups and totals need every row there. */
+export const LIST_ROW_LIMIT = 5000;
+
 export interface ListField<T> {
   id: string;
   label: string;

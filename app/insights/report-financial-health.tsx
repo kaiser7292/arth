@@ -23,6 +23,7 @@ import {
   sharePDF,
 } from "@/services/reports/report-pdf-export";
 import { useTheme, type Theme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 /** Takes the theme as an argument: this is a plain helper, not a component, so it must not
  *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
@@ -66,11 +67,15 @@ export default function FinancialHealthReportScreen() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const data = await generateFinancialHealthReport(DEFAULT_USER_ID);
       setReport(data);
-    } catch {}
+      setLoadFailed(false);
+    } catch {
+      setLoadFailed(true);
+    }
     setLoading(false);
   }, []);
 
@@ -162,6 +167,7 @@ export default function FinancialHealthReportScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Analyzing your finances..." />
       </ScreenContainer>
     );
@@ -170,6 +176,7 @@ export default function FinancialHealthReportScreen() {
   if (!report) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="analytics-outline" size={48} color={colors.textSecondary} />
           <Text className="text-lg font-medium text-foreground mt-4">
@@ -187,6 +194,7 @@ export default function FinancialHealthReportScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

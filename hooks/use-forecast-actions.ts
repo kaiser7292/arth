@@ -12,6 +12,7 @@ import {
 import type { Expense } from "@/services/expense";
 import { reclassifyExpenseAsTransfer } from "@/services/account-transfer";
 import { logger } from "@/utils/logger";
+import { todayIso } from "@/utils/local-date";
 
 export function useForecastActions(
   refresh: () => void,
@@ -78,7 +79,7 @@ export function useForecastActions(
   const handleRealise = useCallback(
     async (id: string) => {
       try {
-        const today = new Date().toISOString().split("T")[0];
+        const today = todayIso();
         await realizeForecast(id, today);
         refresh();
       } catch (e) {

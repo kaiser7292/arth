@@ -20,6 +20,7 @@ import type { Budget } from "@/services/budget";
 import { formatAmount } from "@/utils/expense-validation";
 
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 interface BudgetRow {
   category: Category;
@@ -37,6 +38,7 @@ export default function BudgetConfigScreen() {
   const [hasChanges, setHasChanges] = useState(false);
   const [hasNoBudget, setHasNoBudget] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const [categories, budgets] = await Promise.all([
@@ -56,7 +58,9 @@ export default function BudgetConfigScreen() {
       setRows(merged);
       setHasChanges(false);
       setHasNoBudget(budgets.length === 0 || budgets.every((b) => b.amount === 0));
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // Database not ready
     }
   }, [month]);
@@ -275,6 +279,7 @@ export default function BudgetConfigScreen() {
 
   return (
     <ScreenContainer padTop={false} keyboardAware>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       {/* Month selector */}
       <PeriodNavigator mode="month" value={month} onChange={handleMonthChange} />
 

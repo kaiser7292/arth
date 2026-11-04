@@ -23,6 +23,8 @@ import { consumeBankAccountsPreload } from "@/services/home-preload";
 const preloaded = consumeBankAccountsPreload();
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { useTheme } from "@/hooks/use-theme";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 interface AccountSummary {
   account: FinancialAccount;
@@ -105,7 +107,8 @@ export default function BankAccountsScreen() {
       setSummaries(results);
   }, [month, startDate, endDate]);
 
-  useDataRefresh(loadData);
+  const guarded = useGuardedLoad(loadData);
+  useDataRefresh(guarded.load);
 
   // Overall totals
   const totalOpening = summaries.reduce((sum, s) => sum + s.opening, 0);
@@ -117,6 +120,7 @@ export default function BankAccountsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       {/* Month navigator */}
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 

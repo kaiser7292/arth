@@ -4,7 +4,7 @@ import { useListTools } from "@/hooks/use-list-tools";
 import { transactionDayLabel } from "@/utils/day-label";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, DateInput, FABMenu, GroupHeading, Input, ListToolbar, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Badge, Button, Card, DateInput, FABMenu, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -55,6 +55,8 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, Scrol
 import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
 
 interface LedgerEntry {
   id: string;
@@ -528,7 +530,9 @@ const loadData = useCallback(async () => {
       setEntries(ledger);
   }, [accountId, month, startDate, endDate]);
 
-  useDataRefresh(loadData);
+  // One failed query mustn't look like a month with no transactions.
+  const guarded = useGuardedLoad(loadData);
+  useDataRefresh(guarded.load);
 
   const handleStartEditCredit = useCallback((entry: LedgerEntry) => {
     setEditingCreditId(entry.id);
@@ -556,7 +560,7 @@ const loadData = useCallback(async () => {
       alert("Invalid Amount", "Please enter a valid positive amount.");
       return;
     }
-    const date = creditDate.trim() || new Date().toISOString().split("T")[0];
+    const date = creditDate.trim() || todayIso();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       alert("Invalid Date", "Please pick a valid date.");
       return;
@@ -873,7 +877,7 @@ const loadData = useCallback(async () => {
               />
               <DateInput
                 label="Date"
-                value={creditDate || new Date().toISOString().split("T")[0]}
+                value={creditDate || todayIso()}
                 onChange={setCreditDate}
                 containerClassName="mb-3"
               />
@@ -929,7 +933,7 @@ const loadData = useCallback(async () => {
                   className="flex-1 mr-2 py-2.5"
                 />
                 <Button
-                  title="Confirm Adjustment"
+                  title="Confirm"
                   onPress={handleSaveAdjustment}
                   variant="primary"
                   className="flex-1 py-2.5"
@@ -947,6 +951,8 @@ const loadData = useCallback(async () => {
               </Text>
             </View>
           )}
+
+          {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
 
           {/* Transactions header */}
           <View className="flex-row items-center justify-between mx-4 mt-3 mb-2">
@@ -1200,7 +1206,7 @@ const loadData = useCallback(async () => {
           })}
 
           {/* Empty state */}
-          {filteredEntries.length === 0 && (
+          {!guarded.failed && filteredEntries.length === 0 && (
             <View className="items-center py-12">
               <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
               <Text className="text-meta text-muted-foreground mt-3">

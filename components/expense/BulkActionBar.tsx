@@ -7,8 +7,9 @@ import { useTheme } from "@/hooks/use-theme";
 
 interface BulkActionBarProps {
   selectedCount: number;
-  onChangeCategory: () => void;
-  /** On a list of credits, Type takes the place of Category. */
+  /** Left out on a list of only credits, which have a type instead. */
+  onChangeCategory?: () => void;
+  /** On lists with credits. */
   onChangeType?: () => void;
   onChangePaymentMode: () => void;
   onChangeAccount: () => void;
@@ -32,9 +33,8 @@ export function BulkActionBar({
   const insets = useSafeAreaInsets();
 
   const actions = [
-    onChangeType
-      ? { label: "Type", icon: "pricetag-outline" as const, onPress: onChangeType }
-      : { label: "Category", icon: "grid-outline" as const, onPress: onChangeCategory },
+    ...(onChangeCategory ? [{ label: "Category", icon: "grid-outline" as const, onPress: onChangeCategory }] : []),
+    ...(onChangeType ? [{ label: "Type", icon: "pricetag-outline" as const, onPress: onChangeType }] : []),
     { label: "Mode", icon: "card-outline" as const, onPress: onChangePaymentMode },
     { label: "Account", icon: "wallet-outline" as const, onPress: onChangeAccount },
     { label: "Merchant", icon: "storefront-outline" as const, onPress: onChangeMerchant },

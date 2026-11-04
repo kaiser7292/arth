@@ -25,6 +25,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 type ViewMode = "list" | "add_person";
 
@@ -63,13 +64,16 @@ export default function HisaabPersonsScreen() {
     return () => sub.remove();
   }, []);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const data = await getPersonsWithBalances(DEFAULT_USER_ID);
       const summaryData = await getHisaabSummary(DEFAULT_USER_ID);
       setPersons(data);
       setSummary(summaryData);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
     setLoaded(true);
@@ -161,6 +165,7 @@ export default function HisaabPersonsScreen() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Loading people..." icon="people-outline" />
       </ScreenContainer>
     );
@@ -171,6 +176,7 @@ export default function HisaabPersonsScreen() {
   if (viewMode === "add_person") {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <KeyboardAvoidingView
           behavior="padding"
           className="flex-1"
@@ -256,6 +262,7 @@ export default function HisaabPersonsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

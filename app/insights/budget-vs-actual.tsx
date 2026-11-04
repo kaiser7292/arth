@@ -19,6 +19,7 @@ import {
 import { getExpenseIdsByCategory } from "@/services/expense";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ export default function BudgetVsActualScreen() {
       return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
     })();
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const fySM = getFYStartMonth();
@@ -94,7 +96,9 @@ export default function BudgetVsActualScreen() {
         r.endDate,
       );
       setResult(data);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     } finally {
       setLoading(false);
@@ -153,6 +157,7 @@ export default function BudgetVsActualScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
 
         <PeriodBar

@@ -30,6 +30,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const REPEAT_LABELS: Record<RecurringFrequency, string> = {
   monthly: "Monthly",
@@ -98,6 +99,7 @@ export default function SimulatorEntryForm() {
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150);
   }, []);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   useEffect(() => {
     async function loadData() {
       if (!id) return;
@@ -160,7 +162,9 @@ export default function SimulatorEntryForm() {
         }
         
         setLoaded(true);
+        setLoadFailed(false);
       } catch (e) {
+        setLoadFailed(true);
         console.error("Failed to load data:", e);
       }
     }
@@ -268,6 +272,7 @@ export default function SimulatorEntryForm() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner />}
         <View className="flex-1 items-center justify-center">
           <Text style={{ color: colors.textSecondary }}>Loading...</Text>
         </View>
@@ -277,6 +282,7 @@ export default function SimulatorEntryForm() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner />}
       <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           ref={scrollRef}

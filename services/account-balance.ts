@@ -17,6 +17,7 @@ import { getTransfersInTotal, getTransfersOutTotal } from "@/services/account-tr
 import { bumpDataVersion } from "@/services/settings";
 import { round2 } from "@/utils/math";
 import { generateUUID } from "@/utils/uuid";
+import { todayIso } from "@/utils/local-date";
 
 /**
  * Closing balance formula, account-type aware. Single source of truth for the
@@ -1016,7 +1017,7 @@ export async function adjustAccountAvailable(params: {
   description?: string;
 }): Promise<number> {
   const db = getDatabase();
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayIso();
   const month = today.substring(0, 7);
   const { startDate, endDate } = getMonthDateRange(month);
 

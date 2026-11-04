@@ -25,6 +25,7 @@ import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 const preloaded = consumeLoansPreload();
 
@@ -62,7 +63,7 @@ export default function LoansListScreen() {
     // v17.5.2 — two batched queries instead of N+1:
     // 1. JOIN loans + financial_accounts for bank_name
     // 2. getLoanOutstandingsByFA batches schedule+prepayments per loan internally
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIso();
     const [all, outstandingMap, emiMap] = await Promise.all([
       listAllLoansWithBankName(DEFAULT_USER_ID),
       getLoanOutstandingsByLoanId(DEFAULT_USER_ID, today),

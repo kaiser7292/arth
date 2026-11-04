@@ -33,6 +33,7 @@ import { formatNumber } from "@/utils/format";
 import { formatDate as formatDateLocale } from "@/utils/date";
 import { getCurrency } from "@/services/locale-preferences";
 import { getCurrencyDef } from "@/constants/currencies";
+import { todayIso } from "@/utils/local-date";
 
 function formatNum(n: number): string {
   return formatNumber(n);
@@ -45,7 +46,7 @@ function currencyPrefix(): string {
 }
 
 function todayString(): string {
-  return new Date().toISOString().split("T")[0];
+  return todayIso();
 }
 
 function balanceLabel(balance: number): string {

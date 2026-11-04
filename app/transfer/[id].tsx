@@ -14,6 +14,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AccountTransfer } from "@/services/account-transfer";
 import type { FinancialAccount } from "@/services/financial-account";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 function formatDate(dateStr: string): string {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -36,6 +37,7 @@ export default function TransferDetailScreen() {
   const [transfer, setTransfer] = useState<AccountTransfer | null>(null);
   const [accountMap, setAccountMap] = useState<Map<string, FinancialAccount>>(new Map());
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     if (!id) return;
     try {
@@ -50,7 +52,9 @@ export default function TransferDetailScreen() {
         if (!map.has(a.id)) map.set(a.id, a);
       }
       setAccountMap(map);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // db not ready
     }
   }, [id]);
@@ -85,6 +89,7 @@ export default function TransferDetailScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <Stack.Screen
         options={{
           title: "Transfer",

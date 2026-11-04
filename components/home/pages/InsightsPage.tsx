@@ -21,6 +21,7 @@ import { formatLocalDate } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeInsightsPreload } from "@/services/home-preload";
+import { LoadFailed } from "@/components/ui/ListToolbar";
 
 const preloaded = consumeInsightsPreload();
 
@@ -54,13 +55,16 @@ export function InsightsPage() {
 
   const month = getCurrentMonth();
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     // Each part runs on its own, so one failing doesn't blank the rest of the page.
     try {
       const totals = await getThisVsLastMonthTotals(DEFAULT_USER_ID);
       setThisMonthTotal(totals.currentMonth);
       setLastMonthTotal(totals.previousMonth);
+      setLoadFailed(false);
     } catch { /* DB not ready */ }
+      setLoadFailed(true);
 
     try {
       const [forecastData, insightData] = await Promise.all([
@@ -100,6 +104,7 @@ export function InsightsPage() {
   const drill = (section: MyMonthSection, title: string) => () =>
     router.push({ pathname: "/summary/my-month-rows", params: { month, section, title } });
 
+  if (loadFailed) return <LoadFailed onRetry={loadData} />;
   if (loading) return <LoadingState message="Loading insights..." />;
 
   const hasBudget = !!budget && budget.totalBudget > 0;

@@ -24,6 +24,7 @@ import { formatAmount } from "@/utils/expense-validation";
 import { getMonthDateRange, getDaysElapsed, getDaysRemaining, getTotalDaysInMonth } from "@/utils/budget-helpers";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailed } from "@/components/ui/ListToolbar";
 
 interface TopCategory {
   category: Category | null;
@@ -72,6 +73,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
   const [data, setData] = useState<SummaryData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     if (!month) return;
     try {
@@ -120,13 +122,16 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
         daysRemaining: daysLeft,
         avgPerDay: daysElapsed > 0 ? totalSpent / daysElapsed : 0,
       });
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
   }, [month]);
 
   useDataRefresh(loadData);
 
+  if (loadFailed) return <LoadFailed onRetry={loadData} />;
   if (!data) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>

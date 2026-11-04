@@ -33,6 +33,8 @@ export const BROKER_TERMS: Record<BrokerId, BrokerTerms> = {
     ],
     credentialsNote:
       "Your API key and secret are stored encrypted on this phone. You sign in on Zerodha's own page, and Arth talks to Zerodha directly; your secret itself is never sent, only a one-way checksum made from it.",
+    warning:
+      "Zerodha advises against keeping an API secret in a mobile app. Arth keeps yours encrypted on this phone so that no server has to hold it, along with your Zerodha login if you add it. Anyone who can unlock your phone and Arth could use them. Keep Arth's app lock on.",
   },
   angel: {
     id: "angel",

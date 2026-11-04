@@ -48,6 +48,11 @@ export interface FilterViewState {
   refundedStatus: "" | "refunded" | "not_refunded";
   avoidability: "" | "avoidable" | "unavoidable" | "unclassified";
   search: string;
+  /** Missing on views saved before these were kept. */
+  ruleIds?: string[];
+  status?: "" | "pending_review" | "approved";
+  sortBy?: string;
+  groupBy?: string;
 }
 
 export interface ResolvedDateRange {

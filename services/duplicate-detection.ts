@@ -17,6 +17,7 @@ import { duplicateDismissalsStorage as dismissStorage, settingsStorage } from ".
 import { getDatabase } from "@/database";
 import type { Expense } from "@/services/expense";
 import { bumpDataVersion, getDataVersion, subscribeDataVersion } from "@/services/settings";
+import { isoDate } from "@/utils/local-date";
 
 // ---------------------------------------------------------------------------
 // Dismissed groups ("Keep both" state)
@@ -423,7 +424,7 @@ export async function scanForDuplicates(
   // unbounded growth; home screen loads this on every refresh.
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-  const windowStart = sixMonthsAgo.toISOString().slice(0, 10);
+  const windowStart = isoDate(sixMonthsAgo);
   // Exclude refunds (refund_of_expense_id IS NOT NULL). A refund is by
   // definition tied to a specific original expense — it's never a duplicate
   // of anything else, and clustering a refund with its own original (or with

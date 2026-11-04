@@ -28,6 +28,8 @@ import {
 } from "@/services/simulator";
 import type { SimulationScenario, ScenarioOverview } from "@/services/simulator";
 import { useTheme } from "@/hooks/use-theme";
+import { isoDate } from "@/utils/local-date";
+import { LoadFailed } from "@/components/ui/ListToolbar";
 
 /**
  * Scenario list — entry point from the Home card.
@@ -36,8 +38,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 function endOfMonthIso(): string {
   const d = new Date();
-  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0));
-  return last.toISOString().slice(0, 10);
+  return isoDate(new Date(d.getFullYear(), d.getMonth() + 1, 0));
 }
 
 function prettyDate(ymd: string): string {
@@ -80,6 +81,7 @@ export function SimulatorPage() {
   const [duplicateMode, setDuplicateMode] = useState<"upcoming" | "full">("upcoming");
   const [duplicating, setDuplicating] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -105,7 +107,9 @@ export function SimulatorPage() {
       }));
       setActive(cards);
       setArchived(archivedList);
+      setLoadFailed(false);
     } catch (e) {
+      setLoadFailed(true);
       logger.warn("Simulator list load failed", e);
     } finally {
       setLoading(false);
@@ -231,6 +235,7 @@ export function SimulatorPage() {
     [alert, load],
   );
 
+  if (loadFailed) return <LoadFailed onRetry={load} />;
   if (loading) {
     return (
       <View style={{ flex: 1 }}>

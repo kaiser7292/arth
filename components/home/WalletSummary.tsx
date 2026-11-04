@@ -12,6 +12,7 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { getComputedBalanceComponents, computeUnseededBalance } from "@/services/account-balance";
 import { getCurrentMonth } from "@/services/budget";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailed } from "@/components/ui/ListToolbar";
 
 interface WalletSummaryProps {
   accounts: FinancialAccount[];
@@ -32,6 +33,7 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
   const theme = useTheme();
   const [totals, setTotals] = useState<Totals>({ opening: 0, expenses: 0, credits: 0, transfersOut: 0, transfersIn: 0, closing: 0 });
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const load = useCallback(async () => {
     if (accounts.length === 0) return;
     try {
@@ -57,7 +59,9 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
         }
       }
       setTotals({ opening, expenses, credits, transfersOut, transfersIn, closing });
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
   }, [accounts]);
@@ -66,6 +70,7 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
 
   if (accounts.length === 0) return null;
 
+  if (loadFailed) return <LoadFailed onRetry={load} />;
   const { opening, expenses, credits, transfersOut, transfersIn, closing } = totals;
 
   return (

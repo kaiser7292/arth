@@ -28,6 +28,8 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 // Consume preload once at module level (single-use, clears the cache slot)
 const preloaded = consumeGoalsPreload();
@@ -59,10 +61,11 @@ export default function GoalsScreen() {
   const [setupChecked, setSetupChecked] = useState(preloaded != null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadGoals = useCallback(async () => {
     try {
       const fyStr = String(currentFY);
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayIso();
       const [salary, fetchedBuckets, fetchedMilestones, activeLoans, cockpit, emiMap] = await Promise.all([
         getSalaryProfileByFY(DEFAULT_USER_ID, fyStr),
         getBucketsByFY(DEFAULT_USER_ID, fyStr),
@@ -92,13 +95,15 @@ export default function GoalsScreen() {
         // insurance not critical for page render
       }
 
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready — leave setupChecked as-is so preloaded data stays visible
     }
 
     // Balance sheet is heavy — fetch separately so it never blocks the page render
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayIso();
       const bsCol = await getBalanceSheetColumn(DEFAULT_USER_ID, today, "Today", true, null);
       setNetWorth(bsCol?.netWorth ?? null);
     } catch {
@@ -200,6 +205,7 @@ export default function GoalsScreen() {
   if (!setupChecked) {
     return (
       <ScreenContainer>
+        {loadFailed && <LoadFailedBanner onRetry={loadGoals} />}
         <LoadingState message="Loading goals..." icon="trophy-outline" />
       </ScreenContainer>
     );
@@ -216,6 +222,7 @@ export default function GoalsScreen() {
 
   return (
     <ScreenContainer>
+      {loadFailed && <LoadFailedBanner onRetry={loadGoals} />}
       <ContextualHeader
         title="Goals"
         subtitle={`${fyLabel} · ${fyRange}`}

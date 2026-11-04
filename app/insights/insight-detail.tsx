@@ -15,6 +15,7 @@ import { getInsightDrill, type InsightDetail } from "@/services/insight-engine";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const SEVERITY_COLORS = {
   celebrate: "success" as const,
@@ -31,12 +32,15 @@ export default function InsightDetailScreen() {
   const [detail, setDetail] = useState<InsightDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     if (!insightId) return;
     try {
       const data = await getInsightDrill(DEFAULT_USER_ID, insightId);
       setDetail(data);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     } finally {
       setLoading(false);
@@ -48,6 +52,7 @@ export default function InsightDetailScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Loading insight..." />
       </ScreenContainer>
     );
@@ -56,6 +61,7 @@ export default function InsightDetailScreen() {
   if (!detail) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <View className="items-center py-16 px-8">
           <Ionicons name="alert-circle-outline" size={48} color={theme.faintForeground} />
           <Text className="text-lg font-medium text-foreground mt-4">
@@ -99,6 +105,7 @@ export default function InsightDetailScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

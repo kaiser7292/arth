@@ -27,6 +27,7 @@ import {
 import { bumpDataVersion } from "@/services/settings";
 import { logger } from "@/utils/logger";
 import { generateUUID } from "@/utils/uuid";
+import { todayIso } from "@/utils/local-date";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -776,7 +777,7 @@ export async function getLoansSummary(
   const loans = await listActiveLoans(userId);
   if (loans.length === 0) return null;
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayIso();
   const db = getDatabase();
   let totalOutstandingINR = 0;
   let totalMonthlyEMI = 0;

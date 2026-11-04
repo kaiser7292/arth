@@ -12,6 +12,7 @@ export function useExpenseGrouping({
   fallback,
   expenses,
   names,
+  amountOf,
 }: {
   screen: string;
   kind: ExpenseListKind;
@@ -19,6 +20,7 @@ export function useExpenseGrouping({
   fallback: ExpenseGroupBy;
   expenses: readonly Expense[];
   names: Omit<ExpenseGroupNames, "people">;
+  amountOf?: (e: Expense) => number;
 }) {
   const [groupBy, setGroupBy] = useGroupBy(screen, available, fallback);
   const [people, setPeople] = useState<Map<string, string>>(new Map());
@@ -39,8 +41,8 @@ export function useExpenseGrouping({
 
   const { categoryMap, accountMap, paymentModeMap } = names;
   const rows = useMemo(
-    () => groupExpenses(expenses, groupBy, { categoryMap, accountMap, paymentModeMap, people }),
-    [expenses, groupBy, categoryMap, accountMap, paymentModeMap, people],
+    () => groupExpenses(expenses, groupBy, { categoryMap, accountMap, paymentModeMap, people }, amountOf),
+    [expenses, groupBy, categoryMap, accountMap, paymentModeMap, people, amountOf],
   );
   const options = useMemo(() => {
     const labels = expenseGroupLabels(kind);

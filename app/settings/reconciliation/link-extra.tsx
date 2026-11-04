@@ -12,6 +12,7 @@ import {
   type ReconciliationItemEnriched,
 } from "@/services/reconciliation/reconciliation-crud";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 // mode="find_missing" — initiated from Extra tab: show unmatched statement rows to pair with
 // mode="find_extra"   — initiated from Missing tab: show extra Arth entries to pair with
@@ -49,7 +50,7 @@ export default function LinkExtraScreen() {
       const init = all.find((i) => i.id === item_id) ?? null;
       setInitiating(init);
 
-      const pivotDate = new Date(date ?? new Date().toISOString().slice(0, 10)).getTime();
+      const pivotDate = new Date(date ?? todayIso()).getTime();
 
       if (mode === "find_missing") {
         // Show unmatched statement rows, sorted by date proximity to the Extra item

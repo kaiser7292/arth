@@ -41,6 +41,7 @@ import { upsertBudget } from "@/services/budget";
 import { useTheme } from "@/hooks/use-theme";
 import { peekHomeTotals } from "@/services/home-preload";
 import { Rows } from "@/components/ui/Rows";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 interface BudgetDashboardRow {
   category: Category;
@@ -126,6 +127,7 @@ export default function BudgetScreen() {
   // A month that has fully passed — no days left to spread a budget over.
   const isPastMonth = daysRemaining === 0;
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       // Pre-compute FY date ranges synchronously so all queries fire in one batch
@@ -193,7 +195,9 @@ export default function BudgetScreen() {
       setYearlyPlan(plan);
       setAnnualSpentYTD(plan ? ytd : 0);
       setRollingSurplus(surplus);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // Database not ready
     }
   }, [month, startDate, endDate]);
@@ -276,6 +280,7 @@ export default function BudgetScreen() {
 
   return (
     <ScreenContainer>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ContextualHeader
         title="Budget"
         rightActions={activePageIndex === 0 ? [{

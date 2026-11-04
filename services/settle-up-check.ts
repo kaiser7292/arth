@@ -2,6 +2,7 @@ import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import { getPersonsWithBalances, recordSettlement } from "@/services/hisaab";
 import { settingsStorage } from "@/services/storage";
 import { formatAmount } from "@/utils/format";
+import { todayIso } from "@/utils/local-date";
 
 /**
  * Hisaab settle-up: one card per person who owes you, with Remind (share sheet — WhatsApp or
@@ -43,6 +44,6 @@ export function reminderMessage(name: string, balance: number, lastEntryDate: st
 
 /** Full settlement of the current balance, not linked to any account. */
 export async function markSettled(person: HisaabPersonWithBalance): Promise<void> {
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayIso();
   await recordSettlement(person.id, Math.round(person.balance * 100) / 100, today, "Settled up");
 }

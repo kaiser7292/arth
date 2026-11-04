@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
+import { BrokerSetupGuide } from '@/components/broker/BrokerSetupGuide';
 import { BrokerTermsCard } from '@/components/broker/BrokerTermsCard';
 import { acceptBrokerTerms, hasAcceptedBrokerTerms } from '@/services/broker-terms';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -147,6 +148,7 @@ export default function KiteConnectApiKeyScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
       <View className="mx-4 mt-3">
+        <BrokerSetupGuide broker="kite" connected={!!apiKey} />
 
         {/* Input */}
         <Card className="mb-3">
@@ -290,21 +292,6 @@ export default function KiteConnectApiKeyScreen() {
           }}
         />
 
-        {/* Info card */}
-        <Card>
-          <View className="flex-row items-center mb-2">
-            <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
-            <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
-              How to set up your Kite Connect app
-            </Text>
-          </View>
-          <Text className="text-xs text-muted-foreground leading-5">
-            1. Go to developers.kite.trade/apps and sign in with your Zerodha account{'\n'}
-            2. Create an app (Zerodha may charge for Kite Connect; check their current pricing){'\n'}
-            3. Set the Redirect URL to https://127.0.0.1 (any URL works; Arth reads the login result itself){'\n'}
-            4. Copy the API Key and API Secret from the app details page into the fields above
-          </Text>
-        </Card>
 
       </View>
       </ScrollView>

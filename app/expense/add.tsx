@@ -74,6 +74,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 
 
@@ -194,6 +195,7 @@ export default function AddExpenseScreen() {
   const [showMerchants, setShowMerchants] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   useEffect(() => {
     async function loadData() {
       try {
@@ -213,7 +215,9 @@ export default function AddExpenseScreen() {
           const p = ppl.find((x) => x.id === params.prefillSplitPersonId);
           if (p) setSplitConfig({ paidBy: "me", splitMode: "equal", personId: p.id });
         }
+        setLoadFailed(false);
       } catch {
+        setLoadFailed(true);
         // Database not ready
       }
     }
@@ -751,6 +755,7 @@ export default function AddExpenseScreen() {
 
   return (
     <ScreenContainer>
+      {loadFailed && <LoadFailedBanner />}
       <KeyboardAvoidingView
         behavior="padding"
         className="flex-1"

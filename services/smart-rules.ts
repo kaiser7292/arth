@@ -33,6 +33,7 @@ import { splitExistingExpense } from "@/services/expense-splits";
 import { addTagsToExpense } from "@/services/tags";
 import type { SplitMode } from "@/services/expense-types";
 import { nthWeekdayOfMonth } from "@/utils/recurrence";
+import { isoDate } from "@/utils/local-date";
 
 // ─── Types ───
 
@@ -1009,7 +1010,7 @@ async function fetchRetroactiveCandidates(
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     conds.push("date >= ?");
-    params.push(cutoff.toISOString().slice(0, 10));
+    params.push(isoDate(cutoff));
   }
 
   if (scope.endDate) {

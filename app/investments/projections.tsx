@@ -29,6 +29,8 @@ import {
 import { getCurrentMonth } from "@/services/budget";
 import { formatMonthLabel } from "@/utils/date";
 import { formatAmount } from "@/utils/expense-validation";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const HORIZONS = [1, 3, 5, 10, 15, 20, 30];
 /** What the edit box is open for when it's the extra money, not an investment you already have. */
@@ -75,7 +77,7 @@ export default function ProjectionsScreen() {
   const [inflationOpen, setInflationOpen] = useState(false);
   const [inflationText, setInflationText] = useState("");
 
-  useDataRefresh(
+  const guarded = useGuardedLoad(
     useCallback(async () => {
       const all = await getActiveAccounts(DEFAULT_USER_ID);
       const like = all.filter((a) => a.account_type === "investment" || a.account_type === "demat" || a.account_type === "pension");
@@ -96,6 +98,7 @@ export default function ProjectionsScreen() {
       );
     }, []),
   );
+  useDataRefresh(guarded.load);
 
   const startMonth = getCurrentMonth();
   const assumptionFor = useCallback(
@@ -174,6 +177,7 @@ export default function ProjectionsScreen() {
   if (!lines) {
     return (
       <ScreenContainer padTop={false}>
+        {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
         <LoadingState message="Working it out..." icon="trending-up-outline" />
       </ScreenContainer>
     );
@@ -183,6 +187,7 @@ export default function ProjectionsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" style={{ flexGrow: 0 }}>
           {HORIZONS.map((y) => {

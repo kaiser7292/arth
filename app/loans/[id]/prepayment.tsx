@@ -24,6 +24,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 export default function PrepaymentForm() {
   const { id, prepaymentId } = useLocalSearchParams<{ id: string; prepaymentId?: string }>();
@@ -40,7 +41,7 @@ export default function PrepaymentForm() {
 
   const [amount, setAmount] = useState("");
   const [strategy, setStrategy] = useState<"reduce_tenure" | "reduce_emi">("reduce_tenure");
-  const [prepayDate, setPrepayDate] = useState(new Date().toISOString().split("T")[0]);
+  const [prepayDate, setPrepayDate] = useState(todayIso());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [overrideExpanded, setOverrideExpanded] = useState(false);
   const [chargeOverride, setChargeOverride] = useState("");
@@ -389,7 +390,7 @@ export default function PrepaymentForm() {
       <CalendarModal
         visible={showDatePicker}
         onClose={() => setShowDatePicker(false)}
-        value={prepayDate || new Date().toISOString().split("T")[0]}
+        value={prepayDate || todayIso()}
         onChange={(d) => {
           setPrepayDate(d);
           setShowDatePicker(false);

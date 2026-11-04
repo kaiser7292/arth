@@ -21,6 +21,7 @@ import {
   sharePDF,
 } from "@/services/reports/report-pdf-export";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 function PersonalityBadge({ archetype, colorScheme }: { archetype: SpendingPersonalityReport["archetype"]; colorScheme: "light" | "dark" }) {
   return (
@@ -61,11 +62,15 @@ export default function SpendingPersonalityReportScreen() {
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const data = await generateSpendingPersonalityReport(DEFAULT_USER_ID);
       setReport(data);
-    } catch {}
+      setLoadFailed(false);
+    } catch {
+      setLoadFailed(true);
+    }
     setLoading(false);
   }, []);
 
@@ -131,6 +136,7 @@ export default function SpendingPersonalityReportScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Analyzing your spending DNA..." />
       </ScreenContainer>
     );
@@ -139,6 +145,7 @@ export default function SpendingPersonalityReportScreen() {
   if (!report) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="person-outline" size={48} color={colors.textSecondary} />
           <Text className="text-lg font-medium text-foreground mt-4">
@@ -156,6 +163,7 @@ export default function SpendingPersonalityReportScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

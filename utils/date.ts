@@ -89,11 +89,7 @@ export function formatDate(iso: string | null | undefined): string {
   return formatDateWith(iso, getDateFormat());
 }
 
-/** Today's date as a `YYYY-MM-DD` string in local time. */
-export function todayIso(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
-}
+export { todayIso } from "@/utils/local-date";
 
 /** Add N days to a YYYY-MM-DD. Returns a YYYY-MM-DD in local time. */
 export function addDays(iso: string, days: number): string {

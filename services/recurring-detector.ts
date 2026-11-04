@@ -13,6 +13,7 @@ import { generateUUID } from "@/utils/uuid";
 import { normalizeMerchant } from "@/services/smart-categorizer";
 import { bumpDataVersion } from "@/services/settings";
 import { formatLocalDate } from "@/utils/fiscal-year";
+import { todayIso } from "@/utils/local-date";
 
 export type RecurringFrequency = "weekly" | "monthly" | "quarterly" | "yearly" | "last_day_of_month" | "nth_weekday";
 
@@ -337,7 +338,7 @@ export async function getUpcomingRecurring(
   days: number = 30,
 ): Promise<RecurringTransaction[]> {
   const db = getDatabase();
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayIso();
   return db.getAllAsync<RecurringTransaction>(
     `SELECT * FROM recurring_transactions
      WHERE user_id = ? AND is_active = 1

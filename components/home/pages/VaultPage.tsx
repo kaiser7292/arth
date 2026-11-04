@@ -20,6 +20,7 @@ import {
 } from "@/services/vault";
 import { consumeVaultPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailed } from "@/components/ui/ListToolbar";
 
 const LINK_CATEGORIES = ["banking", "card", "demat", "statement_pwd"];
 // statement_pwd isn't offered for new entries, but older ones still need to be reachable.
@@ -45,12 +46,15 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
   // Drawers start closed, so opening the Vault doesn't show every login at once.
   const [openCategories, setOpenCategories] = useState<Set<VaultCategory>>(new Set());
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const load = useCallback(async () => {
     try {
       const preload = consumeVaultPreload();
       const data = preload ? preload.entries : await getVaultEntries();
       setEntries(data);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // db not ready
     }
     setLoaded(true);
@@ -115,6 +119,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
     );
   };
 
+  if (loadFailed) return <LoadFailed onRetry={load} />;
   if (!loaded) return <LoadingState message="Loading vault..." icon="lock-closed-outline" />;
 
   const empty = entries.length === 0;

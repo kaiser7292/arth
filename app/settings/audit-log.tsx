@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, SectionList, View } from "react-native";
 import { useTheme, type Theme } from "@/hooks/use-theme";
 import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
+import { isoDate } from "@/utils/local-date";
 
 /**
  * Settings → Automation → Audit Log (v15.12.1 new).
@@ -72,10 +73,10 @@ const SCOPE_DAYS: Record<QuickScope, number> = { "7d": 7, "30d": 30, "90d": 90 }
 
 function computeDateRange(scope: QuickScope): { from?: string; to?: string } {
   const today = new Date();
-  const toDate = today.toISOString().slice(0, 10);
+  const toDate = isoDate(today);
   const d = new Date(today);
   d.setDate(d.getDate() - SCOPE_DAYS[scope]);
-  return { from: d.toISOString().slice(0, 10), to: toDate };
+  return { from: isoDate(d), to: toDate };
 }
 
 function AuditDatesSheet({ visible, scope, from, to, onChoose, onClose }: {

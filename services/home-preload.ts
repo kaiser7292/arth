@@ -84,6 +84,7 @@ import { getTags } from "@/services/tags";
 import type { Tag } from "@/services/tags";
 import { getDistinctMerchantNames } from "@/services/merchant-alias";
 import { listRules, type SmartRule } from "@/services/smart-rules";
+import { todayIso } from "@/utils/local-date";
 
 // ---------------------------------------------------------------------------
 // Home tab
@@ -300,7 +301,7 @@ async function loadHomeSection(): Promise<HomePreloadData | null> {
   try {
     const month = getCurrentMonth();
     const { startDate, endDate } = getMonthDateRange(month);
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIso();
 
     const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, dueReminders, autoMatches, loansSummary] = await Promise.all([
       getBudgetsForMonth(DEFAULT_USER_ID, month),
@@ -518,7 +519,7 @@ async function loadGoalsSection(): Promise<GoalsPreloadData | null> {
   try {
     const startMonth = getFYStartMonth();
     const fy = String(getCurrentFY(startMonth));
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIso();
     const [cockpit, fyMilestones, fyBuckets, salary, activeLoans, emiMap] = await Promise.all([
       getFinancialCockpit(DEFAULT_USER_ID, fy),
       getMilestonesForFY(DEFAULT_USER_ID, fy),
@@ -560,7 +561,7 @@ async function loadYearlyPlanSection(): Promise<YearlyPlanPreloadData | null> {
 
 async function loadLoansSection(): Promise<LoansPreloadData | null> {
   try {
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIso();
     const [all, outstandingMap, emiMap] = await Promise.all([
       listAllLoansWithBankName(DEFAULT_USER_ID),
       getLoanOutstandingsByLoanId(DEFAULT_USER_ID, today),

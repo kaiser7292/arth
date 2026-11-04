@@ -27,6 +27,8 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 export default function InvestmentDetailScreen() {
   const router = useRouter();
@@ -47,7 +49,7 @@ export default function InvestmentDetailScreen() {
   // Form state
   const [contribAmount, setContribAmount] = useState("");
   const [contribDate, setContribDate] = useState(
-    new Date().toISOString().split("T")[0],
+    todayIso(),
   );
   const [contribNotes, setContribNotes] = useState("");
 
@@ -60,6 +62,7 @@ export default function InvestmentDetailScreen() {
     expense_amount: number;
   }>>([]);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     if (!bucketId) return;
     try {
@@ -79,7 +82,9 @@ export default function InvestmentDetailScreen() {
       } else {
         setLinkedMilestoneName(null);
       }
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
     setLoaded(true);
@@ -223,7 +228,7 @@ export default function InvestmentDetailScreen() {
 
     setContribAmount("");
     setContribNotes("");
-    setContribDate(new Date().toISOString().split("T")[0]);
+    setContribDate(todayIso());
     setEditingContrib(null);
     setShowAddForm(false);
     await loadData();
@@ -265,6 +270,7 @@ export default function InvestmentDetailScreen() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Loading investment..." icon="pie-chart-outline" />
       </ScreenContainer>
     );
@@ -273,6 +279,7 @@ export default function InvestmentDetailScreen() {
   if (!bucket) {
     return (
       <ScreenContainer centered padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
         <Text className="text-base font-medium text-foreground mt-4">
           Bucket not found
@@ -290,6 +297,7 @@ export default function InvestmentDetailScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <KeyboardAvoidingView
         behavior="padding"
         className="flex-1"

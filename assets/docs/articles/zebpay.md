@@ -16,19 +16,27 @@ phrasings:
 
 Connect Zebpay to see your crypto holdings and INR wallet balance inside Arth. The connection is **read-only** - Arth can't trade or move money.
 
-## Before you start: your own API key
+## Set it up, step by step
 
-1. Go to **build.zebpay.com** and sign in with your Zebpay account.
-2. Create a new app. You get an **API Key** and a **Secret Key**.
+The same steps are on the ZebPay connect screen, with Copy buttons.
 
-No OTP or PIN is needed - the API key identifies you.
+**Create your key**
 
-## Set it up in Arth
+1. Open **build.zebpay.com** and sign in with your ZebPay account.
+2. Create a new API key and fill in the form. Menu names may differ, so follow what your screen shows.
+   - **Name:** `Arth`
+   - **Permissions:** choose read-only permissions. Don't turn on trading or withdrawals.
+   - **Bind IP:** leave blank. If you enter an IP, sync can stop when your phone's IP changes.
+3. Enter the OTP sent to your email and phone.
+4. Copy the **API Key** and **Secret Key** straight away. ZebPay only shows the secret once.
 
-1. **Settings tab → Integrations → Zebpay.**
-2. Paste your **API Key** and **Secret Key**.
-3. Read the terms card and tick the agreement box.
-4. Tap **Connect Zebpay**, then **Sync**.
+**Connect**
+
+No TOTP is needed. The key is all Arth uses to connect.
+
+5. **Settings tab → Integrations → Zebpay.** Paste your **API Key** and **Secret Key**.
+6. Read the card, tick the box and tap **Connect Zebpay**.
+7. Tap **Sync**, then **Link an Account**, then **Update Snapshot with These Values**.
 
 ## Where your credentials go
 

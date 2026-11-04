@@ -3,7 +3,7 @@ import type { ToolbarChoice } from "@/components/ui";
 import { useListTools } from "@/hooks/use-list-tools";
 import { getPeopleForExpenses } from "@/services/expense-people";
 import { creditLook, type Expense } from "@/services/expense-types";
-import { expenseFields, signedAmount, type ExpenseGroupBy, type ExpenseGroupNames, type ExpenseListKind } from "@/utils/expense-grouping";
+import { expenseFields, signedNet, type ExpenseGroupBy, type ExpenseGroupNames, type ExpenseListKind } from "@/utils/expense-grouping";
 
 /** The toolbar for a list of transactions that's all in memory. The rows come sorted by the screen. */
 export function useExpenseTools({
@@ -13,6 +13,7 @@ export function useExpenseTools({
   expenses,
   names,
   sort,
+  refunds,
 }: {
   screen: string;
   kind: ExpenseListKind;
@@ -20,6 +21,8 @@ export function useExpenseTools({
   expenses: readonly Expense[];
   names: Omit<ExpenseGroupNames, "people">;
   sort: ToolbarChoice<string>;
+  /** Expense id → refunds linked to it, so group totals match the row and the summary. */
+  refunds?: Map<string, number>;
 }) {
   const [people, setPeople] = useState<Map<string, string>>(new Map());
 
@@ -48,7 +51,7 @@ export function useExpenseTools({
     rows: expenses,
     fields,
     sort,
-    amountOf: signedAmount,
+    amountOf: (e) => signedNet(e, refunds?.get(e.id) ?? 0),
     searchPlaceholder: "Search name or amount",
     search: (e) => ({
       texts: [

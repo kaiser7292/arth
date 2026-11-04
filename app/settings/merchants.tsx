@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
+import { Button, GroupHeading, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { useAlert } from "@/hooks/use-alert";
 import { getCategories, type Category } from "@/services/category";
@@ -58,10 +58,11 @@ export default function MerchantsScreen() {
   const opened = useRef<string | null>(null);
   const clearSearch = useRef<() => void>(() => {});
 
-  useDataRefresh(
-    useCallback(async () => {
+  const [loadFailed, setLoadFailed] = useState(false);
+  const loadMerchants = useCallback(async () => {
       try {
         const list = await listMerchants(DEFAULT_USER_ID);
+        setLoadFailed(false);
         setMerchants(list);
         getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => {});
         // Back from a merchant that was renamed or merged away: the search that found it is stale.
@@ -69,9 +70,10 @@ export default function MerchantsScreen() {
         opened.current = null;
       } catch {
         setMerchants([]);
+        setLoadFailed(true);
       }
-    }, []),
-  );
+  }, []);
+  useDataRefresh(loadMerchants);
 
   const tools = useListTools<MerchantSummary>({
     screen: "merchants",
@@ -82,6 +84,10 @@ export default function MerchantsScreen() {
     search: MERCHANT_SEARCH,
   });
   clearSearch.current = () => tools.setQuery("");
+
+  // A filter changed after picking: only what's still showing counts, so nothing hidden is changed.
+  const chosen = tools.rows.filter((m) => selected.has(m.name));
+  const allChosen = tools.rows.length > 0 && chosen.length === tools.rows.length;
 
   const toggle = (name: string) =>
     setSelected((prev) => {
@@ -96,7 +102,7 @@ export default function MerchantsScreen() {
   };
 
   const applyCategory = async (categoryName: string) => {
-    const names = [...selected];
+    const names = chosen.map((m) => m.name);
     try {
       const keywords = await withMerchantUndo(
         () => setMerchantRules(names, categoryName),
@@ -132,17 +138,14 @@ export default function MerchantsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <ListToolbar
-        {...tools.toolbar}
-        action={merchants.length > 0 && !selecting ? { label: "Select merchants", onPress: () => setSelecting(true) } : undefined}
-      />
+      <ListToolbar {...tools.toolbar} />
       {tools.filterSheet}
       <FlatList
         data={tools.grouped}
         keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.name.toLowerCase())}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: selecting ? 160 : pendingUndo ? 120 : 40 }}
-        ListEmptyComponent={
+        ListEmptyComponent={loadFailed ? <LoadFailed onRetry={loadMerchants} /> :
           <Text className="text-sm text-muted-foreground text-center px-8 mt-8">
             {merchants.length === 0 ? "Merchants appear here once you have transactions." : "Nothing matches."}
           </Text>
@@ -169,6 +172,14 @@ export default function MerchantsScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${m.name}, ${m.category ?? "no category"}`}
           >
+            {selecting && (
+              <Ionicons
+                name={selected.has(m.name) ? "checkbox" : "square-outline"}
+                size={22}
+                color={selected.has(m.name) ? theme.primary : theme.mutedForeground}
+                style={{ marginRight: 12 }}
+              />
+            )}
             <View className="flex-1 mr-2">
               <Text className="text-base font-medium text-foreground" numberOfLines={1}>{m.name}</Text>
               <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
@@ -187,16 +198,7 @@ export default function MerchantsScreen() {
                 <Text className="text-xs font-semibold" style={{ color: theme.warning }}>Set category</Text>
               </View>
             )}
-            {selecting ? (
-              <Ionicons
-                name={selected.has(m.name) ? "checkbox" : "square-outline"}
-                size={22}
-                color={selected.has(m.name) ? theme.primary : theme.mutedForeground}
-                style={{ marginLeft: 8 }}
-              />
-            ) : (
-              <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />
-            )}
+            {!selecting && <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />}
           </Pressable>
           );
         }}
@@ -219,21 +221,21 @@ export default function MerchantsScreen() {
         <View className="absolute left-0 right-0 bottom-0 px-4 pt-3 pb-6 bg-card border-t border-border">
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-sm text-foreground">
-              {selected.size === 0 ? "Tap merchants to pick them" : `${selected.size} selected`}
+              {chosen.length === 0 ? "Tap merchants to pick them" : `${chosen.length} selected`}
             </Text>
             <Pressable
-              onPress={() => setSelected(selected.size === tools.rows.length ? new Set() : new Set(tools.rows.map((m) => m.name)))}
+              onPress={() => setSelected(allChosen ? new Set() : new Set(tools.rows.map((m) => m.name)))}
               hitSlop={8}
               accessibilityRole="button"
             >
               <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
-                {selected.size === tools.rows.length ? "Select none" : `Select all ${tools.rows.length}`}
+                {allChosen ? "Select none" : `Select all ${tools.rows.length}`}
               </Text>
             </Pressable>
           </View>
           <View className="flex-row" style={{ gap: 12 }}>
             <View className="flex-1"><Button title="Cancel" variant="secondary" onPress={stopSelecting} /></View>
-            <View className="flex-1"><Button title="Set category" disabled={selected.size === 0} onPress={() => setPicking(true)} /></View>
+            <View className="flex-1"><Button title="Set category" disabled={chosen.length === 0} onPress={() => setPicking(true)} /></View>
           </View>
         </View>
       )}

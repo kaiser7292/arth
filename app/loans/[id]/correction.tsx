@@ -19,6 +19,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 export default function CorrectionForm() {
   const theme = useTheme();
@@ -32,7 +33,7 @@ export default function CorrectionForm() {
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [effectiveDate, setEffectiveDate] = useState(new Date().toISOString().split("T")[0]);
+  const [effectiveDate, setEffectiveDate] = useState(todayIso());
   const [outstanding, setOutstanding] = useState("");
   const [emi, setEmi] = useState("");
   const [tenureRemaining, setTenureRemaining] = useState("");
@@ -46,7 +47,7 @@ export default function CorrectionForm() {
       try {
         const [l, outstanding] = await Promise.all([
           getLoanById(id),
-          getLoanOutstandingAt(id, new Date().toISOString().split("T")[0]),
+          getLoanOutstandingAt(id, todayIso()),
         ]);
         setLoan(l);
         setComputedOutstanding(outstanding);
@@ -78,7 +79,7 @@ export default function CorrectionForm() {
             setReason(correction.reason ?? "");
           }
         } else if (l) {
-          setEffectiveDate(new Date().toISOString().split("T")[0]);
+          setEffectiveDate(todayIso());
           setOutstanding(String(Math.round(outstanding)));
           setEmi(String(Math.round(l.emi_amount)));
           setTenureRemaining("");
@@ -281,7 +282,7 @@ export default function CorrectionForm() {
         <CalendarModal
           visible={showDatePicker}
           onClose={() => setShowDatePicker(false)}
-          value={effectiveDate || new Date().toISOString().split("T")[0]}
+          value={effectiveDate || todayIso()}
           onChange={(d) => {
             setEffectiveDate(d);
             setShowDatePicker(false);

@@ -27,6 +27,8 @@ import { getDematDailyStatement, type DematDay } from "@/services/demat-statemen
 import { getAccountGains, type AccountGains } from "@/services/realized-gains";
 import { getInvestmentProduct, setInvestmentInstrument, type InvestmentInstrument } from "@/services/investment-accounts";
 import { SegmentedControl } from "@/components/motion";
+import { todayIso } from "@/utils/local-date";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -51,7 +53,7 @@ function readAmount(text: string): number | null {
 }
 
 function getDefaultDate(selectedMonth: string): string {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const todayMonth = today.slice(0, 7);
   if (todayMonth === selectedMonth) return today;
   return `${selectedMonth}-01`;
@@ -92,6 +94,7 @@ export default function DematSnapshotsScreen() {
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     if (!id) return;
     try {
@@ -116,7 +119,9 @@ export default function DematSnapshotsScreen() {
       setTotalDeposited(totals.totalDeposited);
       setTotalWithdrawn(totals.totalWithdrawn);
       setDays(stmt);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // db not ready
     }
   }, [id, selectedMonth]);
@@ -231,6 +236,7 @@ export default function DematSnapshotsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <Stack.Screen options={{ title: "Demat Account Details" }} />
 
       <KeyboardAvoidingView

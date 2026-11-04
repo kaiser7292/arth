@@ -49,6 +49,7 @@ import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { addUpiId, parseUpiIds, removeUpiId } from "@/services/account-upi";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   savings: "wallet-outline",
@@ -154,6 +155,7 @@ export default function AccountDetailScreen() {
   const [addingUpi, setAddingUpi] = useState(false);
   const [newUpi, setNewUpi] = useState("");
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     if (!accountId) return;
     try {
@@ -238,7 +240,9 @@ export default function AccountDetailScreen() {
         setDematLatestDate(latest?.snapshot_date ?? null);
         setDematSnapshotCount(count);
       }
+      setLoadFailed(false);
     } catch (e) {
+      setLoadFailed(true);
       logger.warn("account-detail load failed", e);
     } finally {
       setLoaded(true);
@@ -477,6 +481,7 @@ export default function AccountDetailScreen() {
           }}
         />
         <ScreenContainer padTop={false} keyboardAware>
+          {loadFailed && <LoadFailedBanner onRetry={loadData} />}
           {!loaded ? (
             <View className="items-center py-16">
               <ActivityIndicator color={colors.textSecondary} />
@@ -516,6 +521,7 @@ export default function AccountDetailScreen() {
         }}
       />
       <ScreenContainer padTop={false} keyboardAware>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <ScrollView
           ref={scrollRef}
           showsVerticalScrollIndicator={false}

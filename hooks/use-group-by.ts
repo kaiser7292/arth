@@ -7,12 +7,12 @@ export function useGroupBy<K extends string>(
   available: readonly K[],
   fallback: K,
 ): [K, (groupBy: K) => void] {
-  const [chosen, setChosen] = useState<Record<string, string>>({});
-  const value = (chosen[screen] ?? getGroupByPreference(screen)) as K | undefined;
+  const [, rerender] = useState(0);
+  const value = getGroupByPreference(screen) as K | undefined;
   const set = useCallback(
     (groupBy: K) => {
       setGroupByPreference(screen, groupBy);
-      setChosen((prev) => ({ ...prev, [screen]: groupBy }));
+      rerender((n) => n + 1);
     },
     [screen],
   );

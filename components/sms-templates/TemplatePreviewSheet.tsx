@@ -6,6 +6,7 @@ import { useTheme } from "@/hooks/use-theme";
 import type { BacklogMatch } from "@/services/sms/template-backlog";
 import { formatAmount } from "@/utils/format";
 import { formatDateForDisplay } from "@/utils/expense-validation";
+import { isoDate } from "@/utils/local-date";
 
 interface TemplatePreviewSheetProps {
   visible: boolean;
@@ -73,7 +74,7 @@ export function TemplatePreviewSheet({
             {matches.map((m) => {
               const ticked = !excluded.has(m.id);
               const who = m.parsed.counterpartyName || m.parsed.merchant || "—";
-              const when = m.parsed.date ?? new Date(m.smsDate).toISOString().slice(0, 10);
+              const when = m.parsed.date ?? isoDate(new Date(m.smsDate));
               return (
                 <Pressable
                   key={m.id}

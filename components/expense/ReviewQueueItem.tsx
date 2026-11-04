@@ -7,6 +7,7 @@ import { SwipeableRow, Text } from "@/components/ui";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { Expense } from "@/services/expense";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 interface ReviewQueueItemProps {
   expense: Expense;
@@ -44,7 +45,7 @@ export function ReviewQueueItem({
     : expense.date;
 
   // Check if forecast is overdue
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayIso();
   const isOverdue = isForecast && expense.due_date != null && expense.due_date < today;
 
   // Build subtitle: source badge + date

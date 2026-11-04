@@ -21,6 +21,8 @@ import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const preloaded = consumeWalletsPreload();
 
@@ -104,7 +106,8 @@ export default function WalletsScreen() {
       setSummaries(results);
   }, [month, startDate, endDate]);
 
-  useDataRefresh(loadData);
+  const guarded = useGuardedLoad(loadData);
+  useDataRefresh(guarded.load);
 
   const totalOpening = summaries.reduce((sum, s) => sum + s.opening, 0);
   const totalBalance = summaries.reduce((sum, s) => sum + s.current, 0);
@@ -115,6 +118,7 @@ export default function WalletsScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
 
       <ScrollView

@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
+import { BrokerSetupGuide } from '@/components/broker/BrokerSetupGuide';
 import { BrokerTermsCard } from '@/components/broker/BrokerTermsCard';
 import { acceptBrokerTerms, hasAcceptedBrokerTerms } from '@/services/broker-terms';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -150,6 +151,7 @@ export default function AngelConnectCredentialsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="mx-4 mt-3">
+          <BrokerSetupGuide broker="angel" connected={!!apiKey} />
 
           {/* Credentials */}
           <Card className="mb-3">
@@ -239,23 +241,6 @@ export default function AngelConnectCredentialsScreen() {
             }}
           />
 
-          {/* How to get credentials */}
-          <Card>
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
-              <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
-                How to set up SmartAPI
-              </Text>
-            </View>
-            <Text className="text-xs text-muted-foreground leading-5">
-              {'1. Go to smartapi.angelone.in and create an app\n'}
-              {'2. Copy the API Key from the app details page\n'}
-              {'3. Your Client ID is your Angel One login ID\n'}
-              {'4. In the Angel One app → Profile → Enable TOTP\n'}
-              {'5. During TOTP setup, tap "Can\'t scan?" to reveal the secret key\n'}
-              {'   Copy that 32-character string — that is your TOTP Secret'}
-            </Text>
-          </Card>
 
         </View>
       </ScrollView>

@@ -131,7 +131,7 @@ The summary card at the top of Transactions has its own breakdown, and it doesn'
 
 ### Saved views
 
-Filter a list and tap **Save view** under the bar to keep it. Your saved views are in the **Filter** screen under **Saved views**: tap one to apply it, tap the star to open Transactions with it, or delete it.
+Filter a list and tap **Save view** under the bar to keep it. Your saved views are in the **Filter** screen under **Saved views**: tap one to apply it, tap the star to open Transactions with it, or delete it. A view keeps its dates, filters, sort and grouping.
 
 ## Change the type of many credits
 

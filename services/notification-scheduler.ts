@@ -19,6 +19,8 @@ import * as BackgroundFetch from "expo-background-fetch";
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
 import { Platform } from "react-native";
+import { todayIso } from "@/utils/local-date";
+import { isoDate } from "@/utils/local-date";
 
 const LAST_SCHEDULE_SYNC_KEY = "notif_last_schedule_sync_ts";
 
@@ -95,7 +97,7 @@ export async function scheduleSmartDailyDigest(userId: string): Promise<void> {
 
       // No lower bound: a missed EMI (due_date < today) still needs the
       // digest to fire, not just ones landing in the next two days.
-      const twoDaysOut = new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0];
+      const twoDaysOut = isoDate(new Date(Date.now() + 2 * 86400000));
       const upcomingEMIs = await db.getAllAsync<{ id: string }>(
         `SELECT se.id FROM loan_schedule_entries se
          JOIN loan_accounts la ON la.id = se.loan_account_id
@@ -202,7 +204,7 @@ export async function runDailyNotificationCheck(userId: string): Promise<void> {
 // ─── Helpers ───
 
 function todayString(): string {
-  return new Date().toISOString().split("T")[0];
+  return todayIso();
 }
 
 function daysFromNow(dateStr: string): number {

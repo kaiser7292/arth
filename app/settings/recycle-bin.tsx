@@ -42,6 +42,7 @@ import type { SmartRule } from "@/services/smart-rules";
 import { getDeletedUserTemplates, restoreUserTemplate, restoreAllUserTemplates, hardDeleteUserTemplate, purgeDeletedUserTemplates } from "@/services/sms/user-sms-templates";
 import type { UserSmsTemplate } from "@/services/sms/user-sms-templates";
 import { useTheme, type Theme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 type SectionFilter = "deleted" | "rejected" | "categories" | "payment_modes" | "accounts" | "hisaab" | "credits" | "recurring" | "sms" | "vault" | "smart_rules" | "sms_templates";
 
@@ -163,6 +164,7 @@ export default function RecycleBinScreen() {
   const paymentModeMap = useMemo(() => new Map(paymentModes.map((p) => [p.id, p])), [paymentModes]);
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const [deleted, rejected, cats, pms, accts, persons, credits, recurring, sms, vault, rules, templates] = await Promise.all([
@@ -191,7 +193,9 @@ export default function RecycleBinScreen() {
       setDeletedVaultEntries(vault);
       setDeletedSmartRules(rules);
       setDeletedSmsTemplates(templates);
+      setLoadFailed(false);
     } catch (e) {
+      setLoadFailed(true);
       logger.error("Load recycle bin data failed:", e);
     }
     setLoading(false);
@@ -578,6 +582,7 @@ export default function RecycleBinScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       {/* Total summary */}
       {totalCount > 0 && (
         <View className="px-4 py-2 border-b border-border">
@@ -621,53 +626,53 @@ export default function RecycleBinScreen() {
       </View>
 
       {/* Bulk action bar per section */}
-      {activeFilter === "deleted" && <BulkBar count={deletedExpenses.length} label={`deleted expense${deletedExpenses.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "deleted" && <BulkBar count={deletedExpenses.length} label={`deleted expense${deletedExpenses.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${deletedExpenses.length} expenses?`, "Restore All", false, async () => { await restoreAllDeletedExpenses(DEFAULT_USER_ID); setDeletedExpenses([]); })}
         onPurgeAll={() => confirm("Empty All", `Permanently delete all ${deletedExpenses.length} expenses? Cannot be undone.`, "Delete All", true, async () => { await purgeOldDeletedExpenses(DEFAULT_USER_ID, 0); setDeletedExpenses([]); })}
         purgeLabel="Empty All" />}
 
-      {activeFilter === "rejected" && <BulkBar count={rejectedExpenses.length} label={`rejected expense${rejectedExpenses.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "rejected" && <BulkBar count={rejectedExpenses.length} label={`rejected expense${rejectedExpenses.length !== 1 ? "s" : ""}`}
         restoreLabel="Approve All"
         onRestoreAll={() => confirm("Approve All", `Re-approve all ${rejectedExpenses.length} expenses?`, "Approve All", false, async () => { await approveAllRejectedExpenses(DEFAULT_USER_ID); setRejectedExpenses([]); })}
         onPurgeAll={() => confirm("Delete All", `Move all rejected to recycle bin?`, "Delete All", true, async () => { await deleteAllRejectedExpenses(DEFAULT_USER_ID); setRejectedExpenses([]); loadData(); })} />}
 
-      {activeFilter === "categories" && <BulkBar count={inactiveCategories.length} label={`deleted categor${inactiveCategories.length !== 1 ? "ies" : "y"}`}
+      {!tools.narrowed && activeFilter === "categories" && <BulkBar count={inactiveCategories.length} label={`deleted categor${inactiveCategories.length !== 1 ? "ies" : "y"}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${inactiveCategories.length} categories?`, "Restore All", false, async () => { await restoreAllCategories(DEFAULT_USER_ID); setInactiveCategories([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive categories?`, "Delete All", true, async () => { await purgeAllInactiveCategories(DEFAULT_USER_ID); setInactiveCategories([]); })} />}
 
-      {activeFilter === "payment_modes" && <BulkBar count={inactivePaymentModes.length} label={`deleted payment mode${inactivePaymentModes.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "payment_modes" && <BulkBar count={inactivePaymentModes.length} label={`deleted payment mode${inactivePaymentModes.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${inactivePaymentModes.length} payment modes?`, "Restore All", false, async () => { await restoreAllPaymentModes(DEFAULT_USER_ID); setInactivePaymentModes([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive payment modes?`, "Delete All", true, async () => { await purgeAllInactivePaymentModes(DEFAULT_USER_ID); setInactivePaymentModes([]); })} />}
 
-      {activeFilter === "accounts" && <BulkBar count={inactiveAccounts.length} label={`deleted account${inactiveAccounts.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "accounts" && <BulkBar count={inactiveAccounts.length} label={`deleted account${inactiveAccounts.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${inactiveAccounts.length} accounts?`, "Restore All", false, async () => { await restoreAllAccounts(DEFAULT_USER_ID); setInactiveAccounts([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive accounts and their data?`, "Delete All", true, async () => { await purgeAllInactiveAccounts(DEFAULT_USER_ID); setInactiveAccounts([]); })} />}
 
-      {activeFilter === "hisaab" && <BulkBar count={inactivePersons.length} label={`deleted person${inactivePersons.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "hisaab" && <BulkBar count={inactivePersons.length} label={`deleted person${inactivePersons.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${inactivePersons.length} persons?`, "Restore All", false, async () => { await restoreAllPersons(DEFAULT_USER_ID); setInactivePersons([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all inactive persons and their entries?`, "Delete All", true, async () => { await purgeAllInactivePersons(DEFAULT_USER_ID); setInactivePersons([]); })} />}
 
-      {activeFilter === "credits" && <BulkBar count={deletedCredits.length} label={`deleted credit${deletedCredits.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "credits" && <BulkBar count={deletedCredits.length} label={`deleted credit${deletedCredits.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${deletedCredits.length} credits?`, "Restore All", false, async () => { await restoreAllCredits(DEFAULT_USER_ID); setDeletedCredits([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted credits?`, "Delete All", true, async () => { await purgeAllDeletedCredits(DEFAULT_USER_ID); setDeletedCredits([]); })} />}
 
-      {activeFilter === "recurring" && <BulkBar count={dismissedRecurring.length} label={`dismissed pattern${dismissedRecurring.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "recurring" && <BulkBar count={dismissedRecurring.length} label={`dismissed pattern${dismissedRecurring.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${dismissedRecurring.length} patterns?`, "Restore All", false, async () => { await restoreAllRecurring(DEFAULT_USER_ID); setDismissedRecurring([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all dismissed patterns?`, "Delete All", true, async () => { await purgeAllDismissedRecurring(DEFAULT_USER_ID); setDismissedRecurring([]); })} />}
 
-      {activeFilter === "vault" && <BulkBar count={deletedVaultEntries.length} label={`deleted vault entr${deletedVaultEntries.length !== 1 ? "ies" : "y"}`}
+      {!tools.narrowed && activeFilter === "vault" && <BulkBar count={deletedVaultEntries.length} label={`deleted vault entr${deletedVaultEntries.length !== 1 ? "ies" : "y"}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${deletedVaultEntries.length} vault entries?`, "Restore All", false, async () => { await restoreAllVaultEntries(); setDeletedVaultEntries([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all vault entries? All saved credentials will be erased.`, "Delete All", true, async () => { await purgeAllDeletedVaultEntries(); setDeletedVaultEntries([]); })} />}
 
-      {activeFilter === "smart_rules" && <BulkBar count={deletedSmartRules.length} label={`deleted rule${deletedSmartRules.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "smart_rules" && <BulkBar count={deletedSmartRules.length} label={`deleted rule${deletedSmartRules.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${deletedSmartRules.length} rules?`, "Restore All", false, async () => { await restoreAllRules(); setDeletedSmartRules([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted rules?`, "Delete All", true, async () => { await purgeDeletedRules(); setDeletedSmartRules([]); })} />}
 
-      {activeFilter === "sms_templates" && <BulkBar count={deletedSmsTemplates.length} label={`deleted template${deletedSmsTemplates.length !== 1 ? "s" : ""}`}
+      {!tools.narrowed && activeFilter === "sms_templates" && <BulkBar count={deletedSmsTemplates.length} label={`deleted template${deletedSmsTemplates.length !== 1 ? "s" : ""}`}
         onRestoreAll={() => confirm("Restore All", `Restore all ${deletedSmsTemplates.length} SMS templates?`, "Restore All", false, async () => { await restoreAllUserTemplates(); setDeletedSmsTemplates([]); })}
         onPurgeAll={() => confirm("Purge All", `Permanently delete all deleted SMS templates?`, "Delete All", true, async () => { await purgeDeletedUserTemplates(); setDeletedSmsTemplates([]); })} />}
 
-      {activeFilter === "sms" && smsRecords.length > 0 && (
+      {!tools.narrowed && activeFilter === "sms" && smsRecords.length > 0 && (
         <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
           <Text className="text-xs text-muted-foreground flex-1 mr-2">
             {smsRecords.filter((s) => s.status === "processed").length} processed

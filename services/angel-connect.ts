@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { settingsStorage } from '@/services/storage';
 import { setIntegrationCred, getAllIntegrationCreds, clearIntegrationCreds } from '@/services/integration-credentials';
 import { generateTOTP } from '@/utils/totp';
+import { angelFailureMessage } from '@/utils/angel-failure';
 
 // ─── SecureStore Keys ─────────────────────────────────────────────────────────
 const ANGEL_API_KEY = 'angel_api_key';
@@ -274,7 +275,7 @@ export async function connectAngel(
 /** Angel One's answers for an ended session. */
 const SESSION_ENDED_CODES = new Set(['AG8001', 'AG8002', 'AG8003', 'AB1010', 'AB8050', 'AB8051']);
 
-type PartResult = { ok: boolean; sessionEnded: boolean; data: any };
+type PartResult = { ok: boolean; sessionEnded: boolean; data: any; reason: string | null };
 
 async function readPart(url: string, headers: Record<string, string>): Promise<PartResult> {
   try {
@@ -284,12 +285,14 @@ async function readPart(url: string, headers: Record<string, string>): Promise<P
     try {
       json = await resp.json();
     } catch {
-      return { ok: false, sessionEnded: sessionByStatus, data: null };
+      return { ok: false, sessionEnded: sessionByStatus, data: null, reason: null };
     }
-    if (json?.status === true) return { ok: true, sessionEnded: false, data: json.data ?? null };
-    return { ok: false, sessionEnded: sessionByStatus || SESSION_ENDED_CODES.has(json?.errorcode ?? json?.errorCode), data: null };
+    if (json?.status === true) return { ok: true, sessionEnded: false, data: json.data ?? null, reason: null };
+    const code = json?.errorcode ?? json?.errorCode;
+    const reason = [json?.message, code ? `(${code})` : null].filter(Boolean).join(' ') || null;
+    return { ok: false, sessionEnded: sessionByStatus || SESSION_ENDED_CODES.has(code), data: null, reason };
   } catch {
-    return { ok: false, sessionEnded: false, data: null };
+    return { ok: false, sessionEnded: false, data: null, reason: null };
   }
 }
 
@@ -325,11 +328,7 @@ export async function syncAngelData(): Promise<AngelSyncResult> {
   }
 
   if (all().every((p) => !p.ok)) {
-    throw new Error(
-      all().some((p) => p.sessionEnded)
-        ? "Angel One didn't accept the sign-in. Check your details under Update credentials."
-        : "Couldn't reach Angel One. Your last synced data is still here. Try again in a moment.",
-    );
+    throw new Error(angelFailureMessage(all()));
   }
 
   const holdings: AngelHolding[] = parts.holdings.ok ? parts.holdings.data?.holdings ?? [] : getCachedAngelHoldings();

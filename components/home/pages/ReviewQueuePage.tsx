@@ -40,6 +40,8 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
+import { LoadFailed } from "@/components/ui/ListToolbar";
 
 type SectionFilter = "all" | "auto" | "matched" | "overdue" | "upcoming" | "duplicates" | "uncategorized";
 
@@ -130,6 +132,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const paymentModeMap = new Map(paymentModes.map((p) => [p.id, p]));
   const accountMap = new Map(accounts.map((a) => [a.id, a]));
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadItems = useCallback(async () => {
     setLoading(true);
     try {
@@ -138,7 +141,9 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       setMatchedPairs(snapshot.matchedPairs);
       setDuplicateGroups(snapshot.duplicateGroups);
       setUncategorizedItems(snapshot.uncategorized);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     } finally {
       setLoading(false);
@@ -158,7 +163,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   );
 
   // Derived lists
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayIso();
   const overdueForecasts = items.filter(
     (i) => i.nature === "forecast" && i.due_date != null && i.due_date < today,
   );
@@ -252,7 +257,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       const pair = matchedPairs.find(
         (p) => p.forecast.id === forecastId && p.realized.id === realizedId,
       );
-      await resolveMatchRealize(forecastId, realizedId, pair?.realized.date ?? new Date().toISOString().split("T")[0]);
+      await resolveMatchRealize(forecastId, realizedId, pair?.realized.date ?? todayIso());
       setMatchedPairs((prev) =>
         prev.filter((p) => !(p.forecast.id === forecastId && p.realized.id === realizedId)),
       );
@@ -652,6 +657,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   const catchUpCount = counts.auto + counts.matched + counts.duplicates + counts.uncategorized;
   const hasBottomBar = selectedUncat.size > 0;
 
+  if (loadFailed) return <LoadFailed onRetry={loadItems} />;
   if (loading && items.length === 0) {
     return (
       <View style={{ flex: 1 }}>

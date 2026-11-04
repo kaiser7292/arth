@@ -10,6 +10,8 @@ import { getAccountSummary, getActiveAccounts } from "./financial-account";
 import { getBudgetVsActual, getCurrentMonth } from "./budget";
 import { getHisaabSummary, getPersonsWithBalances } from "./hisaab";
 import { getVaultEntries } from "./vault";
+import { todayIso } from "@/utils/local-date";
+import { isoDate } from "@/utils/local-date";
 
 export interface AIDataContextOptions {
   expenses: boolean;
@@ -177,8 +179,8 @@ async function buildVaultContext(): Promise<string> {
 
   const catCounts = new Map<string, number>();
   const upcoming: { title: string; date: string }[] = [];
-  const today = new Date().toISOString().slice(0, 10);
-  const thirtyDaysLater = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const today = todayIso();
+  const thirtyDaysLater = isoDate(new Date(Date.now() + 30 * 86400000));
 
   for (const e of active) {
     catCounts.set(e.category, (catCounts.get(e.category) ?? 0) + 1);

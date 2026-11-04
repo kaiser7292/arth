@@ -93,6 +93,8 @@ import { formatAmount } from "@/utils/expense-validation";
 import { formatMonthLabel } from "@/utils/date";
 import { logger } from "@/utils/logger";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const HOME_TABS: SwipePagerPage[] = [
   { key: "overview", label: "Overview" },
@@ -238,6 +240,7 @@ export default function HomeScreen() {
     setInvestmentSummary(d.investmentSummary);
   }, []);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async (source?: "focus" | "data-version") => {
     // Search can flip this too, so pick it up on coming back.
     setAmountsHiddenState(isAmountsHidden());
@@ -259,7 +262,7 @@ export default function HomeScreen() {
     }
     const version = getDataVersion();
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayIso();
       pruneExpiredDismissals();
       const [budgets, total, pending, hisaab, overdue, forecasts, dupScan, allAccounts, ccTotals, uncatCount, reminders, matches, loansSummaryResult] = await Promise.all([
         getBudgetsForMonth(DEFAULT_USER_ID, month).catch((e) => { logger.warn("getBudgetsForMonth failed", e); return []; }),
@@ -329,7 +332,9 @@ export default function HomeScreen() {
       saveHomeSnapshot(data, version);
       setShowBackupReminder(backupReminder);
       applyHomeData(data);
+      setLoadFailed(false);
     } catch (e) {
+      setLoadFailed(true);
       logger.warn("Home loadData failed", e);
     }
     setFirstLoadDone(true);
@@ -416,6 +421,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ContextualHeader
         title="Arth · अर्थ"
         subtitle={formatMonthLabel(month, "long")}
@@ -586,7 +592,7 @@ export default function HomeScreen() {
                       >
                         {isOverdue
                           ? `Was due ${r.rule.next_due_date}`
-                          : `Due ${r.rule.next_due_date === new Date().toISOString().slice(0, 10) ? "today" : "tomorrow"}`}
+                          : `Due ${r.rule.next_due_date === todayIso() ? "today" : "tomorrow"}`}
                         {last ? ` · Last paid ${last.cycle_due_date}` : ""}
                       </Text>
                     </Pressable>

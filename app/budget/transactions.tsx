@@ -3,7 +3,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
+import { Button, GroupHeading, ListCapNote, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { bulkUpdateExpenses } from "@/services/expense-bulk";
@@ -29,13 +29,14 @@ import type { HisaabPerson } from "@/services/hisaab";
 import { buildSplitNote } from "@/utils/split-note";
 import { formatAmount } from "@/utils/format";
 import { settingsStorage } from "@/services/storage";
+import { LIST_ROW_LIMIT } from "@/utils/list-tools";
 
 const BUDGET_SORT_KEY = "budget.transactions.sortBy";
 
 
 const GROUPS: readonly ExpenseGroupBy[] = ["none", "date", "category", "merchant", "account", "payment_mode", "person"];
 const GROUPS_IN_CATEGORY: readonly ExpenseGroupBy[] = ["none", "date", "merchant", "account", "payment_mode", "person"];
-const ALL_ROWS = 5000;
+const ALL_ROWS = LIST_ROW_LIMIT;
 
 /**
  * Budget-context transaction drill-down.
@@ -76,6 +77,7 @@ export default function BudgetTransactionsScreen() {
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
     () => (settingsStorage.getString(BUDGET_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
@@ -111,6 +113,7 @@ export default function BudgetTransactionsScreen() {
     available: categoryId ? GROUPS_IN_CATEGORY : GROUPS,
     expenses,
     names: { categoryMap, accountMap, paymentModeMap },
+    refunds: refundedMap,
     sort: {
       value: sortBy,
       defaultValue: "date_desc",
@@ -182,8 +185,9 @@ export default function BudgetTransactionsScreen() {
           setPersonMap((prev) => new Map([...prev, ...persons]));
         }
         setHasMore(data.length === pageSize);
+        setLoadFailed(false);
       } catch {
-        // DB not ready
+        setLoadFailed(true);
       } finally {
         setLoading(false);
       }
@@ -309,6 +313,8 @@ export default function BudgetTransactionsScreen() {
 
         {loading ? (
           <LoadingState />
+        ) : loadFailed ? (
+          <LoadFailed onRetry={() => { setLoading(true); load(true); }} />
         ) : expenses.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
             <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
@@ -356,6 +362,7 @@ export default function BudgetTransactionsScreen() {
               />
             )}
             extraData={selecting ? selected : personMap}
+            ListFooterComponent={expenses.length >= ALL_ROWS ? <ListCapNote limit={ALL_ROWS} /> : null}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.3}
             showsVerticalScrollIndicator={false}

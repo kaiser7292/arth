@@ -18,6 +18,7 @@ import {
 import type { Tag } from "@/services/tags";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 export default function TagsSettingsScreen() {
   const alert = useAlert();
@@ -34,6 +35,7 @@ export default function TagsSettingsScreen() {
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState("");
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadTags = useCallback(async () => {
     try {
       const data = await getTags(DEFAULT_USER_ID);
@@ -43,7 +45,9 @@ export default function TagsSettingsScreen() {
         counts[tag.id] = await getTagUsageCount(tag.id);
       }
       setUsageCounts(counts);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // Database not ready
     }
   }, []);
@@ -196,6 +200,7 @@ export default function TagsSettingsScreen() {
 
   return (
     <ScreenContainer padTop={false} keyboardAware>
+      {loadFailed && <LoadFailedBanner onRetry={loadTags} />}
       {/* Count */}
       <View className="px-4 py-3">
         <Text className="text-sm text-muted-foreground">

@@ -18,6 +18,7 @@ import type { Category } from "@/services/category";
 import { countMerchantRulesForCategory } from "@/services/merchant-categories";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 export default function CategoriesScreen() {
   const theme = useTheme();
@@ -26,11 +27,14 @@ export default function CategoriesScreen() {
   const { colors } = useColorScheme();
   const [categories, setCategories] = useState<Category[]>([]);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadCategories = useCallback(async () => {
     try {
       const cats = await getAllCategories(DEFAULT_USER_ID);
       setCategories(cats);
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // Database not initialized
     }
   }, []);
@@ -246,6 +250,7 @@ export default function CategoriesScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadCategories} />}
       <FlatList
         initialNumToRender={12}
         maxToRenderPerBatch={10}

@@ -51,6 +51,7 @@ import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 import { CREDIT_KIND_LABELS, PICKABLE_CREDIT_KINDS, creditLook } from "@/services/expense-types";
 import { Rows } from "@/components/ui/Rows";
+import { isoDate } from "@/utils/local-date";
 
 /**
  * Smart-rule detail / create form. Route: /settings/smart-rules/[id]
@@ -86,7 +87,7 @@ function resolvedAccountType(
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayIso();
 }
 
 /** e.g. "FY 2025-26" — buckets reuse the same name across years, so the FY is what disambiguates them. */
@@ -99,7 +100,7 @@ function bucketFYLabel(b: { financial_year: string | null }): string | null {
 function daysAgoIso(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  return isoDate(d);
 }
 
 const FIELD_OPTIONS: { key: ConditionField; label: string }[] = (

@@ -4,6 +4,7 @@ import type { Expense, ExpenseFilters, CategoryActual, MonthlyTotal } from "./ex
 import { NOT_SET } from "./expense-types";
 import { amountPartsSql, effectiveAmountSql } from "./expense-effective-amount";
 import { creditKindsMatching } from "@/services/expense-types";
+import { isoDate } from "@/utils/local-date";
 
 /**
  * v17.0.0 / v17.4.0: SQL fragment to exclude expenses that are linked to an
@@ -341,7 +342,7 @@ export async function getPreviousPeriodTotal(
 
   const prevEndMs = startMs - 24 * 60 * 60 * 1000; // one day before current start
   const prevStartMs = prevEndMs - lengthMs;
-  const toIso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const toIso = (ms: number) => isoDate(new Date(ms));
 
   const prevFilters: ExpenseFilters = {
     ...filters,

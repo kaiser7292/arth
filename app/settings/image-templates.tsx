@@ -6,6 +6,8 @@ import { Button, Card, EmptyState, ScreenContainer, Text } from "@/components/ui
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { listImageTemplates, TEMPLATE_FIELDS, type ImageTemplate } from "@/services/receipt/image-templates";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const KIND_LABEL: Record<ImageTemplate["kind"], string> = {
   expense: "Expense",
@@ -23,11 +25,12 @@ export default function ImageTemplatesScreen() {
   const theme = useTheme();
   const [templates, setTemplates] = useState<ImageTemplate[] | null>(null);
 
-  useDataRefresh(
+  const guarded = useGuardedLoad(
     useCallback(async () => {
       setTemplates(await listImageTemplates());
     }, []),
   );
+  useDataRefresh(guarded.load);
 
   // Pick a payment picture, then link its text to the fields and save.
   const addTemplate = () => router.push({ pathname: "/expense/from-screenshot", params: { teach: "1" } });
@@ -35,6 +38,7 @@ export default function ImageTemplatesScreen() {
   if (templates && templates.length === 0) {
     return (
       <ScreenContainer padTop={false}>
+        {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
         <EmptyState
           icon="images-outline"
           title="No picture templates yet"
@@ -47,6 +51,7 @@ export default function ImageTemplatesScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <Text className="text-sm text-muted-foreground mb-3 leading-5">
           Payment picture layouts you taught Arth. A picture that matches one is read with it. Tap one to rename it, change

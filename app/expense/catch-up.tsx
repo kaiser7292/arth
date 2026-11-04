@@ -62,6 +62,7 @@ import { reconcilePresentedAlerts } from "@/services/transaction-alerts";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 /** Matches the Toast's default duration when it carries an action, so Undo never outlives the hold. */
 const UNDO_WINDOW_MS = 6000;
@@ -141,6 +142,7 @@ export default function CatchUpScreen() {
   const descriptionDraft = useRef<{ id: string; text: string } | null>(null);
 
   // ── Load once ──
+  const [loadFailed, setLoadFailed] = useState(false);
   useEffect(() => {
     (async () => {
       try {
@@ -158,7 +160,9 @@ export default function CatchUpScreen() {
         setPaymentModes(modes);
         setMerchantNames(merchants);
         setPersons(people);
+        setLoadFailed(false);
       } catch (e) {
+        setLoadFailed(true);
         logger.error("Catch up: load failed", e);
       } finally {
         setLoading(false);
@@ -755,6 +759,7 @@ export default function CatchUpScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner />}
         <LoadingState message="Getting your queue ready…" icon="albums-outline" />
       </ScreenContainer>
     );
@@ -763,6 +768,7 @@ export default function CatchUpScreen() {
   if (!card) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner />}
         <CatchUpDone
           stats={stats}
           onViewSpending={() => leaveAfterCommit(() => router.replace("/(tabs)/budget"))}
@@ -828,6 +834,7 @@ export default function CatchUpScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner />}
       <DeckProgress position={progress.position} total={progress.total} />
 
       <View className="flex-1 px-4">

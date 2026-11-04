@@ -368,7 +368,7 @@ export async function createManualAccount(params: {
       );
     }
     // Reactivate the deactivated account and update its fields
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIso();
     await db.runAsync(
       `UPDATE financial_accounts
        SET is_active = 1, account_label = ?, last_known_balance = ?, last_balance_date = ?,
@@ -386,7 +386,7 @@ export async function createManualAccount(params: {
   }
 
   const id = generateUUID();
-  const today = new Date().toISOString().split("T")[0];
+  const today = todayIso();
   await db.runAsync(
     `INSERT INTO financial_accounts
        (id, user_id, account_identifier, bank_name, account_type, account_label, discovered_from_sms, last_known_balance, last_balance_date, fund_balance, account_number)
@@ -425,7 +425,7 @@ export async function updateAccountFromSMS(
   const updates: string[] = [];
   const values: (string | number | null)[] = [];
 
-  const incomingDate = parsed.date ?? new Date().toISOString().split("T")[0];
+  const incomingDate = parsed.date ?? todayIso();
   const balanceValue = parsed.availableBalance ?? parsed.availableCreditLimit ?? null;
 
   // Guard: only overwrite balance if incoming is at least as recent as stored.
@@ -607,7 +607,7 @@ export async function updateAccountFinancials(
     updates.push("last_known_balance = ?");
     values.push(fields.last_known_balance);
     updates.push("last_balance_date = ?");
-    values.push(new Date().toISOString().split("T")[0]);
+    values.push(todayIso());
   }
   if (fields.min_balance !== undefined) {
     updates.push("min_balance = ?");
@@ -1139,7 +1139,7 @@ export async function handleCreditReceived(
   else parts.push("(Credit)");
   const description = parts.join(" ") || "SMS credit";
 
-  const date = parsed.date ?? new Date().toISOString().split("T")[0];
+  const date = parsed.date ?? todayIso();
 
   await addCredit({
     accountId,

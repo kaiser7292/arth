@@ -7,6 +7,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDatabase } from "@/database";
 import { updateItem } from "@/services/reconciliation/reconciliation-crud";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 interface ArthEntry {
   id: string;
@@ -90,7 +91,7 @@ export default function ManualLinkScreen() {
     const dir = direction as "debit" | "credit";
 
     // Pool: expenses + transfers, ±30 days from stmt date
-    const stmtDate = date ?? new Date().toISOString().slice(0, 10);
+    const stmtDate = date ?? todayIso();
     const stmtAmount = parseFloat(amount ?? "0");
     const stmtNarration = narration ?? "";
     const windowStart = new Date(new Date(stmtDate).getTime() - 30 * 86_400_000).toISOString().slice(0, 10);

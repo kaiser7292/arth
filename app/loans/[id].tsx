@@ -31,6 +31,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 const STATUS_PILL_COLOR: Record<string, "success" | "danger" | "warning" | "info"> = {
   paid: "success",
@@ -74,7 +75,7 @@ export default function LoanDetailScreen() {
     // dependent reads in parallel (was 5 serial awaits → noticeable
     // open-delay on the detail screen).
     const db = getDatabase();
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayIso();
     const [fa, scheduleRows, prepaymentRows, correctionRows, outstandingValue] =
       await Promise.all([
         db.getFirstAsync<{ bank_name: string }>(
@@ -112,7 +113,7 @@ export default function LoanDetailScreen() {
       (e) => e.status === "paid" || e.status === "prepaid",
     );
     const remaining = schedule.filter((e) => e.status === "scheduled");
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = todayIso();
     const upcoming = remaining
       .filter((e) => e.due_date >= todayStr)
       .sort((a, b) => a.due_date.localeCompare(b.due_date))[0];
@@ -238,7 +239,7 @@ export default function LoanDetailScreen() {
             reminders are cleared on load). */}
         {loan.status === "active" &&
           loan.last_sms_reminder_due_date &&
-          loan.last_sms_reminder_due_date >= new Date().toISOString().split("T")[0] && (
+          loan.last_sms_reminder_due_date >= todayIso() && (
             <View
               className="mb-3 rounded-xl px-4 py-3"
               style={{ backgroundColor: theme.alpha("primary", 0.1) }}

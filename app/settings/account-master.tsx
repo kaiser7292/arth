@@ -22,6 +22,7 @@ import {
   type InvestmentProduct,
 } from "@/services/investment-accounts";
 import { useTheme } from "@/hooks/use-theme";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const preloaded = consumeAccountsPreload();
 
@@ -81,6 +82,7 @@ export default function AccountMasterScreen() {
     [investmentProducts],
   );
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       const [accts, demats] = await Promise.all([
@@ -100,7 +102,9 @@ export default function AccountMasterScreen() {
       // filtering/labeling by type below (all three share account_type='investment').
       const investmentIds = accts.filter((a) => a.account.account_type === "investment").map((a) => a.account.id);
       setInvestmentProducts(await batchInvestmentProducts(investmentIds));
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // Database not ready
     }
   }, []);
@@ -257,6 +261,7 @@ export default function AccountMasterScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <View className="px-4 flex-1">
       {duplicateGroups > 0 && (
         <Pressable onPress={() => router.push("/settings/duplicate-accounts")} accessibilityRole="button" className="mb-3">

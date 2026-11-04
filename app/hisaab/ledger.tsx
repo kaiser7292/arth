@@ -12,7 +12,7 @@ import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, DateInput, FAB, GroupHeading, Input, ListToolbar, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, DateInput, FAB, GroupHeading, Input, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useListTools } from "@/hooks/use-list-tools";
 import { formatMonthLabel } from "@/utils/date";
 import type { ListField, ListSort } from "@/utils/list-tools";
@@ -42,6 +42,7 @@ import { ExportFormatPicker } from "@/components/hisaab/ExportFormatPicker";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { getActiveAccounts } from "@/services/financial-account";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
 
 type ViewMode = "list" | "add_entry" | "settle";
 type EntryType = "debit" | "credit";
@@ -82,6 +83,7 @@ export default function LedgerScreen() {
   const [openingBalance, setOpeningBalance] = useState(0);
   const [closingBalance, setClosingBalance] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const backToList = useCallback(() => setViewMode("list"), []);
@@ -109,7 +111,7 @@ export default function LedgerScreen() {
   const [formAmount, setFormAmount] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formDate, setFormDate] = useState(
-    new Date().toISOString().split("T")[0],
+    todayIso(),
   );
   const [formType, setFormType] = useState<EntryType>("debit");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -118,7 +120,7 @@ export default function LedgerScreen() {
   const [settleAmount, setSettleAmount] = useState("");
   const [settleDescription, setSettleDescription] = useState("");
   const [settleDate, setSettleDate] = useState(
-    new Date().toISOString().split("T")[0],
+    todayIso(),
   );
   const [settleAccountId, setSettleAccountId] = useState<string | null>(null);
   const [settleAccountLabel, setSettleAccountLabel] = useState("");
@@ -192,8 +194,9 @@ export default function LedgerScreen() {
         setOpeningBalance(0);
         setClosingBalance(0);
       }
+      setLoadFailed(false);
     } catch {
-      // DB not ready
+      setLoadFailed(true);
     }
     setLoaded(true);
   }, [personId, filterActive, appliedFrom, appliedTo]);
@@ -251,7 +254,7 @@ export default function LedgerScreen() {
 
     setSettleAmount("");
     setSettleDescription("");
-    setSettleDate(new Date().toISOString().split("T")[0]);
+    setSettleDate(todayIso());
     setSettleAccountId(null);
     setSettleAccountLabel("");
     setViewMode("list");
@@ -302,7 +305,7 @@ export default function LedgerScreen() {
   const resetForm = () => {
     setFormAmount("");
     setFormDescription("");
-    setFormDate(new Date().toISOString().split("T")[0]);
+    setFormDate(todayIso());
     setFormType("debit");
     setEditingId(null);
     setViewMode("list");
@@ -795,7 +798,9 @@ export default function LedgerScreen() {
           )}
 
           {/* Entries */}
-          {sortedEntries.length === 0 ? (
+          {loadFailed ? (
+            <LoadFailed onRetry={loadData} />
+          ) : sortedEntries.length === 0 ? (
             <Card className="mb-4">
               <View className="items-center py-4">
                 <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />

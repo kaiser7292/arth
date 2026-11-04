@@ -3,6 +3,7 @@ import { categorizeByMerchant } from "@/services/smart-categorizer";
 import { createRule, getActiveRules } from "@/services/smart-rules";
 import type { SmartRule } from "@/services/smart-rules";
 import { settingsStorage } from "@/services/storage";
+import { isoDate } from "@/utils/local-date";
 
 /**
  * "You've filed Swiggy as Food 7 times. Make it automatic?"
@@ -91,7 +92,7 @@ export function pickSuggestions(
 
 export async function getRuleSuggestions(userId: string): Promise<RuleSuggestion[]> {
   const db = getDatabase();
-  const since = new Date(Date.now() - LOOKBACK_DAYS * 86400000).toISOString().split("T")[0];
+  const since = isoDate(new Date(Date.now() - LOOKBACK_DAYS * 86400000));
   const rows = await db.getAllAsync<MerchantCategoryRow>(
     `SELECT LOWER(TRIM(merchant_name)) AS mkey, MAX(TRIM(merchant_name)) AS merchant,
             category_id, COUNT(*) AS n, SUM(amount) AS total

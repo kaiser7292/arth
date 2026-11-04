@@ -7,6 +7,8 @@ import { useAlert } from "@/hooks/use-alert";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import type { ReceiptKind } from "@/services/receipt/read-receipt";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 import {
   deleteImageTemplate,
   extractField,
@@ -42,7 +44,7 @@ export default function ImageTemplateScreen() {
   const [name, setName] = useState("");
   const [open, setOpen] = useState<TemplateField | null>(null);
 
-  useDataRefresh(
+  const guarded = useGuardedLoad(
     useCallback(async () => {
       if (!id) return;
       const found = await getImageTemplate(id);
@@ -51,10 +53,12 @@ export default function ImageTemplateScreen() {
       setLoaded(true);
     }, [id]),
   );
+  useDataRefresh(guarded.load);
 
   if (!t) {
     return (
       <ScreenContainer padTop={false}>
+        {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
         {loaded && <Text className="text-sm text-muted-foreground p-4">This template no longer exists.</Text>}
       </ScreenContainer>
     );
@@ -121,6 +125,7 @@ export default function ImageTemplateScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Card className="mb-3">
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Name</Text>

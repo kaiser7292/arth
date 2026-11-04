@@ -22,6 +22,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
+import { LoadFailed } from "@/components/ui/ListToolbar";
 
 const UNAVOIDABLE_COLOR = BRAND_COLOR;
 const DISCRETIONARY_COLOR = STATUS_COLORS.warning;
@@ -85,6 +86,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
   const colorOf = (bucket: SplitBucket) =>
     bucket === "unavoidable" ? UNAVOIDABLE_COLOR : bucket === "discretionary" ? DISCRETIONARY_COLOR : theme.mutedForeground;
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     const { startDate, endDate } = getMonthDateRange(month);
     try {
@@ -117,7 +119,9 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
           monthlyIncome,
         }),
       );
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
   }, [month]);
@@ -145,6 +149,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
   const visible = split ? ORDER.filter((b) => b !== "unclassified" || split.unclassified.spent > 0) : [];
   const discretionaryLeft = split ? split.discretionary.budget - split.discretionary.spent : 0;
 
+  if (loadFailed) return <LoadFailed onRetry={loadData} />;
   return (
     <ScrollView
       ref={scrollRef}

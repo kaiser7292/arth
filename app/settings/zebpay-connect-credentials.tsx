@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ActivityIndicator, ScrollView, TextInput, View, Pressable, Linking } from 'react-native';
+import { ActivityIndicator, ScrollView, TextInput, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Card, ScreenContainer, Text } from '@/components/ui';
+import { BrokerSetupGuide } from '@/components/broker/BrokerSetupGuide';
 import { BrokerTermsCard } from '@/components/broker/BrokerTermsCard';
 import { BrokerVaultActions } from '@/components/broker/BrokerVaultActions';
 import { acceptBrokerTerms, hasAcceptedBrokerTerms } from '@/services/broker-terms';
@@ -117,6 +118,7 @@ export default function ZebpayConnectCredentialsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="mx-4 mt-3">
+          <BrokerSetupGuide broker="zebpay" connected={hasExisting} />
 
           <Card className="mb-3">
             <View className="mb-4">
@@ -200,29 +202,6 @@ export default function ZebpayConnectCredentialsScreen() {
             }}
           />
 
-          <Card>
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="information-circle-outline" size={16} color={theme.primary} />
-              <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
-                How to get API credentials
-              </Text>
-            </View>
-            <Text className="text-xs text-muted-foreground leading-5 mb-3">
-              {'1. Go to build.zebpay.com and sign in with your Zebpay account\n'}
-              {'2. Create a new app — you will get an API Key and Secret Key\n'}
-              {'3. Copy both here and tap Connect\n\n'}
-              {'No OTP or PIN is needed — the API key identifies you directly.'}
-            </Text>
-            <Pressable
-              onPress={() => Linking.openURL('https://build.zebpay.com').catch(() => {})}
-              className="flex-row items-center"
-            >
-              <Ionicons name="open-outline" size={14} color={theme.primary} />
-              <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>
-                Open build.zebpay.com
-              </Text>
-            </Pressable>
-          </Card>
 
         </View>
       </ScrollView>

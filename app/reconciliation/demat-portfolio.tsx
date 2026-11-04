@@ -21,6 +21,8 @@ import type { DematAccountSummary, FinancialAccount } from "@/services/financial
 import { TrendLineChart } from "@/components/charts/TrendLineChart";
 import type { TrendSeries } from "@/components/charts/TrendLineChart";
 import { useTheme } from "@/hooks/use-theme";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const ACCOUNT_COLORS = [
   "#6366F1", // indigo
@@ -106,7 +108,7 @@ export default function DematPortfolioScreen() {
     setTrendSeries(seriesList);
   }, [theme.success]);
 
-  useDataRefresh(
+  const guarded = useGuardedLoad(
     useCallback(async () => {
       const [accts, sum, closed] = await Promise.all([
         getDematAccountsWithSummary(DEFAULT_USER_ID),
@@ -119,6 +121,7 @@ export default function DematPortfolioScreen() {
       await loadTrend(accts, getYearMonth(monthOffset));
     }, [monthOffset, loadTrend]),
   );
+  useDataRefresh(guarded.load);
 
   const handlePeriodBack = useCallback(async () => {
     const newOffset = monthOffset + 1;
@@ -139,6 +142,7 @@ export default function DematPortfolioScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Aggregate header card */}
         <Card className="mx-4 mt-3 mb-2">

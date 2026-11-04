@@ -3,7 +3,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, EmptyState, GroupHeading, ListToolbar, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, GroupHeading, ListCapNote, ListToolbar, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import type { GroupedRow } from "@/utils/group-rows";
@@ -35,6 +35,9 @@ import {
 } from "@/utils/budget-helpers";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { settingsStorage } from "@/services/storage";
+import { LIST_ROW_LIMIT } from "@/utils/list-tools";
+import { useGuardedLoad } from "@/hooks/use-guarded-load";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 const CATEGORY_SORT_KEY = "budget.category.sortBy";
 
@@ -88,7 +91,7 @@ export default function CategoryDetailScreen() {
     const [cat, budget, exps, summary, trendData, pms, accts] = await Promise.all([
       getCategoryById(categoryId),
       getBudget(DEFAULT_USER_ID, categoryId, selectedMonth),
-      getExpensesPaginated(DEFAULT_USER_ID, filters, 200, 0),
+      getExpensesPaginated(DEFAULT_USER_ID, filters, LIST_ROW_LIMIT, 0),
       getFilteredExpenseSummary(DEFAULT_USER_ID, filters, "category"),
       getCategoryMonthlyTrend(DEFAULT_USER_ID, categoryId, 6, initialMonth),
       getPaymentModes(DEFAULT_USER_ID),
@@ -112,7 +115,8 @@ export default function CategoryDetailScreen() {
     setAccounts(accts);
   }, [categoryId, selectedMonth, sortBy]);
 
-  useDataRefresh(loadData);
+  const guarded = useGuardedLoad(loadData);
+  useDataRefresh(guarded.load);
 
   const paymentModeMap = useMemo(() => new Map(paymentModes.map((p) => [p.id, p])), [paymentModes]);
   const accountMap = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
@@ -122,6 +126,7 @@ export default function CategoryDetailScreen() {
     available: GROUPS,
     expenses,
     names: { categoryMap: NO_CATEGORIES, accountMap, paymentModeMap },
+    refunds,
     sort: {
       value: sortBy,
       defaultValue: "date_desc",
@@ -136,6 +141,7 @@ export default function CategoryDetailScreen() {
   if (!category) {
     return (
       <ScreenContainer>
+        {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
         <LoadingState message="Loading budget..." icon="calculator-outline" />
       </ScreenContainer>
     );
@@ -174,6 +180,7 @@ export default function CategoryDetailScreen() {
   return (
     <>
     <ScreenContainer>
+      {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2 mr-2">
@@ -276,6 +283,7 @@ export default function CategoryDetailScreen() {
         data={tools.grouped}
         keyboardShouldPersistTaps="handled"
         keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
+        ListFooterComponent={expenses.length >= LIST_ROW_LIMIT ? <ListCapNote limit={LIST_ROW_LIMIT} /> : null}
         renderItem={renderExpense}
         contentContainerStyle={{ paddingBottom: 32 }}
         refreshControl={

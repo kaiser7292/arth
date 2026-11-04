@@ -62,6 +62,8 @@ Renaming a category keeps its merchant rules attached. If you hide or delete a c
 
 **Many at once:** in **Settings → Merchants**, tap **Select merchants** or press and hold one, pick the ones you want and tap **Set category**. Arth then offers to move their earlier transactions too, and you can undo it from the bar that appears.
 
+**Many at once:** in **Settings → Merchants**, press and hold a merchant to show checkboxes. Tick the ones you want, or filter the list and tap **Select all**, then tap **Set category**. Arth then offers to move their earlier transactions too, and you can undo it from the bar that appears.
+
 ## What Arth learns on its own
 
 If you change the same merchant to the same category **3 times**, Arth starts filing it that way automatically. These learned habits are listed under the **Learned** filter on the same screen; tap **Forget** to undo one. Setting a rule for a merchant replaces anything Arth learned about it.

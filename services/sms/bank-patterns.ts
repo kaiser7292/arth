@@ -8,6 +8,7 @@
  */
 
 import { detectFdEvent, extractCounterpartyName } from "./money-signals";
+import { todayIso } from "@/utils/local-date";
 
 export type TransactionType =
   | "debit"
@@ -2966,7 +2967,7 @@ export const BANK_PATTERNS: BankPattern[] = [
         /Last\s+day\s+to\s+pay\s+AIRTEL\s+POSTPAID\s+bill\s+of\s+Rs\s+([\d,.]+)\s+for\s+(\d+)/i,
       );
       if (!m) return null;
-      const today = new Date().toISOString().split("T")[0];
+      const today = todayIso();
       return {
         amount: parseAmount(m[1]),
         merchant: `Airtel Postpaid — ${m[2]}`,

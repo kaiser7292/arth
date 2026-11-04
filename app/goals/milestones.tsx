@@ -31,6 +31,8 @@ import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { MilestoneStatus } from "@/utils/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
+import { todayIso } from "@/utils/local-date";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 type ViewMode = "list" | "add_milestone";
 type DurationUnit = "years" | "months";
@@ -69,6 +71,7 @@ export default function MilestonesScreen() {
   // milestone created in this session never shows up until the app is restarted.
   const preloadUsedRef = useRef(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     // Stamp includes what is being VIEWED, not just the data version. Version alone asks
     // "has anything been written?" - and changing the period writes nothing, so the guard
@@ -102,7 +105,9 @@ export default function MilestonesScreen() {
         );
         setFyActuals(actMap);
       }
+      setLoadFailed(false);
     } catch {
+      setLoadFailed(true);
       // DB not ready
     }
     setLoaded(true);
@@ -241,7 +246,7 @@ export default function MilestonesScreen() {
     await updateLifeMilestone(m.id, {
       is_completed: nowComplete,
       completed_date: nowComplete
-        ? new Date().toISOString().split("T")[0]
+        ? todayIso()
         : null,
     });
     await loadData();
@@ -282,6 +287,7 @@ export default function MilestonesScreen() {
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Loading milestones..." icon="flag-outline" />
       </ScreenContainer>
     );
@@ -292,6 +298,7 @@ export default function MilestonesScreen() {
   if (viewMode === "add_milestone") {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <KeyboardAvoidingView
           behavior="padding"
           className="flex-1"
@@ -507,6 +514,7 @@ export default function MilestonesScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

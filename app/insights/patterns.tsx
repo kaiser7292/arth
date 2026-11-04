@@ -19,6 +19,7 @@ import { detectRecurringTransactions } from "@/services/recurring-detector";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getErrorMessage } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
+import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 /**
  * Insights → Patterns: the regular payments Arth has learned (expense_classifications) — the
@@ -36,10 +37,13 @@ export default function PatternLibraryScreen() {
   const [editing, setEditing] = useState<ExpenseClassificationRow | null>(null);
   const [rescanning, setRescanning] = useState(false);
 
+  const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
       setPatterns(await getPatternLibrary(DEFAULT_USER_ID));
+      setLoadFailed(false);
     } catch (e) {
+      setLoadFailed(true);
       logger.error("Patterns: load failed", e);
     } finally {
       setLoading(false);
@@ -95,6 +99,7 @@ export default function PatternLibraryScreen() {
   if (loading) {
     return (
       <ScreenContainer padTop={false}>
+        {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <LoadingState message="Loading patterns..." />
       </ScreenContainer>
     );
@@ -102,6 +107,7 @@ export default function PatternLibraryScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <PatternLibraryView
         patterns={patterns}
         rescanning={rescanning}

@@ -28,7 +28,7 @@ export { SectionHeader } from "./SectionHeader";
 export { SelectSheet } from "./SelectSheet";
 export { GroupHeading } from "./GroupBy";
 export { Rows, drawsOwnDivider } from "./Rows";
-export { ListToolbar } from "./ListToolbar";
+export { ListCapNote, ListToolbar, LoadFailed, LoadFailedBanner } from "./ListToolbar";
 export type { ListToolbarProps, ToolbarChip, ToolbarChoice } from "./ListToolbar";
 export type { SelectOption } from "./SelectSheet";
 export { StatusPill } from "./StatusPill";

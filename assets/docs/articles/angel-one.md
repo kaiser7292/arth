@@ -11,6 +11,9 @@ phrasings:
   - Angel One TOTP secret
   - Where do I find the Angel One API key?
   - Angel One client ID
+  - What redirect URL do I enter for Angel One?
+  - What static IP do I enter for Angel One?
+  - Primary Static IP
   - Update demat value from Angel One
   - Angel One portfolio in Arth
   - Is it safe to store my Angel One PIN?
@@ -22,7 +25,10 @@ Connect your Angel One account to see your portfolio inside Arth and save its va
 
 Arth connects with **your own** SmartAPI key. There is no shared Arth server in between.
 
-1. Go to **smartapi.angelone.in**, sign in and create an app.
+1. Go to **smartapi.angelone.in**, sign in and create an app. Angel One's form asks for:
+   - **Redirect URL:** `https://integration.souravbaid.com/angelone/callback`. Arth logs in directly, so it doesn't use this.
+   - **Primary Static IP:** your own public IPv4 address. Search "what is my IP" on your phone, or tap **Find my IP address** in Arth's setup steps. Angel One only checks it when placing orders, and Arth never places orders, so it's fine if it changes later.
+   - **Secondary Static IP:** leave blank.
 2. Copy its **API Key** (smartapi.angelone.in → Apps → your app).
 3. In the Angel One app, turn on TOTP (**Setup → Enable TOTP**) and copy the **secret key** shown - the text, not the QR code.
 

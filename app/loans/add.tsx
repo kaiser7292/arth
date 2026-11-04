@@ -21,6 +21,7 @@ import {
   getSchedule,
 } from "@/services/loan-accounts";
 import { useEffect } from "react";
+import { todayIso } from "@/utils/local-date";
 
 const LOAN_TYPES: { label: string; value: LoanType }[] = [
   { label: "Personal", value: "personal" },
@@ -649,7 +650,7 @@ export default function AddLoanScreen() {
       <CalendarModal
         visible={showDisbursementPicker}
         onClose={() => setShowDisbursementPicker(false)}
-        value={disbursementDate || new Date().toISOString().split("T")[0]}
+        value={disbursementDate || todayIso()}
         onChange={(d) => {
           setDisbursementDate(d);
           setShowDisbursementPicker(false);
@@ -666,7 +667,7 @@ export default function AddLoanScreen() {
         value={
           emiStartDate ||
           disbursementDate ||
-          new Date().toISOString().split("T")[0]
+          todayIso()
         }
         onChange={(d) => {
           setEmiStartDate(d);

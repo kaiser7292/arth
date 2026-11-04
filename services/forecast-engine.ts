@@ -15,6 +15,7 @@ import {
 } from "@/utils/forecast-engine";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { effectiveAmountSql } from "./expense-effective-amount";
+import { isoDate } from "@/utils/local-date";
 
 const NOT_RECLASSIFIED = "(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)";
 
@@ -154,7 +155,7 @@ export async function getYearEndProjection(
   const fyYear =
     now.getMonth() + 1 >= fyStartMonth ? now.getFullYear() : now.getFullYear() - 1;
   const fyStart = `${fyYear}-${String(fyStartMonth).padStart(2, "0")}-01`;
-  const today = now.toISOString().split("T")[0];
+  const today = isoDate(now);
 
   // Months elapsed in FY
   const startDate = new Date(fyStart);
