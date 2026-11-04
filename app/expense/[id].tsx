@@ -3479,14 +3479,9 @@ export default function ExpenseDetailScreen() {
           creditId={expense.id}
           amount={expense.amount}
           suggestedName={expense.merchant_name ?? ""}
-          onDone={(r) => {
+          onDone={() => {
             setWithdrawalSheetVisible(false);
-            toast(
-              r.gain > 0
-                ? `Recorded as a withdrawal, ${formatAmount(r.gain)} as gain`
-                : "Recorded as a withdrawal from your investment",
-              { tone: "success" },
-            );
+            toast("Recorded as a withdrawal from your investment", { tone: "success" });
             router.back();
           }}
           onClose={() => setWithdrawalSheetVisible(false)}

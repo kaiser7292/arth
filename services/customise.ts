@@ -64,6 +64,8 @@ const ALL_PARTS: PartId[] = [...FEATURES.map((f) => f.id), ...TABS.map((t) => t.
 
 export function resetParts(): void {
   for (const id of ALL_PARTS) settingsStorage.delete(OFF_PREFIX + id);
+  // Broker records are opt-in (services/broker-history/enabled.ts): back to off.
+  settingsStorage.delete("broker_history_on");
 }
 
 const PATH_PARTS: [string, PartId][] = [

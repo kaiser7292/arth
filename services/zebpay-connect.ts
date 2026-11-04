@@ -141,6 +141,44 @@ export async function connectZebpay(apiKey: string, secretKey: string): Promise<
   settingsStorage.set(MMKV_CONNECTED, 'true');
 }
 
+// ─── Trade history ────────────────────────────────────────────────────────────
+
+/**
+ * Executed orders for some coins, each with its fills. ZebPay's list needs a coin to ask about and
+ * documents no response fields, so this returns what comes back for the mapper to read carefully.
+ * `known` orders are skipped; `maxFillCalls` keeps one run from hammering the API.
+ */
+export async function getZebpayOrderFills(
+  symbols: string[],
+  known: Set<string>,
+  maxFillCalls = 30,
+): Promise<{ order: Record<string, unknown>; fills: Record<string, unknown>[] | null }[]> {
+  const creds = await getZebpayCredentials();
+  if (!creds) throw new Error('Not connected to Zebpay');
+  const { apiKey, secretKey } = creds;
+  const out: { order: Record<string, unknown>; fills: Record<string, unknown>[] | null }[] = [];
+  let calls = 0;
+  for (const symbol of symbols) {
+    const raw = await zebGet(apiKey, secretKey, '/api/v2/ex/orders', { symbol, pageSize: '50' }) as { items?: unknown[] } | unknown[];
+    const items = (Array.isArray(raw) ? raw : raw?.items ?? []) as Record<string, unknown>[];
+    for (const order of items) {
+      if (!(parseFloat(String(order.filled ?? 0)) > 0)) continue;
+      const orderId = String(order.orderId ?? order.id ?? '');
+      if (!orderId || known.has(orderId)) continue;
+      let fills: Record<string, unknown>[] | null = null;
+      if (calls < maxFillCalls) {
+        calls++;
+        try {
+          const f = await zebGet(apiKey, secretKey, `/api/v2/ex/orders/fills/${orderId}`) as { items?: unknown[] } | unknown[];
+          fills = (Array.isArray(f) ? f : f?.items ?? []) as Record<string, unknown>[];
+        } catch { /* the order's own average price still records it */ }
+      }
+      out.push({ order, fills });
+    }
+  }
+  return out;
+}
+
 // ─── Sync ─────────────────────────────────────────────────────────────────────
 
 export async function syncZebpayData(): Promise<ZebpaySyncResult> {

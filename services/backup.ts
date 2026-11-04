@@ -123,6 +123,12 @@ export const BACKUP_TABLES = [
   "smart_rules",
   // migration 084 — picture templates (independent table)
   "image_templates",
+  // migration 093 — broker records (independent tables)
+  "broker_trades",
+  "broker_gains",
+  "broker_money_moves",
+  "broker_capture_days",
+  "broker_report_imports",
   // v16.0.0 — cash-flow simulator. scenarios first (parent), entries after
   // (child FK scenario_id → scenarios.id ON DELETE CASCADE).
   "simulation_scenarios",

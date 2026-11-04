@@ -605,6 +605,9 @@ export async function cleanupData(
         await db.runAsync("DELETE FROM account_transfers WHERE from_account_id = ? OR to_account_id = ?;", acct.id, acct.id);
         await db.runAsync("DELETE FROM demat_portfolio_snapshots WHERE account_id = ?;", acct.id);
         await db.runAsync("DELETE FROM demat_fund_snapshots WHERE account_id = ?;", acct.id);
+        for (const table of ["broker_trades", "broker_gains", "broker_money_moves", "broker_capture_days", "broker_report_imports"]) {
+          await db.runAsync(`DELETE FROM ${table} WHERE account_id = ?;`, acct.id);
+        }
         // Unlink expenses and recurring transactions (don't delete them)
         await db.runAsync("UPDATE expenses SET account_id = NULL WHERE account_id = ?;", acct.id);
         await db.runAsync("UPDATE recurring_transactions SET account_id = NULL WHERE account_id = ?;", acct.id);

@@ -106,6 +106,8 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("year_review_music", "boolean"),
   S("duplicate_accounts_dismissed", "string"),
   S("opening_balance_banner_dismissed", "string"),
+  P("broker_reminder_off__", "boolean"),
+  S("broker_history_on", "boolean"),
   S("ignored_accounts", "string"),
   S("ignore_before_date", "string"),
   // Other stores

@@ -18,6 +18,9 @@ import { migrateInvestmentsHomeCardPreference } from "@/services/home-card-prefe
 import { removeArthAILeftovers } from "@/services/ai-removal";
 import { applyStartDate } from "@/services/start-date";
 import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
+import { syncBrokerCaptureTask } from "@/services/broker-history/background";
+import { captureAllBrokers } from "@/services/broker-history/capture";
+import { syncBrokerReminders } from "@/services/broker-history/reminders";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
 // Module scope on purpose: defines the background SMS-scan and notification-button tasks, which
 // must exist before Android wakes the app headlessly to run them.
@@ -308,6 +311,14 @@ export default function RootLayout(): React.JSX.Element {
         materialiseMaturedInvestments(DEFAULT_USER_ID).catch((e) => logger.warn("Investment maturity check failed:", e));
         syncNotifBackgroundTask().catch((e) => logger.warn("Notif background task sync failed:", e));
         syncBackupBackgroundTask().catch((e) => logger.warn("Backup background task sync failed:", e));
+        syncBrokerCaptureTask().catch((e) => logger.warn("Broker capture task sync failed:", e));
+        // Keep today's trades while they can still be fetched, a few seconds after launch so it
+        // never competes with first paint. Each broker's trouble stays its own.
+        setTimeout(() => {
+          captureAllBrokers()
+            .then(() => syncBrokerReminders())
+            .catch((e) => logger.warn("Broker capture failed:", e));
+        }, 5000);
         setupTransactionAlertCategory()
           .then(() => syncTransactionAlertTasks())
           .catch((e) => logger.warn("Transaction alert setup failed:", e));

@@ -423,6 +423,36 @@ async function kiteGet<T>(path: string, apiKey: string, accessToken: string): Pr
 }
 
 /**
+ * What can't be fetched later: today's trades (Kite's list only holds today) and today's money in and
+ * out. Fund orders go back 7 days. Holdings come along to check nothing was missed.
+ */
+export async function getKiteDayRecords(): Promise<{
+  trades: Record<string, unknown>[];
+  mfOrders: Record<string, unknown>[];
+  holdings: Record<string, unknown>[];
+  payin: number;
+  payout: number;
+}> {
+  const creds = await getKiteCredentials();
+  if (!creds?.accessToken || !creds?.apiKey) throw new Error('Not connected to Kite');
+  if (isKiteTokenExpired()) throw new Error('TOKEN_EXPIRED');
+  const { apiKey, accessToken } = creds;
+  const [trades, mfOrders, holdings, margins] = await Promise.all([
+    kiteGet<Record<string, unknown>[]>('/trades', apiKey, accessToken),
+    kiteGet<Record<string, unknown>[]>('/mf/orders', apiKey, accessToken),
+    kiteGet<Record<string, unknown>[]>('/portfolio/holdings', apiKey, accessToken),
+    kiteGet<{ equity?: { available?: { intraday_payin?: number }; utilised?: { payout?: number } } }>('/user/margins', apiKey, accessToken),
+  ]);
+  return {
+    trades: trades ?? [],
+    mfOrders: mfOrders ?? [],
+    holdings: holdings ?? [],
+    payin: margins.equity?.available?.intraday_payin ?? 0,
+    payout: margins.equity?.utilised?.payout ?? 0,
+  };
+}
+
+/**
  * Fetch holdings + margins from Kite, resolve the linked account,
  * cache results in MMKV, and return the sync result.
  *

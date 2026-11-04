@@ -207,6 +207,10 @@ export async function mergeAccounts(keepId: string, dropId: string): Promise<voi
       keepId, dropId, keepId,
     );
     await db.runAsync(`DELETE FROM account_month_balances WHERE account_id = ?;`, dropId);
+    // Broker records have no one-per-date rule: all of them simply move across.
+    for (const table of ["broker_trades", "broker_gains", "broker_money_moves", "broker_capture_days", "broker_report_imports"]) {
+      await db.runAsync(`UPDATE ${table} SET account_id = ? WHERE account_id = ?;`, keepId, dropId);
+    }
     for (const table of ["demat_portfolio_snapshots", "demat_fund_snapshots"]) {
       await db.runAsync(
         `UPDATE ${table} SET account_id = ?

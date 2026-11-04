@@ -9,6 +9,8 @@ export default function DematStackLayout() {
       screenOptions={screenOptions}
     >
       <Stack.Screen name="snapshots/[id]" options={{ title: "Demat Account Details" }} />
+      <Stack.Screen name="import" options={{ title: "Import broker report" }} />
+      <Stack.Screen name="gains" options={{ title: "Sales" }} />
     </Stack>
   );
 }

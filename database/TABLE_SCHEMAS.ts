@@ -241,6 +241,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "capital_gains_fd",
     "capital_gains_gold",
     "capital_gains_real_estate",
+    "capital_gains_crypto",
     "manual_monthly_in_hand", // 001 consolidated
     "monthly_overrides", // 003
     "salary_credit_day", // 007
@@ -1014,6 +1015,23 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "key",
     "value_enc",
     "updated_at",
+  ] as const,
+
+  // Migration 093 — broker records
+  broker_trades: [
+    "id", "account_id", "broker", "segment", "symbol", "isin", "exchange", "product", "side", "quantity",
+    "price", "trade_date", "trade_time", "order_id", "trade_id", "source", "created_at",
+  ] as const,
+  broker_gains: [
+    "id", "account_id", "broker", "symbol", "isin", "quantity", "buy_date", "sell_date", "buy_value", "sell_value",
+    "taxable", "charges", "stt", "category", "asset_class", "check_reason", "cost_override", "class_override", "created_at",
+  ] as const,
+  broker_money_moves: [
+    "id", "account_id", "broker", "move_date", "direction", "amount", "reference", "narration", "source", "created_at",
+  ] as const,
+  broker_capture_days: ["id", "account_id", "broker", "capture_date", "captured_at", "trade_count", "holdings_json"] as const,
+  broker_report_imports: [
+    "id", "account_id", "broker", "kind", "period_from", "period_to", "file_name", "row_count", "charges_total", "imported_at",
   ] as const,
 } as const;
 

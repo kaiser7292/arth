@@ -43,6 +43,8 @@ export const V15_FLAGS = {
   v17_loans_v1: true,
   /** Together, Phase 1: households (docs/HOUSEHOLD_PHASE1_DESIGN.md). Off = Settings row and Home card hidden, no sync. */
   household: true,
+  /** v4.42: broker records (services/broker-history). Off = withdrawn for everyone. On = each user still opts in, in Customise Arth. */
+  broker_history: true,
 } as const;
 
 // Type name kept generic (not "V15FlagName") since V15_FLAGS now also holds v17+ flags.

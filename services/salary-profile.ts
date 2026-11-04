@@ -34,6 +34,7 @@ export interface SalaryProfile {
   capital_gains_fd: number;
   capital_gains_gold: number;
   capital_gains_real_estate: number;
+  capital_gains_crypto: number;
   status: "draft" | "complete";
   computed_monthly_in_hand: number;
   computed_annual_tax: number;
@@ -100,6 +101,7 @@ export interface CreateSalaryProfileInput {
   capital_gains_fd?: number;
   capital_gains_gold?: number;
   capital_gains_real_estate?: number;
+  capital_gains_crypto?: number;
   status?: "draft" | "complete";
   computed_monthly_in_hand?: number;
   computed_annual_tax?: number;
@@ -153,6 +155,7 @@ export interface UpdateSalaryProfileInput {
   capital_gains_fd?: number;
   capital_gains_gold?: number;
   capital_gains_real_estate?: number;
+  capital_gains_crypto?: number;
   status?: "draft" | "complete";
   computed_monthly_in_hand?: number;
   computed_annual_tax?: number;
@@ -236,11 +239,11 @@ export async function createSalaryProfile(
       deductions_80c, deductions_80d, hra_exemption_annual, home_loan_interest, other_deductions,
       expected_capital_gains, expected_bonus, computed_monthly_in_hand, computed_annual_tax,
       status, capital_gains_equity_ltcg, capital_gains_equity_stcg, capital_gains_debt,
-      capital_gains_fd, capital_gains_gold, capital_gains_real_estate, manual_monthly_in_hand,
+      capital_gains_fd, capital_gains_gold, capital_gains_real_estate, capital_gains_crypto, manual_monthly_in_hand,
       monthly_overrides, salary_credit_day, salary_month_offset,
       gratuity_in_ctc, ctc_mode, manual_basic, manual_hra, manual_special, manual_employer_epf, manual_gratuity,
       income_type, business_scheme, business_receipts, business_digital_pct, business_expenses, business_tds_pct, business_gst_pct, side_business_enabled, rental_annual_rent, rental_municipal_tax, rental_loan_interest, business_receipt_account_ids)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     id,
     input.yearly_plan_id ?? null,
     input.financial_year ?? null,
@@ -272,6 +275,7 @@ export async function createSalaryProfile(
     input.capital_gains_fd ?? 0,
     input.capital_gains_gold ?? 0,
     input.capital_gains_real_estate ?? 0,
+    input.capital_gains_crypto ?? 0,
     input.manual_monthly_in_hand ?? 0,
     input.monthly_overrides ?? null,
     input.salary_credit_day ?? 25,
@@ -413,6 +417,10 @@ export async function updateSalaryProfile(
   if (input.capital_gains_gold !== undefined) {
     fields.push("capital_gains_gold = ?");
     values.push(input.capital_gains_gold);
+  }
+  if (input.capital_gains_crypto !== undefined) {
+    fields.push("capital_gains_crypto = ?");
+    values.push(input.capital_gains_crypto);
   }
   if (input.capital_gains_real_estate !== undefined) {
     fields.push("capital_gains_real_estate = ?");

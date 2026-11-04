@@ -4,6 +4,10 @@ import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useCustomisation } from "@/hooks/use-customisation";
 import { useTheme } from "@/hooks/use-theme";
+import { isBrokerHistoryOn, setBrokerHistoryOn } from "@/services/broker-history/enabled";
+import { syncBrokerCaptureTask } from "@/services/broker-history/background";
+import { syncBrokerReminders } from "@/services/broker-history/reminders";
+import { getFlag } from "@/services/feature-flags";
 import { FEATURES, INNER_TABS, TABS, isPartOn, setPartOn, type PartId } from "@/services/customise";
 import {
   HOME_CARDS,
@@ -99,7 +103,31 @@ export default function CustomiseScreen() {
         </Text>
 
         <Card title="Features" className="mb-4">
-          {FEATURES.map((f, i) => partRow(f, i === FEATURES.length - 1))}
+          {FEATURES.map((f, i) => partRow(f, i === FEATURES.length - 1 && !getFlag("broker_history")))}
+          {getFlag("broker_history") && (
+            <View className="flex-row items-center py-3">
+              <View className="flex-1 mr-3">
+                <Text className="text-sm font-semibold text-foreground">Broker records</Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">
+                  {isPartOn("investments")
+                    ? "Gains from broker reports and daily trade saves, in demat History and the Income Calculator. Off: just money in and out from detected transfers."
+                    : "Off with Investments"}
+                </Text>
+              </View>
+              <Switch
+                value={isBrokerHistoryOn()}
+                disabled={!isPartOn("investments")}
+                onValueChange={(v) => {
+                  setBrokerHistoryOn(v);
+                  syncBrokerCaptureTask().catch(() => {});
+                  syncBrokerReminders().catch(() => {});
+                }}
+                trackColor={trackColor}
+                thumbColor="#ffffff"
+                accessibilityLabel="Broker records"
+              />
+            </View>
+          )}
         </Card>
 
         <Card title="Bottom tabs" className="mb-4">

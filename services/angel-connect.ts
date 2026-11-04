@@ -348,6 +348,35 @@ export async function syncAngelData(): Promise<AngelSyncResult> {
   return { holdings, totalHolding, positions, orders, funds, lastSynced };
 }
 
+/**
+ * What can't be fetched later: today's trades (Angel's trade book only holds today). Holdings come
+ * along to check nothing was missed. An ended session logs in again from the saved details, once.
+ */
+export async function getAngelDayRecords(): Promise<{ trades: Record<string, unknown>[]; holdings: Record<string, unknown>[] }> {
+  const read = (apiKey: string, jwt: string) => {
+    const headers = angelHeaders(apiKey, jwt);
+    return Promise.all([
+      readPart(`${BASE_URL}/rest/secure/angelbroking/order/v1/getTradeBook`, headers),
+      readPart(`${BASE_URL}/rest/secure/angelbroking/portfolio/v1/getAllHolding`, headers),
+    ]);
+  };
+  const { apiKey, jwt } = await ensureValidToken();
+  let [trades, holdings] = await read(apiKey, jwt);
+  if (trades.sessionEnded || holdings.sessionEnded) {
+    const creds = await getAngelCredentials();
+    if (!creds) throw new Error('Angel One credentials not found. Please connect your account.');
+    await loginToAngel(creds.apiKey, creds.clientId, creds.password, creds.totpSecret);
+    const fresh = await SecureStore.getItemAsync(ANGEL_JWT_TOKEN);
+    if (!fresh) throw new Error('Login succeeded but JWT not stored');
+    [trades, holdings] = await read(creds.apiKey, fresh);
+  }
+  if (!trades.ok) throw new Error(angelFailureMessage([trades]));
+  return {
+    trades: Array.isArray(trades.data) ? trades.data : [],
+    holdings: holdings.ok ? holdings.data?.holdings ?? [] : [],
+  };
+}
+
 // ─── Cached Getters ───────────────────────────────────────────────────────────
 
 export function getCachedAngelHoldings(): AngelHolding[] {

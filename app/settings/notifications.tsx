@@ -8,6 +8,9 @@
 import { useState, useCallback } from "react";
 
 import { View, Switch, ScrollView } from "react-native";
+import { isBrokerHistoryOn } from "@/services/broker-history/enabled";
+import { isBrokerReminderOn, setBrokerReminderOn, syncBrokerReminders } from "@/services/broker-history/reminders";
+import type { ApiBroker } from "@/services/broker-history/types";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useAlert } from "@/hooks/use-alert";
 import { Card, ScreenContainer, Text } from "@/components/ui";
@@ -192,6 +195,17 @@ export default function NotificationPreferencesScreen() {
           />
         </Card>
 
+        {isBrokerHistoryOn() && (
+          <>
+            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mx-4 mb-2">Save today's trades</Text>
+            <Card className="mx-4 mb-3">
+              {BROKER_REMINDERS.map((b, i) => (
+                <BrokerReminderRow key={b.broker} broker={b.broker} title={b.title} subtitle={b.subtitle} lastRow={i === BROKER_REMINDERS.length - 1} />
+              ))}
+            </Card>
+          </>
+        )}
+
         <View className="mx-4 px-3 py-2.5 rounded-xl" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
           <Text className="text-xs text-muted-foreground">
             The daily digest fires at 9:10 AM via a system alarm — it works even when the app is closed. Content reflects your data as of the last time Arth was open. No notification is sent if nothing needs your attention.
@@ -203,3 +217,32 @@ export default function NotificationPreferencesScreen() {
 }
 
 drawsOwnDivider(NotifToggle);
+
+const BROKER_REMINDERS: { broker: ApiBroker; title: string; subtitle: string }[] = [
+  { broker: "kite", title: "Zerodha", subtitle: "8 PM on weekdays if today isn't saved. Zerodha needs a login each day" },
+  { broker: "angel", title: "Angel One", subtitle: "8 PM on weekdays if today isn't saved" },
+  { broker: "zebpay", title: "Zebpay", subtitle: "8 PM on weekdays if today isn't saved" },
+];
+
+/** Each broker's reminder has its own switch: turning one off leaves the others alone. */
+function BrokerReminderRow({ broker, title, subtitle, lastRow }: { broker: ApiBroker; title: string; subtitle: string; lastRow: boolean }) {
+  const [on, setOn] = useState(() => isBrokerReminderOn(broker));
+  return (
+    <View className={`flex-row items-center py-3 ${lastRow ? "" : "border-b border-border"}`}>
+      <View className="flex-1 mr-3">
+        <Text className="text-sm font-semibold text-foreground">{title}</Text>
+        <Text className="text-xs text-muted-foreground mt-0.5">{subtitle}</Text>
+      </View>
+      <Switch
+        value={on}
+        onValueChange={(v) => {
+          setOn(v);
+          setBrokerReminderOn(broker, v);
+          syncBrokerReminders().catch(() => {});
+        }}
+        accessibilityLabel={`${title} reminder`}
+      />
+    </View>
+  );
+}
+drawsOwnDivider(BrokerReminderRow);

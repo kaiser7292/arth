@@ -154,6 +154,8 @@ export interface AdditionalIncomeProps {
   cgGold: string;
   onCgGoldChange: (v: string) => void;
   cgRealEstate: string;
+  cgCrypto: string;
+  onCgCryptoChange: (value: string) => void;
   onCgRealEstateChange: (v: string) => void;
   capitalGainsTaxResult: CapitalGainsTaxResult | null;
   additionalIncomeNet: number;
@@ -176,6 +178,8 @@ export function AdditionalIncome({
   cgGold,
   onCgGoldChange,
   cgRealEstate,
+  cgCrypto,
+  onCgCryptoChange,
   onCgRealEstateChange,
   capitalGainsTaxResult,
   additionalIncomeNet,
@@ -279,6 +283,14 @@ export function AdditionalIncome({
             label="Real Estate LTCG (12.5%)"
             value={cgRealEstate}
             onChangeText={onCgRealEstateChange}
+            keyboardType="numeric" formula
+            placeholder="0"
+            containerClassName="mb-2"
+          />
+          <Input
+            label="Crypto gains (30%)"
+            value={cgCrypto}
+            onChangeText={onCgCryptoChange}
             keyboardType="numeric" formula
             placeholder="0"
             containerClassName="mb-1"

@@ -51,6 +51,7 @@ export async function syncBroker(broker: SyncBroker): Promise<BrokerSyncResult> 
       const r = await syncKiteData();
       if (!r.linkedAccountId) return { broker, status: "needs_account" };
       const saved = await saveBrokerSnapshot(r.linkedAccountId, r.portfolioTotal, r.fundsAvailable);
+      await alsoSaveTrades(broker);
       return { broker, status: "saved", ...saved };
     }
 
@@ -64,11 +65,13 @@ export async function syncBroker(broker: SyncBroker): Promise<BrokerSyncResult> 
         return { broker, status: "failed", message: "Angel One didn't send your portfolio total. Try again in a moment." };
       }
       const saved = await saveBrokerSnapshot(accountId, money(r.totalHolding?.totalholdingvalue), money(r.funds?.availablecash ?? r.funds?.net));
+      await alsoSaveTrades(broker);
       return { broker, status: "saved", ...saved };
     }
 
     const r = await syncZebpayData();
     const saved = await saveBrokerSnapshot(accountId, r.totalInr, r.inrBalance);
+    await alsoSaveTrades(broker);
     return { broker, status: "saved", ...saved };
   } catch (e) {
     const message = e instanceof Error && e.message ? e.message : "Couldn't sync.";
@@ -76,6 +79,18 @@ export async function syncBroker(broker: SyncBroker): Promise<BrokerSyncResult> 
     if (broker === "kite" && looksLikeExpiredLogin(message)) return { broker, status: "needs_login" };
     if (message.includes("NativeDatabase")) return { broker, status: "failed", message: "Fetched, but couldn't save it. Sync again." };
     return { broker, status: "failed", message };
+  }
+}
+
+/** A sync is also a chance to keep today's trades. Never in the way of the sync itself. */
+async function alsoSaveTrades(broker: SyncBroker): Promise<void> {
+  try {
+    const { captureBroker } = await import("@/services/broker-history/capture");
+    const { syncBrokerReminders } = await import("@/services/broker-history/reminders");
+    await captureBroker(broker);
+    await syncBrokerReminders();
+  } catch {
+    // The day can still be filled from a report.
   }
 }
 
