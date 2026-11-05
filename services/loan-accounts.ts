@@ -24,6 +24,7 @@ import {
     type Prepayment,
     type ScheduleEntry,
 } from "@/services/loan-engine";
+import { effectiveAmountSql } from "@/services/expense-effective-amount";
 import { bumpDataVersion } from "@/services/settings";
 import { logger } from "@/utils/logger";
 import { generateUUID } from "@/utils/uuid";
@@ -372,6 +373,46 @@ export async function getLoanByFinancialAccountId(
     "SELECT * FROM loan_accounts WHERE financial_account_id = ?;",
     financialAccountId,
   );
+}
+
+/**
+ * Debt servicing for a date range (usually a month), for the Budget tab: EMIs and prepayments paid
+ * (expenses linked to a loan) and EMIs due by the schedule. Rupee loans only, like the Yearly Plan.
+ * Neither counts against the budget; this shows them next to it.
+ */
+export async function getDebtServicing(
+  userId: string,
+  startDate: string,
+  endDate: string,
+): Promise<{ paid: number; due: number }> {
+  const db = getDatabase();
+  const [paid, due] = await Promise.all([
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT SUM(${effectiveAmountSql("e")}) AS total
+       FROM expenses e
+       JOIN expense_loan_links ll ON ll.expense_id = e.id
+       JOIN loan_accounts la ON la.id = ll.loan_account_id
+       WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND e.deleted_at IS NULL
+         AND COALESCE(la.currency, 'INR') = 'INR'
+         AND e.date >= ? AND e.date <= ?;`,
+      userId,
+      startDate,
+      endDate,
+    ),
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT SUM(se.emi_amount) AS total
+       FROM loan_schedule_entries se
+       JOIN loan_accounts la ON la.id = se.loan_account_id
+       JOIN financial_accounts fa ON fa.id = la.financial_account_id
+       WHERE fa.user_id = ? AND COALESCE(la.currency, 'INR') = 'INR'
+         AND (la.status = 'active' OR se.status = 'paid')
+         AND se.due_date >= ? AND se.due_date <= ?;`,
+      userId,
+      startDate,
+      endDate,
+    ),
+  ]);
+  return { paid: paid?.total ?? 0, due: due?.total ?? 0 };
 }
 
 export async function listActiveLoans(userId: string): Promise<LoanAccount[]> {

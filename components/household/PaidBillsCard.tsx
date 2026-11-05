@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 import { Card, Sheet, Text, useToast } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
@@ -28,52 +29,95 @@ const accountName = (a: FinancialAccount) =>
   `${a.bank_name} ${a.account_identifier ? `••${a.account_identifier.slice(-4)}` : ""}`.trim();
 
 /**
- * "You paid these": bills others in the household recorded as paid by me that Arth couldn't match
- * to one of my transactions by itself. Each asks where the money came from: one of my transactions,
- * an account (Arth adds the transaction), or nowhere I track (Hisaab only). Hidden when there are none.
+ * Together's nudge for bills others in the household recorded as paid by me that Arth couldn't match
+ * to one of my transactions by itself. The bills themselves are on Shared Transactions (as "owes
+ * you" rows), so this is one line that opens that list filtered to them. Hidden when there are none.
  */
-export function PaidBillsCard({
+export function PaidBillsNudge({
   household,
   reloadKey,
 }: {
   household: Household;
   reloadKey?: unknown;
 }) {
+  const router = useRouter();
+  const theme = useTheme();
+  const [bills, setBills] = useState<PaidBill[]>([]);
+
+  useEffect(() => {
+    getUnfiledPaidBills(household).then(setBills).catch(() => setBills([]));
+  }, [household, reloadKey]);
+
+  if (bills.length === 0) return null;
+  const n = bills.length;
+  return (
+    <Pressable
+      onPress={() =>
+        router.push({
+          pathname: "/together/transactions",
+          // Newest first, so this opens on the month of the latest one.
+          params: { month: bills[0].date.slice(0, 7), needsAccount: "1" },
+        })
+      }
+      accessibilityRole="button"
+      accessibilityLabel={`${n} ${n === 1 ? "bill" : "bills"} you paid need an account`}
+    >
+      <Card className="mb-3">
+        <View className="flex-row items-center">
+          <Ionicons name="wallet-outline" size={18} color={theme.warning} />
+          <View className="flex-1 ml-2 mr-2">
+            <Text className="text-sm text-foreground">
+              {n} {n === 1 ? "bill" : "bills"} you paid {n === 1 ? "needs" : "need"} an account
+            </Text>
+            <Text className="text-xs text-muted-foreground mt-0.5">
+              Say where the money came from, so your account and budget match.
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+        </View>
+      </Card>
+    </Pressable>
+  );
+}
+
+/**
+ * "Where did it come from?" for one bill someone else recorded as paid by me: one of my
+ * transactions, an account (Arth adds the transaction), or nowhere I track (Hisaab only).
+ */
+export function PaidBillSheet({
+  bill,
+  onClose,
+  onDone,
+}: {
+  bill: PaidBill | null;
+  onClose: () => void;
+  onDone?: () => void;
+}) {
   const theme = useTheme();
   const toast = useToast();
-  const [bills, setBills] = useState<PaidBill[]>([]);
-  const [open, setOpen] = useState<PaidBill | null>(null);
   const [candidates, setCandidates] = useState<PaidBillCandidate[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [showAccounts, setShowAccounts] = useState(false);
 
-  const load = useCallback(async () => {
-    setBills(await getUnfiledPaidBills(household).catch(() => []));
-  }, [household]);
   useEffect(() => {
-    void load();
-  }, [load, reloadKey]);
-
-  const openBill = async (b: PaidBill) => {
-    setOpen(b);
+    if (!bill) return;
     setShowAccounts(false);
-    setCandidates(await candidatesFor(b).catch(() => []));
-    setAccounts(await getActiveAccounts(DEFAULT_USER_ID).catch(() => []));
-  };
+    setCandidates([]);
+    candidatesFor(bill).then(setCandidates).catch(() => setCandidates([]));
+    getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => setAccounts([]));
+  }, [bill]);
 
   const done = async (what: () => Promise<unknown> | void, message: string) => {
     try {
       await what();
-      setOpen(null);
+      onClose();
       toast(message);
       requestSync(1000);
-      await load();
+      onDone?.();
     } catch (e) {
       toast(formatError("Bill", e), { tone: "danger" });
     }
   };
-
-  if (bills.length === 0) return null;
 
   const Row = ({
     icon,
@@ -107,167 +151,129 @@ export function PaidBillsCard({
   );
 
   return (
-    <>
-      <Card className="mb-3">
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-          You paid these
-        </Text>
-        <Text className="text-xs text-muted-foreground mb-1 leading-4">
-          Bills others recorded as paid by you. Say where the money came from,
-          so your account and budget match.
-        </Text>
-        {bills.map((b) => (
-          <Pressable
-            key={b.ref}
-            onPress={() => void openBill(b)}
-            className="flex-row items-center py-2.5 border-b border-border"
-            accessibilityRole="button"
-          >
-            <View className="flex-1 mr-2">
-              <Text className="text-sm text-foreground" numberOfLines={1}>
-                {b.merchant || b.category || "Bill"}
+    <Sheet visible={!!bill} onClose={onClose}>
+      {bill && (
+        <>
+          <View className="flex-row items-start justify-between px-5 pb-2">
+            <View className="flex-1 mr-3">
+              <Text className="text-heading font-bold text-foreground">
+                Where did it come from?
               </Text>
-              <Text className="text-xs text-muted-foreground">
-                {formatDateShort(b.date)} · {b.from} owes you{" "}
-                {formatAmount(b.owed)}
+              <Text className="text-xs text-muted-foreground mt-1">
+                {bill.merchant || "Bill"} · {formatAmount(bill.bill)} ·{" "}
+                {formatDateShort(bill.date)}. {bill.from} owes you{" "}
+                {formatAmount(bill.owed)}.
               </Text>
             </View>
-            <Text className="text-sm font-semibold text-foreground mr-1">
-              {formatAmount(b.bill)}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={14}
-              color={theme.mutedForeground}
-            />
-          </Pressable>
-        ))}
-      </Card>
-
-      <Sheet visible={!!open} onClose={() => setOpen(null)}>
-        {open && (
-          <>
-            <View className="flex-row items-start justify-between px-5 pb-2">
-              <View className="flex-1 mr-3">
-                <Text className="text-heading font-bold text-foreground">
-                  Where did it come from?
-                </Text>
-                <Text className="text-xs text-muted-foreground mt-1">
-                  {open.merchant || "Bill"} · {formatAmount(open.bill)} ·{" "}
-                  {formatDateShort(open.date)}. {open.from} owes you{" "}
-                  {formatAmount(open.owed)}.
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setOpen(null)}
-                hitSlop={8}
-                accessibilityLabel="Close"
-              >
-                <Ionicons
-                  name="close"
-                  size={20}
-                  color={theme.mutedForeground}
-                />
-              </Pressable>
-            </View>
-            <ScrollView
-              style={{ flexShrink: 1 }}
-              contentContainerStyle={{ paddingBottom: 16 }}
+            <Pressable
+              onPress={onClose}
+              hitSlop={8}
+              accessibilityLabel="Close"
             >
-              {!showAccounts ? (
-                <>
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 pt-3 pb-1">
-                    Your transactions for {formatAmount(open.bill)}
+              <Ionicons
+                name="close"
+                size={20}
+                color={theme.mutedForeground}
+              />
+            </Pressable>
+          </View>
+          <ScrollView
+            style={{ flexShrink: 1 }}
+            contentContainerStyle={{ paddingBottom: 16 }}
+          >
+            {!showAccounts ? (
+              <>
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 pt-3 pb-1">
+                  Your transactions for {formatAmount(bill.bill)}
+                </Text>
+                {candidates.length === 0 && (
+                  <Text className="text-sm text-muted-foreground px-5 py-2">
+                    None within 10 days of {formatDateShort(bill.date)}.
                   </Text>
-                  {candidates.length === 0 && (
-                    <Text className="text-sm text-muted-foreground px-5 py-2">
-                      None within 10 days of {formatDateShort(open.date)}.
-                    </Text>
-                  )}
-                  {candidates.map((c) => (
-                    <Row
-                      key={c.id}
-                      icon="receipt-outline"
-                      title={c.merchant || c.description || "Transaction"}
-                      sub={[formatDateShort(c.date), c.account]
-                        .filter(Boolean)
-                        .join(" · ")}
-                      onPress={() =>
-                        void done(
-                          () => fileWithExpense(open, c.id),
-                          `Split with ${open.from}`,
-                        )
-                      }
-                    />
-                  ))}
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 pt-4 pb-1">
-                    Not there?
-                  </Text>
+                )}
+                {candidates.map((c) => (
                   <Row
-                    icon="wallet-outline"
-                    title="Pick the account it was paid from"
-                    sub="Arth adds the transaction"
-                    onPress={() => setShowAccounts(true)}
-                  />
-                  <Row
-                    icon="book-outline"
-                    title="Keep it in Hisaab only"
-                    sub="Paid in a way you don't track"
+                    key={c.id}
+                    icon="receipt-outline"
+                    title={c.merchant || c.description || "Transaction"}
+                    sub={[formatDateShort(c.date), c.account]
+                      .filter(Boolean)
+                      .join(" · ")}
                     onPress={() =>
-                      void done(() => skipPaidBill(open), "Kept in Hisaab only")
+                      void done(
+                        () => fileWithExpense(bill, c.id),
+                        `Split with ${bill.from}`,
+                      )
                     }
                   />
-                </>
-              ) : (
-                <>
-                  <Pressable
-                    onPress={() => setShowAccounts(false)}
-                    className="flex-row items-center px-5 py-2"
-                    accessibilityRole="button"
+                ))}
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 pt-4 pb-1">
+                  Not there?
+                </Text>
+                <Row
+                  icon="wallet-outline"
+                  title="Pick the account it was paid from"
+                  sub="Arth adds the transaction"
+                  onPress={() => setShowAccounts(true)}
+                />
+                <Row
+                  icon="book-outline"
+                  title="Keep it in Hisaab only"
+                  sub="Paid in a way you don't track"
+                  onPress={() =>
+                    void done(() => skipPaidBill(bill), "Kept in Hisaab only")
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <Pressable
+                  onPress={() => setShowAccounts(false)}
+                  className="flex-row items-center px-5 py-2"
+                  accessibilityRole="button"
+                >
+                  <Ionicons
+                    name="chevron-back"
+                    size={16}
+                    color={theme.primary}
+                  />
+                  <Text
+                    className="text-sm ml-1"
+                    style={{ color: theme.primary }}
                   >
-                    <Ionicons
-                      name="chevron-back"
-                      size={16}
-                      color={theme.primary}
-                    />
-                    <Text
-                      className="text-sm ml-1"
-                      style={{ color: theme.primary }}
-                    >
-                      Transactions
-                    </Text>
-                  </Pressable>
-                  {accounts.length === 0 && (
-                    <Text className="text-sm text-muted-foreground px-5 py-2">
-                      No accounts yet.
-                    </Text>
-                  )}
-                  {accounts.map((a) => (
-                    <Row
-                      key={a.id}
-                      icon={
-                        a.account_type === "credit_card"
-                          ? "card-outline"
-                          : a.account_type === "wallet"
-                            ? "wallet-outline"
-                            : "business-outline"
-                      }
-                      title={accountName(a)}
-                      sub={a.account_type.replace("_", " ")}
-                      onPress={() =>
-                        void done(
-                          () => fileToAccount(open, a.id),
-                          `Added to ${accountName(a)}`,
-                        )
-                      }
-                    />
-                  ))}
-                </>
-              )}
-            </ScrollView>
-          </>
-        )}
-      </Sheet>
-    </>
-  );
+                    Transactions
+                  </Text>
+                </Pressable>
+                {accounts.length === 0 && (
+                  <Text className="text-sm text-muted-foreground px-5 py-2">
+                    No accounts yet.
+                  </Text>
+                )}
+                {accounts.map((a) => (
+                  <Row
+                    key={a.id}
+                    icon={
+                      a.account_type === "credit_card"
+                        ? "card-outline"
+                        : a.account_type === "wallet"
+                          ? "wallet-outline"
+                          : "business-outline"
+                    }
+                    title={accountName(a)}
+                    sub={a.account_type.replace("_", " ")}
+                    onPress={() =>
+                      void done(
+                        () => fileToAccount(bill, a.id),
+                        `Added to ${accountName(a)}`,
+                      )
+                    }
+                  />
+                ))}
+              </>
+            )}
+          </ScrollView>
+        </>
+      )}
+    </Sheet>
+);
 }

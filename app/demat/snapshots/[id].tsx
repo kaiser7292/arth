@@ -29,7 +29,7 @@ import { todayIso } from "@/utils/local-date";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 import { HoldingsTotals, PortfolioNoMatches, PortfolioSearchSort, PortfolioSection, usePortfolioView } from "@/components/portfolio/PortfolioList";
 import { BROKER_SCREENS, getHoldingsForAccount, type AccountHoldings } from "@/services/demat-holdings";
-import { formatDisplayDate } from "@/utils/date";
+import { formatAsOf, formatDisplayDate } from "@/utils/date";
 import { HistoryTab } from "@/components/demat/HistoryTab";
 import { SimpleMoneyTab } from "@/components/demat/SimpleMoneyTab";
 import { isBrokerHistoryOn } from "@/services/broker-history/enabled";
@@ -128,7 +128,7 @@ export default function DematSnapshotsScreen() {
       ]);
       setAccount(acct);
       setLatestPortfolio(latest?.portfolio_value ?? null);
-      setLatestDate(latest?.snapshot_date ?? null);
+      setLatestDate(latest ? formatAsOf(latest.snapshot_date, latest.updated_at) : null);
       setLatestFund(latestF?.fund_value ?? null);
       setSnapshots(snaps);
       setFundSnapshots(funds);
@@ -307,7 +307,7 @@ export default function DematSnapshotsScreen() {
             </View>
             {latestDate && (
               <Text className="text-label text-faint-foreground mt-1 mb-3">
-                As of {formatSnapshotDate(latestDate)}
+                As of {latestDate}
               </Text>
             )}
 

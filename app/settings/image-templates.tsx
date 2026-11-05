@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, EmptyState, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { listImageTemplates, TEMPLATE_FIELDS, type ImageTemplate } from "@/services/receipt/image-templates";
@@ -52,12 +52,11 @@ export default function ImageTemplatesScreen() {
   return (
     <ScreenContainer padTop={false}>
       {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
         <Text className="text-sm text-muted-foreground mb-3 leading-5">
           Payment picture layouts you taught Arth. A picture that matches one is read with it. Tap one to rename it, change
           its fields or delete it.
         </Text>
-        <Button title="Add a template" variant="outline" onPress={addTemplate} className="mb-4" />
         {(templates ?? []).map((t) => (
           <Pressable
             key={t.id}
@@ -88,6 +87,7 @@ export default function ImageTemplatesScreen() {
           </Pressable>
         ))}
       </ScrollView>
+      <FAB icon="add" onPress={addTemplate} accessibilityLabel="Add a template" />
     </ScreenContainer>
   );
 }

@@ -5,6 +5,8 @@ import { GroupHeading, ListToolbar, Money, PeriodNavigator, ScreenContainer, Tex
 import { FilterSummaryCard } from "@/components/expense/FilterSummaryCard";
 import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
 import { StatementRowDetail, StatementRowItem } from "@/components/household/StatementList";
+import { PaidBillSheet } from "@/components/household/PaidBillsCard";
+import { getUnfiledPaidBills, type PaidBill } from "@/services/household/paid-bills";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useGroupBy } from "@/hooks/use-group-by";
@@ -33,6 +35,9 @@ const KINDS: { id: StatementKind; label: string }[] = [
   { id: "settle", label: "Settle-ups" },
   { id: "personal", label: "Personal" },
 ];
+/** A "Show" choice of its own: bills others say I paid, still waiting for me to say where from. */
+const NEEDS_ACCOUNT = "needs_account";
+
 const GROUP_BYS: readonly StatementGroupBy[] = ["category", "member", "merchant"];
 const GROUP_LABELS: Record<StatementGroupBy, string> = { category: "Category", member: "Paid by", merchant: "Merchant" };
 const LIST_GROUPS: readonly StatementListBy[] = ["date", "category", "member", "merchant", "kind"];
@@ -69,12 +74,16 @@ const monthBefore = (month: string) => {
  */
 export default function TogetherTransactionsScreen() {
   const toast = useToast();
-  const params = useLocalSearchParams<{ month?: string; member?: string; category?: string }>();
+  const params = useLocalSearchParams<{ month?: string; member?: string; category?: string; needsAccount?: string }>();
   const [month, setMonth] = useState(params.month ?? thisMonth());
   const [members, setMembers] = useState<string[]>(params.member ? [params.member] : []);
   const [categories, setCategories] = useState<string[]>(params.category ? [params.category] : []);
   const [merchants, setMerchants] = useState<string[]>([]);
   const [kinds, setKinds] = useState<StatementKind[]>([]);
+  const [needsAccount, setNeedsAccount] = useState(params.needsAccount === "1");
+  /** Unfiled paid bills by statement row id. */
+  const [unfiled, setUnfiled] = useState<Map<string, PaidBill>>(new Map());
+  const [filing, setFiling] = useState<PaidBill | null>(null);
   const [query, setQuery] = useState("");
   const [groupBy, setGroupBy] = useState<StatementGroupBy>("category");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -86,7 +95,14 @@ export default function TogetherTransactionsScreen() {
 
   useDataRefresh(
     useCallback(async () => {
-      setS(await getStatement(month));
+      const st = await getStatement(month);
+      setS(st);
+      if (st) {
+        // A bill's ref is "<household>:<item>", and the item id is the row's id.
+        getUnfiledPaidBills(st.household)
+          .then((bills) => setUnfiled(new Map(bills.map((b) => [b.ref.slice(st.household.id.length + 1), b]))))
+          .catch(() => setUnfiled(new Map()));
+      }
       // Only the trend line and icons depend on these, so neither can stop the list loading.
       getStatement(monthBefore(month)).then(setPrevious).catch(() => setPrevious(null));
       getCategories(DEFAULT_USER_ID).then(setMyCategories).catch(() => {});
@@ -115,8 +131,9 @@ export default function TogetherTransactionsScreen() {
       amount_desc: (a, b) => (listBy === "date" ? byDate(a, b) : 0) || b.paid - a.paid,
       amount_asc: (a, b) => (listBy === "date" ? byDate(a, b) : 0) || a.paid - b.paid,
     };
-    return [...filterStatementRows(s?.rows ?? [], filters)].sort(compare[sortBy]);
-  }, [s, filters, sortBy, listBy]);
+    const shown = filterStatementRows(s?.rows ?? [], filters).filter((r) => !needsAccount || unfiled.has(r.id));
+    return shown.sort(compare[sortBy]);
+  }, [s, filters, sortBy, listBy, needsAccount, unfiled]);
   const summary = useMemo(() => summarizeStatement(rows, groupBy), [rows, groupBy]);
   const previousTotal = useMemo(() => (previous ? statementTotal(filterStatementRows(previous.rows, filters)) : null), [previous, filters]);
 
@@ -149,10 +166,12 @@ export default function TogetherTransactionsScreen() {
     setCategories([]);
     setMerchants([]);
     setKinds([]);
+    setNeedsAccount(false);
   };
 
   const active: { key: string; label: string; remove: () => void }[] = [
     ...members.map((id) => ({ key: `m-${id}`, label: nameOf(id), remove: () => setMembers((p) => p.filter((x) => x !== id)) })),
+    ...(needsAccount ? [{ key: "needs-account", label: "Needs an account", remove: () => setNeedsAccount(false) }] : []),
     ...kinds.map((id) => ({ key: `k-${id}`, label: KINDS.find((k) => k.id === id)?.label ?? id, remove: () => setKinds((p) => p.filter((x) => x !== id)) })),
     ...categories.map((id) => ({
       key: `c-${id}`,
@@ -182,9 +201,11 @@ export default function TogetherTransactionsScreen() {
         return <GroupHeading label={item.label} count={item.count} total={-item.total} />;
       }
       const category = categoryLook(item.row.look, item.row.category, myCategories);
-      return <StatementRowItem row={item.row} myMemberId={me} category={category} onView={setViewing} />;
+      return (
+        <StatementRowItem row={item.row} myMemberId={me} category={category} needsAccount={unfiled.has(item.row.id)} onView={setViewing} />
+      );
     },
-    [myCategories, me],
+    [myCategories, me, unfiled],
   );
 
   return (
@@ -236,13 +257,35 @@ export default function TogetherTransactionsScreen() {
         }
       />
 
-      <StatementRowDetail row={viewing} myMemberId={me} onClose={() => setViewing(null)} />
+      <StatementRowDetail
+        row={viewing}
+        myMemberId={me}
+        action={
+          viewing && unfiled.has(viewing.id)
+            ? {
+                label: "Where did the money come from?",
+                onPress: () => {
+                  setFiling(unfiled.get(viewing.id) ?? null);
+                  setViewing(null);
+                },
+              }
+            : null
+        }
+        onClose={() => setViewing(null)}
+      />
+      <PaidBillSheet bill={filing} onClose={() => setFiling(null)} />
 
       <FullScreenFilter
         visible={filtersOpen}
         sections={[
           { key: "member", label: "Paid by", type: "multi", options: (s?.members ?? []).map((m) => ({ id: m.id, label: nameOf(m.id) })), selectedIds: members },
-          { key: "kind", label: "Show", type: "multi", options: KINDS, selectedIds: kinds },
+          {
+            key: "kind",
+            label: "Show",
+            type: "multi",
+            options: [...KINDS, ...(unfiled.size > 0 || needsAccount ? [{ id: NEEDS_ACCOUNT, label: "Needs an account" }] : [])],
+            selectedIds: needsAccount ? [...kinds, NEEDS_ACCOUNT] : kinds,
+          },
           {
             key: "category",
             label: "Category",
@@ -262,7 +305,8 @@ export default function TogetherTransactionsScreen() {
         ]}
         onApply={(selected) => {
           setMembers(selected.member ?? []);
-          setKinds((selected.kind ?? []) as StatementKind[]);
+          setKinds((selected.kind ?? []).filter((k) => k !== NEEDS_ACCOUNT) as StatementKind[]);
+          setNeedsAccount((selected.kind ?? []).includes(NEEDS_ACCOUNT));
           setCategories(selected.category ?? []);
           setMerchants(selected.merchant ?? []);
         }}

@@ -1,8 +1,8 @@
 import { getBrokerLinkedAccount } from "@/services/broker-link";
-import { getAngelCredentials, isAngelConnected, syncAngelData } from "@/services/angel-connect";
+import { getAngelCredentials, getAngelLastSynced, isAngelConnected, syncAngelData } from "@/services/angel-connect";
 import { saveBrokerSnapshot } from "@/services/financial-account";
-import { getKiteCredentials, isKiteTokenExpired, syncKiteData } from "@/services/kite-connect";
-import { isZebpayConnected, syncZebpayData } from "@/services/zebpay-connect";
+import { getKiteCredentials, getLastSynced as getKiteLastSynced, isKiteTokenExpired, syncKiteData } from "@/services/kite-connect";
+import { getZebpayLastSynced, isZebpayConnected, syncZebpayData } from "@/services/zebpay-connect";
 
 /**
  * One tap in Investments: fetch each connected broker and save today's snapshot. A broker's trouble
@@ -100,4 +100,40 @@ export async function syncAllBrokers(): Promise<BrokerSyncResult[]> {
   const results: BrokerSyncResult[] = [];
   for (const broker of brokers) results.push(await syncBroker(broker));
   return results;
+}
+
+export interface LastSyncRun {
+  /** The newest sync of any connected broker, ISO. */
+  at: string;
+  brokers: SyncBroker[];
+  /** Connected brokers that didn't sync on the day of the newest one, and why (as far as Arth can tell). */
+  behind: { broker: SyncBroker; reason: "needs_login" | "older" }[];
+}
+
+const localDay = (iso: string) => {
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? "" : `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+};
+
+/** When the brokers last synced, for Investments' value card. Null if none is connected or none has synced. */
+export async function getLastSyncRun(): Promise<LastSyncRun | null> {
+  const brokers = await getConnectedBrokers();
+  const last: Record<SyncBroker, () => string | null> = {
+    kite: getKiteLastSynced,
+    angel: getAngelLastSynced,
+    zebpay: getZebpayLastSynced,
+  };
+  const times = new Map(brokers.map((b) => [b, last[b]()] as const));
+  const at = [...times.values()].filter((t): t is string => !!t && !isNaN(new Date(t).getTime()))
+    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+    .pop();
+  if (!at) return null;
+  const day = localDay(at);
+  const behind = brokers
+    .filter((b) => {
+      const t = times.get(b);
+      return !t || localDay(t) !== day;
+    })
+    .map((broker) => ({ broker, reason: broker === "kite" && isKiteTokenExpired() ? ("needs_login" as const) : ("older" as const) }));
+  return { at, brokers, behind };
 }

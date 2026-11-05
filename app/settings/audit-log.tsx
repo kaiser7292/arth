@@ -108,7 +108,7 @@ function AuditDatesSheet({ visible, scope, from, to, onChoose, onClose }: {
       accessibilityRole="button"
       accessibilityState={{ selected }}
     >
-      <Text className="text-sm" style={selected ? { color: theme.primary, fontWeight: "600" } : undefined}>{label}</Text>
+      <Text className="text-sm text-foreground" style={selected ? { color: theme.primary, fontWeight: "600" } : undefined}>{label}</Text>
       {selected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
     </Pressable>
   );

@@ -18,6 +18,12 @@ export interface SavingsSnapshot {
   incomeReceived: number;
   /** Total expenses so far this FY */
   totalExpenses: number;
+  /**
+   * Interest paid on loans through EMIs so far this FY. EMIs aren't spending (they stay out of
+   * budgets and Expenses), but their interest is a cost, so it comes out of what was saved. The
+   * principal part pays down debt and still counts as saved.
+   */
+  loanInterest: number;
   /** Actual saved = income - expenses */
   actualSaved: number;
   /** Actual savings rate as % of income received */
@@ -64,6 +70,8 @@ export function calculateSavingsSnapshot(params: {
   investmentContributions?: number;
   /** Actual milestone contributions so far this FY */
   milestoneContributions?: number;
+  /** Interest paid in EMIs so far this FY */
+  loanInterest?: number;
 }): SavingsSnapshot {
   const {
     annualSalary,
@@ -73,6 +81,7 @@ export function calculateSavingsSnapshot(params: {
     monthsElapsed,
     investmentContributions = 0,
     milestoneContributions = 0,
+    loanInterest = 0,
   } = params;
 
   const clampedElapsed = Math.min(Math.max(monthsElapsed, 0), 12);
@@ -81,7 +90,7 @@ export function calculateSavingsSnapshot(params: {
   // Income received so far: prorate salary + assume bonus comes at year end (not received yet)
   const incomeReceived = (annualSalary / 12) * clampedElapsed;
 
-  const actualSaved = incomeReceived - totalExpenses;
+  const actualSaved = incomeReceived - totalExpenses - loanInterest;
 
   // Actual savings rate = (investment contributions + milestone contributions + surplus) / income
   // Where surplus = income - expenses - contributions (undeployed savings)
@@ -122,6 +131,7 @@ export function calculateSavingsSnapshot(params: {
   return {
     incomeReceived: round2(incomeReceived),
     totalExpenses: round2(totalExpenses),
+    loanInterest: round2(loanInterest),
     actualSaved: round2(actualSaved),
     actualSavingsRatePct: round2(actualSavingsRatePct),
     targetSavingsRatePct,
@@ -150,6 +160,8 @@ export function calculateMonthlySavingsTrend(params: {
   monthsToShow: number;
   /** Per-month income overrides: fiscal month (1-12) → income for that month */
   monthlyIncomeOverrides?: Map<number, number>;
+  /** Fiscal month (1-12) → interest paid in EMIs that month; comes out of saved, not expenses */
+  monthlyLoanInterest?: Map<number, number>;
 }): Array<{
   fiscalMonth: number;
   income: number;
@@ -163,7 +175,7 @@ export function calculateMonthlySavingsTrend(params: {
   for (let fm = 1; fm <= params.monthsToShow; fm++) {
     const monthlyIncome = params.monthlyIncomeOverrides?.get(fm) ?? defaultMonthlyIncome;
     const expenses = params.monthlyExpenses.get(fm) ?? 0;
-    const saved = monthlyIncome - expenses;
+    const saved = monthlyIncome - expenses - (params.monthlyLoanInterest?.get(fm) ?? 0);
     const savingsRatePct =
       monthlyIncome > 0 ? (saved / monthlyIncome) * 100 : 0;
 

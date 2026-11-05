@@ -139,3 +139,51 @@ export function formatMonthLabel(monthStr: string, style: "short" | "long" = "sh
   const names = style === "long" ? MONTH_LONG : MONTH_SHORT;
   return `${names[mo - 1]} ${y}`;
 }
+
+/** "5:12 pm" for a moment. */
+export function formatClockTime(d: Date): string {
+  return d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" }).toLowerCase();
+}
+
+/**
+ * A moment (ISO timestamp) as "today, 5:12 pm", "yesterday, 5:12 pm" or "3 Nov, 5:12 pm" (with the
+ * year when it isn't this one). "" if it isn't a date.
+ */
+export function formatRelativeDateTime(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const dayOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((dayOf(now) - dayOf(d)) / 86_400_000);
+  const day =
+    days === 0
+      ? "today"
+      : days === 1
+        ? "yesterday"
+        : `${d.getDate()} ${MONTH_SHORT[d.getMonth()]}${d.getFullYear() === now.getFullYear() ? "" : ` ${d.getFullYear()}`}`;
+  return `${day}, ${formatClockTime(d)}`;
+}
+
+/**
+ * A database timestamp as a moment. SQLite's datetime('now') is UTC with a space and no zone
+ * ("2026-11-05 11:42:10"), which Date would read as local time.
+ */
+export function parseSqliteUtc(ts: string | null | undefined): Date | null {
+  if (!ts) return null;
+  const iso = /[zZ]|[+-]\d\d:?\d\d$/.test(ts) ? ts : `${ts.replace(" ", "T")}Z`;
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * A dated value's "as of": "5 Nov 2026, 5:12 pm" when it was saved on that day (a sync, or a value
+ * typed in on the day), else just "5 Nov 2026" - a value typed in later for a past day has no time
+ * of its own.
+ */
+export function formatAsOf(date: string, savedAt: string | null | undefined): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const day = `${d} ${MONTH_SHORT[m - 1]} ${y}`;
+  const saved = parseSqliteUtc(savedAt);
+  if (!saved) return day;
+  const sameDay = saved.getFullYear() === y && saved.getMonth() === m - 1 && saved.getDate() === d;
+  return sameDay ? `${day}, ${formatClockTime(saved)}` : day;
+}

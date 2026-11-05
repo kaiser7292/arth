@@ -34,7 +34,7 @@ import type { FinancialAccount, AccountType } from "@/services/financial-account
 import { getInvestmentProduct, isDematLikeAccountById, isFDIncomplete, isFDEditable, type InvestmentProduct } from "@/services/investment-accounts";
 import { CompleteFDDetailsSheet } from "@/components/account/CompleteFDDetailsSheet";
 import { getAllActiveBuckets } from "@/services/yearly-plan";
-import { formatDate } from "@/utils/date";
+import { formatAsOf, formatDate } from "@/utils/date";
 import {
   getMonthBalanceSummary,
   seedOpeningBalance,
@@ -238,7 +238,7 @@ export default function AccountDetailScreen() {
         ]);
         setDematLatestValue(latest?.portfolio_value ?? null);
         setDematLatestFund(latestFund?.fund_value ?? null);
-        setDematLatestDate(latest?.snapshot_date ?? null);
+        setDematLatestDate(latest ? formatAsOf(latest.snapshot_date, latest.updated_at) : null);
         setDematSnapshotCount(count);
       }
       setLoadFailed(false);
@@ -733,7 +733,7 @@ export default function AccountDetailScreen() {
               </View>
               {dematLatestDate && (
                 <Text className="text-label text-faint-foreground">
-                  As of {formatSnapshotDate(dematLatestDate)}
+                  As of {dematLatestDate}
                 </Text>
               )}
             </Card>
@@ -1209,8 +1209,3 @@ export default function AccountDetailScreen() {
   );
 }
 
-function formatSnapshotDate(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${d} ${months[m - 1]} ${y}`;
-}

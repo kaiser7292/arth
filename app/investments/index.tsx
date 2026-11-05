@@ -23,7 +23,8 @@ import {
 } from "@/services/investment-accounts";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { formatAmount } from "@/utils/format";
-import { formatDate } from "@/utils/date";
+import { formatDate, formatRelativeDateTime } from "@/utils/date";
+import { getLastSyncRun, SYNC_BROKER_NAMES, type LastSyncRun } from "@/services/broker-sync";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeInvestmentsPreload } from "@/services/home-preload";
 import { Money } from "@/components/ui/Text";
@@ -63,6 +64,19 @@ const GROUP_META: Record<InvestmentGroup, { label: string; short: string; icon: 
 };
 const GROUP_ORDER: InvestmentGroup[] = ["fd", "market", "pension"];
 
+/** "Last synced today, 5:12 pm · 3 of 3 brokers", or what's behind ("Zerodha needs login"). */
+function lastSyncText(run: LastSyncRun): { text: string; behind: boolean } {
+  const when = `Last synced ${formatRelativeDateTime(run.at)}`;
+  if (run.behind.length > 0) {
+    const first = run.behind[0];
+    const name = SYNC_BROKER_NAMES[first.broker];
+    const more = run.behind.length > 1 ? ` +${run.behind.length - 1}` : "";
+    return { text: `${when} · ${name} ${first.reason === "needs_login" ? "needs login" : "not updated"}${more}`, behind: true };
+  }
+  const n = run.brokers.length;
+  return { text: `${when} · ${n === 1 ? SYNC_BROKER_NAMES[run.brokers[0]] : `${n} of ${n} brokers`}`, behind: false };
+}
+
 export default function InvestmentsListScreen() {
   const router = useRouter();
   const { colors } = useColorScheme();
@@ -79,6 +93,7 @@ export default function InvestmentsListScreen() {
   const [trend, setTrend] = useState<PeriodTrend | null>(null);
   /** The point under the finger while dragging along the chart; null otherwise. */
   const [scrub, setScrub] = useState<number | null>(null);
+  const [lastSync, setLastSync] = useState<LastSyncRun | null>(null);
 
   const load = useCallback(async () => {
     const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
@@ -94,6 +109,8 @@ export default function InvestmentsListScreen() {
       getUpcomingFDMaturities(DEFAULT_USER_ID, 5),
     ]);
 
+    // Only for the line under the value; never in the way of the screen.
+    getLastSyncRun().then(setLastSync).catch(() => setLastSync(null));
     setRows(buildRows(accounts, products, values));
     setMaturities(upcoming);
     setLoaded(true);
@@ -255,6 +272,27 @@ export default function InvestmentsListScreen() {
                   <Text className="text-xs text-muted-foreground"> {changePhrase}</Text>
                 </Text>
               ) : null}
+              {lastSync && rows.some((r) => r.group === "market") && (() => {
+                const line = lastSyncText(lastSync);
+                return (
+                  <Pressable
+                    onPress={() => router.push("/investments/sync-review")}
+                    hitSlop={6}
+                    className="flex-row items-center mt-1"
+                    accessibilityRole="button"
+                    accessibilityLabel={`${line.text}. Sync investments`}
+                  >
+                    <Ionicons name="time-outline" size={12} color={line.behind ? theme.warning : colors.textSecondary} />
+                    <Text
+                      className={`text-label ml-1 flex-1 ${line.behind ? "" : "text-faint-foreground"}`}
+                      style={line.behind ? { color: theme.warning } : undefined}
+                      numberOfLines={1}
+                    >
+                      {line.text}
+                    </Text>
+                  </Pressable>
+                );
+              })()}
 
               {activeGroups.length > 1 && (
                 <SegmentedControl

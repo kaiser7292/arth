@@ -347,10 +347,18 @@ export default function SyncReviewScreen() {
         <Text className="text-xs text-muted-foreground mt-2">
           Fixed deposits and pension aren't here, because they don't change with the market each day.
         </Text>
-        <Pressable onPress={start} className="flex-row items-center justify-center py-3 mt-3" accessibilityRole="button" accessibilityLabel="Sync again, replacing today's values">
-          <Ionicons name="sync-outline" size={14} color={theme.primary} />
-          <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.primary }}>Sync again</Text>
-        </Pressable>
+        {/* Where to go next. dismissTo pops back if the screen is already in the stack (it usually
+            is: Sync is opened from Investments), otherwise it opens it in place of this one. */}
+        <View className="flex-row mt-4" style={{ gap: 8 }}>
+          <Button title="Go to Investments" onPress={() => router.dismissTo("/investments")} className="flex-1" />
+          <Button title="Go to Home" variant="outline" onPress={() => router.dismissTo("/(tabs)")} className="flex-1" />
+        </View>
+        <Button
+          title="Sync again"
+          variant="ghost"
+          onPress={start}
+          className="mt-2"
+        />
       </ScrollView>
     </ScreenContainer>
   );

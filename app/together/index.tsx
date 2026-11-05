@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
 import { Avatar, ago } from "@/components/household/HouseholdBits";
-import { PaidBillsCard } from "@/components/household/PaidBillsCard";
+import { PaidBillsNudge } from "@/components/household/PaidBillsCard";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { formatAmount } from "@/utils/format";
@@ -188,7 +188,7 @@ export default function TogetherScreen() {
             })}
           </Card>
 
-          <PaidBillsCard household={h} reloadKey={s} />
+          <PaidBillsNudge household={h} reloadKey={s} />
 
           {/* Household budget: agreed together; spent counts every shared bill, whoever paid. */}
           <Card className="mb-3">

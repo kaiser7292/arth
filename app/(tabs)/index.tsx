@@ -228,7 +228,9 @@ export default function HomeScreen() {
   }, [smsScanning, router]);
 
   // Collapsible sections — dues expanded by default so they're visible without a tap
-  const [duesOpen, setDuesOpen] = useState(true);
+  // Both drawers start closed; a tap on the header opens one.
+  const [duesOpen, setDuesOpen] = useState(false);
+  const [remindersOpen, setRemindersOpen] = useState(false);
 
   // All setStates run synchronously in one batch — see the note in loadData
   // about split render cycles eating the first tap on hero cards.
@@ -553,7 +555,13 @@ export default function HomeScreen() {
         </Appear>,
           reminders: isHomeCardVisible("reminders") && dueReminders.length > 0 && (
           <Card className="mx-4 mt-3">
-            <View className="flex-row items-center mb-2">
+            <Pressable
+              onPress={() => setRemindersOpen(!remindersOpen)}
+              accessibilityLabel={`${remindersOpen ? "Collapse" : "Expand"} reminders`}
+              accessibilityRole="button"
+              className="flex-row items-center justify-between"
+            >
+            <View className="flex-row items-center flex-1">
               <Ionicons name="repeat-outline" size={18} color={theme.primary} />
               <Text className="text-sm font-semibold text-foreground ml-2">
                 Reminders
@@ -571,6 +579,14 @@ export default function HomeScreen() {
                 </View>
               )}
             </View>
+              <Ionicons
+                name={remindersOpen ? "chevron-up" : "chevron-down"}
+                size={16}
+                color={colors.textSecondary}
+              />
+            </Pressable>
+            {remindersOpen && (
+            <View className="mt-2">
             {dueReminders.map((r, i) => {
               const description =
                 r.source?.description ?? r.source?.merchant_name ?? "Recurring";
@@ -727,6 +743,8 @@ export default function HomeScreen() {
                 </View>
               );
             })}
+            </View>
+            )}
           </Card>
         ),
           upcoming_dues: isHomeCardVisible("upcoming_dues") && upcomingDues.length > 0 && (

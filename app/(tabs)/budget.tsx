@@ -17,6 +17,7 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth, getCurrentMonth, getMonthlyBudgetTotals } from "@/services/budget";
 import { getExpenseTotalsByCategory, getExpenseTotal, getUncategorizedTotal, getUncategorizedCount, getMonthlyExpenseTotals } from "@/services/expense";
+import { getDebtServicing } from "@/services/loan-accounts";
 import { getYearlyPlanByFY } from "@/services/yearly-plan";
 import type { YearlyPlan } from "@/services/yearly-plan";
 import type { Category } from "@/services/category";
@@ -128,6 +129,8 @@ export default function BudgetScreen() {
   const isPastMonth = daysRemaining === 0;
 
   const [loadFailed, setLoadFailed] = useState(false);
+  /** Loan EMIs and prepayments this month: shown next to the budget, never counted in it. */
+  const [debt, setDebt] = useState<{ paid: number; due: number }>({ paid: 0, due: 0 });
   const loadData = useCallback(async () => {
     try {
       // Pre-compute FY date ranges synchronously so all queries fire in one batch
@@ -196,6 +199,9 @@ export default function BudgetScreen() {
       setAnnualSpentYTD(plan ? ytd : 0);
       setRollingSurplus(surplus);
       setLoadFailed(false);
+      getDebtServicing(DEFAULT_USER_ID, startDate, endDate)
+        .then(setDebt)
+        .catch(() => setDebt({ paid: 0, due: 0 }));
     } catch {
       setLoadFailed(true);
       // Database not ready
@@ -467,6 +473,29 @@ export default function BudgetScreen() {
                 )}
               </View>
             </View>
+
+            {/* Debt servicing sits beside the budget: EMIs are fixed, so they never fill a category. */}
+            {(debt.paid > 0 || debt.due > 0) && (
+              <Pressable
+                onPress={() => router.push("/goals/loans")}
+                className="flex-row items-center mt-3 pt-3 border-t border-border"
+                accessibilityRole="button"
+                accessibilityLabel="Open loans"
+              >
+                <Ionicons name="business-outline" size={16} color={colors.textSecondary} />
+                <View className="flex-1 ml-2">
+                  <Text className="text-sm font-medium text-foreground">Debt servicing</Text>
+                  <Text className="text-xs text-muted-foreground mt-0.5">Loan EMIs, not counted in your budget</Text>
+                </View>
+                <View className="items-end mr-1">
+                  <Text className="text-sm font-semibold text-foreground">{formatAmount(debt.paid)}</Text>
+                  {debt.due > 0 && (
+                    <Text className="text-xs text-muted-foreground mt-0.5">of {formatAmount(debt.due)} due</Text>
+                  )}
+                </View>
+                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+              </Pressable>
+            )}
 
           </WidgetCard>
         )}

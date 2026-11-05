@@ -1,7 +1,7 @@
 import { Modal, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, Text } from "@/components/ui";
+import { Button, Card, Text } from "@/components/ui";
 import { Avatar } from "@/components/household/HouseholdBits";
 import { useTheme } from "@/hooks/use-theme";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
@@ -19,11 +19,14 @@ export function StatementRowItem({
   row,
   myMemberId,
   category,
+  needsAccount,
   onView,
 }: {
   row: StatementRow;
   myMemberId: string | null;
   category?: CategoryLook | null;
+  /** Someone else recorded it as paid by me, and I haven't said where the money came from. */
+  needsAccount?: boolean;
   onView: (row: StatementRow) => void;
 }) {
   const router = useRouter();
@@ -60,6 +63,9 @@ export function StatementRowItem({
         {rel.kind === "owes_you" && (
           <Text className="text-label mt-0.5" numberOfLines={1} style={{ color: theme.primary }}>{rel.with} owes {formatAmount(rel.amount)}</Text>
         )}
+        {needsAccount && (
+          <Text className="text-label mt-0.5" numberOfLines={1} style={{ color: theme.warning }}>Needs an account</Text>
+        )}
       </View>
       <View className="items-end shrink-0">
         <Text className="text-sm font-bold text-foreground">{formatAmount(row.paid)}</Text>
@@ -79,7 +85,18 @@ function Detail({ label, value }: { label: string; value: string }) {
 }
 
 /** A household transaction that isn't yours: everything that was shared, nothing to change. */
-export function StatementRowDetail({ row, myMemberId, onClose }: { row: StatementRow | null; myMemberId: string | null; onClose: () => void }) {
+export function StatementRowDetail({
+  row,
+  myMemberId,
+  action,
+  onClose,
+}: {
+  row: StatementRow | null;
+  myMemberId: string | null;
+  /** One thing to do with it from my side, like saying where a bill I paid came from. */
+  action?: { label: string; onPress: () => void } | null;
+  onClose: () => void;
+}) {
   const theme = useTheme();
   const isSettle = row?.relation.kind === "settle";
   return (
@@ -103,6 +120,7 @@ export function StatementRowDetail({ row, myMemberId, onClose }: { row: Statemen
               <Text className="text-xs text-muted-foreground mt-3">
                 Only the person who added this can change it.
               </Text>
+              {action && <Button title={action.label} onPress={action.onPress} className="mt-3" />}
               <Pressable onPress={onClose} className="mt-3 py-2.5 rounded-lg items-center border border-border" accessibilityRole="button">
                 <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Close</Text>
               </Pressable>

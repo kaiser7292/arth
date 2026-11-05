@@ -107,6 +107,32 @@ async function getMonthlyExpensesByFiscalMonth(
 }
 
 /**
+ * Interest paid through EMIs in a date range, keyed by month ("YYYY-MM"). An EMI linked to its
+ * schedule row carries that row's interest; never more than what was actually paid.
+ */
+export async function getLoanInterestByMonth(
+  userId: string,
+  startDate: string,
+  endDate: string,
+): Promise<Map<string, number>> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{ month_str: string; total: number | null }>(
+    `SELECT strftime('%Y-%m', e.date) AS month_str,
+            SUM(MIN(COALESCE(se.interest_component, 0), ${effectiveAmountSql("e")})) AS total
+     FROM expenses e
+     JOIN expense_loan_links ll ON ll.expense_id = e.id AND ll.link_kind = 'emi'
+     JOIN loan_schedule_entries se ON se.id = ll.schedule_entry_id
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND e.deleted_at IS NULL
+       AND e.date >= ? AND e.date <= ?
+     GROUP BY month_str;`,
+    userId,
+    startDate,
+    endDate,
+  );
+  return new Map(rows.map((r) => [r.month_str, Math.max(0, r.total ?? 0)]));
+}
+
+/**
  * Get the full savings snapshot for a given FY.
  * Returns null if no yearly plan exists for that FY.
  */
@@ -123,8 +149,9 @@ export async function getSavingsSnapshot(
   const startDate = formatDate(start);
   const endDate = formatDate(end);
 
-  const [totalExpenses, buckets, milestones] = await Promise.all([
+  const [totalExpenses, interestByMonth, buckets, milestones] = await Promise.all([
     getTotalExpensesInRange(userId, startDate, endDate),
+    getLoanInterestByMonth(userId, startDate, endDate).catch(() => new Map<string, number>()),
     getBucketsByFY(userId, fy),
     getMilestonesForFY(userId, fy),
   ]);
@@ -151,6 +178,7 @@ export async function getSavingsSnapshot(
     monthsElapsed,
     investmentContributions,
     milestoneContributions,
+    loanInterest: [...interestByMonth.values()].reduce((a, v) => a + v, 0),
   });
 }
 
@@ -174,10 +202,19 @@ export async function getSavingsTrend(
   const plan = await getYearlyPlanByFY(userId, String(fyYear));
   if (!plan) return null;
 
-  const [monthlyExpenses, salaryProfile] = await Promise.all([
+  const fyRange = getFYRange(fyYear, startMonth);
+  const [monthlyExpenses, salaryProfile, interestByMonth] = await Promise.all([
     getMonthlyExpensesByFiscalMonth(userId, fyYear, startMonth),
     getSalaryProfileByFY(userId, String(fyYear)),
+    getLoanInterestByMonth(userId, formatDate(fyRange.start), formatDate(fyRange.end)).catch(() => new Map<string, number>()),
   ]);
+  // Same calendar → fiscal month mapping as the expenses.
+  const monthlyLoanInterest = new Map<number, number>();
+  for (const [monthStr, total] of interestByMonth) {
+    let fm = parseInt(monthStr.split("-")[1], 10) - startMonth + 1;
+    if (fm <= 0) fm += 12;
+    monthlyLoanInterest.set(fm, total);
+  }
 
   const currentFY = getCurrentFY(startMonth);
   const monthsElapsed = fyYear < currentFY ? 12
@@ -220,6 +257,7 @@ export async function getSavingsTrend(
     monthlyExpenses,
     monthsToShow: monthsElapsed,
     monthlyIncomeOverrides,
+    monthlyLoanInterest,
   });
 }
 
