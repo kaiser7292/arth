@@ -313,14 +313,18 @@ function escapeLiteral(text: string): string {
   // A clock time left untagged ("on 02:12pm, 4th nov'26" with only the date tagged) differs in every
   // message, so it can't be literal or the template would only ever match this one.
   const TIME_SENTINEL = "\x00TIME\x00";
-  const timeMasked = urlMasked.replace(/\b\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\b\.?)?/gi, TIME_SENTINEL);
+  // Likewise a date left untagged: two examples from the same day would otherwise agree on it, and
+  // the template would stop working the next day.
+  const DATE_SENTINEL = "\x00DATE\x00";
+  const dateMasked = urlMasked.replace(/\b\d{1,2}[-/.](?:\d{1,2}|[a-z]{3})[-/.]\d{2,4}\b/gi, DATE_SENTINEL);
+  const timeMasked = dateMasked.replace(/\b\d{1,2}:\d{2}(?::\d{2})?(?:\s*[ap]\.?m\b\.?)?/gi, TIME_SENTINEL);
 
   const WS_SENTINEL = "\x00WS\x00";
   const wsMasked = timeMasked.replace(/\s+/g, WS_SENTINEL);
 
   const escaped = escapeRegexSpecials(wsMasked);
 
-  const withWs = escaped.replace(new RegExp(WS_SENTINEL, "g"), "\\s+").replace(new RegExp(TIME_SENTINEL, "g"), () => TIME_REGEX);
+  const withWs = escaped.replace(new RegExp(WS_SENTINEL, "g"), "\\s+").replace(new RegExp(TIME_SENTINEL, "g"), () => TIME_REGEX).replace(new RegExp(DATE_SENTINEL, "g"), () => "\\d{1,2}[-/.](?:\\d{1,2}|[a-z]{3})[-/.]\\d{2,4}");
 
   // Swap passbook sentinels back FIRST (before URLs) to avoid any
   // potential collision if a passbook ID somehow appears in a URL.
@@ -438,12 +442,53 @@ function hasAnchorWord(words: string[]): boolean {
   return words.some((w) => !CURRENCY_WORD.test(w) && (w.match(/[a-z]/gi) ?? []).length >= 3);
 }
 
+const tokensOf = (word: string) => word.match(/[a-z0-9]+|[^a-z0-9]/gi) ?? [];
+const VARIABLE_TOKEN = "[a-z0-9]*";
+/** A run of 4+ digits in a word is a reference or date: it differs in every message. */
+const looksVariable = (token: string) => /\d{4,}/.test(token);
+
+/**
+ * The word a field sits directly against ("upi/p2m/666926407204/" before "swiggy"). The whole word
+ * can differ between messages while still being the only thing saying where the field starts, so it's
+ * compared piece by piece: what's the same stays, what changes can be anything of the same kind.
+ * Dropping it instead leaves the field to start anywhere, and reading the wrong text.
+ */
+function abuttingWordPattern(word: string, others: string[]): string {
+  const tokens = tokensOf(word);
+  const theirs = others.map(tokensOf);
+  if (theirs.some((t) => t.length !== tokens.length)) {
+    // A different shape: keep what the word ends in, if every example ends the same way.
+    const last = tokens[tokens.length - 1] ?? "";
+    const sameEnd = !/^[a-z0-9]+$/i.test(last) && theirs.every((t) => t[t.length - 1] === last);
+    return sameEnd ? `\\S*${escapeRegexSpecials(last)}` : "\\S*";
+  }
+  return tokens
+    .map((token, i) => {
+      const same = theirs.every((t) => t[i].toLowerCase() === token.toLowerCase());
+      if (/^[a-z0-9]+$/i.test(token)) return same && !looksVariable(token) ? escapeRegexSpecials(token) : VARIABLE_TOKEN;
+      return same ? escapeRegexSpecials(token) : "[^\\sa-z0-9]";
+    })
+    .join("");
+}
+
+/** The word touching field k's left (before) or field k-1's right (after), if there's no space between. */
+function touchingWord(sample: PreparedSample, k: number, side: "before" | "after"): string | null {
+  const [from, to] = gapBounds(sample, k);
+  const words = wordsIn(sample.normBody, from, to);
+  if (side === "before") {
+    const last = words[words.length - 1];
+    return k < sample.normSpans.length && last?.end === to ? last.word : null;
+  }
+  return k > 0 && words[0]?.start === from ? words[0].word : null;
+}
+
 /**
  * Flexible pattern for the first sample. For each stretch of text around the fields, keeps:
  *   - the last LEAD_IN_WORDS words before each field
  *   - the first word after a free-text field (so its capture knows where to stop)
  *   - words common to every example (when there are extra examples)
  *   - words the user made required
+ *   - a word a field sits directly against, piece by piece (see abuttingWordPattern)
  * minus words the user made optional; everything else becomes a bounded "anything" gap.
  * With extra examples, automatic words are only kept if every example has them.
  */
@@ -473,9 +518,20 @@ function buildFlexible(
       common = prev ? new Set<number>([...prev].filter((i: number) => shared.has(i))) : shared;
     }
 
+    // Words touching a field, in every example. Which words those are, and what the others have there.
+    const touching = new Map<number, string[]>();
+    (["before", "after"] as const).forEach((side) => {
+      const i = side === "before" ? words.length - 1 : 0;
+      const mine = touchingWord(first, k, side);
+      if (mine == null || !words[i]) return;
+      const others = extras.map((ex) => touchingWord(ex, k, side));
+      if (others.every((o): o is string => o != null)) touching.set(i, others as string[]);
+    });
+
     const states: WordState["state"][] = words.map((w, i) => {
       if (required.has(w.word)) return "required";
       if (optional.has(w.word)) return "free";
+      if (touching.has(i) && !common?.has(i)) return "auto";
       const isLeadIn =
         k < n &&
         (i >= words.length - LEAD_IN_WORDS ||
@@ -529,7 +585,8 @@ function buildFlexible(
         out += DIRECTION_ALT + OPTIONAL_FILLER;
         afterDirection = true;
       } else {
-        out += escapeLiteral(w.word);
+        const others = touching.get(i);
+        out += others && states[i] !== "required" ? abuttingWordPattern(w.word, others) : escapeLiteral(w.word);
         afterDirection = false;
       }
       started = true;
@@ -647,7 +704,13 @@ export function compileTemplate(input: CompileInput): CompileResult {
   for (let idx = 0; idx < normSpans.length; idx++) {
     const s = normSpans[idx];
     const anchor = normBody.slice(cursor, s.start);
-    if (anchor.length > 0) pattern += escapeLiteral(anchor);
+    if (anchor.length > 0) {
+      // The word the field sits against: its long numbers change every message.
+      const touching = /\S+$/.exec(anchor);
+      pattern += touching
+        ? escapeLiteral(anchor.slice(0, touching.index)) + abuttingWordPattern(touching[0], [])
+        : escapeLiteral(anchor);
+    }
 
     // Merchant + ref use non-greedy `+?` so trailing anchor can stop the
     // capture. But if THIS is the last span AND there's no trailing tail

@@ -235,6 +235,9 @@ export function TokenTagger({
   // Character sub-selector — open when user long-presses a token.
   const [subToken, setSubToken] = useState<Token | null>(null);
   const [subRange, setSubRange] = useState<{ start: number; end: number } | null>(null);
+  /** The first character tapped, waiting for the last. */
+  const [subFirst, setSubFirst] = useState<number | null>(null);
+  const [needsField, setNeedsField] = useState(false);
 
   const handleTap = useCallback(
     (tok: Token) => {
@@ -268,9 +271,15 @@ export function TokenTagger({
 
   const handleLongPress = useCallback(
     (tok: Token) => {
-      if (!activeField) return; // same rule — field must be active
+      if (!activeField) {
+        // Same rule as a tap, but a long-press that did nothing looks broken: say why.
+        setNeedsField(true);
+        return;
+      }
+      setNeedsField(false);
       setSubToken(tok);
       setSubRange({ start: tok.start, end: tok.end });
+      setSubFirst(null);
     },
     [activeField],
   );
@@ -346,6 +355,12 @@ export function TokenTagger({
         })}
       </View>
 
+      {needsField && !activeField && (
+        <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 6 }}>
+          Pick a field first, such as Merchant, then press and hold a word to select part of it.
+        </Text>
+      )}
+
       {subToken && subRange && activeField && (
         <View
           style={{
@@ -367,7 +382,7 @@ export function TokenTagger({
               marginBottom: 6,
             }}
           >
-            Tap characters to select just part of "{subToken.text}"
+            {subFirst == null ? `Tap the first character you want in "${subToken.text}"` : "Now tap the last character"}
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: "row" }}>
@@ -378,23 +393,14 @@ export function TokenTagger({
                   <Pressable
                     key={`sub-${i}`}
                     onPress={() => {
-                      // Expand/contract the range to include this char.
-                      // Simple model: clicking a char outside range extends the
-                      // nearest boundary; clicking inside retracts the nearest.
-                      if (!inRange) {
-                        setSubRange({
-                          start: Math.min(subRange.start, absIdx),
-                          end: Math.max(subRange.end, absIdx + 1),
-                        });
+                      // First tap: where it starts. Second tap: where it ends, then ready to apply or
+                      // start over. Either order works, so a slip doesn't need undoing.
+                      if (subFirst == null) {
+                        setSubRange({ start: absIdx, end: absIdx + 1 });
+                        setSubFirst(absIdx);
                       } else {
-                        // Inside — shrink to the clicked-char side.
-                        const distToStart = absIdx - subRange.start;
-                        const distToEnd = subRange.end - (absIdx + 1);
-                        if (distToStart <= distToEnd) {
-                          setSubRange({ start: absIdx + 1, end: subRange.end });
-                        } else {
-                          setSubRange({ start: subRange.start, end: absIdx });
-                        }
+                        setSubRange({ start: Math.min(subFirst, absIdx), end: Math.max(subFirst, absIdx) + 1 });
+                        setSubFirst(null);
                       }
                     }}
                     style={{

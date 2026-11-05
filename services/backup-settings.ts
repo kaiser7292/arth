@@ -108,6 +108,8 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("opening_balance_banner_dismissed", "string"),
   P("broker_reminder_off__", "boolean"),
   S("broker_history_on", "boolean"),
+  P("broker_autosync_off__", "boolean"),
+  P("broker_autosync_done__", "string", DEVICE("per-device progress marker")),
   S("ignored_accounts", "string"),
   S("ignore_before_date", "string"),
   // Other stores

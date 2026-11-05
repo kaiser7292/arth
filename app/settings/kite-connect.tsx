@@ -1,3 +1,4 @@
+import { AutoSyncCard } from '@/components/broker/AutoSyncCard';
 import { NO_DAY_ORDERS, type DayOrderTally } from '@/services/kite-day-orders';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
@@ -594,6 +595,8 @@ export default function KiteConnectScreen() {
             )}
           </View>
         </Card>
+
+        {isAuthenticated && <AutoSyncCard broker="kite" />}
 
         {/* ── Login from Vault ── */}
         <Card className="mx-4 mb-3">

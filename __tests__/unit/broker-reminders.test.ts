@@ -20,7 +20,9 @@ jest.mock("@/services/broker-history/capture", () => ({
 jest.mock("expo-background-fetch", () => ({ BackgroundFetchResult: {} }));
 jest.mock("expo-task-manager", () => ({ defineTask: jest.fn() }));
 jest.mock("@/database", () => ({ initDatabase: jest.fn(), getDatabase: jest.fn() }));
+jest.mock("@/services/broker-sync", () => ({ syncBroker: jest.fn() }));
 
+import { isAutoSyncDue, isAutoSyncOn, markAutoSynced, setAutoSyncOn } from "@/services/broker-history/auto-sync";
 import { brokersDueNow } from "@/services/broker-history/background";
 import { isBrokerReminderOn, reminderDates, setBrokerReminderOn } from "@/services/broker-history/reminders";
 
@@ -44,6 +46,11 @@ describe("reminder switches", () => {
 });
 
 describe("when reminders fall", () => {
+  it("Zerodha's come at 5 pm, while there's still time to log in", () => {
+    const list = reminderDates(at(4, 10), false, "kite");
+    expect(list[0].getHours()).toBe(17);
+    expect(days(reminderDates(at(4, 18), false, "kite"))).toEqual([5, 6, 9, 10]);
+  });
   it("weekdays at 8 pm, starting today if it isn't saved", () => {
     const list = reminderDates(at(4, 10), false);
     expect(days(list)).toEqual([4, 5, 6, 9, 10]);
@@ -57,6 +64,38 @@ describe("when reminders fall", () => {
   });
   it("never lands on a weekend, starting from one", () => {
     expect(days(reminderDates(at(7, 10), false))).toEqual([9, 10, 11, 12, 13]);
+  });
+});
+
+describe("automatic sync", () => {
+  beforeEach(() => mockStore.clear());
+  const today = "2026-11-04";
+  it("is on until switched off, and each broker's switch is its own", () => {
+    expect(isAutoSyncOn("kite")).toBe(true);
+    setAutoSyncOn("kite", false);
+    expect(isAutoSyncOn("kite")).toBe(false);
+    expect(isAutoSyncOn("angel")).toBe(true);
+    expect(isAutoSyncOn("zebpay")).toBe(true);
+  });
+  it("is due from 5 pm, and not before", () => {
+    expect(isAutoSyncDue("angel", at(4, 16), today)).toBe(false);
+    expect(isAutoSyncDue("angel", at(4, 17), today)).toBe(true);
+    expect(isAutoSyncDue("angel", at(4, 23), today)).toBe(true);
+  });
+  it("runs once a day", () => {
+    markAutoSynced("angel", today);
+    expect(isAutoSyncDue("angel", at(4, 18), today)).toBe(false);
+    expect(isAutoSyncDue("zebpay", at(4, 18), today)).toBe(true);
+    expect(isAutoSyncDue("angel", at(5, 18), "2026-11-05")).toBe(true);
+  });
+  it("leaves share brokers out at weekends, but not crypto", () => {
+    expect(isAutoSyncDue("kite", at(7, 18), "2026-11-07")).toBe(false);
+    expect(isAutoSyncDue("angel", at(8, 18), "2026-11-08")).toBe(false);
+    expect(isAutoSyncDue("zebpay", at(7, 18), "2026-11-07")).toBe(true);
+  });
+  it("isn't due once switched off", () => {
+    setAutoSyncOn("zebpay", false);
+    expect(isAutoSyncDue("zebpay", at(4, 18), today)).toBe(false);
   });
 });
 

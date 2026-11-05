@@ -1,3 +1,4 @@
+import { normalizeSms } from "../../services/sms/sms-normalize";
 import {
   autoTag,
   compileTemplate,
@@ -136,5 +137,55 @@ describe("autoTag guesses the new fields", () => {
     const tags2 = autoTag(SBI_1);
     const name = tags2.find((t) => t.field === "counterparty");
     expect(name && SBI_1.slice(name.start, name.end)).toBe("RAHULVERMA");
+  });
+});
+
+describe("a field inside a word, with examples that differ there", () => {
+  const A = "INR 250.00 debited A/c no. XX1234 30-10-26, 11:28:52 UPI/P2M/666926407204/SWIGGY INSTAMART Not you? SMS BLOCKUPI Cust ID to 919000000000 Axis Bank";
+  const B = "INR 100.00 debited A/c no. XX1234 30-10-26, 11:20:03 UPI/P2A/666940503650/K VIJAY Not you? SMS BLOCKUPI Cust ID to 919000000000 Axis Bank";
+  const C = "INR 75.50 debited A/c no. XX1234 02-11-26, 09:01:44 UPI/P2M/777000111222/BLINKIT FOODS LTD Not you? SMS BLOCKUPI Cust ID to 919000000000 Axis Bank";
+  const span = (b: string, field: TaggedField, text: string) => ({ field, start: b.indexOf(text), end: b.indexOf(text) + text.length });
+  const values = (b: string): Record<string, string> =>
+    b === A
+      ? { amount: "250.00", account: "1234", date: "30-10-26", ref: "666926407204", merchant: "SWIGGY INSTAMART" }
+      : { amount: "100.00", account: "1234", date: "30-10-26", ref: "666940503650", merchant: "K VIJAY" };
+  const tag = (b: string, fields: TaggedField[]) => fields.map((f) => span(b, f, values(b)[f]));
+  const read = (pattern: string, m: string) => new RegExp(pattern, "i").exec(normalizeSms(m).text)?.groups;
+
+  describe.each([["exact"], ["flexible"]] as const)("%s", (style) => {
+    it.each([
+      [["amount", "merchant"]],
+      [["amount", "account", "merchant"]],
+      [["amount", "date", "merchant"]],
+      [["amount", "ref", "merchant"]],
+      [["amount", "account", "date", "ref", "merchant"]],
+    ] as [TaggedField[]][])("%j, with two examples, reads all three messages", (fields) => {
+      const r = compileTemplate({ smsBody: A, spans: tag(A, fields), style, extraSamples: [{ smsBody: B, spans: tag(B, fields) }] });
+      if (!r.ok) throw new Error(`${r.reason}: ${r.detail}`);
+      expect(read(r.patternRegex, A)?.merchant).toBe("swiggy instamart");
+      expect(read(r.patternRegex, B)?.merchant).toBe("k vijay");
+      expect(read(r.patternRegex, C)).toMatchObject({ amount: "75.50", merchant: "blinkit foods ltd" });
+    });
+
+    it("with one example, a reference that changes doesn't stop the next message", () => {
+      const fields: TaggedField[] = ["amount", "merchant"];
+      const r = compileTemplate({ smsBody: A, spans: tag(A, fields), style });
+      if (!r.ok) throw new Error(`${r.reason}: ${r.detail}`);
+      expect(read(r.patternRegex, C)?.merchant).toBe("blinkit foods ltd");
+    });
+  });
+
+  it("keeps the pieces that are the same, and tells other formats apart", () => {
+    const r = compileTemplate({ smsBody: A, spans: tag(A, ["amount", "merchant"]), extraSamples: [{ smsBody: B, spans: tag(B, ["amount", "merchant"]) }] });
+    if (!r.ok) throw new Error(String(r.reason));
+    expect(r.patternRegex).toContain("upi/");
+    expect(read(r.patternRegex, "INR 75.50 debited A/c no. XX1234 02-11-26, 09:01:44 NEFT/P2M/777000111222/ACME Not you?")).toBeUndefined();
+  });
+
+  it("a different shape in the other example still saves", () => {
+    const b2 = "INR 100.00 debited A/c no. XX1234 30-10-26, 11:20:03 UPI/666940503650/K VIJAY Not you? SMS BLOCKUPI Cust ID to 919000000000 Axis Bank";
+    const r = compileTemplate({ smsBody: A, spans: [span(A, "amount", "250.00"), span(A, "merchant", "SWIGGY INSTAMART")], extraSamples: [{ smsBody: b2, spans: [span(b2, "amount", "100.00"), span(b2, "merchant", "K VIJAY")] }] });
+    if (!r.ok) throw new Error(`${r.reason}: ${r.detail}`);
+    expect(read(r.patternRegex, b2)?.merchant).toBe("k vijay");
   });
 });

@@ -1,3 +1,4 @@
+import { AutoSyncCard } from '@/components/broker/AutoSyncCard';
 import React, { useState, useCallback } from 'react';
 import { ActivityIndicator, Modal, ScrollView, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
@@ -239,6 +240,8 @@ export default function AngelConnectScreen() {
       {allRowCount > 0 && <PortfolioSearchSort query={query} onQuery={setQuery} sort={sort} onSort={chooseSort} />}
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="mt-3">
+
+          <AutoSyncCard broker="angel" />
 
           {/* Status card */}
           <Card className="mx-4 mb-3">

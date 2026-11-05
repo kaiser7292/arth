@@ -853,7 +853,7 @@ export default function TagSmsTemplateScreen() {
               : "Every word between the fields must match exactly. A changed word stops it reading the message."}
           </Text>
           <Text className="text-label text-faint-foreground mb-3">
-            Tap a word to tag. Tap a tagged word to untag it. Long-press to pick just part of a word (e.g. "1,500" out of "Rs.1,500").
+            Tap a word to tag. Tap a tagged word to untag it. To tag just part of a word, like SWIGGY in UPI/P2M/1234/SWIGGY: pick a field, press and hold the word, then tap the first and last character.
           </Text>
           <TokenTagger
             smsBody={smsBody}

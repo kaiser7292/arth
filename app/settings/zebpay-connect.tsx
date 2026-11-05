@@ -1,3 +1,4 @@
+import { AutoSyncCard } from '@/components/broker/AutoSyncCard';
 import React, { useState, useCallback } from 'react';
 import { ActivityIndicator, Modal, ScrollView, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
@@ -192,6 +193,8 @@ export default function ZebpayConnectScreen() {
         <View className="mt-3">
 
           {/* Status + Sync row */}
+          <AutoSyncCard broker="zebpay" />
+
           <Card className="mx-4 mb-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1">

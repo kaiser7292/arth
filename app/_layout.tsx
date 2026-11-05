@@ -18,7 +18,7 @@ import { migrateInvestmentsHomeCardPreference } from "@/services/home-card-prefe
 import { removeArthAILeftovers } from "@/services/ai-removal";
 import { applyStartDate } from "@/services/start-date";
 import { runScheduledBackupIfDue, syncBackupBackgroundTask } from "@/services/backup-schedule";
-import { syncBrokerCaptureTask } from "@/services/broker-history/background";
+import { runAutoSyncDue, syncBrokerCaptureTask } from "@/services/broker-history/background";
 import { captureAllBrokers } from "@/services/broker-history/capture";
 import { syncBrokerReminders } from "@/services/broker-history/reminders";
 import { requestNotificationPermissions, setupNotificationChannel } from "@/services/notifications";
@@ -316,6 +316,7 @@ export default function RootLayout(): React.JSX.Element {
         // never competes with first paint. Each broker's trouble stays its own.
         setTimeout(() => {
           captureAllBrokers()
+            .then(() => runAutoSyncDue())
             .then(() => syncBrokerReminders())
             .catch((e) => logger.warn("Broker capture failed:", e));
         }, 5000);

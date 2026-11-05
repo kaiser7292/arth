@@ -3,6 +3,9 @@ import * as TaskManager from "expo-task-manager";
 
 import { initDatabase } from "@/database";
 import { logger } from "@/utils/logger";
+import { syncBroker } from "@/services/broker-sync";
+import { todayIso } from "@/utils/local-date";
+import { isAutoSyncDue, markAutoSynced } from "./auto-sync";
 import { captureBroker, connectedApiBrokers } from "./capture";
 import { syncBrokerReminders } from "./reminders";
 import type { ApiBroker } from "./types";
@@ -14,17 +17,34 @@ import type { ApiBroker } from "./types";
 
 const TASK = "broker-day-capture";
 
-/** Markets close at 3:30 pm: a run after 4 pm gets the whole day. Crypto trades all week, so it isn't kept to weekdays. */
+/** Trades are worth saving at any run from when the market's closed. Crypto trades all week. */
 export function brokersDueNow(now: Date, connected: ApiBroker[]): ApiBroker[] {
   if (now.getHours() < 16) return [];
   const weekday = now.getDay() !== 0 && now.getDay() !== 6;
   return connected.filter((b) => b === "zebpay" || weekday);
 }
 
-export async function runBrokerCaptureDue(now: Date = new Date()): Promise<boolean> {
-  const due = brokersDueNow(now, await connectedApiBrokers());
+/**
+ * The day's automatic sync, for each broker due and not switched off. Done once a day; a broker that
+ * needs a login or fails stays due, so a later run or opening Arth tries again. A sync saves the
+ * day's trades as well.
+ */
+export async function runAutoSyncDue(now: Date = new Date(), today: string = todayIso()): Promise<boolean> {
   let changed = false;
-  for (const broker of due) {
+  for (const broker of await connectedApiBrokers()) {
+    if (!isAutoSyncDue(broker, now, today)) continue;
+    const r = await syncBroker(broker);
+    if (r.status === "saved") {
+      markAutoSynced(broker, today);
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+export async function runBrokerCaptureDue(now: Date = new Date()): Promise<boolean> {
+  let changed = await runAutoSyncDue(now);
+  for (const broker of brokersDueNow(now, await connectedApiBrokers())) {
     const r = await captureBroker(broker);
     if (r.status === "saved" && r.newTrades > 0) changed = true;
   }

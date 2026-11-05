@@ -9,14 +9,15 @@ import { isBrokerHistoryOn } from "./enabled";
 import type { ApiBroker } from "./types";
 
 /**
- * "Save today's trades" at 8 pm on weekdays, for each connected broker. Each has its own off switch.
+ * "Save today's trades" on weekdays, for each connected broker. Each has its own off switch.
  *
  * A reminder can't check anything when it fires, so several days are scheduled ahead and today's is
  * withdrawn once today is saved. Every app start, capture and background run tops the schedule up.
  */
 
 const OFF_KEY = "broker_reminder_off__";
-const REMINDER_HOUR = 20;
+/** Zerodha at 5 pm, with the sync, so there's still time to log in that evening. The others log in by themselves, so only a failure is worth a later nudge. */
+const REMINDER_HOUR: Record<ApiBroker, number> = { kite: 17, angel: 20, zebpay: 20 };
 const DAYS_AHEAD = 7;
 
 const SCREEN: Record<ApiBroker, string> = {
@@ -43,11 +44,11 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const isoOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const reminderId = (broker: ApiBroker, date: string) => `broker_reminder_${broker}_${date}`;
 
-/** The weekdays to remind on, from now: today only if it's not yet 8 pm and today isn't saved. */
-export function reminderDates(now: Date, savedToday: boolean, days: number = DAYS_AHEAD): Date[] {
+/** The weekdays to remind on, from now: today only if that hour hasn't passed and today isn't saved. */
+export function reminderDates(now: Date, savedToday: boolean, broker: ApiBroker = "angel", days: number = DAYS_AHEAD): Date[] {
   const out: Date[] = [];
   for (let i = 0; i < days; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, REMINDER_HOUR, 0, 0, 0);
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, REMINDER_HOUR[broker], 0, 0, 0);
     const day = d.getDay();
     if (day === 0 || day === 6) continue;
     if (d <= now) continue;
@@ -69,7 +70,7 @@ export async function syncBrokerReminders(now: Date = new Date()): Promise<void>
       // Nothing can be saved until the broker is linked to an account, so there's nothing to remind about.
       if (!isBrokerReminderOn(broker) || !linkedAccountFor(broker)) continue;
       const saved = await isCapturedToday(broker, isoOf(now));
-      for (const date of reminderDates(now, saved)) {
+      for (const date of reminderDates(now, saved, broker)) {
         await Notifications.scheduleNotificationAsync({
           identifier: reminderId(broker, isoOf(date)),
           content: {

@@ -219,7 +219,7 @@ export default function NotificationPreferencesScreen() {
 drawsOwnDivider(NotifToggle);
 
 const BROKER_REMINDERS: { broker: ApiBroker; title: string; subtitle: string }[] = [
-  { broker: "kite", title: "Zerodha", subtitle: "8 PM on weekdays if today isn't saved. Zerodha needs a login each day" },
+  { broker: "kite", title: "Zerodha", subtitle: "5 PM on weekdays if today isn't saved. Zerodha needs a login each day" },
   { broker: "angel", title: "Angel One", subtitle: "8 PM on weekdays if today isn't saved" },
   { broker: "zebpay", title: "Zebpay", subtitle: "8 PM on weekdays if today isn't saved" },
 ];
