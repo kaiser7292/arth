@@ -63,9 +63,11 @@ export interface AccountHistory {
     added: number;
     withdrawn: number;
     byQuarter: Record<1 | 2 | 3 | 4, { added: number; withdrawn: number }>;
-    /** Entries with no matching transfer in Arth. */
+    /** Statement entries with no matching transfer in Arth. */
     unmatched: number;
     hasRecords: boolean;
+    /** Some of it comes from a broker statement. Where no statement covers, it's what Arth detected. */
+    fromStatement: boolean;
   };
   /** Funds are often paid straight from the bank, so they never pass through the broker's ledger. */
   mutualFunds: { bought: number; sold: number };
@@ -113,8 +115,8 @@ export async function getAccountHistory(accountId: string, fy: number, today: st
       `SELECT broker, segment, symbol, isin, side, quantity, price, trade_date, trade_time FROM broker_trades WHERE account_id = ? ORDER BY trade_date, trade_time;`,
       accountId,
     ),
-    db.getAllAsync<{ move_date: string; direction: string; amount: number }>(
-      `SELECT move_date, direction, amount FROM broker_money_moves WHERE account_id = ? AND move_date >= ? AND move_date <= ?;`,
+    db.getAllAsync<{ move_date: string; direction: string; amount: number; source: string }>(
+      `SELECT move_date, direction, amount, source FROM broker_money_moves WHERE account_id = ? AND move_date >= ? AND move_date <= ?;`,
       accountId,
       from,
       to,
@@ -125,7 +127,8 @@ export async function getAccountHistory(accountId: string, fy: number, today: st
     ),
     db.getAllAsync<{ date: string; amount: number; from_account_id: string }>(
       `SELECT date, amount, from_account_id FROM account_transfers
-        WHERE (from_account_id = ? OR to_account_id = ?) AND deleted_at IS NULL AND date >= date(?, '-5 day') AND date <= date(?, '+5 day');`,
+        WHERE (from_account_id = ? OR to_account_id = ?) AND from_account_id != to_account_id
+          AND deleted_at IS NULL AND date >= date(?, '-5 day') AND date <= date(?, '+5 day');`,
       accountId,
       accountId,
       from,
@@ -190,22 +193,43 @@ export async function getAccountHistory(accountId: string, fy: number, today: st
   let added = 0;
   let withdrawn = 0;
   let unmatchedMoves = 0;
-  for (const m of moveRows) {
-    const q = quarterOf(m.move_date);
-    if (m.direction === "in") {
-      added += m.amount;
-      moneyQuarters[q].added += m.amount;
+  const ledgerImports = imports.filter((i) => i.kind === "ledger");
+  const hasStatement = (date: string) => ledgerImports.some((i) => i.period_from <= date && i.period_to >= date);
+  const count = (date: string, isIn: boolean, amount: number) => {
+    const q = quarterOf(date);
+    if (isIn) {
+      added += amount;
+      moneyQuarters[q].added += amount;
     } else {
-      withdrawn += m.amount;
-      moneyQuarters[q].withdrawn += m.amount;
+      withdrawn += amount;
+      moneyQuarters[q].withdrawn += amount;
     }
+  };
+  // A statement is the record for its period. Everywhere else it's the transfers Arth detected, plus
+  // anything the daily saves noted that no transfer explains.
+  for (const m of moveRows) {
     const mine = transfers.some((t) => {
       const days = Math.abs(Date.parse(t.date) - Date.parse(m.move_date)) / 86400000;
       const isOut = t.from_account_id === accountId;
       return days <= 3 && Math.abs(t.amount - m.amount) <= 1 && isOut === (m.direction === "out");
     });
-    if (!mine) unmatchedMoves++;
+    if (m.source === "file") {
+      count(m.move_date, m.direction === "in", m.amount);
+      if (!mine) unmatchedMoves++;
+    } else if (!mine && !hasStatement(m.move_date)) {
+      count(m.move_date, m.direction === "in", m.amount);
+    }
   }
+  let detectedCount = 0;
+  for (const t of transfers) {
+    if (t.date < from || t.date > to || hasStatement(t.date)) continue;
+    detectedCount++;
+    count(t.date, t.from_account_id !== accountId, t.amount);
+  }
+  ([1, 2, 3, 4] as const).forEach((q) => {
+    moneyQuarters[q].added = round2(moneyQuarters[q].added);
+    moneyQuarters[q].withdrawn = round2(moneyQuarters[q].withdrawn);
+  });
 
   // ── Mutual funds ──
   const mf = tradeRows.filter((t) => t.segment === "MF" && t.trade_date >= from && t.trade_date <= to);
@@ -258,7 +282,8 @@ export async function getAccountHistory(accountId: string, fy: number, today: st
       withdrawn: round2(withdrawn),
       byQuarter: moneyQuarters,
       unmatched: unmatchedMoves,
-      hasRecords: moveRows.length > 0,
+      hasRecords: moveRows.length > 0 || detectedCount > 0,
+      fromStatement: moveRows.some((m) => m.source === "file"),
     },
     mutualFunds: { bought: mfValue("buy"), sold: mfValue("sell") },
     captures,

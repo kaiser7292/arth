@@ -131,7 +131,7 @@ export function HistoryTab({ accountId }: { accountId: string }) {
             <Ionicons name="document-text-outline" size={28} color={theme.mutedForeground} />
             <Text className="text-sm font-semibold text-foreground mt-2">No records for this year</Text>
             <Text className="text-xs text-muted-foreground text-center mt-1">
-              Import your broker's reports to see gains and money moved, period by period.
+              Upload your broker's past reports to see gains and money moved, period by period.
             </Text>
           </View>
         </Card>
@@ -177,7 +177,7 @@ export function HistoryTab({ accountId }: { accountId: string }) {
               )}
               {history.unmatched.length > 0 && (
                 <Text className="text-xs mt-1" style={{ color: theme.warning }}>
-                  {history.unmatched.length} {history.unmatched.length === 1 ? "sale has" : "sales have"} no buy on record, so {history.unmatched.length === 1 ? "isn't" : "aren't"} counted. Import the Tax P&L to include {history.unmatched.length === 1 ? "it" : "them"}.
+                  {history.unmatched.length} {history.unmatched.length === 1 ? "sale has" : "sales have"} no buy on record, so {history.unmatched.length === 1 ? "isn't" : "aren't"} counted. Upload the Tax P&L to include {history.unmatched.length === 1 ? "it" : "them"}.
                 </Text>
               )}
               <Text className="text-xs text-muted-foreground mt-2">
@@ -205,6 +205,9 @@ export function HistoryTab({ accountId }: { accountId: string }) {
                   </Text>
                 </View>
               ))}
+              <Text className="text-xs text-muted-foreground mt-2">
+                {money.fromStatement ? "From your broker's statement, and transfers Arth detected for any period it doesn't cover." : "From the transfers Arth detected for this account."}
+              </Text>
               {money.unmatched > 0 && (
                 <Text className="text-xs mt-2" style={{ color: theme.warning }}>
                   {money.unmatched} {money.unmatched === 1 ? "entry doesn't" : "entries don't"} match your transfers in Arth.
@@ -226,7 +229,10 @@ export function HistoryTab({ accountId }: { accountId: string }) {
         </>
       )}
 
-      <Button title="Import broker report" variant="outline" onPress={openImport} />
+      <Button title="Upload historic records" variant="outline" onPress={openImport} />
+      <Text className="text-xs text-faint-foreground text-center mt-2">
+        What Arth saved and detected stays. A report overwrites it only for the period it covers.
+      </Text>
     </View>
   );
 }

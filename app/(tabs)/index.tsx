@@ -58,7 +58,8 @@ import { getFlag } from "@/services/feature-flags";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getCcExpenseTotals } from "@/services/financial-account";
 import { getHisaabSummary } from "@/services/hisaab";
-import { getHomeCardOrder, isDefaultHomeCardOrder, isHomeCardVisible, type HomeCardId } from "@/services/home-card-preferences";
+import { getHomeCardOrder, homeCardHeadings, isHomeCardVisible, type HomeCardId } from "@/services/home-card-preferences";
+import { getActiveHousehold } from "@/services/household/store";
 import { isPartOn, type FeatureId } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
 import { peekHomeSnapshot, saveHomeSnapshot, waitForHomeSection, type HomePreloadData } from "@/services/home-preload";
@@ -103,15 +104,18 @@ const HOME_TABS: SwipePagerPage[] = [
   { key: "vault", label: "Vault" },
 ];
 
-const HOME_HEADINGS: Partial<Record<HomeCardId, string>> = { hisaab: "People & Money", credit_cards: "Your Accounts" };
-
-function renderHomeCards({ cards, headings }: { cards: Partial<Record<HomeCardId, ReactNode>>; headings: Partial<Record<HomeCardId, boolean | null>> }) {
-  const grouped = isDefaultHomeCardOrder();
-  return getHomeCardOrder().map((id) => (
+/**
+ * `present` overrides whether a card counts as on screen, for those that draw nothing without data of
+ * their own (an element is always truthy). A title never sits over an empty space.
+ */
+function renderHomeCards({ cards, present }: { cards: Partial<Record<HomeCardId, ReactNode>>; present: Partial<Record<HomeCardId, boolean | null>> }) {
+  const order = getHomeCardOrder();
+  const headings = homeCardHeadings(order, (id) => !!(present[id] ?? cards[id]));
+  return order.map((id) => (
     <Fragment key={id}>
-      {grouped && headings[id] && (
+      {headings[id] && (
         <View className="mx-4 mt-5 mb-1">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">{HOME_HEADINGS[id]}</Text>
+          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">{headings[id]}</Text>
         </View>
       )}
       {cards[id]}
@@ -130,6 +134,14 @@ export default function HomeScreen() {
   const month = getCurrentMonth();
   const { startDate, endDate } = getMonthDateRange(month);
   const daysRemaining = getDaysRemaining(month);
+
+  // Only so Home knows the Together card has something to show under its title.
+  const [hasHousehold, setHasHousehold] = useState(false);
+  useDataRefresh(
+    useCallback(async () => {
+      setHasHousehold(!!(await getActiveHousehold().catch(() => null)));
+    }, []),
+  );
 
   // Seed every card from the last known Home data (non-destructive snapshot,
   // see services/home-preload.ts) so a re-mount after unlock renders instantly.
@@ -515,11 +527,17 @@ export default function HomeScreen() {
         <AiSetupCard />
         {isPartOn("insights") && <YearReviewReadyCard />}
 
-        {/* Cards in the order set in Customise Arth. Headings only while they're in their usual groups. */}
+        {/* Cards in the order set in Customise Arth, with a title wherever the group changes. */}
         {renderHomeCards({
-          headings: {
-            hisaab: isHomeCardVisible("hisaab"),
-            credit_cards: ccAccounts.length > 0 || bankAccounts.length > 0 || walletAccounts.length > 0 || investmentSummary.accountCount > 0 || (loansSummary && loansSummary.activeCount > 0),
+          present: {
+            // Decides for itself whether to show, and has no title of its own: not counted, so an
+            // empty one can't split a group and repeat its title.
+            check_ins: false,
+            household: isHomeCardVisible("household") && hasHousehold,
+            credit_cards: isHomeCardVisible("credit_cards") && ccAccounts.length > 0,
+            bank_balances: isHomeCardVisible("bank_balances") && bankAccounts.length > 0,
+            wallets: isHomeCardVisible("wallets") && walletAccounts.length > 0,
+            investments: isHomeCardVisible("investments") && investmentSummary.accountCount > 0,
           },
           cards: {
           check_ins: isHomeCardVisible("check_ins") && <Appear index={1}><CheckInsCard /></Appear>,

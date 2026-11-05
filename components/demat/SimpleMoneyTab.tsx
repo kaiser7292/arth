@@ -80,7 +80,7 @@ export function SimpleMoneyTab({ accountId }: { accountId: string }) {
       </Card>
 
       <Text className="text-xs text-faint-foreground text-center">
-        For gains and broker reports, turn on Broker records in Settings &gt; Customise Arth.
+        To upload past reports and see gains, turn on Broker historic records in Settings &gt; Customise Arth.
       </Text>
     </View>
   );

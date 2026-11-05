@@ -127,10 +127,25 @@ describe("calculated figures", () => {
     expect(h.sales[0].id).toBeNull();
   });
 
-  it("the same trade from the API and a tradebook is kept once", async () => {
-    expect(await saveTrades("acc", "kite", [trade({ tradeId: "1" })], "api")).toBe(1);
-    expect(await saveTrades("acc", "kite", [trade({ tradeId: "1" })], "file")).toBe(0);
-    expect(mockDb.prepare("SELECT COUNT(*) n FROM broker_trades").get()).toEqual({ n: 1 });
+  it("the same trade from the API and a tradebook is kept once, as the file has it", async () => {
+    await saveTrades("acc", "kite", [trade({ tradeId: "1", price: 100 })], "api");
+    await saveTrades("acc", "kite", [trade({ tradeId: "1", price: 101 })], "file");
+    expect(mockDb.prepare("SELECT COUNT(*) n, MAX(price) p, MAX(source) s FROM broker_trades").get()).toEqual({ n: 1, p: 101, s: "file" });
+    await saveTrades("acc", "kite", [trade({ tradeId: "1", price: 100 })], "api");
+    expect(mockDb.prepare("SELECT MAX(price) p FROM broker_trades").get()).toEqual({ p: 101 });
+  });
+
+  it("an uploaded tradebook overwrites saved trades only for its period and its kind", async () => {
+    await saveTrades("acc", "kite", [
+      trade({ tradeId: "old", tradeDate: "2026-07-05", quantity: 1 }),
+      trade({ tradeId: "before", tradeDate: "2026-06-01", quantity: 2 }),
+      trade({ tradeId: "after", tradeDate: "2026-09-01", quantity: 3 }),
+      trade({ tradeId: "fund", tradeDate: "2026-07-05", segment: "MF", symbol: "A FUND", isin: "INF1", quantity: 4 }),
+    ], "api");
+    const file: ParsedReport = { broker: "kite", kind: "tradebook", label: "Zerodha tradebook", periodFrom: "2026-07-01", periodTo: "2026-07-31", gains: [], trades: [trade({ tradeId: "new", tradeDate: "2026-07-06", quantity: 9 })], moves: [], chargesTotal: null, gainsBasis: null, warnings: [] };
+    await saveReport("acc", file, "t.csv");
+    const rows = mockDb.prepare("SELECT trade_id t FROM broker_trades ORDER BY trade_id").all().map((r) => (r as { t: string }).t);
+    expect(rows).toEqual(["after", "before", "fund", "new"]);
   });
 
   it("fill only what the report doesn't cover, using its earlier buys", async () => {
@@ -186,6 +201,35 @@ describe("money in and out", () => {
     expect(money).toMatchObject({ added: 20000, withdrawn: 500, unmatched: 1, hasRecords: true });
     expect(money.byQuarter[2].added).toBe(20000);
     expect(money.byQuarter[3].withdrawn).toBe(500);
+  });
+
+  const transferIn = (id: string, amount: number, date: string) =>
+    mockDb.exec(`INSERT INTO account_transfers (id, user_id, from_account_id, to_account_id, amount, date) VALUES ('${id}', '${U}', 'bank', 'acc', ${amount}, '${date}');`);
+
+  it("shows detected transfers with no statement at all", async () => {
+    transferIn("t1", 5000, "2026-07-03");
+    const { money } = await getAccountHistory("acc", FY, TODAY);
+    expect(money).toMatchObject({ added: 5000, withdrawn: 0, hasRecords: true, fromStatement: false, unmatched: 0 });
+    expect(money.byQuarter[2].added).toBe(5000);
+  });
+
+  it("a statement overwrites detected money for its period only, and the rest stays", async () => {
+    transferIn("inside", 1111, "2026-07-03");
+    transferIn("outside", 2222, "2026-10-20");
+    await saveReport("acc", { ...ledger([{ date: "2026-07-02", direction: "in", amount: 20000, reference: "a", narration: null }]), periodTo: "2026-09-30" }, "l.csv");
+    const { money } = await getAccountHistory("acc", FY, TODAY);
+    expect(money.added).toBe(22222);
+    expect(money.byQuarter[2].added).toBe(20000);
+    expect(money.byQuarter[3].added).toBe(2222);
+    expect(money.fromStatement).toBe(true);
+    expect(mockDb.prepare("SELECT COUNT(*) n FROM account_transfers").get()).toEqual({ n: 2 });
+  });
+
+  it("doesn't count a day's saved money twice when a transfer explains it", async () => {
+    transferIn("t1", 300, "2026-11-05");
+    await saveDayMove("acc", "kite", "2026-11-05", "in", 300);
+    await saveDayMove("acc", "kite", "2026-11-03", "in", 50);
+    expect((await getAccountHistory("acc", FY, TODAY)).money.added).toBe(350);
   });
 
   it("a statement replaces what daily saves noted, and later saves don't add back to its period", async () => {

@@ -3,7 +3,7 @@ import { getAngelCredentials, getAngelDayRecords, isAngelConnected } from "@/ser
 import { getBrokerLinkedAccount } from "@/services/broker-link";
 import { getKiteCredentials, getKiteDayRecords, getLinkedAccountId, isKiteTokenExpired } from "@/services/kite-connect";
 import { bumpDataVersion } from "@/services/settings";
-import { isBrokerHistoryOn } from "./enabled";
+import { isBrokerCaptureOn } from "./enabled";
 import { getZebpayCache, getZebpayOrderFills, isZebpayConnected } from "@/services/zebpay-connect";
 import { todayIso } from "@/utils/local-date";
 import { logger } from "@/utils/logger";
@@ -33,7 +33,7 @@ export function linkedAccountFor(broker: ApiBroker): string | null {
 }
 
 export async function captureBroker(broker: ApiBroker, today: string = todayIso()): Promise<CaptureResult> {
-  if (!isBrokerHistoryOn()) return { broker, status: "off" };
+  if (!isBrokerCaptureOn()) return { broker, status: "off" };
   try {
     if (!(await isConnected[broker]())) return { broker, status: "not_connected" };
     const accountId = linkedAccountFor(broker);
@@ -100,10 +100,10 @@ export async function isCapturedToday(broker: ApiBroker, today: string = todayIs
   return (row?.n ?? 0) > 0;
 }
 
-/** The brokers to save for and remind about: none while broker records are off. */
+/** The brokers to save trades for. */
 export async function connectedApiBrokers(): Promise<ApiBroker[]> {
   const out: ApiBroker[] = [];
-  if (!isBrokerHistoryOn()) return out;
+  if (!isBrokerCaptureOn()) return out;
   for (const broker of ["kite", "angel", "zebpay"] as const) if (await isConnected[broker]()) out.push(broker);
   return out;
 }

@@ -43,7 +43,7 @@ export const V15_FLAGS = {
   v17_loans_v1: true,
   /** Together, Phase 1: households (docs/HOUSEHOLD_PHASE1_DESIGN.md). Off = Settings row and Home card hidden, no sync. */
   household: true,
-  /** v4.42: broker records (services/broker-history). Off = withdrawn for everyone. On = each user still opts in, in Customise Arth. */
+  /** v4.42: broker records (services/broker-history). Off = withdrawn for everyone, daily saves included. On = trades are saved, and each user opts in to uploads and gains in Customise Arth. */
   broker_history: true,
 } as const;
 

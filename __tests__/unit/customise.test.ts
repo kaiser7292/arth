@@ -12,9 +12,12 @@ import { customiseVersion, isPartOn, isPathOn, setPartOn, subscribeCustomise } f
 import {
   HOME_CARD_DEFAULT_ORDER,
   getHomeCardOrder,
+  getHomeCardBlocks,
+  homeCardHeadings,
   isDefaultHomeCardOrder,
   isHomeCardVisible,
   moveHomeCard,
+  moveHomeBlock,
   resetCustomisation,
   setHomeCardVisible,
 } from "../../services/home-card-preferences";
@@ -85,6 +88,38 @@ describe("switching things off", () => {
   });
 });
 
+describe("titles on Home cards", () => {
+  const all = () => true;
+  it("sit where they always have in the usual order", () => {
+    expect(homeCardHeadings(HOME_CARD_DEFAULT_ORDER, all)).toEqual({ hisaab: "People & Money", credit_cards: "Your Accounts" });
+  });
+  it("stay at the top of a group when its cards are reordered", () => {
+    moveHomeCard("bank_balances", -1);
+    expect(homeCardHeadings(getHomeCardOrder(), all)).toEqual({ hisaab: "People & Money", bank_balances: "Your Accounts" });
+  });
+  it("move with their block", () => {
+    moveHomeBlock("credit_cards", -1);
+    expect(homeCardHeadings(getHomeCardOrder(), all)).toEqual({ credit_cards: "Your Accounts", hisaab: "People & Money" });
+  });
+  it("give the month's cards a title once they aren't first", () => {
+    moveHomeBlock("check_ins", 1);
+    expect(homeCardHeadings(getHomeCardOrder(), all)).toEqual({ hisaab: "People & Money", check_ins: "This Month", credit_cards: "Your Accounts" });
+  });
+  it("follow a single card moved out of its group, and show again on what it split", () => {
+    const order = ["credit_cards", "my_month", "wallets"] as never[];
+    expect(homeCardHeadings(order, all)).toEqual({ credit_cards: "Your Accounts", my_month: "This Month", wallets: "Your Accounts" });
+  });
+  it("don't repeat when the card between isn't showing", () => {
+    const order = ["credit_cards", "my_month", "wallets"] as never[];
+    expect(homeCardHeadings(order, ((id: string) => id !== "my_month") as never)).toEqual({ credit_cards: "Your Accounts" });
+  });
+  it("go to the first card actually showing, and never sit over nothing", () => {
+    const showing = (id: string) => id === "household" || id === "bank_balances";
+    expect(homeCardHeadings(HOME_CARD_DEFAULT_ORDER, showing as never)).toEqual({ household: "People & Money", bank_balances: "Your Accounts" });
+    expect(homeCardHeadings(HOME_CARD_DEFAULT_ORDER, () => false)).toEqual({});
+  });
+});
+
 describe("the order of Home cards", () => {
   it("starts as Home has always been", () => {
     expect(getHomeCardOrder()).toEqual(HOME_CARD_DEFAULT_ORDER);
@@ -100,6 +135,32 @@ describe("the order of Home cards", () => {
     const last = HOME_CARD_DEFAULT_ORDER[HOME_CARD_DEFAULT_ORDER.length - 1];
     moveHomeCard(last, 1);
     expect(getHomeCardOrder().at(-1)).toBe(last);
+  });
+
+  it("lets a card cross into another group", () => {
+    moveHomeCard("upcoming_dues", 1);
+    expect(getHomeCardOrder().slice(3, 5)).toEqual(["hisaab", "upcoming_dues"]);
+    expect(getHomeCardBlocks().map((b) => b.group)).toEqual(["month", "people", "month", "people", "accounts"]);
+  });
+
+  it("moves all of a block's cards together, keeping their order inside", () => {
+    moveHomeCard("bank_balances", -1);
+    moveHomeBlock("bank_balances", -1);
+    expect(getHomeCardBlocks().map((b) => b.group)).toEqual(["month", "accounts", "people"]);
+    expect(getHomeCardBlocks()[1].cards.slice(0, 2)).toEqual(["bank_balances", "credit_cards"]);
+    expect(getHomeCardOrder().slice(-2)).toEqual(["hisaab", "household"]);
+  });
+
+  it("stops a block at the ends", () => {
+    moveHomeBlock("check_ins", -1);
+    moveHomeBlock("credit_cards", 1);
+    expect(getHomeCardOrder()).toEqual(HOME_CARD_DEFAULT_ORDER);
+  });
+
+  it("joins blocks of one group when they meet", () => {
+    moveHomeCard("upcoming_dues", 1);
+    moveHomeCard("upcoming_dues", -1);
+    expect(getHomeCardBlocks().map((b) => b.group)).toEqual(["month", "people", "accounts"]);
   });
 
   it("a saved order survives cards being added or dropped in a later version", () => {

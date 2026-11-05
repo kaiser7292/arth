@@ -170,6 +170,20 @@ export const HOME_CARD_DEFAULT_ORDER: HomeCardId[] = [
 
 const ORDER_KEY = "home_card_order";
 
+export type HomeGroupId = "month" | "people" | "accounts";
+
+/**
+ * The group each card belongs to, and the title it sits under. Order is entirely the user's: a card
+ * can go anywhere and a block of cards can move together. A card moved out of its group takes its
+ * title with it, so every card is always under the right one.
+ */
+const HOME_GROUPS: { id: HomeGroupId; title: string; cards: HomeCardId[] }[] = [
+  { id: "month", title: "This Month", cards: ["check_ins", "my_month", "reminders", "upcoming_dues"] },
+  { id: "people", title: "People & Money", cards: ["hisaab", "household"] },
+  { id: "accounts", title: "Your Accounts", cards: ["credit_cards", "bank_balances", "wallets", "investments", "loans"] },
+];
+const groupOf = (id: HomeCardId) => HOME_GROUPS.find((g) => g.cards.includes(id));
+
 /** The saved order. Cards it doesn't know keep their default place at the end; ones that no longer exist drop out. */
 export function getHomeCardOrder(): HomeCardId[] {
   let saved: string[] = [];
@@ -183,11 +197,48 @@ export function getHomeCardOrder(): HomeCardId[] {
   return [...known, ...HOME_CARD_DEFAULT_ORDER.filter((id) => !known.includes(id))];
 }
 
+export interface HomeCardBlock {
+  group: HomeGroupId;
+  title: string;
+  cards: HomeCardId[];
+}
+
+/** The order as blocks: cards of one group side by side. A group split by another card is two blocks. */
+export function getHomeCardBlocks(order: HomeCardId[] = getHomeCardOrder()): HomeCardBlock[] {
+  const blocks: HomeCardBlock[] = [];
+  for (const id of order) {
+    const group = groupOf(id);
+    if (!group) continue;
+    const last = blocks[blocks.length - 1];
+    if (last?.group === group.id) last.cards.push(id);
+    else blocks.push({ group: group.id, title: group.title, cards: [id] });
+  }
+  return blocks;
+}
+
+/**
+ * Which cards get a title above them: wherever the group changes, counting only cards actually on
+ * screen, so a title never sits over nothing. Home opens with the month's cards untitled, as it always
+ * has. Anywhere lower they need their title like any other.
+ */
+export function homeCardHeadings(order: HomeCardId[], isPresent: (id: HomeCardId) => boolean): Partial<Record<HomeCardId, string>> {
+  const headings: Partial<Record<HomeCardId, string>> = {};
+  let current: HomeGroupId | null = null;
+  for (const id of order) {
+    if (!isPresent(id)) continue;
+    const group = groupOf(id);
+    if (!group || group.id === current) continue;
+    if (current !== null || group.id !== "month") headings[id] = group.title;
+    current = group.id;
+  }
+  return headings;
+}
+
 export function isDefaultHomeCardOrder(): boolean {
   return getHomeCardOrder().every((id, i) => id === HOME_CARD_DEFAULT_ORDER[i]);
 }
 
-/** One place up (-1) or down (1). */
+/** One place up (-1) or down (1), across groups if that's where the next place is. */
 export function moveHomeCard(id: HomeCardId, by: -1 | 1): void {
   const order = getHomeCardOrder();
   const from = order.indexOf(id);
@@ -195,6 +246,17 @@ export function moveHomeCard(id: HomeCardId, by: -1 | 1): void {
   if (from < 0 || to < 0 || to >= order.length) return;
   [order[from], order[to]] = [order[to], order[from]];
   settingsStorage.set(ORDER_KEY, JSON.stringify(order));
+  customiseChanged();
+}
+
+/** A whole block, identified by its first card, past the block above (-1) or below (1). */
+export function moveHomeBlock(firstCard: HomeCardId, by: -1 | 1): void {
+  const blocks = getHomeCardBlocks();
+  const from = blocks.findIndex((b) => b.cards[0] === firstCard);
+  const to = from + by;
+  if (from < 0 || to < 0 || to >= blocks.length) return;
+  [blocks[from], blocks[to]] = [blocks[to], blocks[from]];
+  settingsStorage.set(ORDER_KEY, JSON.stringify(blocks.flatMap((b) => b.cards)));
   customiseChanged();
 }
 

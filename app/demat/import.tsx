@@ -32,7 +32,7 @@ function Row({ label, value, color }: { label: string; value: string; color?: st
   );
 }
 
-/** Pick a broker report, see what's in it, then import. It's read on this phone only. */
+/** Pick a past broker report, see what's in it, then upload. It's read on this phone only, and overwrites only its own period. */
 export default function ImportBrokerReportScreen() {
   const { accountId } = useLocalSearchParams<{ accountId: string }>();
   const router = useRouter();
@@ -117,7 +117,7 @@ export default function ImportBrokerReportScreen() {
         router.back();
       }
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : "Couldn't import that report.");
+      setMessage(e instanceof Error ? e.message : "Couldn't upload that report.");
       setSaving(false);
     }
   };
@@ -129,7 +129,7 @@ export default function ImportBrokerReportScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <Stack.Screen options={{ title: "Import broker report" }} />
+      <Stack.Screen options={{ title: "Upload historic records" }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {!report && !unknown && (
           <>
@@ -247,12 +247,12 @@ export default function ImportBrokerReportScreen() {
 
             <Text className="text-xs text-muted-foreground mb-3">
               {report.kind === "gains"
-                ? "This replaces the figures for this period."
+                ? "This overwrites the figures for this period. Everything else stays."
                 : report.kind === "ledger"
-                  ? "This replaces money in and out for this period."
-                  : "Trades already saved aren't added twice."}
+                  ? "This overwrites money in and out for this period. Everything else stays."
+                  : "This overwrites saved trades for this period. Everything else stays."}
             </Text>
-            <Button title="Import" onPress={() => void confirm()} loading={saving} />
+            <Button title="Upload" onPress={() => void confirm()} loading={saving} />
             <Button title="Choose another file" variant="ghost" onPress={() => void pick()} className="mt-1" />
           </>
         )}

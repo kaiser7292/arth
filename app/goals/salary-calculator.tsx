@@ -1300,7 +1300,7 @@ function BrokerGainsCard({ gains }: { gains: YearGains }) {
       ))}
       {gains.hasCalculated && (
         <Text className="text-xs mt-2" style={{ color: theme.warning }}>
-          Includes calculated figures. Import the final report to confirm them.
+          Includes calculated figures. Upload the final report to confirm them.
         </Text>
       )}
       {gains.input.cryptoTds > 0 && (

@@ -5,6 +5,7 @@ import { hasNotificationPermission } from "@/services/notifications";
 import { settingsStorage } from "@/services/storage";
 import { logger } from "@/utils/logger";
 import { connectedApiBrokers, isCapturedToday, linkedAccountFor } from "./capture";
+import { isBrokerHistoryOn } from "./enabled";
 import type { ApiBroker } from "./types";
 
 /**
@@ -61,7 +62,8 @@ export async function syncBrokerReminders(now: Date = new Date()): Promise<void>
     const scheduled = await Notifications.getAllScheduledNotificationsAsync();
     const mine = scheduled.map((n) => n.identifier).filter((id) => id.startsWith("broker_reminder_"));
     await Promise.all(mine.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
-    if (!(await hasNotificationPermission())) return;
+    // Saving carries on quietly with broker records off, but nobody who hasn't opted in gets asked to log in.
+    if (!isBrokerHistoryOn() || !(await hasNotificationPermission())) return;
 
     for (const broker of await connectedApiBrokers()) {
       // Nothing can be saved until the broker is linked to an account, so there's nothing to remind about.

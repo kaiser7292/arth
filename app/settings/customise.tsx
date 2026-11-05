@@ -11,9 +11,11 @@ import { getFlag } from "@/services/feature-flags";
 import { FEATURES, INNER_TABS, TABS, isPartOn, setPartOn, type PartId } from "@/services/customise";
 import {
   HOME_CARDS,
+  getHomeCardBlocks,
   getHomeCardOrder,
   isHomeCardSwitchedOn,
   moveHomeCard,
+  moveHomeBlock,
   owningPart,
   resetCustomisation,
   setHomeCardVisible,
@@ -29,6 +31,7 @@ export default function CustomiseScreen() {
   const { colors } = useColorScheme();
   const theme = useTheme();
   const order = getHomeCardOrder();
+  const blocks = getHomeCardBlocks(order);
   const trackColor = { false: colors.border, true: theme.primary };
 
   const partRow = (p: { id: PartId; label: string; description: string }, last: boolean) => (
@@ -47,7 +50,18 @@ export default function CustomiseScreen() {
     </View>
   );
 
-  const cardRow = (id: HomeCardId, position: number | null) => {
+  const arrows = (label: string, first: boolean, last: boolean, move: (by: -1 | 1) => void) => (
+    <View className="mr-2.5 items-center">
+      <Pressable onPress={() => move(-1)} disabled={first} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Move ${label} up`}>
+        <Ionicons name="chevron-up" size={18} color={first ? colors.border : theme.primary} />
+      </Pressable>
+      <Pressable onPress={() => move(1)} disabled={last} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Move ${label} down`}>
+        <Ionicons name="chevron-down" size={18} color={last ? colors.border : theme.primary} />
+      </Pressable>
+    </View>
+  );
+
+  const cardRow = (id: HomeCardId, place: { first: boolean; last: boolean } | null) => {
     const card = HOME_CARDS.find((c) => c.id === id);
     if (!card) return null;
     const owner = owningPart(id);
@@ -55,27 +69,8 @@ export default function CustomiseScreen() {
     const ownerLabel = owner ? ([...FEATURES, ...TABS].find((p) => p.id === owner)?.label ?? "") : "";
     return (
       <View key={id} className="flex-row items-center py-2.5 border-b border-border">
-        {position !== null ? (
-          <View className="mr-2.5 items-center">
-            <Pressable
-              onPress={() => moveHomeCard(id, -1)}
-              disabled={position === 0}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel={`Move ${card.label} up`}
-            >
-              <Ionicons name="chevron-up" size={18} color={position === 0 ? colors.border : theme.primary} />
-            </Pressable>
-            <Pressable
-              onPress={() => moveHomeCard(id, 1)}
-              disabled={position === order.length - 1}
-              hitSlop={6}
-              accessibilityRole="button"
-              accessibilityLabel={`Move ${card.label} down`}
-            >
-              <Ionicons name="chevron-down" size={18} color={position === order.length - 1 ? colors.border : theme.primary} />
-            </Pressable>
-          </View>
+        {place ? (
+          arrows(card.label, place.first, place.last, (by) => moveHomeCard(id, by))
         ) : (
           <View style={{ width: 28 }} />
         )}
@@ -107,10 +102,10 @@ export default function CustomiseScreen() {
           {getFlag("broker_history") && (
             <View className="flex-row items-center py-3">
               <View className="flex-1 mr-3">
-                <Text className="text-sm font-semibold text-foreground">Broker records</Text>
+                <Text className="text-sm font-semibold text-foreground">Broker historic records</Text>
                 <Text className="text-xs text-muted-foreground mt-0.5">
                   {isPartOn("investments")
-                    ? "Gains from broker reports and daily trade saves, in demat History and the Income Calculator. Off: just money in and out from detected transfers."
+                    ? "Upload past broker reports, and see gains in demat History and the Income Calculator, with reminders to save trades. What Arth saved and detected stays: a report overwrites it only for its period. Off: just money in and out from detected transfers."
                     : "Off with Investments"}
                 </Text>
               </View>
@@ -124,7 +119,7 @@ export default function CustomiseScreen() {
                 }}
                 trackColor={trackColor}
                 thumbColor="#ffffff"
-                accessibilityLabel="Broker records"
+                accessibilityLabel="Broker historic records"
               />
             </View>
           )}
@@ -140,10 +135,26 @@ export default function CustomiseScreen() {
         </Card>
 
         <Card title="Home cards" className="mb-4">
-          <Text className="text-xs text-muted-foreground mb-1">Use the arrows to change their order on Home.</Text>
-          {order.flatMap((id, i) => (id === "my_month" ? [cardRow(id, i), cardRow("total_spent", null)] : [cardRow(id, i)]))}
-          {cardRow("min_balance_alert", null)}
-          <Text className="text-xs text-muted-foreground mt-2">Low-balance alerts always sit at the top of Home.</Text>
+          <Text className="text-xs text-muted-foreground mb-1">
+            The arrows beside a title move those cards together. The arrows beside a card move just that card, anywhere you like. A card moved out of its group brings its title along.
+          </Text>
+          {blocks.map((b, bi) => (
+            <View key={b.cards[0]}>
+              <View className="flex-row items-center pt-3 pb-2 border-b border-border">
+                {arrows(b.title, bi === 0, bi === blocks.length - 1, (by) => moveHomeBlock(b.cards[0], by))}
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex-1">{b.title}</Text>
+              </View>
+              {b.cards.flatMap((id) => {
+                const at = order.indexOf(id);
+                const row = cardRow(id, { first: at === 0, last: at === order.length - 1 });
+                return id === "my_month" ? [row, cardRow("total_spent", null)] : [row];
+              })}
+            </View>
+          ))}
+          <View className="pt-1">{cardRow("min_balance_alert", null)}</View>
+          <Text className="text-xs text-muted-foreground mt-2">
+            Low-balance alerts always sit at the top of Home. "This Month" only shows as a title when those cards aren't first.
+          </Text>
         </Card>
 
         <Button title="Reset to defaults" variant="outline" onPress={resetCustomisation} />

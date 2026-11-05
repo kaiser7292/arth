@@ -25,6 +25,15 @@ jest.mock("react-native-mmkv", () => ({
   })),
 }));
 const mockKite = jest.fn();
+const mockSchedule = jest.fn();
+jest.mock("expo-notifications", () => ({
+  SchedulableTriggerInputTypes: { DATE: "date" },
+  getAllScheduledNotificationsAsync: async () => [],
+  cancelScheduledNotificationAsync: async () => {},
+  scheduleNotificationAsync: (...a: unknown[]) => mockSchedule(...a),
+}));
+jest.mock("@/services/notifications", () => ({ hasNotificationPermission: async () => true }));
+jest.mock("@/services/broker-link", () => ({ getBrokerLinkedAccount: () => null }));
 jest.mock("@/services/kite-connect", () => ({
   getKiteCredentials: async () => ({ apiKey: "k", accessToken: "t" }),
   getKiteDayRecords: (...a: unknown[]) => mockKite(...a),
@@ -38,6 +47,7 @@ import { runMigrations } from "../../database/migrations";
 import { captureAllBrokers, captureBroker, connectedApiBrokers } from "../../services/broker-history/capture";
 import { isBrokerHistoryOn, setBrokerHistoryOn } from "../../services/broker-history/enabled";
 import { getDetectedMoney } from "../../services/broker-history/history";
+import { syncBrokerReminders } from "../../services/broker-history/reminders";
 import { setPartOn } from "../../services/customise";
 
 const U = "default-user";
@@ -45,6 +55,7 @@ const U = "default-user";
 beforeEach(async () => {
   mockStore.clear();
   mockKite.mockReset();
+  mockSchedule.mockReset();
   mockKite.mockResolvedValue({ trades: [], mfOrders: [], holdings: [], payin: 0, payout: 0 });
   mockDb = new DatabaseSync(":memory:");
   await runMigrations(mockAdapter as never);
@@ -68,23 +79,34 @@ describe("the switch", () => {
 });
 
 describe("while off", () => {
-  it("never calls a broker or saves anything", async () => {
-    expect(await captureBroker("kite")).toEqual({ broker: "kite", status: "off" });
+  it("still saves each day's trades, since they can't be fetched later", async () => {
+    expect(await captureBroker("kite")).toMatchObject({ status: "saved" });
     await captureAllBrokers();
-    expect(mockKite).not.toHaveBeenCalled();
-    expect(mockDb.prepare("SELECT COUNT(*) n FROM broker_capture_days").get()).toEqual({ n: 0 });
+    expect(mockKite).toHaveBeenCalledTimes(2);
+    expect(mockDb.prepare("SELECT COUNT(*) n FROM broker_capture_days").get()).toEqual({ n: 1 });
+    expect(await connectedApiBrokers()).toEqual(["kite"]);
   });
-  it("has no brokers to remind about", async () => {
+  it("sends no reminders, so nobody who hasn't opted in is asked to log in", async () => {
+    await syncBrokerReminders();
+    expect(mockSchedule).not.toHaveBeenCalled();
+  });
+});
+
+describe("with Investments off", () => {
+  it("saves nothing at all", async () => {
+    setPartOn("investments", false);
+    expect(await captureBroker("kite")).toEqual({ broker: "kite", status: "off" });
+    expect(mockKite).not.toHaveBeenCalled();
     expect(await connectedApiBrokers()).toEqual([]);
   });
 });
 
 describe("once on", () => {
-  it("saves the day", async () => {
+  it("reminds about connected brokers", async () => {
     setBrokerHistoryOn(true);
-    expect(await captureBroker("kite")).toMatchObject({ status: "saved" });
-    expect(mockKite).toHaveBeenCalledTimes(1);
-    expect(await connectedApiBrokers()).toEqual(["kite"]);
+    await syncBrokerReminders();
+    expect(mockSchedule).toHaveBeenCalled();
+    expect(mockSchedule.mock.calls[0][0].identifier).toMatch(/^broker_reminder_kite_/);
   });
   it("keeps what was saved when switched off again", async () => {
     setBrokerHistoryOn(true);

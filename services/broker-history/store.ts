@@ -12,7 +12,10 @@ function tradeId(broker: HistoryBroker, t: ParsedTrade, ordinal: number): string
   return `${broker}:${t.tradeDate}:${t.symbol}:${t.side}:${t.quantity}:${t.price}:${t.orderId ?? ""}:${ordinal}`;
 }
 
-/** Trades, leaving any already saved alone. Returns how many were new. */
+/**
+ * Trades. Those from a file overwrite the same trade saved from the API; the API never overwrites a
+ * file. Returns how many rows changed.
+ */
 export async function saveTrades(accountId: string, broker: HistoryBroker, trades: ParsedTrade[], source: "api" | "file"): Promise<number> {
   const db = getDatabase();
   let added = 0;
@@ -22,7 +25,7 @@ export async function saveTrades(accountId: string, broker: HistoryBroker, trade
     const ordinal = seen.get(base) ?? 0;
     seen.set(base, ordinal + 1);
     const r = await db.runAsync(
-      `INSERT OR IGNORE INTO broker_trades
+      `INSERT OR ${source === "file" ? "REPLACE" : "IGNORE"} INTO broker_trades
          (id, account_id, broker, segment, symbol, isin, exchange, product, side, quantity, price, trade_date, trade_time, order_id, trade_id, source)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
       tradeId(broker, t, ordinal),
@@ -162,7 +165,20 @@ export async function saveReport(accountId: string, report: ParsedReport, fileNa
   const db = getDatabase();
   await db.withTransactionAsync(async () => {
     if (report.kind === "gains") await saveGains(accountId, report);
-    if (report.kind === "tradebook") await saveTrades(accountId, report.broker, report.trades, "file");
+    if (report.kind === "tradebook") {
+      // The file is the record for its period: what daily saves noted for the same kind of trade gives way.
+      for (const segment of new Set(report.trades.map((t) => t.segment))) {
+        await db.runAsync(
+          `DELETE FROM broker_trades WHERE account_id = ? AND broker = ? AND segment = ? AND source = 'api' AND trade_date >= ? AND trade_date <= ?;`,
+          accountId,
+          report.broker,
+          segment,
+          report.periodFrom,
+          report.periodTo,
+        );
+      }
+      await saveTrades(accountId, report.broker, report.trades, "file");
+    }
     if (report.kind === "ledger") await saveMoves(accountId, report.broker, report.moves, report.periodFrom, report.periodTo);
     await db.runAsync(
       `INSERT OR REPLACE INTO broker_report_imports (id, account_id, broker, kind, period_from, period_to, file_name, row_count, charges_total, imported_at)
