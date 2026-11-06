@@ -693,3 +693,9 @@ footer{background:var(--dark-bg);padding-block:24px}
 }
 
 /* ── Home: three ways to get Arth ── */
+
+/* Google's official Play badge. The image has a clear margin built in (about 16% of its height); trimmed so it lines up with the buttons beside it. */
+.play-badge{display:inline-block;line-height:0;border-radius:8px;flex:none;align-self:center}
+.play-badge img{height:72px;width:auto;margin:-11.5px}
+.play-badge:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.hero-acts .play-badge{align-self:flex-start}
