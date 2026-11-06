@@ -17,7 +17,8 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getCategories } from "@/services/category";
 import { getBudgetsForMonth, getCurrentMonth, getMonthlyBudgetTotals } from "@/services/budget";
 import { getExpenseTotalsByCategory, getExpenseTotal, getUncategorizedTotal, getUncategorizedCount, getMonthlyExpenseTotals } from "@/services/expense";
-import { getDebtServicing } from "@/services/loan-accounts";
+import { getMonthSplit, type MonthSplit } from "@/services/month-split";
+import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 import { getYearlyPlanByFY } from "@/services/yearly-plan";
 import type { YearlyPlan } from "@/services/yearly-plan";
 import type { Category } from "@/services/category";
@@ -129,8 +130,11 @@ export default function BudgetScreen() {
   const isPastMonth = daysRemaining === 0;
 
   const [loadFailed, setLoadFailed] = useState(false);
-  /** Loan EMIs and prepayments this month: shown next to the budget, never counted in it. */
-  const [debt, setDebt] = useState<{ paid: number; due: number }>({ paid: 0, due: 0 });
+  /**
+   * The month's EMIs (the budget's fixed part, from the loan schedules) and the unavoidable /
+   * discretionary split of spending. EMIs never fill a category budget.
+   */
+  const [monthSplit, setMonthSplit] = useState<MonthSplit | null>(null);
   const loadData = useCallback(async () => {
     try {
       // Pre-compute FY date ranges synchronously so all queries fire in one batch
@@ -199,9 +203,10 @@ export default function BudgetScreen() {
       setAnnualSpentYTD(plan ? ytd : 0);
       setRollingSurplus(surplus);
       setLoadFailed(false);
-      getDebtServicing(DEFAULT_USER_ID, startDate, endDate)
-        .then(setDebt)
-        .catch(() => setDebt({ paid: 0, due: 0 }));
+      // Only adds the breakdown; never in the way of the budget itself.
+      getMonthSplit(month)
+        .then(setMonthSplit)
+        .catch(() => setMonthSplit(null));
     } catch {
       setLoadFailed(true);
       // Database not ready
@@ -414,25 +419,131 @@ export default function BudgetScreen() {
               />
             }
           >
-            <View className="flex-row items-center justify-between mb-2 mt-2">
-              <Text className="text-sm text-muted-foreground">
-                Total Spent
-              </Text>
-              <Text className="text-sm text-muted-foreground">
-                Budget
-              </Text>
-            </View>
-            <View className="flex-row items-center justify-between mb-3">
-              <AnimatedNumber value={totalSpent} className="text-2xl font-bold" style={{ color: overallColor }} />
-              <Text className="text-2xl font-bold text-foreground">
-                {formatAmount(totalBudget)}
-              </Text>
-            </View>
+            {(() => {
+              const emis = monthSplit?.emis;
+              const hasEmis = !!emis && (emis.paid > 0 || emis.due > 0);
+              const sp = monthSplit?.split;
+              // Money out = EMIs + spending. EMIs count at what was paid; planned counts what's due.
+              const moneyOut = totalSpent + (emis && hasEmis ? emis.paid : 0);
+              const planned = totalBudget + (emis && hasEmis ? emis.due : 0);
+              const scale = Math.max(planned, moneyOut, 1);
+              const notSorted = sp ? Math.max(0, totalSpent - sp.unavoidable.spent - sp.discretionary.spent) : 0;
+              const unsortedColor = theme.alpha("mutedForeground", 0.5);
+              const parts = [
+                ...(emis && hasEmis ? [{ key: "emis", value: emis.paid, color: colors.textSecondary }] : []),
+                ...(sp
+                  ? [
+                      { key: "unavoidable", value: sp.unavoidable.spent, color: BRAND_COLOR },
+                      { key: "discretionary", value: sp.discretionary.spent, color: STATUS_COLORS.warning },
+                      { key: "unsorted", value: notSorted, color: unsortedColor },
+                    ]
+                  : [{ key: "spent", value: totalSpent, color: overallColor }]),
+              ].filter((part) => part.value > 0);
+              const openBucket = (avoidability: "unavoidable" | "avoidable" | "unclassified", title: string) =>
+                router.push({ pathname: "/budget/transactions", params: { filterMonth: month, filterAvoidability: avoidability, title } });
 
-            {totalBudget > 0 && (
-              <ProgressBar value={overallPct} color={overallColor} height={12} animated />
-            )}
+              const row = (r: {
+                key: string;
+                dot: string;
+                label: string;
+                note?: string;
+                value: number;
+                of?: number;
+                onPress: () => void;
+                hint: string;
+              }) => (
+                <Pressable
+                  key={r.key}
+                  onPress={r.onPress}
+                  className="flex-row items-center py-2 border-b border-border"
+                  accessibilityRole="button"
+                  accessibilityLabel={r.hint}
+                >
+                  <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: r.dot }} />
+                  <View className="flex-1 mr-2">
+                    <Text className="text-sm text-foreground">{r.label}</Text>
+                    {r.note ? <Text className="text-xs text-faint-foreground">{r.note}</Text> : null}
+                  </View>
+                  <Text className="text-sm font-semibold text-foreground">{formatAmount(r.value)}</Text>
+                  {r.of != null && r.of > 0 && <Text className="text-xs text-faint-foreground ml-1">/ {formatAmount(r.of)}</Text>}
+                  <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                </Pressable>
+              );
 
+              return (
+                <>
+                  <View className="flex-row items-center justify-between mb-2 mt-2">
+                    <Text className="text-sm text-muted-foreground">{hasEmis ? "Money out" : "Total Spent"}</Text>
+                    <Text className="text-sm text-muted-foreground">{hasEmis ? "Planned" : "Budget"}</Text>
+                  </View>
+                  <View className="flex-row items-center justify-between mb-3">
+                    <AnimatedNumber value={moneyOut} className="text-2xl font-bold" style={{ color: hasEmis ? colors.text : overallColor }} />
+                    <Text className="text-2xl font-bold text-foreground">{formatAmount(planned)}</Text>
+                  </View>
+
+                  {sp || hasEmis ? (
+                    <View
+                      className="flex-row rounded-full overflow-hidden"
+                      style={{ height: 12, backgroundColor: theme.alpha("mutedForeground", 0.12) }}
+                    >
+                      {parts.map((part) => (
+                        <View key={part.key} style={{ width: `${Math.min(100, (part.value / scale) * 100)}%`, backgroundColor: part.color }} />
+                      ))}
+                    </View>
+                  ) : (
+                    totalBudget > 0 && <ProgressBar value={overallPct} color={overallColor} height={12} animated />
+                  )}
+
+                  {(sp || hasEmis) && (
+                    <View className="mt-2">
+                      {emis && hasEmis &&
+                        row({
+                          key: "emis",
+                          dot: colors.textSecondary,
+                          label: "Loan EMIs",
+                          note: emis.prepaid > 0 ? `includes ${formatAmount(emis.prepaid)} prepaid` : "from your loans, no budget to set",
+                          value: emis.paid,
+                          of: emis.due,
+                          onPress: () => router.push("/goals/loans"),
+                          hint: `Loan EMIs ${formatAmount(emis.paid)} of ${formatAmount(emis.due)}. Open loans`,
+                        })}
+                      {sp &&
+                        row({
+                          key: "unavoidable",
+                          dot: BRAND_COLOR,
+                          label: "Unavoidable",
+                          value: sp.unavoidable.spent,
+                          of: sp.unavoidable.budget,
+                          onPress: () => openBucket("unavoidable", "Unavoidable"),
+                          hint: `Unavoidable ${formatAmount(sp.unavoidable.spent)}. Open transactions`,
+                        })}
+                      {sp &&
+                        row({
+                          key: "discretionary",
+                          dot: STATUS_COLORS.warning,
+                          label: "Discretionary",
+                          value: sp.discretionary.spent,
+                          of: sp.discretionary.budget,
+                          onPress: () => openBucket("avoidable", "Discretionary"),
+                          hint: `Discretionary ${formatAmount(sp.discretionary.spent)}. Open transactions`,
+                        })}
+                      {sp && notSorted >= 1 &&
+                        row({
+                          key: "unsorted",
+                          dot: unsortedColor,
+                          label: "Not sorted yet",
+                          value: notSorted,
+                          onPress: () => openBucket("unclassified", "Not sorted yet"),
+                          hint: `Not sorted yet ${formatAmount(notSorted)}. Open transactions`,
+                        })}
+                    </View>
+                  )}
+                </>
+              );
+            })()}
+
+            {/* Left and per day come from the budget you control. EMIs are always paid in full, so
+                counting them here would make every month look more on track than it is. */}
             <View className="flex-row justify-between mt-3">
               <View>
                 <Text className="text-xs text-faint-foreground">Days left</Text>
@@ -441,7 +552,7 @@ export default function BudgetScreen() {
                 </Text>
               </View>
               <View className="items-center">
-                <Text className="text-xs text-faint-foreground">Remaining</Text>
+                <Text className="text-xs text-faint-foreground">Left to spend</Text>
                 <Text
                   className="text-sm font-semibold"
                   style={{
@@ -474,28 +585,19 @@ export default function BudgetScreen() {
               </View>
             </View>
 
-            {/* Debt servicing sits beside the budget: EMIs are fixed, so they never fill a category. */}
-            {(debt.paid > 0 || debt.due > 0) && (
-              <Pressable
-                onPress={() => router.push("/goals/loans")}
-                className="flex-row items-center mt-3 pt-3 border-t border-border"
-                accessibilityRole="button"
-                accessibilityLabel="Open loans"
-              >
-                <Ionicons name="business-outline" size={16} color={colors.textSecondary} />
-                <View className="flex-1 ml-2">
-                  <Text className="text-sm font-medium text-foreground">Debt servicing</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">Loan EMIs, not counted in your budget</Text>
-                </View>
-                <View className="items-end mr-1">
-                  <Text className="text-sm font-semibold text-foreground">{formatAmount(debt.paid)}</Text>
-                  {debt.due > 0 && (
-                    <Text className="text-xs text-muted-foreground mt-0.5">of {formatAmount(debt.due)} due</Text>
-                  )}
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-              </Pressable>
-            )}
+            {(() => {
+              const emis = monthSplit?.emis;
+              const income = monthSplit?.monthlyIncome;
+              if (!emis || !income || Math.max(emis.paid, emis.due) <= 0) return null;
+              const share = Math.round((Math.max(emis.paid, emis.due) / income) * 100);
+              // Planners and lenders treat about 40% of take-home pay as the most EMIs should take.
+              const high = share > 40;
+              return (
+                <Text className="text-xs mt-2" style={{ color: high ? theme.warning : colors.textSecondary }}>
+                  EMIs are {share}% of your monthly income{high ? ", above the 40% most planners suggest" : ""}
+                </Text>
+              );
+            })()}
 
           </WidgetCard>
         )}
@@ -814,6 +916,64 @@ export default function BudgetScreen() {
             </View>
             <Ionicons name="chevron-forward" size={18} color={theme.alpha("primary", 0.25)} />
           </Pressable>
+        )}
+
+        {/* Fixed: loan EMIs, from the loan schedules. Read-only - there's no budget to set, and they
+            never fill a category. Follows prepayments and EMI or tenure changes, which rebuild the schedule. */}
+        {monthSplit && (monthSplit.emis.paid > 0 || monthSplit.emis.due > 0) && (
+          <>
+            <View className="px-4 pt-2 pb-1">
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fixed</Text>
+            </View>
+            <PressableScale
+              onPress={() => router.push("/goals/loans")}
+              accessibilityRole="button"
+              accessibilityLabel={`Loan EMIs ${formatAmount(monthSplit.emis.paid)} paid. Open loans`}
+              style={{ paddingHorizontal: 16, paddingVertical: 12 }}
+              className="border-b border-border"
+            >
+              <View className="flex-row items-center">
+                <View
+                  className="w-7 h-7 rounded-full items-center justify-center mr-3"
+                  style={{ backgroundColor: theme.alpha("mutedForeground", 0.12) }}
+                >
+                  <Ionicons name="business-outline" size={16} color={colors.textSecondary} />
+                </View>
+                <View className="flex-1 mr-2">
+                  <Text className="text-sm font-medium text-foreground">Loan EMIs</Text>
+                  <Text className="text-xs text-faint-foreground" numberOfLines={1}>
+                    {monthSplit.emis.loans.map((l) => l.name).join(", ")}
+                  </Text>
+                </View>
+                <View className="items-end">
+                  <Text className="text-sm font-semibold text-foreground">{formatAmount(monthSplit.emis.paid)}</Text>
+                  {(() => {
+                    const { paid, prepaid, due } = monthSplit.emis;
+                    const emiPaid = paid - prepaid;
+                    const status =
+                      due <= 0
+                        ? prepaid > 0 ? "Prepaid" : "Paid"
+                        : emiPaid >= due - 1
+                          ? prepaid > 0 ? `Paid + ${formatAmount(prepaid)} prepaid` : "Paid"
+                          : `${formatAmount(due - emiPaid)} still due`;
+                    const done = due <= 0 || emiPaid >= due - 1;
+                    return (
+                      <Text className="text-xs" style={{ color: done ? theme.success : theme.warning }}>
+                        {status}
+                      </Text>
+                    );
+                  })()}
+                </View>
+                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 6 }} />
+              </View>
+            </PressableScale>
+            {/* The list below brings its own heading when it hides empty categories. */}
+            {hiddenCount === 0 && (
+              <View className="px-4 pt-3 pb-1">
+                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categories</Text>
+              </View>
+            )}
+          </>
         )}
 
         {/* Category list */}

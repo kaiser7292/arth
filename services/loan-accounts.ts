@@ -375,44 +375,96 @@ export async function getLoanByFinancialAccountId(
   );
 }
 
+const LOAN_KIND: Record<string, string> = {
+  personal: "Personal loan",
+  home: "Home loan",
+  auto: "Car loan",
+  education: "Education loan",
+  business: "Business loan",
+  gold: "Gold loan",
+  against_fd: "Loan against FD",
+  other: "Loan",
+};
+
+export interface DebtServicingLoan {
+  loanId: string;
+  /** "HDFC Home loan" */
+  name: string;
+  /** EMIs and prepayments paid in the range (expenses linked to the loan). */
+  paid: number;
+  /** The part of `paid` that was a prepayment. */
+  prepaid: number;
+  /** EMIs due by the schedule. Prepayments and EMI or tenure changes rebuild the schedule, so this follows them. */
+  due: number;
+}
+
 /**
- * Debt servicing for a date range (usually a month), for the Budget tab: EMIs and prepayments paid
- * (expenses linked to a loan) and EMIs due by the schedule. Rupee loans only, like the Yearly Plan.
- * Neither counts against the budget; this shows them next to it.
+ * Debt servicing for a date range (usually a month), for the Budget tab: what each loan took
+ * (expenses linked to it, EMIs and prepayments) and what its schedule says is due. Rupee loans only,
+ * like the Yearly Plan. Never counted against a category budget; shown as the budget's fixed part.
  */
 export async function getDebtServicing(
   userId: string,
   startDate: string,
   endDate: string,
-): Promise<{ paid: number; due: number }> {
+): Promise<{ paid: number; prepaid: number; due: number; loans: DebtServicingLoan[] }> {
   const db = getDatabase();
-  const [paid, due] = await Promise.all([
-    db.getFirstAsync<{ total: number | null }>(
-      `SELECT SUM(${effectiveAmountSql("e")}) AS total
+  const [paidRows, dueRows] = await Promise.all([
+    db.getAllAsync<{ loan_id: string; total: number | null; prepaid: number | null }>(
+      `SELECT ll.loan_account_id AS loan_id, SUM(${effectiveAmountSql("e")}) AS total,
+              SUM(CASE WHEN ll.link_kind = 'prepayment' THEN ${effectiveAmountSql("e")} ELSE 0 END) AS prepaid
        FROM expenses e
        JOIN expense_loan_links ll ON ll.expense_id = e.id
        JOIN loan_accounts la ON la.id = ll.loan_account_id
        WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND e.deleted_at IS NULL
+         AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
          AND COALESCE(la.currency, 'INR') = 'INR'
-         AND e.date >= ? AND e.date <= ?;`,
+         AND e.date >= ? AND e.date <= ?
+       GROUP BY ll.loan_account_id;`,
       userId,
       startDate,
       endDate,
     ),
-    db.getFirstAsync<{ total: number | null }>(
-      `SELECT SUM(se.emi_amount) AS total
+    db.getAllAsync<{ loan_id: string; total: number | null }>(
+      `SELECT se.loan_account_id AS loan_id, SUM(se.emi_amount) AS total
        FROM loan_schedule_entries se
        JOIN loan_accounts la ON la.id = se.loan_account_id
        JOIN financial_accounts fa ON fa.id = la.financial_account_id
        WHERE fa.user_id = ? AND COALESCE(la.currency, 'INR') = 'INR'
          AND (la.status = 'active' OR se.status = 'paid')
-         AND se.due_date >= ? AND se.due_date <= ?;`,
+         AND se.due_date >= ? AND se.due_date <= ?
+       GROUP BY se.loan_account_id;`,
       userId,
       startDate,
       endDate,
     ),
   ]);
-  return { paid: paid?.total ?? 0, due: due?.total ?? 0 };
+  const ids = [...new Set([...paidRows, ...dueRows].map((r) => r.loan_id))];
+  if (ids.length === 0) return { paid: 0, prepaid: 0, due: 0, loans: [] };
+  const names = await db.getAllAsync<{ id: string; bank_name: string | null; account_label: string | null; loan_type: string }>(
+    `SELECT la.id, fa.bank_name, fa.account_label, la.loan_type
+     FROM loan_accounts la JOIN financial_accounts fa ON fa.id = la.financial_account_id
+     WHERE la.id IN (${ids.map(() => "?").join(",")});`,
+    ...ids,
+  );
+  const nameOf = new Map(
+    names.map((n) => [
+      n.id,
+      n.account_label?.trim() || [n.bank_name, LOAN_KIND[n.loan_type] ?? "Loan"].filter(Boolean).join(" "),
+    ]),
+  );
+  const paidBy = new Map(paidRows.map((r) => [r.loan_id, r.total ?? 0]));
+  const prepaidBy = new Map(paidRows.map((r) => [r.loan_id, r.prepaid ?? 0]));
+  const dueBy = new Map(dueRows.map((r) => [r.loan_id, r.total ?? 0]));
+  const loans = ids
+    .map((id) => ({ loanId: id, name: nameOf.get(id) ?? "Loan", paid: paidBy.get(id) ?? 0, prepaid: prepaidBy.get(id) ?? 0, due: dueBy.get(id) ?? 0 }))
+    .sort((x, y) => Math.max(y.paid, y.due) - Math.max(x.paid, x.due));
+  return {
+    paid: loans.reduce((a, l) => a + l.paid, 0),
+    prepaid: loans.reduce((a, l) => a + l.prepaid, 0),
+    due: loans.reduce((a, l) => a + l.due, 0),
+    loans,
+  };
 }
 
 export async function listActiveLoans(userId: string): Promise<LoanAccount[]> {

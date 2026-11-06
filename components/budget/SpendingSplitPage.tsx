@@ -6,19 +6,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, ProgressBar, Text } from "@/components/ui";
 import { AnimatedNumber, Appear, Chevron, Collapse, PressableScale } from "@/components/motion";
 import { DonutChart } from "@/components/charts/DonutChart";
-import { getCategories } from "@/services/category";
-import { getBudgetsForMonth } from "@/services/budget";
-import { getExpenseTotalsByCategoryAndClassification } from "@/services/expense";
-import { getYearlyPlanByFY } from "@/services/yearly-plan";
+import { getMonthSplit, type MonthEmis } from "@/services/month-split";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-import { calculateSplit } from "@/utils/unavoidable-split";
 import type { SplitBucket, SplitBucketDetail, SplitSnapshot } from "@/utils/unavoidable-split";
-import { getMonthDateRange } from "@/utils/budget-helpers";
-import { getCurrentFY } from "@/utils/fiscal-year";
-import { getFYStartMonth } from "@/services/settings";
-import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
@@ -87,38 +79,12 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
     bucket === "unavoidable" ? UNAVOIDABLE_COLOR : bucket === "discretionary" ? DISCRETIONARY_COLOR : theme.mutedForeground;
 
   const [loadFailed, setLoadFailed] = useState(false);
+  const [emis, setEmis] = useState<MonthEmis | null>(null);
   const loadData = useCallback(async () => {
-    const { startDate, endDate } = getMonthDateRange(month);
     try {
-      const [categories, budgets, actuals] = await Promise.all([
-        getCategories(DEFAULT_USER_ID),
-        getBudgetsForMonth(DEFAULT_USER_ID, month),
-        getExpenseTotalsByCategoryAndClassification(DEFAULT_USER_ID, startDate, endDate),
-      ]);
-
-      // Income from the plan of the financial year this month belongs to (not today's).
-      let monthlyIncome: number | null = null;
-      try {
-        const [y, m] = month.split("-").map(Number);
-        const fy = getCurrentFY(getFYStartMonth(), new Date(y, m - 1, 1));
-        const plan = await getYearlyPlanByFY(DEFAULT_USER_ID, String(fy));
-        if (plan) monthlyIncome = (plan.annual_salary_in_hand + plan.expected_bonus) / 12;
-      } catch {
-        // No plan
-      }
-
-      setSplit(
-        calculateSplit({
-          items: actuals.map((a) => ({
-            categoryId: a.category_id,
-            spent: a.total,
-            bucket: a.is_unavoidable === 1 ? "unavoidable" : a.is_unavoidable === 0 ? "discretionary" : "unclassified",
-          })),
-          categories: categories.map((c) => ({ id: c.id, name: c.name, isUnavoidable: c.is_unavoidable === 1 })),
-          categoryBudgets: new Map(budgets.map((b) => [b.category_id, b.amount])),
-          monthlyIncome,
-        }),
-      );
+      const m = await getMonthSplit(month);
+      setSplit(m.split);
+      setEmis(m.emis);
       setLoadFailed(false);
     } catch {
       setLoadFailed(true);
@@ -201,6 +167,20 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                   ))}
                 </View>
               </View>
+              {/* EMIs sit outside the split, so its percentages stay a split of spending you choose. */}
+              {emis && (emis.paid > 0 || emis.due > 0) && (
+                <Pressable
+                  onPress={() => router.push("/goals/loans")}
+                  className="flex-row items-center mt-3 pt-3 border-t border-border"
+                  accessibilityRole="button"
+                  accessibilityLabel={`Plus loan EMIs ${formatAmount(Math.max(emis.paid, emis.due))}, always unavoidable. Open loans`}
+                >
+                  <Ionicons name="business-outline" size={14} color={theme.mutedForeground} />
+                  <Text className="text-xs text-muted-foreground flex-1 ml-2">Plus loan EMIs, always unavoidable</Text>
+                  <Text className="text-xs font-semibold text-foreground">{formatAmount(Math.max(emis.paid, emis.due))}</Text>
+                  <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
+                </Pressable>
+              )}
             </Card>
           </Appear>
 
@@ -232,7 +212,9 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                       >
                         {formatAmount(split.maxPossibleSavings)}
                       </Text>
-                      <Text className="text-xs text-faint-foreground">income minus unavoidable</Text>
+                      <Text className="text-xs text-faint-foreground">
+                        {emis && (emis.paid > 0 || emis.due > 0) ? "income minus unavoidable and EMIs" : "income minus unavoidable"}
+                      </Text>
                     </View>
                   )}
                 </View>

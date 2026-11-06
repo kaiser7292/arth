@@ -44,7 +44,7 @@ jest.mock("@/database", () => ({ getDatabase: () => mockAdapter }));
 
 import { runMigrations } from "../../database/migrations";
 import { getDebtServicing } from "../../services/loan-accounts";
-import { getLoanInterestByMonth } from "../../services/savings-tracker";
+import { getLoanPaymentsByMonth } from "../../services/savings-tracker";
 
 /** Insert a row filling every NOT NULL column without a default, so the test survives new columns. */
 function insert(table: string, values: Record<string, unknown>) {
@@ -68,14 +68,24 @@ beforeAll(async () => {
   insert("loan_schedule_entries", { id: "s2", loan_account_id: "l1", installment_num: 2, due_date: "2026-12-05", emi_amount: 20000, principal_component: 12100, interest_component: 7900, status: "scheduled" });
   insert("expenses", { id: "e1", user_id: "u1", amount: 20000, date: "2026-11-05", status: "approved", nature: "realized" });
   insert("expense_loan_links", { id: "ll1", expense_id: "e1", loan_account_id: "l1", link_kind: "emi", schedule_entry_id: "s1", amount: 20000 });
+  // A prepayment the same month: counts as paid, shown apart from the EMI.
+  insert("expenses", { id: "e2", user_id: "u1", amount: 50000, date: "2026-11-20", status: "approved", nature: "realized" });
+  insert("expense_loan_links", { id: "ll2", expense_id: "e2", loan_account_id: "l1", link_kind: "prepayment", amount: 50000 });
 });
 
-test("debt servicing: paid EMIs and EMIs due in the month", async () => {
-  expect(await getDebtServicing("u1", "2026-11-01", "2026-11-30")).toEqual({ paid: 20000, due: 20000 });
-  expect(await getDebtServicing("u1", "2026-12-01", "2026-12-31")).toEqual({ paid: 0, due: 20000 });
+test("debt servicing: each loan's EMIs and prepayments paid, and EMIs due by the schedule", async () => {
+  const nov = await getDebtServicing("u1", "2026-11-01", "2026-11-30");
+  expect(nov).toMatchObject({ paid: 70000, prepaid: 50000, due: 20000 });
+  expect(nov.loans).toEqual([{ loanId: "l1", name: "HDFC Home loan", paid: 70000, prepaid: 50000, due: 20000 }]);
+  expect(await getDebtServicing("u1", "2026-12-01", "2026-12-31")).toMatchObject({ paid: 0, prepaid: 0, due: 20000 });
 });
 
-test("EMI interest by month comes from the linked schedule row", async () => {
-  const m = await getLoanInterestByMonth("u1", "2026-04-01", "2027-03-31");
-  expect([...m.entries()]).toEqual([["2026-11", 8000]]);
+test("a rebuilt schedule (lower EMI after a prepayment) is what's due", async () => {
+  mockDb.prepare("UPDATE loan_schedule_entries SET emi_amount = 15000 WHERE id = 's2'").run();
+  expect((await getDebtServicing("u1", "2026-12-01", "2026-12-31")).due).toBe(15000);
+});
+
+test("savings rate takes off every loan payment, EMIs and prepayments", async () => {
+  const m = await getLoanPaymentsByMonth("u1", "2026-04-01", "2027-03-31");
+  expect([...m.entries()]).toEqual([["2026-11", 70000]]);
 });

@@ -1,7 +1,7 @@
 import { calculateMonthlySavingsTrend, calculateSavingsSnapshot } from "@/utils/savings-calculations";
 import { formatAsOf, formatRelativeDateTime, parseSqliteUtc } from "@/utils/date";
 
-describe("EMI interest in the savings rate", () => {
+describe("loan payments in the savings rate", () => {
   const base = {
     annualSalary: 2400000,
     expectedBonus: 0,
@@ -10,32 +10,32 @@ describe("EMI interest in the savings rate", () => {
     monthsElapsed: 6,
   };
 
-  test("interest comes out of what was saved, expenses stay as they are", () => {
-    const r = calculateSavingsSnapshot({ ...base, loanInterest: 60000 });
+  test("EMIs come off what was saved, as in the Yearly Plan; Expenses stay as they are", () => {
+    const r = calculateSavingsSnapshot({ ...base, loanPayments: 120000 });
     expect(r.totalExpenses).toBe(900000);
-    expect(r.loanInterest).toBe(60000);
-    // 12L income - 9L spent - 60k interest
-    expect(r.actualSaved).toBe(240000);
-    expect(r.actualSavingsRatePct).toBe(20);
+    expect(r.loanPayments).toBe(120000);
+    // 12L income - 9L spent - 1.2L EMIs
+    expect(r.actualSaved).toBe(180000);
+    expect(r.actualSavingsRatePct).toBe(15);
   });
 
-  test("no interest leaves the snapshot unchanged", () => {
+  test("no loans leaves the snapshot unchanged", () => {
     const r = calculateSavingsSnapshot(base);
-    expect(r.loanInterest).toBe(0);
+    expect(r.loanPayments).toBe(0);
     expect(r.actualSaved).toBe(300000);
   });
 
-  test("monthly trend takes each month's interest off saved", () => {
+  test("monthly trend takes each month's EMIs off saved", () => {
     const trend = calculateMonthlySavingsTrend({
       annualSalary: 1200000,
       monthlyExpenses: new Map([[1, 50000], [2, 50000]]),
       monthsToShow: 2,
-      monthlyLoanInterest: new Map([[2, 10000]]),
+      monthlyLoanPayments: new Map([[2, 20000]]),
     });
     expect(trend[0].saved).toBe(50000);
-    expect(trend[1].saved).toBe(40000);
+    expect(trend[1].saved).toBe(30000);
     expect(trend[1].expenses).toBe(50000);
-    expect(trend[1].savingsRatePct).toBe(40);
+    expect(trend[1].savingsRatePct).toBe(30);
   });
 });
 
