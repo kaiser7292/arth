@@ -403,12 +403,6 @@ footer{background:var(--dark-bg);padding-block:24px}
   .trust-i{font-size:.82rem}
 }
 
-/* ── Early access (closed testing on Google Play) ───────── */
-.beta-steps{display:flex;justify-content:center;gap:10px 22px;flex-wrap:wrap;margin:18px auto 22px;padding:0;list-style:none;max-width:640px}
-.beta-steps li{display:flex;align-items:center;gap:8px;font-size:.85rem;color:rgba(255,255,255,.8)}
-.beta-steps b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;font-size:.75rem}
-.beta-acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.beta-acts .btn-inv{margin-bottom:0}
 .direct{margin-top:28px}
 .direct-or{display:flex;align-items:center;gap:12px;max-width:340px;margin:0 auto 16px;color:rgba(255,255,255,.55);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em}
 .direct-or::before,.direct-or::after{content:"";flex:1;height:1px;background:rgba(255,255,255,.2)}
@@ -416,8 +410,6 @@ footer{background:var(--dark-bg);padding-block:24px}
 .btn-ghost-inv:hover{background:rgba(255,255,255,.12);transform:translateY(-2px);text-decoration:none}
 .direct .cta-note a{color:rgba(255,255,255,.8);text-decoration:underline}
 @media(max-width:500px){.btn-ghost-inv{width:100%;justify-content:center}}
-.beta-n{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#134E4A;color:#fff;font-size:.75rem}
-@media(max-width:500px){.beta-acts{flex-direction:column}.beta-acts .btn-inv{width:100%;justify-content:center}}
 
 /* ── Shared additions (multi-page site) ─────────────────── */
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
@@ -701,16 +693,3 @@ footer{background:var(--dark-bg);padding-block:24px}
 }
 
 /* ── Home: three ways to get Arth ── */
-.opt-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:26px auto 8px;max-width:1040px;text-align:left}
-.opt{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:20px 18px;display:flex;flex-direction:column}
-.opt-tag{align-self:flex-start;font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#134E4A;background:#99F6E4;border-radius:20px;padding:3px 10px;margin-bottom:12px}
-.opt h3{color:#fff;font-size:1.1rem;font-weight:700;letter-spacing:-.01em;margin-bottom:6px}
-.cta .opt .opt-s{font-size:.86rem;color:rgba(255,255,255,.72);line-height:1.6;margin:0 0 10px;max-width:none}
-.opt-l{margin:0 0 16px;padding-left:20px;color:rgba(255,255,255,.85);font-size:.84rem;line-height:1.6}
-.opt-l li{margin-bottom:5px}
-.opt-l b{color:#fff;font-weight:600}
-.opt-acts{display:flex;flex-direction:column;gap:8px;margin-top:auto}
-.opt-acts .btn-inv{margin-bottom:0;justify-content:center;font-size:.92rem;padding:11px 18px}
-.cta .opt .opt-n{font-size:.76rem;color:rgba(255,255,255,.55);line-height:1.6;margin:12px 0 0;max-width:none}
-.opt-n a{color:rgba(255,255,255,.8);text-decoration:underline}
-@media(max-width:900px){.opt-g{grid-template-columns:1fr;max-width:520px}}
