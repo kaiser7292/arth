@@ -142,8 +142,6 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("household_paid_bills_skipped", "string"),
   S("app_update_check_enabled", "boolean"),
   S("app_update_dismissed_version", "string", DEVICE("which version this phone said Not now to")),
-  S("app_update_last_check", "string", DEVICE("when THIS phone last asked GitHub")),
-  S("app_update_latest", "string", DEVICE("cache of the last GitHub answer")),
   S("patterns_rebuilt_on", "string", PROGRESS),
   S("duplicate_scan_cache_v1", "string", DEVICE("cache, rebuilt from the database")),
   S("data_version", "number", DEVICE("in-memory cache invalidation counter")),

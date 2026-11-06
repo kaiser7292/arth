@@ -3,18 +3,17 @@ import { Platform, Pressable, Switch, View } from "react-native";
 
 import { Text, useToast } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
-import { checkForUpdate, installUpdate, isUpdateCheckEnabled, setUpdateCheckEnabled, updateSource } from "@/services/app-update";
+import { checkForUpdate, installUpdate, isPlayInstall, isUpdateCheckEnabled, setUpdateCheckEnabled } from "@/services/app-update";
 import { drawsOwnDivider } from "@/components/ui/Rows";
 
-/** Settings → About: whether Home says when a newer Arth is out, and a Check now. Android only. */
+/** Settings → About: whether Home says when a newer Arth is out, and a Check now. Google Play installs only. */
 export function AppUpdateRow({ lastRow }: { lastRow?: boolean }) {
   const theme = useTheme();
   const toast = useToast();
   const [on, setOn] = useState(isUpdateCheckEnabled);
   const [checking, setChecking] = useState(false);
 
-  if (Platform.OS !== "android") return null;
-  const fromPlay = updateSource() === "play";
+  if (Platform.OS !== "android" || !isPlayInstall()) return null;
 
   return (
     <View className={`py-2 ${lastRow ? "" : "border-b border-border"}`}>
@@ -22,9 +21,7 @@ export function AppUpdateRow({ lastRow }: { lastRow?: boolean }) {
         <View className="flex-1 mr-3">
           <Text className="text-sm text-foreground">Tell me about new versions</Text>
           <Text className="text-xs text-muted-foreground mt-0.5 leading-4">
-            {fromPlay
-              ? "Asks the Play Store, which Arth was installed from."
-              : "Checks Arth's releases on GitHub once a day. Nothing about you is sent."}
+            Asks the Play Store. Nothing about you is sent.
           </Text>
         </View>
         <Switch

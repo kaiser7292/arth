@@ -7,8 +7,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { checkForUpdate, dismissUpdate, installUpdate, type AvailableUpdate } from "@/services/app-update";
 
 /**
- * "Arth 4.28.2 is available": from the Play Store for a Play install, from GitHub for an APK
- * (services/app-update.ts). Checked once when Home opens; dismissing hides it until a later version.
+ * "Arth 4.28.2 is available", from Google Play (services/app-update.ts). Checked once when Home opens; dismissing hides it until a later version.
  */
 export function AppUpdateCard() {
   const theme = useTheme();
@@ -36,9 +35,7 @@ export function AppUpdateCard() {
         <View className="flex-1 ml-2.5">
           <Text className="text-sm font-semibold text-foreground">Arth {update.version} is available</Text>
           <Text className="text-xs text-muted-foreground mt-1 leading-4">
-            {update.source === "play"
-              ? "The Play Store downloads it and restarts Arth. Your data stays."
-              : "Download the new APK and install it over this one. Your data stays."}
+            The Play Store downloads it and restarts Arth. Your data stays.
           </Text>
         </View>
         <Pressable
@@ -54,7 +51,7 @@ export function AppUpdateCard() {
         </Pressable>
       </View>
       <Button
-        title={update.source === "play" ? "Update" : "Download"}
+        title="Update"
         className="mt-3"
         onPress={async () => {
           if (!(await installUpdate(update).catch(() => false))) {

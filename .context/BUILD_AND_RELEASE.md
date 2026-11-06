@@ -13,7 +13,7 @@
 3. Commit everything + push:  git push origin master
 4. Run expo prebuild (applies config plugins)
 5. Run Gradle assembleRelease
-6. Create GitHub release and upload APK
+6. Upload the AAB to Play Console, then record the release on GitHub (notes only, no APK)
 7. MINOR releases (and notable PATCH ones): add an entry at the top of docs/whats-new.html
    in plain language: what the user gains, one or two short lines. No technical
    details (sizes, setting names, formats) and no worked examples. Pushing docs/
@@ -80,14 +80,13 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-release.ps1
 Checks both files are signed with the Arth release key (see Signing), prints version and size, confirms arm64-only, and checks every native library is 16 KB page aligned (Play rejects uploads that aren't). Don't publish if it fails.
 
 ### Step 4 — Create GitHub release
-The APK goes up as `Arth-X.Y.Z.apk` (every release since v1.0.0 uses that name). The website's
-download button looks up the newest release's `.apk` asset through the GitHub API, so any
-`.apk` name works for it, but keep to `Arth-X.Y.Z.apk`.
-```powershell
-Copy-Item "android/app/build/outputs/apk/release/app-arm64-v8a-release.apk" "android/app/build/outputs/apk/release/Arth-X.Y.Z.apk"
-gh release create vX.Y.Z "android/app/build/outputs/apk/release/Arth-X.Y.Z.apk" --title "vX.Y.Z" --notes "## What's new
+Since 4.45.0 (Nov 2026) Arth is distributed only through Google Play. Never attach an APK to a
+GitHub release: the release is a record of the version and its notes. The APK Gradle makes is for
+testing on the owner's own phone.
 
-- Bullet point"
+```powershell
+gh release create vX.Y.Z --title "vX.Y.Z" --notes "## What's new
+..."
 ```
 This creates the git tag and GitHub release in one shot. No separate `git tag` step needed.
 
@@ -150,7 +149,7 @@ The AAB goes to Play only; never attach it to a GitHub release. Policy form answ
 - **versionCode must increase on every upload.** Play permanently rejects a versionCode it has seen, even from a failed or discarded upload. The version bump (`MAJOR*10000 + MINOR*100 + PATCH`) handles this; if an upload has to be redone, bump the patch version.
 - **First release:** Play Console → Create app → Test and release → Internal testing → create release → upload `app-release.aab`. Under App signing choose **Use your own key** and follow the PEPK export steps with `C:\Users\soura\.arth\arth-release.jks`, so Play signs with the same key as the GitHub APK.
 - **Closed test before production:** new personal developer accounts must run a closed test with at least 12 testers for 14 consecutive days before production access is granted.
-- **Each release after that:** same build, verify, then upload the AAB to the track and publish the APK to GitHub.
+- **Each release after that:** same build, verify, then upload the AAB to the track and record the release on GitHub (no APK).
 
 ---
 
