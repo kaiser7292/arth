@@ -35,6 +35,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="transfer-review" options={{ title: "Payments Between Accounts" }} />
       <Stack.Screen name="recycle-bin" options={{ title: "Recycle Bin" }} />
       <Stack.Screen name="dismissed-duplicates" options={{ title: "Duplicates You Kept" }} />
+      <Stack.Screen name="fix-my-data" options={{ title: "Fix My Data" }} />
       <Stack.Screen name="recurring-rules" options={{ title: "Reminders" }} />
       <Stack.Screen name="recurring-rule-detail" options={{ title: "Reminder" }} />
       <Stack.Screen name="audit-log" options={{ title: "Audit Log" }} />

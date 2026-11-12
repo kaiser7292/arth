@@ -160,6 +160,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("kite_holdings_cache", "string", SESSION),
   S("kite_mf_holdings_cache", "string", SESSION),
   S("amfi_nav_cache", "string", DEVICE("public mutual fund NAVs, fetched again on the next sync")),
+  S("fix_my_data_last", "string", DEVICE("points at this phone's undo snapshot for the last Fix my data correction")),
   S("kite_portfolio_total", "string", SESSION),
   S("kite_funds_total", "string", SESSION),
   S("kite_positions_cache", "string", SESSION),

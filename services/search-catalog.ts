@@ -191,6 +191,7 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   add("reconcile", "Reconcile a statement", "git-compare-outline", "/settings/reconciliation/new", "pdf match tally"),
   add("export-ai", "Export for AI", "sparkles-outline", "/insights/export-for-ai", "chatgpt claude"),
   add("ai-setup", "Use AI to set up", "sparkles-outline", "/settings/ai-assisted-setup", "chatgpt claude"),
+  add("fix-my-data", "Fix my data", "medkit-outline", "/settings/fix-my-data", "data health clean correct duplicates transfers balance chatgpt claude ai"),
   add("recycle", "Restore something deleted", "trash-outline", "/settings/recycle-bin", "undo empty recycle bin"),
   add("clean-up", "Clean up data", "brush-outline", "/settings/clean-up", "reset old"),
   // ── Settings ──
