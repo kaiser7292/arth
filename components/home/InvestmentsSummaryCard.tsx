@@ -7,6 +7,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { AnimatedNumber, PressableScale } from "@/components/motion";
+import { HomeTile } from "./HomeTile";
 
 export interface InstrumentBreakdown {
   label: string;
@@ -17,6 +18,8 @@ interface InvestmentsSummaryCardProps {
   totalValue: number;
   accountCount: number;
   breakdown: InstrumentBreakdown[];
+  /** Draw as a compact Home tile at this place in the stagger. */
+  tileIndex?: number;
 }
 
 /**
@@ -27,12 +30,26 @@ interface InvestmentsSummaryCardProps {
  * instrument with its full amount, then a bold Total Value row. Includes FD
  * accounts too, which never had a home card of their own before this.
  */
-function InvestmentsSummaryCardImpl({ totalValue, accountCount, breakdown }: InvestmentsSummaryCardProps) {
+function InvestmentsSummaryCardImpl({ totalValue, accountCount, breakdown, tileIndex }: InvestmentsSummaryCardProps) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
 
   if (accountCount === 0) return null;
+
+  if (tileIndex != null) {
+    const top = [...breakdown].sort((a, b) => b.value - a.value)[0];
+    return (
+      <HomeTile
+        index={tileIndex}
+        icon="trending-up-outline"
+        label={`Investments · ${accountCount}`}
+        value={totalValue}
+        sub={top && breakdown.length > 1 ? `Most in ${top.label}` : top?.label}
+        onPress={() => router.push("/investments")}
+      />
+    );
+  }
 
   return (
     <View>

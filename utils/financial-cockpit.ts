@@ -112,7 +112,10 @@ export interface TensionData {
   overspendAnnualized: number;
   goalsAtRiskFromOverspend: string[];
   discretionarySpendYTD: number;
+  /** Monthly cut that would fund every goal again; 0 while the headroom absorbs the overspend. */
   discretionaryCutNeeded: number;
+  /** Left each month after projected spending and every planned goal (negative = short). */
+  headroomMonthly: number;
 }
 
 // ── Health Score ──
@@ -196,7 +199,7 @@ export function calculateHealthScore(input: HealthScoreInput): {
       score: round2(goalProgressScore),
       weight: 0.15,
       status: goalProgressScore >= 80 ? "positive" : goalProgressScore >= 50 ? "neutral" : "negative",
-      detail: `${round2(goalProgressScore)}% avg progress`,
+      detail: `${round2(goalProgressScore)}% on pace for the time gone`,
     },
     {
       name: "Surplus",
@@ -430,20 +433,33 @@ export function generateAdvisories(input: AdvisoryInput): Advisory[] {
   const advisories: Advisory[] = [];
   let nextId = 1;
 
-  // 1. CRITICAL: Spending threatens goals
+  // 1. Spending vs goals. Breathing room is income less PROJECTED spending less every planned
+  // investment and milestone, so it already takes the overspend in: while it stays at or above zero
+  // the headroom absorbs the overspend and every goal is still funded. Only a shortfall threatens them.
   const overspend = input.waterfall.expensesProjectedAnnual - input.waterfall.expensesPlanned;
   if (overspend > 0) {
-    const behindFromOverspend = input.buckets.filter((b) => b.paceStatus === "behind");
-    if (behindFromOverspend.length > 0) {
+    const shortfall = Math.max(0, -input.waterfall.breathingRoom);
+    if (shortfall > 0) {
+      const behindFromOverspend = input.buckets.filter((b) => b.paceStatus === "behind");
       const names = behindFromOverspend.map((b) => b.name).join(", ");
-      const monthlyCut = input.monthsRemaining > 0 ? round2(overspend / input.monthsRemaining) : round2(overspend);
+      const monthlyCut = Math.max(0, -input.waterfall.breathingRoomMonthly);
       advisories.push({
         id: String(nextId++),
         severity: "critical",
         title: "Spending Threatens Goals",
-        message: `Projected overspend of ${formatLakhs(overspend)}/yr puts ${names} at risk.`,
-        action: `Reduce monthly spending by ${formatLakhs(monthlyCut)} to stay on track.`,
+        message: `Projected overspend of ${formatLakhs(overspend)}/yr leaves your plan ${formatLakhs(shortfall)} short${names ? `, putting ${names} at risk` : ""}.`,
+        action: `Reduce monthly spending by ${formatLakhs(monthlyCut)} to fund every goal.`,
         relatedGoalId: behindFromOverspend[0]?.id ?? null,
+        category: "spending",
+      });
+    } else {
+      advisories.push({
+        id: String(nextId++),
+        severity: "info",
+        title: "Over Budget, Goals Still Covered",
+        message: `Projected overspend of ${formatLakhs(overspend)}/yr, but your headroom covers it: ${formatLakhs(input.waterfall.breathingRoomMonthly)}/month left after every goal.`,
+        action: null,
+        relatedGoalId: null,
         category: "spending",
       });
     }
@@ -531,13 +547,14 @@ export function calculateTension(input: TensionInput): TensionData {
 
   const overspendAnnualized = Math.max(0, spendingPaceAnnualized - input.expensesBudgetedAnnual);
 
-  const goalsAtRisk = input.buckets
-    .filter((b) => b.paceStatus === "behind")
-    .map((b) => b.name);
+  // The headroom (breathing room) already has projected spending taken out. Goals are only at risk
+  // from overspending when it's gone below zero, and the cut needed is what brings it back to zero.
+  const shortMonthly = Math.max(0, -input.breathingRoomMonthly);
+  const goalsAtRisk = overspendAnnualized > 0 && shortMonthly > 0
+    ? input.buckets.filter((b) => b.paceStatus === "behind").map((b) => b.name)
+    : [];
 
-  const discretionaryCutNeeded = input.monthsRemaining > 0
-    ? overspendAnnualized / input.monthsRemaining
-    : 0;
+  const discretionaryCutNeeded = overspendAnnualized > 0 && input.monthsRemaining > 0 ? shortMonthly : 0;
 
   return {
     spendingPaceAnnualized: round2(spendingPaceAnnualized),
@@ -546,6 +563,7 @@ export function calculateTension(input: TensionInput): TensionData {
     goalsAtRiskFromOverspend: goalsAtRisk,
     discretionarySpendYTD: round2(input.discretionarySpendYTD),
     discretionaryCutNeeded: round2(discretionaryCutNeeded),
+    headroomMonthly: round2(input.breathingRoomMonthly),
   };
 }
 

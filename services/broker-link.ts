@@ -51,3 +51,11 @@ export async function createBrokerAccount(broker: Broker, clientId: string | nul
   await createInvestmentProductForAccount(id, broker === "zebpay" ? "crypto" : "equity", "market");
   return id;
 }
+
+/** Link any broker to an account: Kite keeps its own key, the others go through setBrokerLinkedAccount. */
+export async function linkBrokerAccount(broker: Broker, accountId: string): Promise<void> {
+  if (broker === "kite") {
+    const { setLinkedAccountId } = await import("@/services/kite-connect");
+    setLinkedAccountId(accountId);
+  } else setBrokerLinkedAccount(broker, accountId);
+}

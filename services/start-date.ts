@@ -13,7 +13,7 @@
  */
 
 import { getDatabase } from "@/database";
-import { seedOpeningBalance } from "@/services/account-balance";
+import { computeUnseededBalance, getEarliestAccountActivity, getOrCreateMonthBalance, seedOpeningBalance } from "@/services/account-balance";
 import { getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { bumpDataVersion } from "@/services/settings";
 import { settingsStorage } from "@/services/storage";
@@ -121,4 +121,28 @@ export async function getStartBalanceAccounts(userId: string): Promise<Financial
 /** The account's balance on the start date becomes the opening balance of that month. */
 export async function saveStartBalance(accountId: string, date: string, balance: number): Promise<void> {
   await seedOpeningBalance(accountId, date.slice(0, 7), balance);
+}
+
+/**
+ * Onboarding: what's in the account right now becomes where it starts. The opening balance goes
+ * on the first month the account shows any (visible) activity, set so that adding everything since
+ * lands exactly on today's figure. With history kept, that's the first scanned month; started
+ * fresh, the older rows are hidden, so it's this month. From here every expense and credit moves
+ * it on.
+ */
+export async function saveBalanceToday(accountId: string, balance: number, today: string): Promise<void> {
+  const currentMonth = today.slice(0, 7);
+  const earliest = await getEarliestAccountActivity(accountId);
+  const firstMonth = earliest && earliest.slice(0, 7) < currentMonth ? earliest.slice(0, 7) : currentMonth;
+  // Closing today with an opening of 0 on that first month: everything that moved since.
+  const moved = earliest ? (await computeUnseededBalance(accountId, currentMonth)).closing : 0;
+  await seedOpeningBalance(accountId, firstMonth, balance - moved);
+  // Lay the chain one month at a time up to now (each month opens on the one before's closing), so
+  // no month in between is left without an opening.
+  let m = firstMonth;
+  while (m < currentMonth) {
+    const [y, mo] = m.split("-").map(Number);
+    m = mo === 12 ? `${y + 1}-01` : `${y}-${String(mo + 1).padStart(2, "0")}`;
+    await getOrCreateMonthBalance(accountId, m);
+  }
 }

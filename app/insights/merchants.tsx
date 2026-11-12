@@ -255,9 +255,23 @@ export default function MerchantAnalyticsScreen() {
                     </Pressable>
                   ))}
                   {detail.transactionCount > 5 && (
-                    <Text className="text-xs mt-1" style={{ color: theme.primary }}>
-                      +{detail.transactionCount - 5} more
-                    </Text>
+                    <Pressable
+                      onPress={() =>
+                        router.push({
+                          pathname: "/insights/filtered",
+                          params: { expenseIds: detail.transactions.map((t) => t.id).join(","), title: item.merchant },
+                        })
+                      }
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`See all ${detail.transactionCount} transactions`}
+                      className="flex-row items-center mt-1 py-1"
+                    >
+                      <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                        See all {detail.transactionCount}
+                      </Text>
+                      <Ionicons name="chevron-forward" size={12} color={theme.primary} />
+                    </Pressable>
                   )}
                 </Card>
               )}

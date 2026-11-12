@@ -321,6 +321,7 @@ export default function GoalsScreen() {
                             grade: cockpitData.healthGrade,
                             score: String(Math.round(cockpitData.healthScore)),
                             factorsJson: JSON.stringify(cockpitData.healthFactors),
+                            provisional: cockpitData.healthProvisional ? "1" : "0",
                           },
                         })
                       }
@@ -331,7 +332,7 @@ export default function GoalsScreen() {
                         style={{ backgroundColor: gradeBgVal }}
                       >
                         <Text className="text-label font-bold" style={{ color: gradeColorVal }}>
-                          Grade {cockpitData.healthGrade}
+                          {cockpitData.healthProvisional ? "Early days" : `Grade ${cockpitData.healthGrade}`}
                         </Text>
                         <Ionicons name="information-circle-outline" size={10} color={gradeColorVal} />
                       </View>

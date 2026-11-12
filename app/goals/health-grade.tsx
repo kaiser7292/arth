@@ -38,11 +38,13 @@ const FACTOR_TIPS: Record<string, string> = {
 };
 
 export default function HealthGradeScreen() {
-  const { grade, score, factorsJson } = useLocalSearchParams<{
+  const { grade, score, factorsJson, provisional } = useLocalSearchParams<{
     grade: string;
     score: string;
     factorsJson: string;
+    provisional?: string;
   }>();
+  const early = provisional === "1";
   const { colors } = useColorScheme();
   const theme = useTheme();
   const accentColor = theme.primary;
@@ -100,6 +102,11 @@ export default function HealthGradeScreen() {
                 <Text className="text-sm text-muted-foreground">
                   {GRADE_DESC[healthGrade]}
                 </Text>
+                {early && (
+                  <Text className="text-xs text-muted-foreground mt-2">
+                    Early days: under two months of this year so far, so one big bill moves this a lot. Read it as a first look.
+                  </Text>
+                )}
               </View>
               <View
                 className="w-16 h-16 rounded-full items-center justify-center shrink-0"

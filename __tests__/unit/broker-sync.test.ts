@@ -9,8 +9,13 @@ let mockKiteExpired: boolean;
 let mockKiteKey: string | null;
 let mockAngelOn: boolean;
 let mockZebpayOn: boolean;
+let mockClosed: Set<string>;
 
-jest.mock("@/services/financial-account", () => ({ saveBrokerSnapshot: (a: string, b: number, c: number) => mockSave(a, b, c) }));
+jest.mock("@/services/financial-account", () => ({
+  saveBrokerSnapshot: (a: string, b: number, c: number) => mockSave(a, b, c),
+  // Linked accounts are live unless a test says otherwise.
+  getAccountById: async (id: string) => (mockClosed.has(id) ? { id, is_active: 1, closed_at: "2026-11-01" } : { id, is_active: 1, closed_at: null }),
+}));
 jest.mock("@/services/broker-link", () => ({ getBrokerLinkedAccount: (b: string) => mockLinks[b] ?? null }));
 jest.mock("@/services/angel-connect", () => ({
   isAngelConnected: () => mockAngelOn,
@@ -36,12 +41,20 @@ beforeEach(() => {
   mockKiteKey = "k";
   mockAngelOn = true;
   mockZebpayOn = true;
+  mockClosed = new Set();
   mockKite.mockResolvedValue({ linkedAccountId: "acc-k", portfolioTotal: 1000, fundsAvailable: 50 });
   mockAngel.mockResolvedValue({ holdings: [{}], totalHolding: { totalholdingvalue: "2000.5" }, funds: { availablecash: "75" } });
   mockZebpay.mockResolvedValue({ totalInr: 300, inrBalance: 10 });
 });
 
 describe("broker sync", () => {
+  it("a link kept through a disconnect but pointing at a closed account asks for an account", async () => {
+    mockClosed = new Set(["acc-a", "acc-k"]);
+    expect(await syncBroker("angel")).toEqual({ broker: "angel", status: "needs_account" });
+    expect(await syncBroker("kite")).toEqual({ broker: "kite", status: "needs_account" });
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
   it("lists only what's connected, so no broker means no button", async () => {
     expect(await getConnectedBrokers()).toEqual(["kite", "angel", "zebpay"]);
     mockKiteKey = null;

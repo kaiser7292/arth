@@ -52,7 +52,7 @@ export async function buildFirstScanSummary(userId: string, since: string): Prom
     ),
     db.getFirstAsync<{ total: number | null }>(
       `SELECT SUM(amount) AS total FROM expenses WHERE ${live} AND nature = 'credit' AND ${notTransfer}
-         AND (money_event IS NULL OR money_event NOT IN ('fd_closure', 'self_transfer'));`,
+         AND (money_event IS NULL OR money_event NOT IN ('fd_closure', 'self_transfer', 'investment_withdrawal'));`,
       userId,
       since,
     ),

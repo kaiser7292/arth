@@ -3,7 +3,7 @@ import { AiSetupCard } from "@/components/home/AiSetupCard";
 import { MyMonthCard } from "@/components/home/MyMonthCard";
 import { SetupChecklistCard } from "@/components/home/SetupChecklistCard";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { InsightsPage } from "@/components/home/pages/InsightsPage";
 import { VaultPage } from "@/components/home/pages/VaultPage";
@@ -12,6 +12,7 @@ import { Platform, Pressable, RefreshControl, ScrollView, View } from "react-nat
 
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
+import { HomeTile } from "@/components/home/HomeTile";
 import { CheckInsCard } from "@/components/home/CheckInsCard";
 import { DueRow } from "@/components/home/DueRow";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
@@ -100,7 +101,7 @@ import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 const HOME_TABS: SwipePagerPage[] = [
   { key: "overview", label: "Overview" },
   { key: "insights", label: "Insights" },
-  { key: "simulator", label: "Simulator" },
+  { key: "simulator", label: "Projections" },
   { key: "vault", label: "Vault" },
 ];
 
@@ -108,19 +109,46 @@ const HOME_TABS: SwipePagerPage[] = [
  * `present` overrides whether a card counts as on screen, for those that draw nothing without data of
  * their own (an element is always truthy). A title never sits over an empty space.
  */
+/** Accounts and people-and-money cards are tiles, two to a row; the month's cards stay full width. */
+const TILE_CARDS = new Set<HomeCardId>(["hisaab", "household", "credit_cards", "bank_balances", "wallets", "investments", "loans"]);
+
 function renderHomeCards({ cards, present }: { cards: Partial<Record<HomeCardId, ReactNode>>; present: Partial<Record<HomeCardId, boolean | null>> }) {
   const order = getHomeCardOrder();
-  const headings = homeCardHeadings(order, (id) => !!(present[id] ?? cards[id]));
-  return order.map((id) => (
-    <Fragment key={id}>
-      {headings[id] && (
-        <View className="mx-4 mt-5 mb-1">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">{headings[id]}</Text>
-        </View>
-      )}
-      {cards[id]}
-    </Fragment>
-  ));
+  const shown = (id: HomeCardId) => !!(present[id] ?? cards[id]);
+  const headings = homeCardHeadings(order, shown);
+  const out: ReactNode[] = [];
+  let row: { key: string; tiles: ReactNode[] } | null = null;
+  const closeRow = () => {
+    if (row) {
+      out.push(
+        <View key={`tiles-${row.key}`} className="flex-row flex-wrap mx-4 mt-2" style={{ gap: 10 }}>
+          {row.tiles}
+        </View>,
+      );
+    }
+    row = null;
+  };
+  for (const id of order) {
+    const heading = headings[id];
+    if (heading) {
+      closeRow();
+      out.push(
+        <View key={`h-${id}`} className="mx-4 mt-5 mb-1">
+          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">{heading}</Text>
+        </View>,
+      );
+    }
+    if (TILE_CARDS.has(id)) {
+      if (!cards[id] || !shown(id)) continue;
+      if (!row) row = { key: id, tiles: [] };
+      row.tiles.push(<Fragment key={id}>{cards[id]}</Fragment>);
+    } else {
+      closeRow();
+      out.push(<Fragment key={id}>{cards[id]}</Fragment>);
+    }
+  }
+  closeRow();
+  return out;
 }
 
 /** Longest Home shows the Arth loader on a cold start before rendering with what it has. */
@@ -408,6 +436,8 @@ export default function HomeScreen() {
   // here is just for the icon itself; the actual masking is read live by
   // those formatters from services/privacy-mode.ts on every render.
   const [amountsHidden, setAmountsHiddenState] = useState(isAmountsHidden());
+  // Every screen's header can flip it now, so pick it up again on coming back to Home.
+  useFocusEffect(useCallback(() => setAmountsHiddenState(isAmountsHidden()), []));
   const handleToggleAmountsHidden = useCallback(() => {
     setAmountsHiddenState(toggleAmountsHidden());
   }, []);
@@ -440,6 +470,7 @@ export default function HomeScreen() {
         title="Arth · अर्थ"
         subtitle={formatMonthLabel(month, "long")}
         rightActions={homeHeaderActions}
+        globalActions={false}
       />
       <SwipePager
         pages={homePages}
@@ -813,73 +844,42 @@ export default function HomeScreen() {
           </Card>
           </View>
         ),
-          hisaab: isHomeCardVisible("hisaab") && <View>
-        <Pressable onPress={() => router.push("/hisaab/persons")} accessibilityLabel="Open Hisaab family ledger" accessibilityRole="button">
-          <Card className="mx-4 mt-2">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-                  <Ionicons name="people-outline" size={20} color={colors.blue} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-semibold text-foreground">
-                    Hisaab - Family Ledger
-                  </Text>
-                  {hisaabSummary.netBalance !== 0 ? (
-                    <View className="flex-row items-center mt-0.5">
-                      {hisaabSummary.totalOwedToYou > 0 && (
-                        <Text className="text-xs text-success mr-3">
-                          +{formatAmount(hisaabSummary.totalOwedToYou)} owed
-                        </Text>
-                      )}
-                      {hisaabSummary.totalYouOwe > 0 && (
-                        <Text className="text-xs text-danger">
-                          <Money value={-hisaabSummary.totalYouOwe} /> you owe
-                        </Text>
-                      )}
-                    </View>
-                  ) : (
-                    <Text className="text-xs text-muted-foreground">
-                      Track shared expenses with family & friends
-                    </Text>
-                  )}
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </View>
-          </Card>
-        </Pressable>
-        </View>,
-          household: isHomeCardVisible("household") && <HouseholdCard />,
+          hisaab: isHomeCardVisible("hisaab") && (
+            <HomeTile
+              index={0}
+              icon="people-outline"
+              label="Hisaab"
+              value={Math.abs(hisaabSummary.netBalance)}
+              tone={hisaabSummary.netBalance > 0 ? "success" : hisaabSummary.netBalance < 0 ? "danger" : "default"}
+              sub={
+                hisaabSummary.totalOwedToYou > 0 && hisaabSummary.totalYouOwe > 0
+                  ? `${formatAmount(hisaabSummary.totalOwedToYou)} owed · ${formatAmount(hisaabSummary.totalYouOwe)} you owe`
+                  : hisaabSummary.netBalance > 0
+                    ? "Owed to you"
+                    : hisaabSummary.netBalance < 0
+                      ? "You owe"
+                      : "All settled"
+              }
+              onPress={() => router.push("/hisaab/persons")}
+            />
+          ),
+          household: isHomeCardVisible("household") && <HouseholdCard tileIndex={1} />,
           credit_cards: isHomeCardVisible("credit_cards") && (
-          <Appear index={3}>
-            <CreditCardDashboard accounts={ccAccounts} expenseTotals={ccExpenseTotals} computedBalances={computedBalanceMap} />
-          </Appear>
-        ),
-          bank_balances: isHomeCardVisible("bank_balances") && (
-          <Appear index={4}>
-            <BankBalanceSummary accounts={bankAccounts} />
-          </Appear>
-        ),
-          wallets: isHomeCardVisible("wallets") && (
-          <Appear index={5}>
-            <WalletSummary accounts={walletAccounts} />
-          </Appear>
-        ),
+            <CreditCardDashboard accounts={ccAccounts} expenseTotals={ccExpenseTotals} computedBalances={computedBalanceMap} tileIndex={2} />
+          ),
+          bank_balances: isHomeCardVisible("bank_balances") && <BankBalanceSummary accounts={bankAccounts} tileIndex={3} />,
+          wallets: isHomeCardVisible("wallets") && <WalletSummary accounts={walletAccounts} tileIndex={4} />,
           investments: isHomeCardVisible("investments") && (
-          <Appear index={6}>
             <InvestmentsSummaryCard
               totalValue={investmentSummary.totalValue}
               accountCount={investmentSummary.accountCount}
               breakdown={investmentSummary.breakdown}
+              tileIndex={5}
             />
-          </Appear>
-        ),
+          ),
           loans: isHomeCardVisible("loans") && loansSummary && loansSummary.activeCount > 0 && (
-          <Appear index={7}>
-            <LoanSummaryCard summary={loansSummary} />
-          </Appear>
-        ),
+            <LoanSummaryCard summary={loansSummary} tileIndex={6} />
+          ),
           },
         })}
 

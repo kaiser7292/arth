@@ -134,7 +134,7 @@ export default function OnboardingAccountsPreview() {
   };
 
   const handleContinue = () => {
-    router.push("/(onboarding)/setup-choice");
+    router.push("/(onboarding)/balances");
   };
 
   const handleSkip = () => {

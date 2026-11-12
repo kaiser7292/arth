@@ -4,6 +4,7 @@ import { Pressable, View } from "react-native";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useTheme } from "@/hooks/use-theme";
+import { HeaderGlobalActions } from "./HeaderGlobalActions";
 
 export interface ContextualHeaderAction {
   icon: keyof typeof Ionicons.glyphMap;
@@ -24,9 +25,11 @@ interface Props {
   subtitle?: string;
   badge?: ContextualHeaderBadge;
   rightActions?: ContextualHeaderAction[];
+  /** Search and Hide amounts after the screen's own icons. Off where the screen has its own (Home). */
+  globalActions?: boolean;
 }
 
-export function ContextualHeader({ title, subtitle, badge, rightActions }: Props) {
+export function ContextualHeader({ title, subtitle, badge, rightActions, globalActions = true }: Props) {
   const { colors } = useColorScheme();
   const theme = useTheme();
 
@@ -95,6 +98,7 @@ export function ContextualHeader({ title, subtitle, badge, rightActions }: Props
             />
           </Pressable>
         ))}
+        {globalActions && <HeaderGlobalActions color={colors.textSecondary} />}
       </View>
     </View>
   );

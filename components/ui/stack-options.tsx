@@ -1,6 +1,7 @@
 import type { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 import { useTheme } from "@/hooks/use-theme";
 import { HeaderBackHome } from "./HeaderBackHome";
+import { HeaderGlobalActions } from "./HeaderGlobalActions";
 
 /**
  * The shared Stack header configuration.
@@ -27,6 +28,8 @@ export function useStackScreenOptions(): NativeStackNavigationOptions {
     headerShadowVisible: false,
     headerTitleAlign: "center",
     headerLeft: () => <HeaderBackHome />,
+    // Search and Hide amounts everywhere. A screen with its own headerRight replaces them.
+    headerRight: () => <HeaderGlobalActions />,
     // Drilling in: the new screen slides in from the right while the one underneath shifts
     // slightly left (Android's iOS-style push). Native, so it runs at full frame rate and turns
     // off with the phone's "Remove animations" setting.

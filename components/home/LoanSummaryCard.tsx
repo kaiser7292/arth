@@ -9,16 +9,40 @@ import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 
 import type { LoansSummary } from "@/services/loan-accounts";
+import { HomeTile } from "./HomeTile";
 import { useTheme } from "@/hooks/use-theme";
 
 interface LoanSummaryCardProps {
   summary: LoansSummary;
+  /** Draw as a compact Home tile at this place in the stagger. */
+  tileIndex?: number;
 }
 
-function LoanSummaryCardImpl({ summary }: LoanSummaryCardProps) {
+function LoanSummaryCardImpl({ summary, tileIndex }: LoanSummaryCardProps) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
+
+  if (tileIndex != null) {
+    const due = summary.nextDue;
+    return (
+      <HomeTile
+        index={tileIndex}
+        icon="cash-outline"
+        label={`Loans · ${summary.activeCount}`}
+        value={summary.totalOutstandingINR}
+        sub={
+          due
+            ? `${due.isOverdue ? "Overdue" : "Next EMI"} ${formatDate(due.dueDate)} · ${formatAmount(due.amount)}`
+            : summary.totalMonthlyEMI > 0
+              ? `${formatAmount(summary.totalMonthlyEMI)} EMI a month`
+              : undefined
+        }
+        subTone={due?.isOverdue ? "danger" : "muted"}
+        onPress={() => router.push("/goals/loans")}
+      />
+    );
+  }
 
   return (
     <View>

@@ -15,7 +15,8 @@ export default function SimulatorStackLayout() {
     <Stack
       screenOptions={screenOptions}
     >
-      <Stack.Screen name="index" options={{ title: "Cash-flow Simulator" }} />
+      <Stack.Screen name="index" options={{ title: "What-ifs" }} />
+      <Stack.Screen name="projections" options={{ title: "Projections" }} />
       <Stack.Screen name="[id]" options={{ title: "" }} />
       <Stack.Screen name="[id]/entry" options={{ title: "Add Planned Entry" }} />
     </Stack>

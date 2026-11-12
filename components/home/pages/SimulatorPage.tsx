@@ -252,6 +252,26 @@ export function SimulatorPage() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 64 }}
       >
+        {/* The 12-month line these what-ifs move. */}
+        <Pressable
+          onPress={() => router.push("/simulator/projections")}
+          accessibilityRole="button"
+          accessibilityLabel="Open the next 12 months"
+        >
+          <Card className="mx-4 mt-3">
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                <Ionicons name="trending-up-outline" size={20} color={theme.primary} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-foreground">The next 12 months</Text>
+                <Text className="text-xs text-muted-foreground mt-0.5">Where your money is heading, with these what-ifs switched on or off</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            </View>
+          </Card>
+        </Pressable>
+
         {/* v16.0.5 — empty state for a fresh simulator home. */}
         {showEmptyState ? (
           <View className="items-center justify-center px-6 pt-20 pb-8">

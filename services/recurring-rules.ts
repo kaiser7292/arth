@@ -386,6 +386,81 @@ export async function getDueReminders(userId: string): Promise<ReminderWithSourc
  * Matches by merchant (same as source's merchant_name) within the last 30
  * days, excluding expenses already linked to a rule.
  */
+/** Letters and digits only, lowercased: "NETFLIX.COM" and "Netflix" both start "netflix". */
+function merchantKey(s: string | null | undefined): string {
+  return (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** Same payee, loosely: one name starts the other, or the first five letters agree. */
+export function merchantsMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  const x = merchantKey(a);
+  const y = merchantKey(b);
+  if (x.length < 3 || y.length < 3) return false;
+  return x.startsWith(y) || y.startsWith(x) || (x.length >= 5 && y.length >= 5 && x.slice(0, 5) === y.slice(0, 5));
+}
+
+function addDays(iso: string, days: number): string {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export interface ReminderLinkCandidates {
+  /** Same payee or an amount within 10%, closest first. */
+  best: Expense[];
+  /** Everything else spent around the due date, newest first, for when the bank named it oddly. */
+  others: Expense[];
+  /** The days looked at. */
+  from: string;
+  to: string;
+}
+
+/**
+ * What could pay this reminder: spending from two weeks before its due date to three weeks after
+ * (never past today), not linked to another reminder yet. Ranked by payee, amount and how near the
+ * due date it was, rather than an exact merchant-name match within the last 30 days.
+ */
+export async function findReminderLinkCandidates(ruleId: string): Promise<ReminderLinkCandidates> {
+  const db = getDatabase();
+  const today = todayIso();
+  const empty = { best: [], others: [], from: today, to: today };
+  const rule = await db.getFirstAsync<RecurringRule>("SELECT * FROM recurring_expense_rules WHERE id = ?;", ruleId);
+  if (!rule) return empty;
+  const source = await db.getFirstAsync<Expense>("SELECT * FROM expenses WHERE id = ?;", rule.source_expense_id);
+  const due = rule.next_due_date ?? today;
+  const from = addDays(due, -14);
+  const later = addDays(due, 21);
+  const to = later < today ? later : today;
+  if (to < from) return { ...empty, from, to };
+
+  const rows = await db.getAllAsync<Expense>(
+    `SELECT * FROM expenses
+     WHERE user_id = ? AND nature = 'realized' AND status != 'rejected' AND deleted_at IS NULL
+       AND fulfills_rule_id IS NULL AND date >= ? AND date <= ?
+       ${source ? "AND id <> ?" : ""}
+     ORDER BY date DESC LIMIT 300;`,
+    ...(source ? [rule.user_id, from, to, source.id] : [rule.user_id, from, to]),
+  );
+  const amount = rule.amount ?? source?.amount ?? null;
+  const payee = source?.merchant_name ?? source?.description ?? null;
+  const dueMs = new Date(due + "T00:00:00Z").getTime();
+
+  const scored = rows.map((e) => {
+    const samePayee = merchantsMatch(e.merchant_name ?? e.description, payee);
+    const closeAmount = amount != null && amount > 0 && Math.abs(e.amount - amount) <= amount * 0.1;
+    const days = Math.abs(new Date(e.date.slice(0, 10) + "T00:00:00Z").getTime() - dueMs) / 86400000;
+    const sameAccount = !!source?.account_id && e.account_id === source.account_id;
+    const score = (samePayee ? 100 : 0) + (closeAmount ? 60 : 0) + (sameAccount ? 10 : 0) - Math.min(days, 30);
+    return { e, good: samePayee || closeAmount, score };
+  });
+  return {
+    best: scored.filter((s) => s.good).sort((a, b) => b.score - a.score).slice(0, 20).map((s) => s.e),
+    others: scored.filter((s) => !s.good).map((s) => s.e),
+    from,
+    to,
+  };
+}
+
 export async function findCandidateExpenses(ruleId: string): Promise<Expense[]> {
   const db = getDatabase();
   const rule = await db.getFirstAsync<RecurringRule>(

@@ -9,6 +9,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { getFlag } from "@/services/feature-flags";
 import { formatAmount } from "@/utils/format";
 import { getStatement, type Statement } from "@/services/household/statement";
+import { HomeTile } from "./HomeTile";
 
 const thisMonth = () => {
   const d = new Date();
@@ -20,7 +21,7 @@ const thisMonth = () => {
  * month and who owes whom; opens Together. Self-loading; hidden outside a household, and from
  * Settings → Customise Arth ("household").
  */
-export function HouseholdCard() {
+export function HouseholdCard({ tileIndex }: { tileIndex?: number } = {}) {
   const router = useRouter();
   const theme = useTheme();
   const { colors } = useColorScheme();
@@ -36,6 +37,28 @@ export function HouseholdCard() {
   if (!s) return null;
   const owedToMe = s.balances.filter((b) => b.amount > 0.5).reduce((sum, b) => sum + b.amount, 0);
   const iOwe = s.balances.filter((b) => b.amount < -0.5).reduce((sum, b) => sum - b.amount, 0);
+
+  if (tileIndex != null) {
+    const net = owedToMe - iOwe;
+    return (
+      <HomeTile
+        index={tileIndex}
+        icon="home-outline"
+        label="Together"
+        value={Math.abs(net)}
+        tone={net > 0.5 ? "success" : net < -0.5 ? "danger" : "default"}
+        sub={
+          net > 0.5
+            ? `Owed to you · ${formatAmount(s.together)} together this month`
+            : net < -0.5
+              ? `You owe · ${formatAmount(s.together)} together this month`
+              : `All square · ${formatAmount(s.together)} together this month`
+        }
+        onPress={() => router.push("/together")}
+        accessibilityLabel={`Together, ${net > 0.5 ? `owed to you ${formatAmount(net)}` : net < -0.5 ? `you owe ${formatAmount(-net)}` : "all square"}`}
+      />
+    );
+  }
 
   return (
     <Pressable onPress={() => router.push("/together")} accessibilityLabel={`Open Together, ${s.household.name}`} accessibilityRole="button">

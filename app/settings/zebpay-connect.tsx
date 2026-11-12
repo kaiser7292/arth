@@ -137,8 +137,8 @@ export default function ZebpayConnectScreen() {
             try {
               await clearZebpayCredentials();
               setConnected(false);
-              setBalances([]); setOrders([]); setTotalInr(0); setInrBalance(0); setLinkedAccountId(null);
-              setBrokerLinkedAccount('zebpay', null);
+              // The linked account is kept, so connecting again goes on saving into it.
+              setBalances([]); setOrders([]); setTotalInr(0); setInrBalance(0);
             } catch (e) {
               logger.error('Failed to disconnect Zebpay:', e);
             }

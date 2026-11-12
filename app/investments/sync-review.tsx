@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useFocusEffect, useRouter, type Href } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, EmptyState, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, EmptyState, Input, LoadingState, ScreenContainer, SelectSheet, Text, type SelectOption } from "@/components/ui";
+import { createBrokerAccount, linkBrokerAccount } from "@/services/broker-link";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import {
@@ -21,7 +22,7 @@ import {
   type SyncAccount,
   type SyncReview,
 } from "@/services/investment-sync-review";
-import { isKiteTokenExpired } from "@/services/kite-connect";
+import { getDematAccountsForPicker, isKiteTokenExpired } from "@/services/kite-connect";
 import { formatDate } from "@/utils/date";
 import { formatAmount } from "@/utils/expense-validation";
 import { formatLocalDate } from "@/utils/fiscal-year";
@@ -156,9 +157,46 @@ export default function SyncReviewScreen() {
     }
   };
 
-  const fix = (r: BrokerSyncResult) => {
+  // "Link" picks the account right here, then syncs that broker again, instead of sending you to
+  // the broker's own screen.
+  const NEW_ACCOUNT = "__new__";
+  const [linkFor, setLinkFor] = useState<BrokerSyncResult["broker"] | null>(null);
+  const [linkOptions, setLinkOptions] = useState<SelectOption<string>[]>([]);
+  const [linking, setLinking] = useState(false);
+
+  const fix = async (r: BrokerSyncResult) => {
+    if (r.status === "needs_account") {
+      const list = await getDematAccountsForPicker().catch(() => []);
+      setLinkOptions([
+        ...list.map((a) => ({ value: a.id, label: a.label, icon: "briefcase-outline" as const })),
+        { value: NEW_ACCOUNT, label: `New ${SYNC_BROKER_NAMES[r.broker]} account`, icon: "add-circle-outline" as const },
+      ]);
+      setLinkFor(r.broker);
+      return;
+    }
     const route = SYNC_BROKER_ROUTES[r.broker];
     router.push((r.status === "needs_login" ? `${route}?loginForSync=1` : route) as Href);
+  };
+
+  const linkAndSync = async (value: string) => {
+    const broker = linkFor;
+    setLinkFor(null);
+    if (!broker) return;
+    setLinking(true);
+    try {
+      const accountId = value === NEW_ACCOUNT ? await createBrokerAccount(broker, null) : value;
+      await linkBrokerAccount(broker, accountId);
+      const done = await syncBroker(broker);
+      const next = results.map((x) => (x.broker === broker ? done : x));
+      const list = await getSyncAccounts(DEFAULT_USER_ID);
+      setResults(next);
+      setAccounts(list);
+      await showReview(list, next, typed);
+    } catch {
+      // The row stays as it was, with Link still there to try again.
+    } finally {
+      setLinking(false);
+    }
   };
 
   if (failed) {
@@ -292,7 +330,7 @@ export default function SyncReviewScreen() {
                   </Text>
                 </View>
                 {(r.status === "needs_login" || r.status === "needs_account") && (
-                  <Pressable onPress={() => fix(r)} hitSlop={8} accessibilityRole="button">
+                  <Pressable onPress={() => void fix(r)} disabled={linking} hitSlop={8} accessibilityRole="button">
                     <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
                       {r.status === "needs_login" ? "Log in" : "Link"}
                     </Text>
@@ -360,6 +398,14 @@ export default function SyncReviewScreen() {
           className="mt-2"
         />
       </ScrollView>
+      <SelectSheet
+        visible={linkFor != null}
+        title={linkFor ? `Which account is ${SYNC_BROKER_NAMES[linkFor]}?` : ""}
+        options={linkOptions}
+        value={null}
+        onChange={(v) => void linkAndSync(v)}
+        onClose={() => setLinkFor(null)}
+      />
     </ScreenContainer>
   );
 }

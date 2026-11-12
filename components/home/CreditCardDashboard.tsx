@@ -9,11 +9,14 @@ import { formatAmount } from "@/utils/format";
 
 import type { FinancialAccount } from "@/services/financial-account";
 import { useTheme, type Theme } from "@/hooks/use-theme";
+import { HomeTile } from "./HomeTile";
 
 interface CreditCardDashboardProps {
   accounts: FinancialAccount[];
   expenseTotals: Record<string, number>;
   computedBalances: Record<string, number | null>;
+  /** Draw as a compact Home tile at this place in the stagger. */
+  tileIndex?: number;
 }
 
 /** Takes the theme as an argument. This is a plain helper, not a component, so it must not
@@ -25,7 +28,7 @@ function getUtilColor(pct: number, theme: Theme): string {
   return theme.success;
 }
 
-function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: CreditCardDashboardProps) {
+function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances, tileIndex }: CreditCardDashboardProps) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -79,6 +82,24 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances }: 
   const totalAvailable = totalLimit - totalUtilized;
   const overallUtil = totalLimit > 0 ? (totalUtilized / totalLimit) * 100 : null;
   const overallUtilColor = overallUtil != null ? getUtilColor(overallUtil, theme) : theme.faintForeground;
+
+  if (tileIndex != null) {
+    // Without any limit set there's nothing to measure use against: show this month's card spending.
+    const spentThisMonth = accounts.reduce((sum, a) => sum + (expenseTotals[a.id] ?? 0), 0);
+    return (
+      <HomeTile
+        index={tileIndex}
+        icon="card-outline"
+        label={`Card dues · ${accounts.length}`}
+        value={totalLimit > 0 ? totalUtilized : spentThisMonth}
+        sub={overallUtil != null ? `${Math.round(overallUtil)}% of ${formatAmount(totalLimit)} limit` : "Spent this month"}
+        subTone={overallUtil != null && overallUtil > 75 ? "danger" : overallUtil != null && overallUtil > 50 ? "warning" : "muted"}
+        progress={overallUtil != null ? overallUtil / 100 : undefined}
+        progressTone={overallUtil != null && overallUtil > 75 ? "danger" : overallUtil != null && overallUtil > 50 ? "warning" : "success"}
+        onPress={() => router.push("/reconciliation/credit-cards")}
+      />
+    );
+  }
 
   return (
     <View>

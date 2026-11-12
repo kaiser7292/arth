@@ -1,10 +1,13 @@
 import { getCurrentMonth } from "@/services/budget";
 import { getMyMonth } from "@/services/my-month";
+import { investmentReturns } from "@/services/reports/year-review";
 
 /**
  * Money in and out over any run of months: My Month's sum, month by month and added up, so a month
  * reads the same here as it does on My Month. Investing counts as going out, because the money has
- * left your accounts; "Where it went" shows it apart from spending.
+ * left your accounts; "Where it went" shows it apart from spending. Money taken back out of an
+ * investment is netted against what went in, so redeeming and reinvesting the same money counts
+ * once; when more came back than went in, the difference shows under "Where it came from".
  */
 export interface CashFlowMonth {
   month: string;
@@ -21,7 +24,14 @@ export interface CashFlow {
   otherIn: number;
   repaid: number;
   wentOut: number;
+  /** Put into investments, less what came back out (never below 0). */
   invested: number;
+  /** Put into investments before netting. */
+  investedGross: number;
+  /** Taken out of investments into a bank or wallet. */
+  investedBack: number;
+  /** More came out of investments than went in: counted as money in. */
+  fromInvestments: number;
   spent: number;
   forOthers: number;
   left: number;
@@ -63,6 +73,9 @@ export async function getCashFlow(
     repaid: 0,
     wentOut: 0,
     invested: 0,
+    investedGross: 0,
+    investedBack: 0,
+    fromInvestments: 0,
     spent: 0,
     forOthers: 0,
     left: 0,
@@ -75,15 +88,20 @@ export async function getCashFlow(
   // One at a time: each month is several queries, and a long custom period would queue them all at once.
   for (const month of monthsBetween(startMonth, lastMonth)) {
     const d = await getMyMonth(userId, month);
-    const cameIn = d.moneyIn + d.people.repaid;
-    const wentOut = d.savedTotal + d.spent + d.people.billsShare;
+    const back = await investmentReturns(userId, `${month}-01`, `${month}-31`);
+    const netInvested = d.savedTotal - back;
+    const cameIn = d.moneyIn + d.people.repaid + Math.max(0, -netInvested);
+    const wentOut = Math.max(0, netInvested) + d.spent + d.people.billsShare;
     flow.months.push({ month, cameIn, wentOut, left: cameIn - wentOut });
     flow.cameIn += cameIn;
     flow.income += d.salary;
     flow.otherIn += d.otherIncome;
     flow.repaid += d.people.repaid;
     flow.wentOut += wentOut;
-    flow.invested += d.savedTotal;
+    flow.invested += Math.max(0, netInvested);
+    flow.investedGross += d.savedTotal;
+    flow.investedBack += back;
+    flow.fromInvestments += Math.max(0, -netInvested);
     flow.spent += d.spent;
     flow.forOthers += d.people.billsShare;
     flow.waitingForReview += d.waitingForReview;

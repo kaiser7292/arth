@@ -71,6 +71,8 @@ export interface FinancialCockpitData {
   healthScore: number;
   healthGrade: HealthGrade;
   healthFactors: HealthFactor[];
+  /** Under two months into the year: too little to grade on, so the grade is shown as early days. */
+  healthProvisional: boolean;
   waterfall: WaterfallData;
   savings: SavingsPulseData;
   goals: GoalStatus[];
@@ -296,9 +298,15 @@ export async function getFinancialCockpit(
   );
 
   // ── Health Score ──
+  // Graded against where each goal should be by now, not against the finish line: a five-year
+  // goal 20% done after one year is on pace, and counts as such.
+  const MILESTONE_PACE: Record<string, number> = { completed: 100, on_track: 100, at_risk: 60, needs_attention: 25 };
   const goalProgressPcts = [
-    ...bucketStatuses.map((b) => b.progressPct),
-    ...milestoneStatuses.map((m) => m.progressPct),
+    ...bucketStatuses.map((b) => {
+      const expectedByNow = (b.annualTarget / 12) * monthsElapsed;
+      return expectedByNow > 0 ? Math.min(100, (b.contributed / expectedByNow) * 100) : 100;
+    }),
+    ...milestoneStatuses.map((m) => MILESTONE_PACE[m.status] ?? 50),
   ];
 
   const monthlyIncome = plan.total_income / 12;
@@ -362,6 +370,7 @@ export async function getFinancialCockpit(
     healthScore: health.score,
     healthGrade: health.grade,
     healthFactors: health.factors,
+    healthProvisional: monthsElapsed < 2,
     waterfall,
     savings: savingsPulse,
     goals,

@@ -4,8 +4,8 @@ import { updateExpense } from "@/services/expense";
 import { FormulaTextInput } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, TextInput, View } from "react-native";
-import { Button, Money, SelectSheet, Text } from "@/components/ui";
+import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
+import { Button, Money, SelectSheet, Sheet, Text } from "@/components/ui";
 import { DeckCard } from "@/components/check-in/DeckParts";
 import { TYPE_ICONS } from "@/constants/icons";
 import type { FooterAction } from "@/components/check-in/DeckParts";
@@ -340,43 +340,56 @@ function SingleExpenseBody({
         />
       )}
 
-      {canSplit && splitOnCard && editingSplit && (
-        <SplitPanel
-          expense={expense}
-          total={total}
-          persons={persons}
-          saving={savingSplit}
-          onSave={(config) => onSaveSplit(expense.id, config)}
-          onRemove={() => onRemoveSplit(expense.id)}
-          onCancel={onCancelSplit}
-          onAddPerson={onAddPerson}
-        />
+      {/* In a sheet rather than on the card: the card can't scroll, so a panel opened inline pushed
+          the description off the bottom and the keyboard covered what was being typed. */}
+      {canSplit && splitOnCard && (
+        <Sheet visible={editingSplit} onClose={onCancelSplit}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}>
+            <Text className="text-base font-bold text-foreground">Split {formatAmount(total)}</Text>
+            <Text className="text-sm text-muted-foreground mt-0.5" numberOfLines={1}>{title(expense)}</Text>
+            <SplitPanel
+              expense={expense}
+              total={total}
+              persons={persons}
+              saving={savingSplit}
+              onSave={(config) => onSaveSplit(expense.id, config)}
+              onRemove={() => onRemoveSplit(expense.id)}
+              onCancel={onCancelSplit}
+              onAddPerson={onAddPerson}
+            />
+          </ScrollView>
+        </Sheet>
       )}
 
       {/* Together: shared with the household, and how it's split. Hidden outside a household. */}
       {canSplit && <SharedWithHome expenseId={expense.id} categoryId={categoryId} total={total} />}
 
-      {editingDescription ? (
-        <View className="flex-row items-center mt-3 rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
-          <TextInput
-            value={draft}
-            onChangeText={(t) => {
-              setDraft(t);
-              onDescriptionDraft(expense.id, t);
-            }}
-            placeholder="Dinner with team, Mom's medicines"
-            placeholderTextColor={theme.mutedForeground}
-            autoFocus
-            maxLength={200}
-            returnKeyType="done"
-            onSubmitEditing={() => onSaveDescription(expense.id, draft)}
-            onBlur={() => onSaveDescription(expense.id, draft)}
-            className="flex-1 text-sm text-foreground py-2"
-            accessibilityLabel="Description"
-          />
-          {savingDescription && <ActivityIndicator size="small" color={theme.primary} />}
+      <Sheet visible={editingDescription} onClose={() => onSaveDescription(expense.id, draft)}>
+        <View className="px-5 pb-2">
+          <Text className="text-base font-bold text-foreground mb-3">Description</Text>
+          <View className="flex-row items-center rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
+            <TextInput
+              value={draft}
+              onChangeText={(t) => {
+                setDraft(t);
+                onDescriptionDraft(expense.id, t);
+              }}
+              placeholder="Dinner with team, Mom's medicines"
+              placeholderTextColor={theme.mutedForeground}
+              autoFocus
+              maxLength={200}
+              returnKeyType="done"
+              onSubmitEditing={() => onSaveDescription(expense.id, draft)}
+              className="flex-1 text-sm text-foreground py-2"
+              accessibilityLabel="Description"
+            />
+            {savingDescription && <ActivityIndicator size="small" color={theme.primary} />}
+          </View>
+          <View className="mt-3">
+            <Button title="Save" onPress={() => onSaveDescription(expense.id, draft)} disabled={savingDescription} />
+          </View>
         </View>
-      ) : (
+      </Sheet>
         <Pressable
           onPress={onEditDescription}
           className="flex-row items-center self-center mt-3 px-3"
@@ -393,7 +406,6 @@ function SingleExpenseBody({
             {showDescriptionText ? description : description ? "Edit description" : "Add description"}
           </Text>
         </Pressable>
-      )}
 
     </View>
   );

@@ -20,6 +20,7 @@ import {
 } from "@/services/first-scan";
 import { runSmsScan, type ScanProgress } from "@/services/sms/sms-orchestrator";
 import { setStartDate } from "@/services/start-date";
+import { todayIso } from "@/utils/date";
 import { formatCompact } from "@/utils/format";
 import { logger } from "@/utils/logger";
 
@@ -42,7 +43,9 @@ export default function OnboardingFirstScan() {
   const router = useRouter();
   const theme = useTheme();
   const [months, setMonths] = useState<LookbackMonths>(DEFAULT_LOOKBACK);
-  const [ignoreOlder, setIgnoreOlder] = useState(false);
+  /** After the scan: count what it found in reports, or start fresh from today. */
+  const [history, setHistory] = useState<"use" | "fresh">("use");
+  const [applying, setApplying] = useState(false);
   const [phase, setPhase] = useState<Phase>("choose");
   const [summary, setSummary] = useState<FirstScanSummary | null>(null);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -61,12 +64,26 @@ export default function OnboardingFirstScan() {
     };
   }, [phase]);
 
-  const next = () => router.replace(ignoreOlder ? "/settings/start-date?onboarding=1" : "/(onboarding)/accounts-preview");
+  const next = () => router.replace("/(onboarding)/accounts-preview");
+
+  // Starting fresh hides what the scan found from reports (not deleted: Settings → Start date brings
+  // it back) and leaves nothing old to review. Today's balances, asked a couple of steps on, are
+  // where every account starts.
+  const goOn = async () => {
+    if (history === "fresh") {
+      setApplying(true);
+      await setStartDate(DEFAULT_USER_ID, todayIso()).catch((e) => logger.warn("Start date failed:", e));
+      setApplying(false);
+      next();
+      return;
+    }
+    if (summary && summary.toReview > 0) router.push("/expense/catch-up");
+    else next();
+  };
 
   const start = async () => {
     setPhase("scanning");
     const since = lookbackStartDate(months);
-    if (ignoreOlder) await setStartDate(DEFAULT_USER_ID, since).catch((e) => logger.warn("Start date failed:", e));
     let feedId = 0;
     const promise = startFirstScan(since, () =>
       runSmsScan({
@@ -138,14 +155,47 @@ export default function OnboardingFirstScan() {
           <Card>
             <FirstScanSummaryView summary={summary} />
           </Card>
+          <Text className="text-base font-semibold text-foreground mt-6 mb-1">Count these months in your reports?</Text>
+          <Text className="text-sm text-muted-foreground mb-3 leading-5">
+            Either way, you'll confirm each account's balance today, and everything from now on adds up from there.
+          </Text>
+          {(
+            [
+              { id: "use", label: "Yes, use them", note: "Trends and averages start with real history" },
+              { id: "fresh", label: "No, start fresh from today", note: "Nothing old to review; reports begin today" },
+            ] as const
+          ).map((o) => {
+            const selected = history === o.id;
+            return (
+              <Pressable
+                key={o.id}
+                onPress={() => setHistory(o.id)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                className="flex-row items-center rounded-xl border px-4 py-3 mb-2.5 bg-card"
+                style={{ borderColor: selected ? theme.primary : theme.border }}
+              >
+                <View className="flex-1 mr-3">
+                  <Text className="text-base text-foreground">{o.label}</Text>
+                  <Text className="text-xs text-muted-foreground mt-0.5">{o.note}</Text>
+                </View>
+                <Ionicons
+                  name={selected ? "radio-button-on" : "radio-button-off"}
+                  size={20}
+                  color={selected ? theme.primary : theme.mutedForeground}
+                />
+              </Pressable>
+            );
+          })}
         </ScrollView>
         <View className="px-6 pb-6 pt-2">
           <Button
-            title={summary.toReview > 0 ? "Review now" : "Continue"}
-            onPress={() => (summary.toReview > 0 ? router.push("/expense/catch-up") : next())}
+            title={history === "use" && summary.toReview > 0 ? "Review now" : "Continue"}
+            onPress={() => void goOn()}
+            loading={applying}
             className="mb-3"
           />
-          {summary.toReview > 0 && <Button title="Later" variant="ghost" onPress={next} />}
+          {history === "use" && summary.toReview > 0 && <Button title="Later" variant="ghost" onPress={next} />}
         </View>
       </ScreenContainer>
     );
@@ -181,19 +231,6 @@ export default function OnboardingFirstScan() {
             </Pressable>
           );
         })}
-        <Pressable
-          onPress={() => setIgnoreOlder((v) => !v)}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: ignoreOlder }}
-          className="flex-row items-center mt-3 py-2"
-        >
-          <Ionicons
-            name={ignoreOlder ? "checkbox" : "square-outline"}
-            size={20}
-            color={ignoreOlder ? theme.primary : theme.mutedForeground}
-          />
-          <Text className="text-sm text-foreground ml-2 flex-1">Ignore anything older than this across Arth</Text>
-        </Pressable>
       </ScrollView>
       <View className="px-6 pb-6 pt-2">
         <Button title="Start reading" onPress={() => void start()} />

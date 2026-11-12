@@ -95,11 +95,21 @@ function SpendingDetail({
         {isOverspending && (
           <StatRow label="Monthly overspend" value={`+${formatAmount(monthlyOverspend)}/mo`} highlight />
         )}
+        <StatRow
+          label="Headroom after goals"
+          value={`${tension.headroomMonthly < 0 ? "−" : ""}${formatAmount(Math.abs(tension.headroomMonthly))}/mo`}
+          highlight={tension.headroomMonthly < 0}
+        />
+        {isOverspending && tension.headroomMonthly >= 0 && (
+          <Text className="text-xs text-muted-foreground mt-2">
+            You're spending more than budgeted, but what's left each month still covers every goal.
+          </Text>
+        )}
       </Card>
 
       {behindBuckets.length > 0 && (
         <>
-          <SectionHeader title="Goals at Risk" />
+          <SectionHeader title={tension.goalsAtRiskFromOverspend.length > 0 ? "Goals at Risk" : "Goals Behind Pace"} />
           {behindBuckets.map((b) => (
             <BucketRow key={b.id} bucket={b} isDark={isDark} />
           ))}
@@ -111,7 +121,7 @@ function SpendingDetail({
           <SectionHeader title="Course Correction" />
           <Card className="mb-4">
             <Text className="text-sm text-muted-foreground mb-2">
-              To protect your investment goals for the rest of this FY, reduce monthly discretionary spending by:
+              Your headroom doesn't cover the overspend. To fund every goal for the rest of this FY, reduce monthly spending by:
             </Text>
             <Text className="text-2xl font-bold text-danger">
               <Money value={-tension.discretionaryCutNeeded} />/mo

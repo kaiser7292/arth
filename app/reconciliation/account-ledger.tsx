@@ -51,7 +51,7 @@ import { transactionTitle } from "@/utils/transaction-title";
 import { getCategories } from "@/services/category";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
@@ -243,6 +243,18 @@ export default function AccountLedgerScreen() {
   });
   const filteredEntries = tools.rows;
   const ledgerRows = tools.grouped;
+
+  // Cards sharing one limit show every card's rows; start on the card that was opened. Once per
+  // card, so clearing the chip sticks.
+  const cardFilterFor = useRef<string | null>(null);
+  const { setFieldFilter } = tools;
+  useEffect(() => {
+    if (!accountId || cardFilterFor.current === accountId) return;
+    if (poolSiblings.length > 1 && poolSiblings.some((s) => s.id === accountId)) {
+      cardFilterFor.current = accountId;
+      setFieldFilter("card", [accountId]);
+    }
+  }, [accountId, poolSiblings, setFieldFilter]);
 
 const loadData = useCallback(async () => {
       if (!accountId) return;

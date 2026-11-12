@@ -129,18 +129,25 @@ export default function BudgetVsActualScreen() {
   }, [range, period, router, getPeriodLabel]);
 
   // Sorted category rows
+  // Categories with neither a budget nor any spending say nothing; they're listed in one line at the end.
+  const idleRows = useMemo(
+    () => (result ? result.rows.filter((r) => r.totalBudget <= 0 && r.totalActual <= 0) : []),
+    [result],
+  );
   const sortedRows = useMemo(() => {
     if (!result) return [];
-    const copy = [...result.rows];
+    const copy = result.rows.filter((r) => r.totalBudget > 0 || r.totalActual > 0);
+    // The same "expected so far" figure each row shows, so the order matches the labels.
+    const expected = (r: BudgetVsActualRow) => (isCurrentMonth ? proratedBudget(r.totalBudget) : r.totalBudget);
     switch (sortOrder) {
       case "overspend":
-        return copy.sort((a, b) => (b.totalActual - b.totalBudget) - (a.totalActual - a.totalBudget));
+        return copy.sort((a, b) => (b.totalActual - expected(b)) - (a.totalActual - expected(a)));
       case "spent":
         return copy.sort((a, b) => b.totalActual - a.totalActual);
       case "alpha":
         return copy.sort((a, b) => a.categoryName.localeCompare(b.categoryName));
     }
-  }, [result, sortOrder]);
+  }, [result, sortOrder, isCurrentMonth]);
 
   const budgetForSummary = isCurrentMonth && result
     ? proratedBudget(result.totalBudget)
@@ -365,6 +372,11 @@ export default function BudgetVsActualScreen() {
                     onPress={() => drillDown(row)}
                   />
                 ))}
+                {idleRows.length > 0 && (
+                  <Text className="text-xs text-muted-foreground mt-1 mb-2">
+                    No budget and nothing spent: {idleRows.map((r) => r.categoryName).join(", ")}
+                  </Text>
+                )}
               </View>
             )}
 
@@ -428,7 +440,8 @@ function CategoryRow({
   const reference = prorated > 0 ? prorated : row.totalBudget;
   const ratio = reference > 0 ? row.totalActual / reference : row.totalActual > 0 ? 1 : 0;
   const pct = Math.min(100, Math.round(ratio * 100));
-  const isOver = row.totalActual > reference && reference > 0;
+  const noBudget = row.totalBudget <= 0 && row.totalActual > 0;
+  const isOver = noBudget || (row.totalActual > reference && reference > 0);
   const variance = row.totalActual - (isCurrentMonth ? prorated : row.totalBudget);
   const barColor = isOver ? theme.danger : ratio >= 0.8 ? theme.warning : theme.primary;
 
@@ -450,10 +463,12 @@ function CategoryRow({
           className="text-xs font-semibold ml-2"
           style={{ color: isOver ? theme.danger : variance < 0 ? theme.success : colors.textSecondary }}
         >
-          {isOver
+          {noBudget
+            ? "no budget"
+            : isOver
             ? `+${formatAmount(Math.abs(variance))} over`
             : variance < 0
-            ? `-${formatAmount(Math.abs(variance))} left`
+            ? `${formatAmount(Math.abs(variance))} left`
             : "on track"}
         </Text>
         <Ionicons name="chevron-forward" size={13} color={colors.textSecondary} className="ml-1" />

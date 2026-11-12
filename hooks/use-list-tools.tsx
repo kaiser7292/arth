@@ -92,6 +92,11 @@ export function useListTools<T>({
     setFilters({});
   }, []);
 
+  const setFieldFilter = useCallback(
+    (fieldId: string, keys: string[]) => setFilters((prev) => ({ ...prev, [fieldId]: keys })),
+    [],
+  );
+
   const chips: ToolbarChip[] = [
     ...(extraFilter?.chips ?? []),
     ...filterFields.flatMap((f) =>
@@ -163,5 +168,7 @@ export function useListTools<T>({
     /** Search or a filter is narrowing the list. */
     narrowed: query.trim() !== "" || activeCount > 0,
     reset,
+    /** Turn on one field's filter from outside, e.g. the card a shared-limit ledger was opened from. */
+    setFieldFilter,
   };
 }

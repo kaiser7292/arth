@@ -71,7 +71,13 @@ export default function CashFlowScreen() {
   const whole = Math.max(1, flow?.wentOut ?? 1);
   const where = flow
     ? [
-        { key: "invested", label: "Invested", amount: flow.invested, color: theme.warning, section: "saved" as const },
+        {
+          key: "invested",
+          label: flow.investedBack > 0 ? `Invested, after ${formatAmount(flow.investedBack)} taken out` : "Invested",
+          amount: flow.invested,
+          color: theme.warning,
+          section: "saved" as const,
+        },
         { key: "spent", label: "Spent by you", amount: flow.spent, color: theme.primary, section: "spent" as const },
         { key: "others", label: "Spent for others", amount: flow.forOthers, color: theme.alpha("primary", 0.45), section: "bills" as const },
       ].filter((w) => w.amount > 0)
@@ -148,6 +154,7 @@ export default function CashFlowScreen() {
             {flow.income > 0 && <Row label="Income" amount={flow.income} onPress={drill("income", "Income")} />}
             {flow.otherIn > 0 && <Row label="Other money in" amount={flow.otherIn} onPress={drill("other", "Other money in")} />}
             {flow.repaid > 0 && <Row label="Repaid to you" amount={flow.repaid} onPress={drill("repaid", "Repaid to you")} />}
+            {flow.fromInvestments > 0 && <Row label="Back from investments" amount={flow.fromInvestments} onPress={drill("saved", "Investments")} />}
             {flow.cameIn === 0 && <Text className="text-sm text-muted-foreground">Nothing came in during this period.</Text>}
           </Card>
 

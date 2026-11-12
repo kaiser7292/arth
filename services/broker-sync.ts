@@ -1,6 +1,6 @@
 import { getBrokerLinkedAccount } from "@/services/broker-link";
 import { getAngelCredentials, getAngelLastSynced, isAngelConnected, syncAngelData } from "@/services/angel-connect";
-import { saveBrokerSnapshot } from "@/services/financial-account";
+import { getAccountById, saveBrokerSnapshot } from "@/services/financial-account";
 import { getKiteCredentials, getLastSynced as getKiteLastSynced, isKiteTokenExpired, syncKiteData } from "@/services/kite-connect";
 import { getZebpayLastSynced, isZebpayConnected, syncZebpayData } from "@/services/zebpay-connect";
 
@@ -49,14 +49,14 @@ export async function syncBroker(broker: SyncBroker): Promise<BrokerSyncResult> 
     if (broker === "kite") {
       if (isKiteTokenExpired()) return { broker, status: "needs_login" };
       const r = await syncKiteData();
-      if (!r.linkedAccountId) return { broker, status: "needs_account" };
+      if (!r.linkedAccountId || !(await isLiveAccount(r.linkedAccountId))) return { broker, status: "needs_account" };
       const saved = await saveBrokerSnapshot(r.linkedAccountId, r.portfolioTotal, r.fundsAvailable);
       await alsoSaveTrades(broker);
       return { broker, status: "saved", ...saved };
     }
 
     const accountId = getBrokerLinkedAccount(broker);
-    if (!accountId) return { broker, status: "needs_account" };
+    if (!accountId || !(await isLiveAccount(accountId))) return { broker, status: "needs_account" };
 
     if (broker === "angel") {
       const r = await syncAngelData();
@@ -80,6 +80,12 @@ export async function syncBroker(broker: SyncBroker): Promise<BrokerSyncResult> 
     if (message.includes("NativeDatabase")) return { broker, status: "failed", message: "Fetched, but couldn't save it. Sync again." };
     return { broker, status: "failed", message };
   }
+}
+
+/** The link outlives a disconnect, so the account may have been closed or deleted since. */
+async function isLiveAccount(id: string): Promise<boolean> {
+  const a = await getAccountById(id).catch(() => null);
+  return !!a && a.is_active === 1 && !a.closed_at;
 }
 
 /** A sync is also a chance to keep today's trades. Never in the way of the sync itself. */

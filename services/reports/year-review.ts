@@ -178,6 +178,35 @@ export async function invested(userId: string, startDate: string, endDate: strin
   };
 }
 
+/**
+ * Money that came back out of investments into a bank or wallet: withdrawals recorded against the
+ * investment (a transfer investment → bank) plus redemption credits not sorted yet. Put against
+ * `invested` so redeeming and putting the same money back in doesn't read as investing twice.
+ */
+export async function investmentReturns(userId: string, startDate: string, endDate: string): Promise<number> {
+  const db = getDatabase();
+  const [transfers, unsorted] = await Promise.all([
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT COALESCE(SUM(t.amount), 0) AS total
+       FROM account_transfers t
+       JOIN financial_accounts src ON src.id = t.from_account_id
+       JOIN financial_accounts dst ON dst.id = t.to_account_id
+       WHERE src.user_id = ? AND t.deleted_at IS NULL AND t.date >= ? AND t.date <= ?
+         AND src.account_type IN ('demat', 'investment', 'pension')
+         AND dst.account_type NOT IN ('demat', 'investment', 'pension');`,
+      userId, startDate, endDate,
+    ),
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT COALESCE(SUM(e.amount), 0) AS total FROM expenses e
+       WHERE e.user_id = ? AND e.date >= ? AND e.date <= ?
+         AND e.nature = 'credit' AND e.status = 'approved' AND e.deleted_at IS NULL
+         AND e.money_event = 'investment_withdrawal';`,
+      userId, startDate, endDate,
+    ),
+  ]);
+  return (transfers?.total ?? 0) + (unsorted?.total ?? 0);
+}
+
 async function hisaabSettlements(userId: string, startDate: string, endDate: string) {
   const db = getDatabase();
   const row = await db.getFirstAsync<{ people: number; total: number | null }>(

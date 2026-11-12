@@ -201,7 +201,7 @@ export async function getKiteCredentials(): Promise<KiteCredentials | null> {
   };
 }
 
-/** Clear session tokens + cached data. Keeps the API key so re-auth doesn't require re-entry. */
+/** Clear session tokens + cached data. Keeps the API key (no re-entry) and the linked account. */
 export async function clearKiteSession(): Promise<void> {
   await SecureStore.deleteItemAsync(KITE_ACCESS_TOKEN);
   await SecureStore.deleteItemAsync(KITE_USER_ID);
@@ -216,7 +216,8 @@ export async function clearKiteSession(): Promise<void> {
   settingsStorage.delete(MMKV_SIPS_CACHE);
   settingsStorage.delete(MMKV_ORDERS_CACHE);
   settingsStorage.delete(MMKV_MF_ORDERS_CACHE);
-  settingsStorage.delete(MMKV_LINKED_ACCOUNT);
+  // The linked account stays: it's which of your accounts Zerodha's value goes into, not part of the
+  // login, so connecting again carries on where it was.
 }
 
 /** Full wipe including the API key. Use only from the API key screen when the user explicitly removes it. */
@@ -500,12 +501,23 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
     throw new Error('NO_ACCOUNT_LINKED');
   }
 
+  // Zerodha's MF prices often trail by a day: value each fund at AMFI's NAV when it's newer.
+  // Never in the way of the sync: on any trouble the broker's prices stand.
+  let mfHoldings = mfHoldingsRaw;
+  try {
+    const { getAmfiNavs, applyAmfiNavs } = await import('@/services/amfi-nav');
+    const navs = await getAmfiNavs(mfHoldingsRaw.map((h) => h.tradingsymbol));
+    mfHoldings = applyAmfiNavs(mfHoldingsRaw, navs).holdings;
+  } catch {
+    mfHoldings = mfHoldingsRaw;
+  }
+
   // Compute totals
   const equityTotal = holdingsRaw.reduce(
     (sum, h) => sum + (h.quantity + (h.t1_quantity ?? 0)) * h.last_price,
     0,
   );
-  const mfTotal = mfHoldingsRaw.reduce(
+  const mfTotal = mfHoldings.reduce(
     (sum, h) => sum + h.quantity * h.last_price,
     0,
   );
@@ -530,7 +542,7 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
 
   // Cache in MMKV
   settingsStorage.set(MMKV_HOLDINGS_CACHE,    JSON.stringify(holdingsRaw));
-  settingsStorage.set(MMKV_MF_HOLDINGS_CACHE, JSON.stringify(mfHoldingsRaw));
+  settingsStorage.set(MMKV_MF_HOLDINGS_CACHE, JSON.stringify(mfHoldings));
   settingsStorage.set(MMKV_PORTFOLIO_TOTAL,   portfolioTotal.toString());
   settingsStorage.set(MMKV_DAY_ORDERS_CACHE,  JSON.stringify(dayOrders));
   settingsStorage.set(MMKV_FUNDS_TOTAL,       fundsAvailable.toString());
@@ -542,7 +554,7 @@ export async function syncKiteData(): Promise<KiteSyncResult> {
 
   return {
     holdings:        holdingsRaw,
-    mfHoldings:      mfHoldingsRaw,
+    mfHoldings,
     positions,
     sips,
     orders,

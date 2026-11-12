@@ -159,6 +159,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("kite_token_expiry", "string", SESSION),
   S("kite_holdings_cache", "string", SESSION),
   S("kite_mf_holdings_cache", "string", SESSION),
+  S("amfi_nav_cache", "string", DEVICE("public mutual fund NAVs, fetched again on the next sync")),
   S("kite_portfolio_total", "string", SESSION),
   S("kite_funds_total", "string", SESSION),
   S("kite_positions_cache", "string", SESSION),

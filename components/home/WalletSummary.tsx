@@ -13,9 +13,12 @@ import { getComputedBalanceComponents, computeUnseededBalance } from "@/services
 import { getCurrentMonth } from "@/services/budget";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailed } from "@/components/ui/ListToolbar";
+import { HomeTile } from "./HomeTile";
 
 interface WalletSummaryProps {
   accounts: FinancialAccount[];
+  /** Draw as a compact Home tile at this place in the stagger. */
+  tileIndex?: number;
 }
 
 interface Totals {
@@ -27,7 +30,7 @@ interface Totals {
   closing: number;
 }
 
-function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
+function WalletSummaryImpl({ accounts, tileIndex }: WalletSummaryProps) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -72,6 +75,21 @@ function WalletSummaryImpl({ accounts }: WalletSummaryProps) {
 
   if (loadFailed) return <LoadFailed onRetry={load} />;
   const { opening, expenses, credits, transfersOut, transfersIn, closing } = totals;
+
+  if (tileIndex != null) {
+    const spent = expenses + transfersOut;
+    return (
+      <HomeTile
+        index={tileIndex}
+        icon="phone-portrait-outline"
+        label={`Wallets · ${accounts.length}`}
+        value={closing}
+        tone={closing < 0 ? "danger" : "default"}
+        sub={spent > 0 ? `${formatAmount(spent)} used this month` : "Nothing used this month"}
+        onPress={() => router.push("/reconciliation/wallets")}
+      />
+    );
+  }
 
   return (
     <View>

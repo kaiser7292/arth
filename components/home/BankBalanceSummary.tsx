@@ -13,9 +13,12 @@ import { getComputedBalanceComponents, computeUnseededBalance } from "@/services
 import { getCurrentMonth } from "@/services/budget";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailed } from "@/components/ui/ListToolbar";
+import { HomeTile } from "./HomeTile";
 
 interface BankBalanceSummaryProps {
   accounts: FinancialAccount[];
+  /** Draw as a compact Home tile (two to a row) at this place in the stagger. */
+  tileIndex?: number;
 }
 
 interface Totals {
@@ -27,7 +30,7 @@ interface Totals {
   closing: number;
 }
 
-function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
+function BankBalanceSummaryImpl({ accounts, tileIndex }: BankBalanceSummaryProps) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -73,6 +76,22 @@ function BankBalanceSummaryImpl({ accounts }: BankBalanceSummaryProps) {
 
   if (loadFailed) return <LoadFailed onRetry={load} />;
   const { opening, expenses, credits, transfersOut, transfersIn, closing } = totals;
+
+  if (tileIndex != null) {
+    const moved = closing - opening;
+    return (
+      <HomeTile
+        index={tileIndex}
+        icon="wallet-outline"
+        label={`In the bank · ${accounts.length}`}
+        value={closing}
+        tone={closing < 0 ? "danger" : "default"}
+        sub={Math.abs(moved) >= 1 ? `${moved > 0 ? "+" : "−"}${formatAmount(Math.abs(moved))} this month` : "No change this month"}
+        subTone={moved > 0 ? "success" : moved < 0 ? "danger" : "muted"}
+        onPress={() => router.push("/reconciliation/bank-accounts")}
+      />
+    );
+  }
 
   return (
     <View>

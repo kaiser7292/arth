@@ -753,7 +753,13 @@ export default function ExpenseDetailScreen() {
         await applyRuleActionsToExpense(rule.id, expense.id);
         setRulePickerVisible(false);
         const updated = await getExpenseById(expense.id);
-        if (updated) setExpense(updated);
+        if (updated) {
+          setExpense(updated);
+          // A rule can split the expense: the split card reads the person and entry from these.
+          setSplitPersonName(updated.split_person_id ? ((await getPerson(updated.split_person_id))?.name ?? null) : null);
+          setSplitEntry(updated.split_hisaab_entry_id ? await getEntryById(updated.split_hisaab_entry_id) : null);
+          setMultiSplitSummary(await getMultiSplitSummary(expense.id));
+        }
       } catch (e) {
         alert("Couldn't apply rule", formatError("Apply rule", e));
       } finally {

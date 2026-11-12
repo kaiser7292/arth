@@ -175,7 +175,7 @@ export default function TogetherScreen() {
                       ? "Waiting for their phone to sync"
                       : agree
                         ? "Both phones agree"
-                        : `${b.name}'s phone says ${b.theirs < 0 ? `you owe ${formatAmount(-b.theirs)}` : `they owe ${formatAmount(b.theirs)}`}`}
+                        : `${b.name}'s phone says ${b.theirs < 0 ? `you owe ${formatAmount(-b.theirs)}` : `they owe ${formatAmount(b.theirs)}`}, ${formatAmount(Math.abs(b.theirs - b.amount))} apart. One of you has an entry the other doesn't.`}
                   </Text>
                   <Pressable
                     onPress={() => router.push({ pathname: "/hisaab/ledger", params: { personId: b.personId, personName: b.name } })}
