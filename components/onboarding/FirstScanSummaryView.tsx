@@ -5,7 +5,14 @@ import { formatAmount } from "@/utils/format";
 import { formatDateForDisplay } from "@/utils/expense-validation";
 
 /** "Here's your money" — the numbers from the first SMS scan. */
-export function FirstScanSummaryView({ summary }: { summary: FirstScanSummary }) {
+export function FirstScanSummaryView({
+  summary,
+  reviewLabel = "Waiting for review",
+}: {
+  summary: FirstScanSummary;
+  /** Onboarding approves the scan, so only possible duplicates are left to look at there. */
+  reviewLabel?: string;
+}) {
   const rows: [string, string][] = [
     ["Accounts found", String(summary.accountsFound)],
     ["Top spend", summary.topMerchant ? `${summary.topMerchant.name} · ${formatAmount(summary.topMerchant.amount)}` : "—"],
@@ -37,7 +44,7 @@ export function FirstScanSummaryView({ summary }: { summary: FirstScanSummary })
         </View>
       ))}
       <View className="flex-row justify-between py-2">
-        <Text className="text-sm text-muted-foreground">Waiting for review</Text>
+        <Text className="text-sm text-muted-foreground">{reviewLabel}</Text>
         <Text className="text-sm font-semibold text-foreground">{summary.toReview}</Text>
       </View>
     </View>

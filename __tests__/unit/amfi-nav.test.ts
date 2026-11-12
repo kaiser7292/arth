@@ -1,4 +1,4 @@
-import { applyAmfiNavs, parseAmfiDate, parseAmfiNavFile } from "@/services/amfi-nav";
+import { applyAmfiNavs, applyAmfiToAngel, looksLikeEtf, parseAmfiDate, parseAmfiNavFile } from "@/services/amfi-nav";
 
 const FILE = [
   "Scheme Code;ISIN Div Payout/ ISIN Growth;ISIN Div Reinvestment;Scheme Name;Plan;Option;Net Asset Value;Date",
@@ -56,5 +56,32 @@ describe("applyAmfiNavs", () => {
     });
     expect(r.updated).toBe(0);
     expect(r.holdings[0].last_price).toBe(30);
+  });
+});
+
+describe("applyAmfiToAngel", () => {
+  const navs = { INF846K01WO1: { nav: 31, date: "2026-11-11" }, INF204KB14I2: { nav: 280, date: "2026-11-11" } };
+  const fund = { tradingsymbol: "AXIS CHILDRENS FUND", isin: "INF846K01WO1", quantity: 10, ltp: 30, averageprice: 25, profitandloss: 50 };
+  const etf = { tradingsymbol: "NIFTYBEES-EQ", isin: "INF204KB14I2", quantity: 5, ltp: 281.5, averageprice: 250, profitandloss: 157.5 };
+  const share = { tradingsymbol: "INFY-EQ", isin: "INE009A01021", quantity: 2, ltp: 1500, averageprice: 1400, profitandloss: 200 };
+
+  it("values fund units at AMFI's NAV and says how much the total moves", () => {
+    const r = applyAmfiToAngel([fund, etf, share], navs);
+    expect(r.updated).toBe(1);
+    expect(r.valueChange).toBeCloseTo(10);
+    expect(r.holdings[0]).toMatchObject({ ltp: 31, profitandloss: 60 });
+  });
+
+  it("leaves ETFs and shares at their market price", () => {
+    const r = applyAmfiToAngel([fund, etf, share], navs);
+    expect(r.holdings[1]).toBe(etf);
+    expect(r.holdings[2]).toBe(share);
+    expect(looksLikeEtf("GOLDETF")).toBe(true);
+    expect(looksLikeEtf("AXIS CHILDRENS FUND")).toBe(false);
+  });
+
+  it("reads numbers Angel One sends as strings", () => {
+    const r = applyAmfiToAngel([{ ...fund, ltp: "0" as unknown as number, quantity: "10" as unknown as number }], navs);
+    expect(r.valueChange).toBeCloseTo(310);
   });
 });

@@ -2036,3 +2036,51 @@ function getLastNMonths(count: number, offsetMonths = 0): string[] {
   }
   return months;
 }
+
+export interface AccountTypeDoubt {
+  /** The type most of its messages point to, when that's not what the account is set to. */
+  suggested: "savings" | "credit_card" | "loan" | "wallet" | null;
+}
+
+/**
+ * Accounts whose type Arth isn't sure of, from the messages linked to them (up to 60 each): the
+ * messages point different ways (a card and an account under the same digits), point away from
+ * the type it was given, or say nothing either way. Onboarding asks about only these.
+ */
+export async function getAccountTypeDoubts(accountIds: string[]): Promise<Map<string, AccountTypeDoubt>> {
+  const db = getDatabase();
+  const out = new Map<string, AccountTypeDoubt>();
+  for (const id of accountIds) {
+    const acct = await db.getFirstAsync<{ account_type: string; account_identifier: string | null; credit_limit: number | null }>(
+      `SELECT account_type, account_identifier, credit_limit FROM financial_accounts WHERE id = ?;`,
+      id,
+    );
+    if (!acct) continue;
+    const rows = await db.getAllAsync<{ raw_source_text: string }>(
+      `SELECT raw_source_text FROM expenses
+       WHERE account_id = ? AND raw_source_text IS NOT NULL AND deleted_at IS NULL
+       ORDER BY date DESC LIMIT 60;`,
+      id,
+    );
+    const votes = new Map<string, number>();
+    for (const r of rows) {
+      const t = inferAccountTypeFromKeywords(r.raw_source_text, acct.account_identifier);
+      if (t) votes.set(t, (votes.get(t) ?? 0) + 1);
+    }
+    const total = [...votes.values()].reduce((a, b) => a + b, 0);
+    const current = acct.account_type === "bank" ? "savings" : acct.account_type;
+    const [top, topCount] = [...votes.entries()].sort((a, b) => b[1] - a[1])[0] ?? [null, 0];
+    // A credit limit is proof enough of a card.
+    if (current === "credit_card" && (acct.credit_limit ?? 0) > 0) continue;
+    if (rows.length > 0 && total === 0) {
+      out.set(id, { suggested: null });
+      continue;
+    }
+    if (!top) continue;
+    const mixed = total >= 3 && topCount / total < 0.8;
+    if (top !== current || mixed) {
+      out.set(id, { suggested: top !== current ? (top as AccountTypeDoubt["suggested"]) : null });
+    }
+  }
+  return out;
+}

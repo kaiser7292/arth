@@ -331,8 +331,31 @@ export async function syncAngelData(): Promise<AngelSyncResult> {
     throw new Error(angelFailureMessage(all()));
   }
 
-  const holdings: AngelHolding[] = parts.holdings.ok ? parts.holdings.data?.holdings ?? [] : getCachedAngelHoldings();
-  const totalHolding: AngelTotalHolding | null = parts.holdings.ok ? parts.holdings.data?.totalholding ?? null : getCachedAngelTotalHolding();
+  let holdings: AngelHolding[] = parts.holdings.ok ? parts.holdings.data?.holdings ?? [] : getCachedAngelHoldings();
+  let totalHolding: AngelTotalHolding | null = parts.holdings.ok ? parts.holdings.data?.totalholding ?? null : getCachedAngelTotalHolding();
+
+  // Mutual fund units in the demat account: value them at AMFI's latest NAV, and move the total by
+  // the same amount. Fresh holdings only; never in the way of the sync.
+  if (parts.holdings.ok && holdings.some((h) => (h.isin ?? '').toUpperCase().startsWith('INF'))) {
+    try {
+      const { getAmfiNavs, applyAmfiToAngel } = await import('@/services/amfi-nav');
+      const navs = await getAmfiNavs(holdings.map((h) => h.isin));
+      const r = applyAmfiToAngel(holdings, navs);
+      if (r.updated > 0) {
+        holdings = r.holdings;
+        if (totalHolding) {
+          const value = Number(totalHolding.totalholdingvalue) + r.valueChange;
+          totalHolding = {
+            ...totalHolding,
+            totalholdingvalue: value,
+            totalprofitandloss: Number(totalHolding.totalprofitandloss) + r.valueChange,
+          };
+        }
+      }
+    } catch {
+      // Angel One's own prices stand.
+    }
+  }
   const positions: AngelPosition[] = parts.positions.ok && Array.isArray(parts.positions.data) ? parts.positions.data : parts.positions.ok ? [] : getCachedAngelPositions();
   const orders: AngelOrder[] = parts.orders.ok && Array.isArray(parts.orders.data) ? parts.orders.data : parts.orders.ok ? [] : getCachedAngelOrders();
   const funds: AngelFunds | null = parts.funds.ok ? parts.funds.data : getCachedAngelFunds();

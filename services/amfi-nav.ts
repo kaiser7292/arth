@@ -113,3 +113,37 @@ export function applyAmfiNavs<T extends { tradingsymbol: string; last_price: num
   });
   return { holdings: out, updated, asOf };
 }
+
+/**
+ * Exchange-traded funds also have INF… ISINs but trade all day: their market price is the right
+ * value, so they're left alone. Angel One names them like NSE symbols ("NIFTYBEES-EQ", "GOLDETF").
+ */
+export function looksLikeEtf(tradingsymbol: string): boolean {
+  return /-(EQ|BE)$/i.test(tradingsymbol) || /ETF|BEES/i.test(tradingsymbol);
+}
+
+/**
+ * Angel One's holdings mix shares, ETFs and mutual fund units in one list with no price date, so a
+ * fund is valued at AMFI's latest NAV whenever there is one. `valueChange` is what that adds to (or
+ * takes off) the portfolio total Angel One sent.
+ */
+export function applyAmfiToAngel<T extends { tradingsymbol: string; isin: string; quantity: number; ltp: number; averageprice: number; profitandloss: number }>(
+  holdings: T[],
+  navs: Record<string, AmfiNav>,
+): { holdings: T[]; updated: number; valueChange: number } {
+  let updated = 0;
+  let valueChange = 0;
+  const out = holdings.map((h) => {
+    const isin = (h.isin ?? "").trim().toUpperCase();
+    const a = navs[isin];
+    if (!a || !isin.startsWith("INF") || looksLikeEtf(h.tradingsymbol ?? "")) return h;
+    // Angel One sends some numbers as strings.
+    const ltp = Number(h.ltp) || 0;
+    const qty = Number(h.quantity) || 0;
+    if (Math.abs(a.nav - ltp) < 0.00005) return h;
+    updated++;
+    valueChange += (a.nav - ltp) * qty;
+    return { ...h, ltp: a.nav, profitandloss: (a.nav - (Number(h.averageprice) || 0)) * qty };
+  });
+  return { holdings: out, updated, valueChange };
+}

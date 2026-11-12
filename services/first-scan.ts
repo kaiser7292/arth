@@ -161,3 +161,33 @@ export function clearPendingFirstScanSummary(): void {
   settingsStorage.delete(FIRST_SCAN_SUMMARY_PENDING_KEY);
   bumpDataVersion();
 }
+
+/**
+ * Onboarding: approve everything the first scan found, so months of history don't land as one
+ * huge review pile. Anything that might be a duplicate stays waiting (approving both copies would
+ * count the payment twice); the Home duplicates card and Catch Up take it from there. Smart Rules
+ * and auto-categories have already run on each item. Returns how many were approved and how many
+ * were left open.
+ */
+export async function approveFirstScan(userId: string): Promise<{ approved: number; keptOpen: number }> {
+  const db = getDatabase();
+  const pending = await db.getAllAsync<{ id: string }>(
+    `SELECT id FROM expenses
+     WHERE user_id = ? AND deleted_at IS NULL AND status = 'pending_review'
+       AND nature IN ('realized', 'credit');`,
+    userId,
+  );
+  if (pending.length === 0) return { approved: 0, keptOpen: 0 };
+
+  const { scanAllDuplicates } = await import("@/services/duplicate-detection");
+  const dupes = await scanAllDuplicates(userId);
+  const open = new Set(dupes.groups.flatMap((g) => g.expenses.map((e) => e.id)));
+  const ids = pending.map((p) => p.id).filter((id) => !open.has(id));
+
+  const { approveExpenses } = await import("@/services/expense-crud");
+  // In batches: SQLite caps how many values one statement can take.
+  for (let i = 0; i < ids.length; i += 400) {
+    await approveExpenses(ids.slice(i, i + 400));
+  }
+  return { approved: ids.length, keptOpen: pending.length - ids.length };
+}

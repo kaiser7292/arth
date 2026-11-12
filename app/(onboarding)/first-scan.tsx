@@ -10,6 +10,7 @@ import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import {
+  approveFirstScan,
   buildFirstScanSummary,
   DEFAULT_LOOKBACK,
   FIRST_SCAN_WAIT_MS,
@@ -99,6 +100,13 @@ export default function OnboardingFirstScan() {
       }),
     );
     await promise;
+    // Months of history shouldn't arrive as one review pile: approve it all, keeping possible
+    // duplicates open.
+    try {
+      await approveFirstScan(DEFAULT_USER_ID);
+    } catch (e) {
+      logger.warn("First scan: approving everything failed; items stay in review", e);
+    }
     try {
       setSummary(await buildFirstScanSummary(DEFAULT_USER_ID, since));
       setPhase("summary");
@@ -153,7 +161,7 @@ export default function OnboardingFirstScan() {
           <Text className="text-2xl font-bold text-foreground mb-2">Here’s your money</Text>
           <Text className="text-sm text-muted-foreground mb-5">From your transaction messages since {summary.since}.</Text>
           <Card>
-            <FirstScanSummaryView summary={summary} />
+            <FirstScanSummaryView summary={summary} reviewLabel="Possible duplicates to check" />
           </Card>
           <Text className="text-base font-semibold text-foreground mt-6 mb-1">Count these months in your reports?</Text>
           <Text className="text-sm text-muted-foreground mb-3 leading-5">
@@ -190,7 +198,7 @@ export default function OnboardingFirstScan() {
         </ScrollView>
         <View className="px-6 pb-6 pt-2">
           <Button
-            title={history === "use" && summary.toReview > 0 ? "Review now" : "Continue"}
+            title={history === "use" && summary.toReview > 0 ? "Check possible duplicates" : "Continue"}
             onPress={() => void goOn()}
             loading={applying}
             className="mb-3"
