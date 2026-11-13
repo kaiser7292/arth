@@ -79,21 +79,15 @@ beforeEach(() => {
 });
 
 describe("update balances", () => {
-  it("makes a bank balance exactly what the user typed, recording the difference as money out with their note", async () => {
+  it("makes a bank balance exactly what the user typed, with one ADJUSTMENT entry and their note", async () => {
     spend("e1", "sav", 1500, daysAgo(0));
     expect((await line("sav")).current).toBe(8500);
     const n = await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 8100, note: "ATM cash" }]);
     expect(n).toBe(1);
     expect((await line("sav")).current).toBe(8100);
-    const diff = mockDb.prepare("SELECT * FROM expenses WHERE merchant_name = 'Balance adjustment'").get() as Record<string, unknown>;
-    expect(diff).toMatchObject({ amount: 400, nature: "realized", status: "approved", money_event: "balance_adjustment", category_id: null });
-    expect(diff.description).toContain("ATM cash");
-  });
-
-  it("records more money than Arth thought as money in", async () => {
-    await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 10600 }]);
-    expect((await line("sav")).current).toBe(10600);
-    expect(mockDb.prepare("SELECT nature, amount FROM expenses WHERE merchant_name = 'Balance adjustment'").get()).toEqual({ nature: "credit", amount: 600 });
+    const adj = mockDb.prepare("SELECT * FROM expenses WHERE nature = 'ledger_adjustment'").get() as Record<string, unknown>;
+    expect(adj).toMatchObject({ amount: 400, status: "approved", account_id: "sav" });
+    expect(adj.description).toBe("[Balance Adjustment -] ATM cash");
   });
 
   it("sets what a card owes, with or without a limit", async () => {
@@ -154,19 +148,20 @@ describe("balances from the bank's own SMS", () => {
   });
 });
 
-describe("balance differences in money in and out, and the budget", () => {
+describe("balance adjustments in money in and out, and the budget", () => {
+  const month = () => todayIso().slice(0, 7);
+  const myMonth = async () => (await import("../../services/my-month")).getMyMonth(USER, month());
+
   it("counts in money out but not in the budget, unless asked", async () => {
-    const { getMyMonth } = await import("../../services/my-month");
-    const month = todayIso().slice(0, 7);
     await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 9600 }]); // 400 missing
-    let m = await getMyMonth(USER, month);
+    let m = await myMonth();
     expect(m.adjustedOut).toBe(400);
     expect(m.spent).toBe(0);
     expect(m.leftOver).toBe(-400);
 
     // The next one counted in the budget: a plain uncategorised spend.
     await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 9300, countInBudget: true }]);
-    m = await getMyMonth(USER, month);
+    m = await myMonth();
     expect(m.adjustedOut).toBe(400);
     expect(m.spent).toBe(300);
     expect(m.categories).toEqual([expect.objectContaining({ name: "Uncategorized", total: 300 })]);
@@ -174,10 +169,34 @@ describe("balance differences in money in and out, and the budget", () => {
   });
 
   it("counts more money than Arth thought as money in", async () => {
-    const { getMyMonth } = await import("../../services/my-month");
     await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 10500 }]);
-    const m = await getMyMonth(USER, todayIso().slice(0, 7));
+    const m = await myMonth();
+    expect(m.adjustedIn).toBe(500);
     expect(m.moneyIn).toBe(500);
     expect(m.spent).toBe(0);
+  });
+
+  it("reads cards the right way round: more owed is money out, less owed is money in", async () => {
+    spend("c1", "card", 3000, daysAgo(0));
+    await saveBalanceUpdates(USER, [{ line: await line("card"), value: 3500 }]);
+    expect((await myMonth()).adjustedOut).toBe(500);
+    await saveBalanceUpdates(USER, [{ line: await line("card"), value: 3200 }]);
+    const m = await myMonth();
+    expect(m.adjustedOut).toBe(500);
+    expect(m.adjustedIn).toBe(300);
+  });
+
+  it("leaves pension updates and opening-balance fixes out of money in and out", async () => {
+    insert("financial_accounts", { id: "pf", user_id: USER, bank_name: "EPFO", account_type: "investment", account_identifier: "4321", is_active: 1 });
+    mockDb.prepare("UPDATE financial_accounts SET last_known_balance = 250000, last_balance_date = ? WHERE id = 'pf'").run(daysAgo(0));
+    await matchBalanceFromSms(USER, "pf", 250000, "EPFO balance from SMS");
+    insert("expenses", {
+      id: "open-adj", user_id: USER, amount: 900, date: daysAgo(0), nature: "ledger_adjustment", status: "approved",
+      source: "manual", account_id: "sav", description: "[Opening Adjustment +] fixed start",
+    });
+    const m = await myMonth();
+    expect(m.adjustedIn).toBe(0);
+    expect(m.adjustedOut).toBe(0);
+    expect(m.moneyIn).toBe(0);
   });
 });

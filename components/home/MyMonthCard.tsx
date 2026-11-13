@@ -8,7 +8,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getCurrentMonth } from "@/services/budget";
-import { getMyMonth, type MyMonth } from "@/services/my-month";
+import { BALANCE_ADJUSTMENTS, getMyMonth, type MyMonth } from "@/services/my-month";
 import type { MyMonthSection } from "@/services/my-month-rows";
 import { getDaysRemaining } from "@/utils/budget-helpers";
 import { formatMonthLabel } from "@/utils/date";
@@ -109,6 +109,10 @@ function CashFlow({ d, month }: { d: MyMonth; month: string }) {
   const router = useRouter();
   const drill = (section: MyMonthSection, title: string) => (e: GestureResponderEvent) => {
     e.stopPropagation();
+    if (title === BALANCE_ADJUSTMENTS) {
+      router.push("/reconciliation/bank-accounts");
+      return;
+    }
     router.push({ pathname: "/summary/my-month-rows", params: { month, section, title } });
   };
   const moneyIn = d.moneyIn + d.people.repaid;
@@ -134,7 +138,7 @@ function CashFlow({ d, month }: { d: MyMonth; month: string }) {
     { key: "Invested", value: d.savedTotal, color: theme.warning, section: "saved" as const },
     { key: "Spent by you", value: d.spent, color: theme.primary, section: "spent" as const },
     { key: "For others", value: d.people.billsShare, color: theme.alpha("primary", 0.45), section: "bills" as const },
-    { key: "Balance adjustments", value: d.adjustedOut, color: theme.mutedForeground, section: "spent" as const },
+    { key: BALANCE_ADJUSTMENTS, value: d.adjustedOut, color: theme.mutedForeground, section: "spent" as const },
     { key: "Left", value: left, color: theme.success, section: "left" as const },
   ];
 

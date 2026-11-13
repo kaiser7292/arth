@@ -7,11 +7,11 @@ import { todayIso } from "@/utils/date";
 
 /**
  * Update balances: the user types what's really in each bank account and wallet, and what's owed
- * on each card; where that differs from Arth's figure, the difference is recorded as a transaction
- * (recordBalanceDifference): less money than Arth thought is a spend, more is money in. It counts
- * in money in and out and shows in the account's ledger, and the balance comes out exactly right.
- * A spend stays out of the budget (money_event 'balance_adjustment') unless the user chose to
- * count it, in which case it's a plain uncategorised spend.
+ * on each card; where that differs from Arth's figure, recordBalanceDifference makes up the gap
+ * with a ledger ADJUSTMENT entry ("[Balance Adjustment ±]"), so the balance comes out exactly
+ * right. Those entries count in money in and out (my-month: balanceAdjustments) but never in a
+ * budget. When the user wants a money-out difference counted in the budget, it's recorded as a
+ * plain uncategorised spend instead.
  *
  * Cards sharing one limit (same bank) are one line: what's owed across them.
  *
@@ -88,50 +88,46 @@ export async function getBalanceLines(userId: string): Promise<BalanceLine[]> {
   return lines;
 }
 
-/** Merchant name on the transactions that make up a balance difference. */
+/** Merchant name on the spend recorded when a balance difference is counted in the budget. */
 export const BALANCE_DIFFERENCE_MERCHANT = "Balance adjustment";
 
 /**
- * Records the gap between Arth's figure and the real one as a transaction dated today:
- *   bank / wallet: real lower → spend (uncategorised); real higher → money in,
- *   card (what's owed): owed higher → spend; owed lower → money in.
- * `delta` is real − Arth's. Nothing under ₹1. Returns the new transaction's id.
+ * Brings an account to `value` (a balance, or for cards what's owed), dated today:
+ *   - normally a ledger ADJUSTMENT entry for the gap: counted in money in and out, never in a budget;
+ *   - a money-out gap with countInBudget: a plain uncategorised spend, so the budget counts it too.
+ * Money out = less in a bank account or wallet, more owed on a card. Nothing under ₹1.
+ * Returns whether anything was recorded.
  */
 export async function recordBalanceDifference(
   userId: string,
-  accountId: string,
-  kind: BalanceLine["kind"],
-  delta: number,
+  target: Pick<BalanceLine, "accountId" | "kind" | "current" | "limit">,
+  value: number,
   note?: string,
-  options: { countInBudget?: boolean; date?: string } = {},
-): Promise<string | null> {
-  if (!Number.isFinite(delta) || Math.abs(delta) < 1) return null;
-  const isSpend = kind === "balance" ? delta < 0 : delta > 0;
-  const date = options.date ?? todayIso();
-  const { createExpense } = await import("@/services/expense-crud");
-  const id = await createExpense({
-    user_id: userId,
-    amount: round2(Math.abs(delta)),
-    date,
-    nature: isSpend ? "realized" : "credit",
-    account_id: accountId,
-    merchant_name: BALANCE_DIFFERENCE_MERCHANT,
-    description: note?.trim() || (isSpend ? "Spending Arth missed, matched to the bank" : "Money in Arth missed, matched to the bank"),
-    ...(isSpend ? {} : { credit_kind: "other" as const }),
-  });
-  // Tagged so budgets leave it out (money in counts it either way); a spend the user wants in the
-  // budget stays a plain uncategorised spend.
-  if (!(isSpend && options.countInBudget)) {
-    const { setMoneyEvent } = await import("@/services/money-events");
-    await setMoneyEvent(id, "balance_adjustment");
+  options: { countInBudget?: boolean } = {},
+): Promise<boolean> {
+  const delta = value - target.current;
+  if (!Number.isFinite(delta) || Math.abs(delta) < 1) return false;
+  const isMoneyOut = target.kind === "balance" ? delta < 0 : delta > 0;
+  if (isMoneyOut && options.countInBudget) {
+    const { createExpense } = await import("@/services/expense-crud");
+    await createExpense({
+      user_id: userId,
+      amount: round2(Math.abs(delta)),
+      date: todayIso(),
+      nature: "realized",
+      account_id: target.accountId,
+      merchant_name: BALANCE_DIFFERENCE_MERCHANT,
+      description: note?.trim() || "Spending Arth missed, matched to the bank",
+    });
+    return true;
   }
-  return id;
+  // Cards: adjustAccountAvailable takes what's left to spend; owed = limit − available.
+  const actualAvailable = target.kind === "card_due" ? (target.limit ?? 0) - value : value;
+  await adjustAccountAvailable({ accountId: target.accountId, userId, actualAvailable, description: note?.trim() || "Updated balance" });
+  return true;
 }
 
-/**
- * One transaction per line whose new figure differs from Arth's by ₹1 or more. Returns how many
- * lines changed.
- */
+/** One entry per line whose new figure differs from Arth's by ₹1 or more. Returns how many changed. */
 export async function saveBalanceUpdates(
   userId: string,
   updates: { line: BalanceLine; value: number; note?: string; countInBudget?: boolean }[],
@@ -139,7 +135,7 @@ export async function saveBalanceUpdates(
   let changed = 0;
   for (const { line, value, note, countInBudget } of updates) {
     if (!Number.isFinite(value) || Math.abs(value - line.current) < 1) continue;
-    if (await recordBalanceDifference(userId, line.accountId, line.kind, value - line.current, note, { countInBudget })) changed++;
+    if (await recordBalanceDifference(userId, line, value, note, { countInBudget })) changed++;
   }
   return changed;
 }

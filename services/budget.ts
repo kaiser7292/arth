@@ -315,7 +315,7 @@ export async function getBudgetVsActual(
        AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
        AND e.date >= ? AND e.date <= ?
        AND e.category_id IS NOT NULL
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
      GROUP BY e.category_id`,
     userId, startDate, endDate,
@@ -390,7 +390,7 @@ export async function getBudgetVsActual(
        WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized'
          AND e.deleted_at IS NULL AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)
          AND e.date >= ? AND e.date <= ?
-         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
          AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
        GROUP BY strftime('%Y-%m', e.date) ORDER BY month`,
       userId, startDate, endDate,

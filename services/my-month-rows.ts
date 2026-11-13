@@ -96,7 +96,7 @@ export async function getMyMonthGroups(
     const rows = await db.getAllAsync<Expense>(
       `SELECT *, MAX(0, ${amount} - ${LINKED_PART}) AS amount FROM expenses
        WHERE user_id = ? AND date >= ? AND date <= ? AND ${REAL_DEBIT}
-         AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+         AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        ORDER BY date DESC;`,
       ...range,
     );
@@ -196,7 +196,7 @@ export async function getMyMonthGroups(
             expenses(
               await db.getAllAsync<Expense>(
                 `SELECT *, ${amount} AS amount FROM expenses
-                 WHERE user_id = ? AND date >= ? AND date <= ? AND ${NOT_PUT_AWAY} AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+                 WHERE user_id = ? AND date >= ? AND date <= ? AND ${NOT_PUT_AWAY} AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
                  ORDER BY date DESC;`,
                 ...range,
               ),

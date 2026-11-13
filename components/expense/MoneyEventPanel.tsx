@@ -142,11 +142,6 @@ export function MoneyEventPanel({
     detail = "Mutual fund auto-debit. Link it to a bucket and it counts as investing, not spending.";
   } else if (event === "investment_withdrawal") {
     detail = "Looks like a redemption or payout. Pick the investment it came from and it stops counting as income.";
-  } else if (event === "balance_adjustment") {
-    detail =
-      expense.nature === "credit"
-        ? "The difference when you updated this balance. It counts as money in."
-        : "The difference when you updated this balance. It counts as money out, but not against your budget.";
   }
 
   const primary = () => {
@@ -158,7 +153,6 @@ export function MoneyEventPanel({
     } else if (event === "self_transfer") onPickTransferAccount();
     else if (event === "sip") onLinkBucket();
     else if (event === "investment_withdrawal") onRecordWithdrawal();
-    else if (event === "balance_adjustment") void run("Count in budget", () => clearMoneyEvent(expense.id));
   };
 
   const dismiss = () =>
@@ -206,7 +200,7 @@ export function MoneyEventPanel({
         </View>
       )}
       <View className="mt-2">
-        {meta.dismissAction ? <Button title={meta.dismissAction} variant="ghost" onPress={dismiss} /> : null}
+        <Button title={meta.dismissAction} variant="ghost" onPress={dismiss} />
       </View>
 
       <SelectSheet

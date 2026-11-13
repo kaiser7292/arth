@@ -41,12 +41,4 @@ export const MONEY_EVENT_META: Record<
     primaryAction: "Choose the investment",
     dismissAction: "It's regular income",
   },
-  balance_adjustment: {
-    tag: "Balance adjustment · not in budget",
-    icon: "scale-outline",
-    tone: "primary",
-    primaryAction: "Count it in my budget",
-    // One way only: a person can tag it again by updating balances. Empty hides the button.
-    dismissAction: "",
-  },
 };

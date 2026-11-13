@@ -56,7 +56,7 @@ export async function getSpendingInsights(
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
        AND category_id IS NOT NULL
        AND date >= ? AND date <= ?
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY category_id, strftime('%Y-%m', date);`,
     userId,
@@ -90,7 +90,7 @@ export async function getSpendingInsights(
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
        AND date >= ? AND date <= ?
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      ORDER BY date DESC;`,
     userId,
@@ -120,7 +120,7 @@ export async function getSpendingInsights(
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
        AND category_id IS NOT NULL
        AND date >= ? AND date <= ?
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY category_id;`,
     userId,
@@ -157,7 +157,7 @@ export async function getSpendingInsights(
        WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
          AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
          AND date >= ? AND date <= ?
-         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
+         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
          AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
       userId,
       currentMonthStart,
@@ -169,7 +169,7 @@ export async function getSpendingInsights(
        WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
          AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
          AND date >= ? AND date <= ?
-         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
+         AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
          AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id);`,
       userId,
       prevMonthStart,
@@ -231,7 +231,7 @@ export async function getMerchantAnalytics(
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
        AND date >= ? AND date <= ?
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0)
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      ORDER BY date DESC;`,
     userId,
@@ -286,7 +286,7 @@ export async function getMerchantDetail(
   }>(
     `SELECT id, ${effectiveAmountSql("expenses")} as amount, date, description, merchant_name, category_id
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND date >= ? AND date <= ?
      ORDER BY date DESC;`,
     userId,
@@ -369,7 +369,7 @@ export async function getAccountAnalytics(
   }>(
     `SELECT account_id, SUM(${effectiveAmountSql("expenses")}) as total, COUNT(*) as count
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND account_id IS NOT NULL
        AND date >= ? AND date <= ?
      GROUP BY account_id
@@ -394,7 +394,7 @@ export async function getAccountAnalytics(
   }>(
     `SELECT account_id, strftime('%Y-%m', date) as month, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND account_id IS NOT NULL
        AND date >= ? AND date <= ?
      GROUP BY account_id, strftime('%Y-%m', date)
@@ -428,7 +428,7 @@ export async function getAccountTransactions(
   return db.getAllAsync<{ id: string; amount: number; date: string; description: string | null }>(
     `SELECT id, amount, date, description
      FROM expenses
-     WHERE user_id = ? AND account_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND account_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND date >= ? AND date <= ?
      ORDER BY date DESC
      LIMIT ?;`,
@@ -460,7 +460,7 @@ export async function getPaymentModeTrend(
   }>(
     `SELECT COALESCE(payment_mode_id, 'unknown') as payment_mode_id, SUM(${effectiveAmountSql("expenses")}) as total, COUNT(*) as count
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND date >= ? AND date <= ?
      GROUP BY payment_mode_id
      ORDER BY total DESC;`,
@@ -484,7 +484,7 @@ export async function getPaymentModeTrend(
   }>(
     `SELECT COALESCE(payment_mode_id, 'unknown') as payment_mode_id, strftime('%Y-%m', date) as month, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND date >= ? AND date <= ?
      GROUP BY payment_mode_id, strftime('%Y-%m', date)
      ORDER BY month ASC;`,
@@ -534,7 +534,7 @@ export async function getRightSpendTrend(
             SUM(${effectiveAmountSql("e")}) as total,
             SUM(CASE WHEN COALESCE(e.is_right_spend, 1) = 1 THEN ${effectiveAmountSql("e")} ELSE 0 END) as right_spend
      FROM expenses e
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND e.deleted_at IS NULL AND e.date >= ? AND e.date <= ?
      GROUP BY strftime('%Y-%m', e.date)
      ORDER BY month ASC;`,
@@ -561,7 +561,7 @@ export async function getRightSpendTrend(
   }>(
     `SELECT e.category_id, SUM(${effectiveAmountSql("e")}) as total
      FROM expenses e
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND e.deleted_at IS NULL AND COALESCE(e.is_right_spend, 1) = 0
        AND e.date >= ? AND e.date <= ? AND e.category_id IS NOT NULL
      GROUP BY e.category_id

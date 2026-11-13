@@ -8,7 +8,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getCurrentMonth } from "@/services/budget";
-import { getMonthAccounts, getMyMonth, type MonthAccount, type MyMonth } from "@/services/my-month";
+import { BALANCE_ADJUSTMENTS, getMonthAccounts, getMyMonth, type MonthAccount, type MyMonth } from "@/services/my-month";
 import type { MyMonthSection } from "@/services/my-month-rows";
 import { formatAmount } from "@/utils/expense-validation";
 
@@ -62,8 +62,14 @@ export default function MyMonthScreen() {
     }, [month]),
   );
 
-  const drill = (section: MyMonthSection, title: string, categoryId?: string) => () =>
+  const drill = (section: MyMonthSection, title: string, categoryId?: string) => () => {
+    // Balance adjustments live in the accounts' ledgers, not in a list of transactions.
+    if (title === BALANCE_ADJUSTMENTS) {
+      router.push("/reconciliation/bank-accounts");
+      return;
+    }
     router.push({ pathname: "/summary/my-month-rows", params: { month, section, title, ...(categoryId ? { categoryId } : {}) } });
+  };
 
   const categories = data ? (showAll ? data.categories : data.categories.slice(0, TOP_CATEGORIES)) : [];
   // Before pay day, being behind is just the calendar: no red, and it says so below.
@@ -89,7 +95,7 @@ export default function MyMonthScreen() {
         { key: "invested", label: "Invested", amount: data.savedTotal, color: theme.warning, section: "saved" as const },
         { key: "spent", label: "Spent by you", amount: data.spent, color: theme.primary, section: "spent" as const },
         { key: "others", label: "Spent for others", amount: data.people.billsShare, color: theme.alpha("primary", 0.45), section: "bills" as const },
-        { key: "adjusted", label: "Balance adjustments", amount: data.adjustedOut, color: theme.mutedForeground, section: "spent" as const },
+        { key: "adjusted", label: BALANCE_ADJUSTMENTS, amount: data.adjustedOut, color: theme.mutedForeground, section: "spent" as const },
       ]
     : [];
   // The bar is out of money in; if more went out than came in, out of that instead.
@@ -137,6 +143,7 @@ export default function MyMonthScreen() {
               )}
               {data.otherIncome > 0 && <SubRow label="Other money in" amount={data.otherIncome} onPress={drill("other", "Other money in")} />}
               {data.people.repaid > 0 && <SubRow label="Repaid to you" amount={data.people.repaid} onPress={drill("repaid", "Repaid to you")} />}
+              {data.adjustedIn > 0 && <SubRow label={BALANCE_ADJUSTMENTS} amount={data.adjustedIn} onPress={drill("spent", BALANCE_ADJUSTMENTS)} />}
               {data.salaryMovedOut > 0 && (
                 <Text className="text-xs text-faint-foreground mt-1">
                   {formatAmount(data.salaryMovedOut)} of income arrived this month but counts for another, by your income setting.

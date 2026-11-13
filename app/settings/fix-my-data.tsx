@@ -217,7 +217,7 @@ export default function FixMyDataScreen() {
   const matchBank = (accountId: string, name: string, bank: number, arth: number) => {
     alert(
       `Match ${name} to ${formatAmount(bank)}?`,
-      `Arth records the ${formatAmount(Math.abs(bank - arth))} difference as ${bank < arth ? "money out (not against your budget)" : "money in"}. You can delete or edit it in the ledger.`,
+      `Arth adds a ${formatAmount(Math.abs(bank - arth))} adjustment, counted as ${bank < arth ? "money out (not against your budget)" : "money in"}. You can delete it from the ledger.`,
       [
       { text: "Cancel", style: "cancel" },
       {
@@ -225,7 +225,12 @@ export default function FixMyDataScreen() {
         onPress: async () => {
           setMatching(accountId);
           try {
-            await recordBalanceDifference(DEFAULT_USER_ID, accountId, "balance", bank - arth, "Matched to the bank (Data health)");
+            await recordBalanceDifference(
+              DEFAULT_USER_ID,
+              { accountId, kind: "balance", current: arth, limit: null },
+              bank,
+              "Matched to the bank (Data health)",
+            );
             addFixHistory({
               kind: "match",
               at: new Date().toISOString(),

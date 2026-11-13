@@ -39,7 +39,12 @@ export interface MyMonth {
   salaryMissing: boolean;
   /** People: others' share of bills you paid this month, and repayments that reached an account. */
   people: { billsShare: number; repaid: number };
-  /** Balance differences recorded as spends but kept out of the budget: money out, not "spent". */
+  /**
+   * Balance adjustments (ledger "[Balance Adjustment ±]" entries on bank, wallet and card accounts):
+   * money that moved without a transaction Arth saw. Counted in money in and out, never in a budget.
+   * In = more in a bank or wallet, or less owed on a card; out = the other way.
+   */
+  adjustedIn: number;
   adjustedOut: number;
   leftOver: number;
   /** What the budget leaves over, on the month's total. Null when no budget is set for this month. */
@@ -47,6 +52,9 @@ export interface MyMonth {
   /** Transactions dated this month still waiting for review, so not in these numbers. */
   waitingForReview: number;
 }
+
+/** Label of the money in / money out line for balance adjustments, shared by the screens. */
+export const BALANCE_ADJUSTMENTS = "Balance adjustments";
 
 export const REAL_DEBIT = `status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
   AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)`;
@@ -68,7 +76,7 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
     db.getAllAsync<{ category_id: string | null; total: number }>(
       `SELECT category_id, SUM(MAX(0, ${amount} - ${LINKED_PART})) AS total FROM expenses
        WHERE user_id = ? AND date >= ? AND date <= ? AND ${REAL_DEBIT}
-         AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+         AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        GROUP BY category_id ORDER BY total DESC;`,
       userId, startDate, endDate,
     ),
@@ -92,13 +100,25 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
          AND household_ref IS NULL AND split_original_amount > amount;`,
       userId, startDate, endDate,
     ),
-    db.getFirstAsync<{ total: number | null }>(
-      `SELECT SUM(amount) AS total FROM expenses
-       WHERE user_id = ? AND date >= ? AND date <= ? AND ${REAL_DEBIT} AND money_event = 'balance_adjustment';`,
+    db.getAllAsync<{ amount: number; description: string | null; account_type: string }>(
+      `SELECT e.amount, e.description, fa.account_type FROM expenses e
+       JOIN financial_accounts fa ON fa.id = e.account_id
+       WHERE e.user_id = ? AND e.date >= ? AND e.date <= ?
+         AND e.nature = 'ledger_adjustment' AND e.status = 'approved' AND e.deleted_at IS NULL
+         AND e.description LIKE '[Balance Adjustment%'
+         AND fa.account_type IN ('savings', 'bank', 'wallet', 'credit_card');`,
       userId, startDate, endDate,
     ),
   ]);
-  const adjustedOut = adjusted?.total ?? 0;
+  // "+" raises the account's closing: more money in a bank or wallet, more owed on a card.
+  let adjustedIn = 0;
+  let adjustedOut = 0;
+  for (const a of adjusted) {
+    const raises = !(a.description ?? "").includes(" -]");
+    const moneyIn = a.account_type === "credit_card" ? !raises : raises;
+    if (moneyIn) adjustedIn += a.amount;
+    else adjustedOut += a.amount;
+  }
   const otherIncome = Math.max(0, allIn - salary.arrived);
   const totalIn = otherIncome + salary.counted;
   const billsShare = others?.total ?? 0;
@@ -130,7 +150,7 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
     salary: salary.counted,
     salaryMovedOut: Math.max(0, salary.arrived - salary.counted),
     otherIncome,
-    moneyIn: totalIn,
+    moneyIn: totalIn + adjustedIn,
     spent,
     categories: spentRows,
     saved,
@@ -138,9 +158,10 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
     salaryDue: salaryState?.state === "due" ? { date: salaryState.date, amount: salaryState.amount } : null,
     salaryMissing: salaryState?.state === "missing",
     people: { billsShare, repaid },
+    adjustedIn,
     adjustedOut,
-    leftOver: totalIn + peopleNet - spent - savedTotal - adjustedOut,
-    afterBudget: budgetLeaves(totalIn + peopleNet, savedTotal, spent, budgets),
+    leftOver: totalIn + adjustedIn + peopleNet - spent - savedTotal - adjustedOut,
+    afterBudget: budgetLeaves(totalIn + adjustedIn - adjustedOut + peopleNet, savedTotal, spent, budgets),
     waitingForReview: waiting?.n ?? 0,
   };
 }

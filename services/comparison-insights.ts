@@ -15,7 +15,7 @@ const NOT_BUDGET_EXCLUDED = `
   AND NOT EXISTS (
     SELECT 1 FROM expense_investment_links l
     WHERE l.expense_id = e.id
-  ) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+  ) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
   AND NOT EXISTS (
     SELECT 1 FROM expense_loan_links ll
     WHERE ll.expense_id = e.id
@@ -26,7 +26,7 @@ const NOT_BUDGET_EXCLUDED_BARE = `
   AND NOT EXISTS (
     SELECT 1 FROM expense_investment_links l
     WHERE l.expense_id = expenses.id
-  ) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+  ) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
   AND NOT EXISTS (
     SELECT 1 FROM expense_loan_links ll
     WHERE ll.expense_id = expenses.id
@@ -129,7 +129,7 @@ async function queryRangeSummary(
   const totals = await db.getFirstAsync<{ total: number; count: number }>(
     `SELECT COALESCE(SUM(${effectiveAmountSql("expenses")}), 0) as total, COUNT(*) as count
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND date >= ? AND date <= ?
        ${NOT_BUDGET_EXCLUDED_BARE};`,
     userId,
@@ -144,7 +144,7 @@ async function queryRangeSummary(
     `SELECT c.id, c.name, SUM(${effectiveAmountSql("e")}) as total
      FROM expenses e
      JOIN categories c ON e.category_id = c.id
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND e.deleted_at IS NULL
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND e.deleted_at IS NULL
        AND e.date >= ? AND e.date <= ?
        ${NOT_BUDGET_EXCLUDED}
      GROUP BY c.id
@@ -157,7 +157,7 @@ async function queryRangeSummary(
   const topMerch = await db.getFirstAsync<{ name: string; total: number }>(
     `SELECT COALESCE(merchant_name, 'Unknown') as name, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND merchant_name IS NOT NULL
        AND date >= ? AND date <= ?
        ${NOT_BUDGET_EXCLUDED_BARE}
@@ -197,7 +197,7 @@ async function queryCategoryBreakdown(
             SUM(${effectiveAmountSql("e")}) as total
      FROM expenses e
      JOIN categories c ON e.category_id = c.id
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND e.deleted_at IS NULL
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND e.deleted_at IS NULL
        AND ((e.date >= ? AND e.date <= ?) OR (e.date >= ? AND e.date <= ?))
        ${NOT_BUDGET_EXCLUDED}
      GROUP BY c.id, range_tag;`,
@@ -244,7 +244,7 @@ async function queryMerchantBreakdown(
             CASE WHEN date >= ? AND date <= ? THEN 'r1' ELSE 'r2' END as range_tag,
             SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
        AND merchant_name IS NOT NULL
        AND ((date >= ? AND date <= ?) OR (date >= ? AND date <= ?))
        ${NOT_BUDGET_EXCLUDED_BARE}
@@ -296,7 +296,7 @@ async function queryPaymentModeBreakdown(
             SUM(${effectiveAmountSql("e")}) as total
      FROM expenses e
      LEFT JOIN payment_modes pm ON e.payment_mode_id = pm.id
-     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND e.deleted_at IS NULL
+     WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND e.deleted_at IS NULL
        AND ((e.date >= ? AND e.date <= ?) OR (e.date >= ? AND e.date <= ?))
        ${NOT_BUDGET_EXCLUDED}
      GROUP BY e.payment_mode_id, range_tag;`,
@@ -340,7 +340,7 @@ export async function getComparisonExpenseIds(
   filter: ComparisonDrillFilter,
 ): Promise<string[]> {
   const db = getDatabase();
-  let where = `user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0) AND date >= ? AND date <= ? AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`;
+  let where = `user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0) AND date >= ? AND date <= ? AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`;
   const params: string[] = [userId, startDate, endDate];
 
   if (filter.type === "category") {

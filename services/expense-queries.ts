@@ -20,7 +20,7 @@ const NOT_INVESTMENT_LINKED = `
   AND NOT EXISTS (
     SELECT 1 FROM expense_investment_links l
     WHERE l.expense_id = expenses.id
-  ) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+  ) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
   AND NOT EXISTS (
     SELECT 1 FROM expense_loan_links ll
     WHERE ll.expense_id = expenses.id
@@ -182,7 +182,7 @@ function buildFilterConditions(userId: string, filters: ExpenseFilters): { condi
   }
   if (filters.segment === "spend") {
     conditions.push(`NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`);
-    conditions.push(`NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')`);
+    conditions.push(`NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')`);
   } else if (filters.segment === "committed") {
     conditions.push(`(EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id) OR EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) OR COALESCE(expenses.money_event, '') IN ('fd_open', 'sip', 'self_transfer'))`);
   }
@@ -480,7 +480,7 @@ export async function getExpenseTotalsByCategoryAndClassification(
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
        AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY category_id, is_unavoidable;`,
     userId,

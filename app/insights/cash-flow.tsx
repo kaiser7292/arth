@@ -9,6 +9,7 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getCurrentMonth } from "@/services/budget";
 import { getCashFlow, type CashFlow } from "@/services/cash-flow";
+import { BALANCE_ADJUSTMENTS } from "@/services/my-month";
 import type { MyMonthSection } from "@/services/my-month-rows";
 import { getFYStartMonth } from "@/services/settings";
 import { formatMonthLabel } from "@/utils/date";
@@ -51,7 +52,12 @@ export default function CashFlowScreen() {
   );
 
   /** Opens the transactions behind a figure, across the whole period. */
-  const drill = (section: MyMonthSection, title: string, categoryId?: string) => () =>
+  const drill = (section: MyMonthSection, title: string, categoryId?: string) => () => {
+    // Balance adjustments live in the accounts' ledgers, not in a list of transactions.
+    if (title === BALANCE_ADJUSTMENTS) {
+      router.push("/reconciliation/bank-accounts");
+      return;
+    }
     router.push({
       pathname: "/summary/my-month-rows",
       params: {
@@ -62,6 +68,7 @@ export default function CashFlowScreen() {
         ...(categoryId ? { categoryId } : {}),
       },
     });
+  };
 
   const hasMoney = !!flow && (flow.cameIn > 0 || flow.wentOut > 0);
   const short = !!flow && flow.left < 0;
@@ -80,7 +87,7 @@ export default function CashFlowScreen() {
         },
         { key: "spent", label: "Spent by you", amount: flow.spent, color: theme.primary, section: "spent" as const },
         { key: "others", label: "Spent for others", amount: flow.forOthers, color: theme.alpha("primary", 0.45), section: "bills" as const },
-        { key: "adjusted", label: "Balance adjustments", amount: flow.adjusted, color: theme.mutedForeground, section: "spent" as const },
+        { key: "adjusted", label: BALANCE_ADJUSTMENTS, amount: flow.adjusted, color: theme.mutedForeground, section: "spent" as const },
       ].filter((w) => w.amount > 0)
     : [];
   const categories = showAll ? (flow?.categories ?? []) : (flow?.categories ?? []).slice(0, TOP_CATEGORIES);
@@ -155,6 +162,7 @@ export default function CashFlowScreen() {
             {flow.income > 0 && <Row label="Income" amount={flow.income} onPress={drill("income", "Income")} />}
             {flow.otherIn > 0 && <Row label="Other money in" amount={flow.otherIn} onPress={drill("other", "Other money in")} />}
             {flow.repaid > 0 && <Row label="Repaid to you" amount={flow.repaid} onPress={drill("repaid", "Repaid to you")} />}
+            {flow.adjustedIn > 0 && <Row label={BALANCE_ADJUSTMENTS} amount={flow.adjustedIn} onPress={drill("spent", BALANCE_ADJUSTMENTS)} />}
             {flow.fromInvestments > 0 && <Row label="Back from investments" amount={flow.fromInvestments} onPress={drill("saved", "Investments")} />}
             {flow.cameIn === 0 && <Text className="text-sm text-muted-foreground">Nothing came in during this period.</Text>}
           </Card>

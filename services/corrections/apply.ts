@@ -85,7 +85,7 @@ async function applyOne(userId: string, f: Fix): Promise<void> {
         const { getBalanceLines, recordBalanceDifference } = await import("@/services/balance-update");
         const line = (await getBalanceLines(userId)).find((l) => l.accountIds.includes(f.accountId));
         if (!line) throw new Error("That account isn't a bank account or wallet any more");
-        await recordBalanceDifference(userId, f.accountId, line.kind, f.balance - line.current, "Matched to the bank (Fix my data)");
+        await recordBalanceDifference(userId, line, f.balance, "Matched to the bank (Fix my data)");
       }
       return;
     case "update_goal":
