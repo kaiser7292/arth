@@ -93,7 +93,8 @@ export interface Expense {
   updated_at: string;
 }
 
-export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip" | "investment_withdrawal";
+/** balance_adjustment: a balance difference recorded as a spend or money in (Update balances), kept out of budgets. */
+export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip" | "investment_withdrawal" | "balance_adjustment";
 
 export const CREDIT_KINDS = ["salary", "bonus", "interest", "dividend", "rent", "refund", "cashback", "reimbursement", "gift", "gain", "settlement", "other"] as const;
 export type CreditKind = (typeof CREDIT_KINDS)[number];

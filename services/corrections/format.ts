@@ -142,7 +142,7 @@ export function buildCorrectionInstructions(): string[] {
     `- set_income_type: ref, date, amount, income_type ("salary", "bonus", "interest", "dividend", "rent", "refund", "cashback", "reimbursement", "gift", "gain", "settlement" or "other").`,
     `- mark_redemption: ref, date, amount. A credit that is money back from an investment (MF redemption, broker payout), not income.`,
     `- link_to_bucket: ref, date, amount, bucket (an investment bucket name). For SIPs and other investing.`,
-    `- adjust_balance: account, balance. Sets the account's balance today to what the bank says, with a visible adjustment. Only when the gap can't be explained by a transaction you can fix.`,
+    `- adjust_balance: account, balance. Sets the account's balance today to what the bank says; the difference is recorded as an uncategorised spend or as money in. Only when the gap can't be explained by a transaction you can fix.`,
     `- update_goal: goal (a goal name), and target_amount and/or target_date (YYYY-MM-DD).`,
     `- fix_merchant: from, to. Renames a merchant everywhere and for the future. Example: {"type":"fix_merchant","from":"SWIGGY*ORDER","to":"Swiggy","why":"Same merchant"}`,
     `- merchant_category: merchant, category. Files every entry of a merchant, now and in future.`,

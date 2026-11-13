@@ -33,6 +33,8 @@ export interface CashFlow {
   /** More came out of investments than went in: counted as money in. */
   fromInvestments: number;
   spent: number;
+  /** Balance differences recorded as spends, kept out of the budget. */
+  adjusted: number;
   forOthers: number;
   left: number;
   categories: { categoryId: string | null; name: string; total: number }[];
@@ -77,6 +79,7 @@ export async function getCashFlow(
     investedBack: 0,
     fromInvestments: 0,
     spent: 0,
+    adjusted: 0,
     forOthers: 0,
     left: 0,
     categories: [],
@@ -91,7 +94,7 @@ export async function getCashFlow(
     const back = await investmentReturns(userId, `${month}-01`, `${month}-31`);
     const netInvested = d.savedTotal - back;
     const cameIn = d.moneyIn + d.people.repaid + Math.max(0, -netInvested);
-    const wentOut = Math.max(0, netInvested) + d.spent + d.people.billsShare;
+    const wentOut = Math.max(0, netInvested) + d.spent + d.people.billsShare + d.adjustedOut;
     flow.months.push({ month, cameIn, wentOut, left: cameIn - wentOut });
     flow.cameIn += cameIn;
     flow.income += d.salary;
@@ -103,6 +106,7 @@ export async function getCashFlow(
     flow.investedBack += back;
     flow.fromInvestments += Math.max(0, -netInvested);
     flow.spent += d.spent;
+    flow.adjusted += d.adjustedOut;
     flow.forOthers += d.people.billsShare;
     flow.waitingForReview += d.waitingForReview;
     flow.incomeStillDue = d.salaryDue != null;

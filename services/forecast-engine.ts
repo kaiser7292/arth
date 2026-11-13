@@ -67,7 +67,7 @@ export async function getMonthEndForecast(
     total: number;
   }>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
        AND ${NOT_RECLASSIFIED} AND category_id IS NOT NULL
        AND date >= ? AND date <= ?
      GROUP BY category_id;`,
@@ -91,7 +91,7 @@ export async function getMonthEndForecast(
     avg_monthly: number;
   }>(
     `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) / 3.0 as avg_monthly FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
        AND ${NOT_RECLASSIFIED} AND category_id IS NOT NULL
        AND date >= ? AND date <= ?
      GROUP BY category_id;`,
@@ -168,7 +168,7 @@ export async function getYearEndProjection(
   // Total spent YTD
   const spentRow = await db.getFirstAsync<{ total: number | null }>(
     `SELECT SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
        AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?;`,
     userId,
     fyStart,
@@ -183,7 +183,7 @@ export async function getYearEndProjection(
   }>(
     `SELECT strftime('%Y-%m', date) as month, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
-     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL
+     WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL
        AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
      GROUP BY strftime('%Y-%m', date)
      ORDER BY month ASC;`,

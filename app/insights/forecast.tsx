@@ -50,7 +50,7 @@ export default function ForecastDetailScreen() {
         const db = getDatabase();
         const { startDate, endDate } = getMonthDateRange(month);
         const expenses = await db.getAllAsync<Expense>(
-          `SELECT * FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer') AND deleted_at IS NULL;`,
+          `SELECT * FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment') AND deleted_at IS NULL;`,
           DEFAULT_USER_ID, startDate, endDate,
         );
         const budgets = await getBudgetsForMonth(DEFAULT_USER_ID, month);

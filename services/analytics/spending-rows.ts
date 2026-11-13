@@ -18,7 +18,7 @@ import type { Expense } from "@/services/expense-types";
 /** WHERE conditions (no leading AND) on the `expenses` table, unaliased. */
 export const SPENDING_WHERE = `status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
   AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
-  AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
+  AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
   AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`;
 
 /** Spending rows dated startDate..endDate (inclusive), oldest first, refund-adjusted amounts. */

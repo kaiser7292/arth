@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, Card, EmptyState, Input, ScreenContainer, Text, useToast } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -15,7 +15,8 @@ import { formatDisplayDate } from "@/utils/date";
  * Update balances: what's really in each bank account and wallet, and what's owed on each card.
  * Each box starts at the figure from the bank's latest SMS when there is one, otherwise at Arth's
  * own figure for the user to replace. Where a figure differs from Arth's, Arth adds one balance
- * adjustment for the difference, with the note if one is given. Opened from
+ * transaction for the difference, with the note if one is given: a spend (kept out of the budget
+ * unless "Count in budget" is on) or money in. Both count in money in and out. Opened from
  * Settings and from the Home balance check.
  */
 export default function UpdateBalancesScreen() {
@@ -26,6 +27,8 @@ export default function UpdateBalancesScreen() {
   const [lines, setLines] = useState<BalanceLine[] | null>(null);
   const [values, setValues] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
+  /** Per account: count a spend difference against the budget. Off unless switched on. */
+  const [inBudget, setInBudget] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -54,7 +57,7 @@ export default function UpdateBalancesScreen() {
     try {
       const n = await saveBalanceUpdates(
         DEFAULT_USER_ID,
-        changed.map((line) => ({ line, value: parseAmount(values[line.accountId] ?? "") ?? line.current, note: notes[line.accountId] })),
+        changed.map((line) => ({ line, value: parseAmount(values[line.accountId] ?? "") ?? line.current, note: notes[line.accountId], countInBudget: !!inBudget[line.accountId] })),
       );
       toast(n === 0 ? "Everything already matched" : `Updated ${n} ${n === 1 ? "account" : "accounts"}`, { tone: "success" });
       router.back();
@@ -116,9 +119,25 @@ export default function UpdateBalancesScreen() {
               {isChanged && (
                 <>
                   <Text className="text-xs mt-1" style={{ color: theme.warning }}>
-                    {diff > 0 ? "+" : "−"}
-                    {formatAmount(Math.abs(diff))} adjustment
+                    {(kind === "balance" ? diff < 0 : diff > 0)
+                      ? `${formatAmount(Math.abs(diff))} counted as money out`
+                      : `${formatAmount(Math.abs(diff))} counted as money in`}
                   </Text>
+                  {(kind === "balance" ? diff < 0 : diff > 0) && (
+                    <View className="flex-row items-center mt-2">
+                      <View className="flex-1 mr-3">
+                        <Text className="text-sm text-foreground">Count in budget</Text>
+                        <Text className="text-xs text-muted-foreground">
+                          {inBudget[l.accountId] ? "Counts as uncategorised spending this month" : "Money out, but not against your budget"}
+                        </Text>
+                      </View>
+                      <Switch
+                        value={!!inBudget[l.accountId]}
+                        onValueChange={(v) => setInBudget((b) => ({ ...b, [l.accountId]: v }))}
+                        accessibilityLabel={`Count ${l.name}'s difference in budget`}
+                      />
+                    </View>
+                  )}
                   <Input
                     value={notes[l.accountId] ?? ""}
                     onChangeText={(t) => setNotes((s) => ({ ...s, [l.accountId]: t }))}
@@ -142,8 +161,8 @@ export default function UpdateBalancesScreen() {
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
           <Text className="text-sm text-muted-foreground mb-3 leading-5">
             Each box starts at your bank&apos;s latest SMS figure where there is one, otherwise at Arth&apos;s. Check them against your bank
-            and card apps; wherever a box differs from Arth&apos;s figure, Arth adds one adjustment for the difference, shown in that
-            account&apos;s ledger.
+            and card apps. Wherever a box differs from Arth&apos;s figure, the difference is recorded in that account&apos;s ledger as money
+            out or money in. Money out stays out of your budget unless you switch on Count in budget.
           </Text>
           {section("balance", "Bank accounts and wallets")}
           {section("card_due", "Credit cards")}

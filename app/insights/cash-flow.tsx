@@ -80,6 +80,7 @@ export default function CashFlowScreen() {
         },
         { key: "spent", label: "Spent by you", amount: flow.spent, color: theme.primary, section: "spent" as const },
         { key: "others", label: "Spent for others", amount: flow.forOthers, color: theme.alpha("primary", 0.45), section: "bills" as const },
+        { key: "adjusted", label: "Balance adjustments", amount: flow.adjusted, color: theme.mutedForeground, section: "spent" as const },
       ].filter((w) => w.amount > 0)
     : [];
   const categories = showAll ? (flow?.categories ?? []) : (flow?.categories ?? []).slice(0, TOP_CATEGORIES);

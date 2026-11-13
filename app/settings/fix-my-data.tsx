@@ -8,7 +8,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
-import { adjustAccountAvailable } from "@/services/account-balance";
+import { recordBalanceDifference } from "@/services/balance-update";
 import { applyCorrections, type CorrectionsResult } from "@/services/corrections/apply";
 import { buildFixExport, shareFixExport, type FixExport } from "@/services/corrections/export";
 import { DELIBERATE, GROUP_LABELS, APPLY_ORDER } from "@/services/corrections/format";
@@ -215,14 +215,17 @@ export default function FixMyDataScreen() {
   };
 
   const matchBank = (accountId: string, name: string, bank: number, arth: number) => {
-    alert(`Match ${name} to ${formatAmount(bank)}?`, "Arth adds a visible balance adjustment for the difference. You can delete it from the ledger later.", [
+    alert(
+      `Match ${name} to ${formatAmount(bank)}?`,
+      `Arth records the ${formatAmount(Math.abs(bank - arth))} difference as ${bank < arth ? "money out (not against your budget)" : "money in"}. You can delete or edit it in the ledger.`,
+      [
       { text: "Cancel", style: "cancel" },
       {
         text: "Match",
         onPress: async () => {
           setMatching(accountId);
           try {
-            await adjustAccountAvailable({ accountId, userId: DEFAULT_USER_ID, actualAvailable: bank, description: "Matched to the bank (Data health)" });
+            await recordBalanceDifference(DEFAULT_USER_ID, accountId, "balance", bank - arth, "Matched to the bank (Data health)");
             addFixHistory({
               kind: "match",
               at: new Date().toISOString(),

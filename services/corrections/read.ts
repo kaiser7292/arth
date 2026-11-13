@@ -334,7 +334,7 @@ function readFix(ctx: Ctx, type: FixType, raw: Raw): Draft {
       if (balance === null) throw new Reject("Has no balance");
       if (a.type === "loan") throw new Reject("Loan balances come from the loan's schedule");
       if (a.type === "credit_card") throw new Reject("Card dues follow each month's spending; fix the transactions instead");
-      return { type, accountId: a.id, balance, title: a.name, detail: `Set to ${money(balance)} today, with a visible adjustment` };
+      return { type, accountId: a.id, balance, title: a.name, detail: `Set to ${money(balance)} today; the difference counts as a spend or money in` };
     }
     case "update_goal": {
       const g = ctx.goals.get((str(raw.goal ?? raw.name, 60) ?? "").toLowerCase());

@@ -112,7 +112,7 @@ function CashFlow({ d, month }: { d: MyMonth; month: string }) {
     router.push({ pathname: "/summary/my-month-rows", params: { month, section, title } });
   };
   const moneyIn = d.moneyIn + d.people.repaid;
-  const moneyOut = d.spent + d.savedTotal + d.people.billsShare;
+  const moneyOut = d.spent + d.savedTotal + d.people.billsShare + d.adjustedOut;
   const left = Math.max(0, d.leftOver);
   const daysLeft = Math.max(1, getDaysRemaining(month));
   const due = d.salaryDue;
@@ -134,6 +134,7 @@ function CashFlow({ d, month }: { d: MyMonth; month: string }) {
     { key: "Invested", value: d.savedTotal, color: theme.warning, section: "saved" as const },
     { key: "Spent by you", value: d.spent, color: theme.primary, section: "spent" as const },
     { key: "For others", value: d.people.billsShare, color: theme.alpha("primary", 0.45), section: "bills" as const },
+    { key: "Balance adjustments", value: d.adjustedOut, color: theme.mutedForeground, section: "spent" as const },
     { key: "Left", value: left, color: theme.success, section: "left" as const },
   ];
 

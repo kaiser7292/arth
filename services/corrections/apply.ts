@@ -1,4 +1,3 @@
-import { adjustAccountAvailable } from "@/services/account-balance";
 import { reclassifyCreditAsTransfer } from "@/services/account-transfer";
 import { applySuggestions, type Suggestion } from "@/services/ai-suggestions";
 import { deleteExpense, linkCreditAsRefund, updateExpense } from "@/services/expense-crud";
@@ -81,7 +80,13 @@ async function applyOne(userId: string, f: Fix): Promise<void> {
       await linkExpenseToBucket(f.expenseId, f.bucketId, "Fix my data");
       return;
     case "adjust_balance":
-      await adjustAccountAvailable({ accountId: f.accountId, userId, actualAvailable: f.balance, description: "Matched to the bank (Fix my data)" });
+      {
+        // Recorded as a transaction (spend or money in), like Update balances, so it counts in totals.
+        const { getBalanceLines, recordBalanceDifference } = await import("@/services/balance-update");
+        const line = (await getBalanceLines(userId)).find((l) => l.accountIds.includes(f.accountId));
+        if (!line) throw new Error("That account isn't a bank account or wallet any more");
+        await recordBalanceDifference(userId, f.accountId, line.kind, f.balance - line.current, "Matched to the bank (Fix my data)");
+      }
       return;
     case "update_goal":
       return updateLifeMilestone(f.milestoneId, {

@@ -89,6 +89,7 @@ export default function MyMonthScreen() {
         { key: "invested", label: "Invested", amount: data.savedTotal, color: theme.warning, section: "saved" as const },
         { key: "spent", label: "Spent by you", amount: data.spent, color: theme.primary, section: "spent" as const },
         { key: "others", label: "Spent for others", amount: data.people.billsShare, color: theme.alpha("primary", 0.45), section: "bills" as const },
+        { key: "adjusted", label: "Balance adjustments", amount: data.adjustedOut, color: theme.mutedForeground, section: "spent" as const },
       ]
     : [];
   // The bar is out of money in; if more went out than came in, out of that instead.
@@ -213,6 +214,7 @@ export default function MyMonthScreen() {
               <>
                 <Row label="Money came in" amount={cameIn} onPress={drill("in", "Money came in")} />
                 {data.people.billsShare > 0 && <Row label="Spent for others" amount={data.people.billsShare} sign="−" onPress={drill("bills", "Spent for others")} />}
+                {data.adjustedOut > 0 && <Row label="Balance adjustments" amount={data.adjustedOut} sign="−" />}
                 {data.savedTotal > 0 && <Row label="Invested" amount={data.savedTotal} sign="−" onPress={drill("saved", "Invested")} />}
                 <Row label="Your budget for the month" amount={data.afterBudget.budget} sign="−" onPress={() => router.push("/(tabs)/budget")} />
                 {data.afterBudget.overspend > 0 && (

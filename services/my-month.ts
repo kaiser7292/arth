@@ -39,6 +39,8 @@ export interface MyMonth {
   salaryMissing: boolean;
   /** People: others' share of bills you paid this month, and repayments that reached an account. */
   people: { billsShare: number; repaid: number };
+  /** Balance differences recorded as spends but kept out of the budget: money out, not "spent". */
+  adjustedOut: number;
   leftOver: number;
   /** What the budget leaves over, on the month's total. Null when no budget is set for this month. */
   afterBudget: { budget: number; overspend: number; free: number } | null;
@@ -58,7 +60,7 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
   const { startDate, endDate } = getMonthDateRange(month);
   const amount = effectiveAmountSql("expenses");
 
-  const [allIn, repaid, salary, put, byCategory, spotted, waiting, categories, others] = await Promise.all([
+  const [allIn, repaid, salary, put, byCategory, spotted, waiting, categories, others, adjusted] = await Promise.all([
     moneyIn(userId, startDate, endDate),
     repaymentsIn(userId, startDate, endDate),
     getSalaryForMonth(userId, month),
@@ -66,7 +68,7 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
     db.getAllAsync<{ category_id: string | null; total: number }>(
       `SELECT category_id, SUM(MAX(0, ${amount} - ${LINKED_PART})) AS total FROM expenses
        WHERE user_id = ? AND date >= ? AND date <= ? AND ${REAL_DEBIT}
-         AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
+         AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer', 'balance_adjustment')
        GROUP BY category_id ORDER BY total DESC;`,
       userId, startDate, endDate,
     ),
@@ -90,7 +92,13 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
          AND household_ref IS NULL AND split_original_amount > amount;`,
       userId, startDate, endDate,
     ),
+    db.getFirstAsync<{ total: number | null }>(
+      `SELECT SUM(amount) AS total FROM expenses
+       WHERE user_id = ? AND date >= ? AND date <= ? AND ${REAL_DEBIT} AND money_event = 'balance_adjustment';`,
+      userId, startDate, endDate,
+    ),
   ]);
+  const adjustedOut = adjusted?.total ?? 0;
   const otherIncome = Math.max(0, allIn - salary.arrived);
   const totalIn = otherIncome + salary.counted;
   const billsShare = others?.total ?? 0;
@@ -130,7 +138,8 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
     salaryDue: salaryState?.state === "due" ? { date: salaryState.date, amount: salaryState.amount } : null,
     salaryMissing: salaryState?.state === "missing",
     people: { billsShare, repaid },
-    leftOver: totalIn + peopleNet - spent - savedTotal,
+    adjustedOut,
+    leftOver: totalIn + peopleNet - spent - savedTotal - adjustedOut,
     afterBudget: budgetLeaves(totalIn + peopleNet, savedTotal, spent, budgets),
     waitingForReview: waiting?.n ?? 0,
   };

@@ -79,15 +79,21 @@ beforeEach(() => {
 });
 
 describe("update balances", () => {
-  it("makes a bank balance exactly what the user typed, with one adjustment and their note", async () => {
+  it("makes a bank balance exactly what the user typed, recording the difference as money out with their note", async () => {
     spend("e1", "sav", 1500, daysAgo(0));
     expect((await line("sav")).current).toBe(8500);
     const n = await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 8100, note: "ATM cash" }]);
     expect(n).toBe(1);
     expect((await line("sav")).current).toBe(8100);
-    const adj = mockDb.prepare("SELECT amount, description FROM expenses WHERE nature = 'ledger_adjustment'").get() as { amount: number; description: string };
-    expect(adj.amount).toBe(400);
-    expect(adj.description).toContain("ATM cash");
+    const diff = mockDb.prepare("SELECT * FROM expenses WHERE merchant_name = 'Balance adjustment'").get() as Record<string, unknown>;
+    expect(diff).toMatchObject({ amount: 400, nature: "realized", status: "approved", money_event: "balance_adjustment", category_id: null });
+    expect(diff.description).toContain("ATM cash");
+  });
+
+  it("records more money than Arth thought as money in", async () => {
+    await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 10600 }]);
+    expect((await line("sav")).current).toBe(10600);
+    expect(mockDb.prepare("SELECT nature, amount FROM expenses WHERE merchant_name = 'Balance adjustment'").get()).toEqual({ nature: "credit", amount: 600 });
   });
 
   it("sets what a card owes, with or without a limit", async () => {
@@ -145,5 +151,33 @@ describe("balances from the bank's own SMS", () => {
     expect((await computeUnseededBalance("pf", todayIso().slice(0, 7))).closing).toBe(250000);
     // The same message again changes nothing.
     expect(await matchBalanceFromSms(USER, "pf", 250000, "EPFO balance from SMS")).toBe(0);
+  });
+});
+
+describe("balance differences in money in and out, and the budget", () => {
+  it("counts in money out but not in the budget, unless asked", async () => {
+    const { getMyMonth } = await import("../../services/my-month");
+    const month = todayIso().slice(0, 7);
+    await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 9600 }]); // 400 missing
+    let m = await getMyMonth(USER, month);
+    expect(m.adjustedOut).toBe(400);
+    expect(m.spent).toBe(0);
+    expect(m.leftOver).toBe(-400);
+
+    // The next one counted in the budget: a plain uncategorised spend.
+    await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 9300, countInBudget: true }]);
+    m = await getMyMonth(USER, month);
+    expect(m.adjustedOut).toBe(400);
+    expect(m.spent).toBe(300);
+    expect(m.categories).toEqual([expect.objectContaining({ name: "Uncategorized", total: 300 })]);
+    expect(m.leftOver).toBe(-700);
+  });
+
+  it("counts more money than Arth thought as money in", async () => {
+    const { getMyMonth } = await import("../../services/my-month");
+    await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 10500 }]);
+    const m = await getMyMonth(USER, todayIso().slice(0, 7));
+    expect(m.moneyIn).toBe(500);
+    expect(m.spent).toBe(0);
   });
 });
