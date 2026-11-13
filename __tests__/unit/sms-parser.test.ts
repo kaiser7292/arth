@@ -1268,6 +1268,27 @@ describe("IDFC First CC Due", () => {
 });
 
 describe("EPFO Pension", () => {
+  // Made-up member details: only the UAN's last 4 digits and the total are read.
+  it("reads the UAN total-balance reply as a pension balance", () => {
+    const result = parseBankSMS(
+      "Dear Member,Your UAN:XXXXXXXX4321,NAME:TEST MEMBER,DOB:01-JAN-1990,AADHAAR:12**34567,PAN:AB***9Z,Bank Details:Available, TOTAL BALANCE:250000. Team EPFO",
+    );
+    expect(result).not.toBeNull();
+    expect(result!.type).toBe("balance_inquiry");
+    expect(result!.bank).toBe("EPFO");
+    expect(result!.accountType).toBe("pension");
+    expect(result!.cardLast4).toBe("4321");
+    expect(result!.availableBalance).toBe(250000);
+    expect(result!.amount).toBe(0);
+    // Nothing personal is carried into what Arth stores.
+    expect(JSON.stringify(result)).not.toMatch(/TEST MEMBER|1990|AB\*\*\*9Z|34567/);
+  });
+
+  it("reads a total balance written with commas or Rs.", () => {
+    const result = parseBankSMS("Dear Member, Your UAN: XXXXXXXX4321, TOTAL BALANCE: Rs. 2,50,000. Team EPFO");
+    expect(result!.availableBalance).toBe(250000);
+  });
+
   it("parses EPFO passbook balance with masked account ID", () => {
     const result = parseBankSMS(
       "Dear XXXXXXXX6138, your passbook balance against PUPUN**************1275 is Rs. 3,81,039/-. Contribution of Rs. 14,750/- for due month Mar-26 has been received.",

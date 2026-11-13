@@ -9,11 +9,13 @@ import { useTheme } from "@/hooks/use-theme";
 import { getBalanceLines, saveBalanceUpdates, type BalanceLine } from "@/services/balance-update";
 import { parseAmount } from "@/utils/expense-validation";
 import { formatAmount } from "@/utils/format";
+import { formatDisplayDate } from "@/utils/date";
 
 /**
  * Update balances: what's really in each bank account and wallet, and what's owed on each card.
- * Each box starts at Arth's figure; change the ones that are off. Where a figure changes, Arth
- * adds one balance adjustment for the difference, with the note if one is given. Opened from
+ * Each box starts at the figure from the bank's latest SMS when there is one, otherwise at Arth's
+ * own figure for the user to replace. Where a figure differs from Arth's, Arth adds one balance
+ * adjustment for the difference, with the note if one is given. Opened from
  * Settings and from the Home balance check.
  */
 export default function UpdateBalancesScreen() {
@@ -30,10 +32,10 @@ export default function UpdateBalancesScreen() {
     try {
       const l = await getBalanceLines(DEFAULT_USER_ID);
       setLines(l);
-      // Start each box at Arth's figure, keeping anything already typed.
+      // Start each box at the bank's SMS figure, else Arth's, keeping anything already typed.
       setValues((prev) => {
         const next = { ...prev };
-        for (const x of l) if (next[x.accountId] == null) next[x.accountId] = String(x.current);
+        for (const x of l) if (next[x.accountId] == null) next[x.accountId] = String(x.sms?.value ?? x.current);
         return next;
       });
     } catch {
@@ -98,6 +100,11 @@ export default function UpdateBalancesScreen() {
                 {kind === "card_due" ? " owed" : ""}
                 {kind === "card_due" && l.limit ? ` of ${formatAmount(l.limit)} limit` : ""}
               </Text>
+              <Text className="text-xs mt-0.5" style={{ color: l.sms ? theme.primary : theme.mutedForeground }}>
+                {l.sms
+                  ? `Filled in from your bank's SMS${l.sms.date ? ` on ${formatDisplayDate(l.sms.date.slice(0, 10))}` : ""}. Change it if it's moved since.`
+                  : "No balance from your bank's SMS. Replace Arth's figure with what your bank app shows."}
+              </Text>
               <Input
                 value={values[l.accountId] ?? ""}
                 onChangeText={(t) => setValues((s) => ({ ...s, [l.accountId]: t }))}
@@ -134,8 +141,9 @@ export default function UpdateBalancesScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
           <Text className="text-sm text-muted-foreground mb-3 leading-5">
-            Each box shows Arth&apos;s figure. Change any that don&apos;t match your bank or card app, and Arth adds one adjustment for the
-            difference, shown in that account&apos;s ledger.
+            Each box starts at your bank&apos;s latest SMS figure where there is one, otherwise at Arth&apos;s. Check them against your bank
+            and card apps; wherever a box differs from Arth&apos;s figure, Arth adds one adjustment for the difference, shown in that
+            account&apos;s ledger.
           </Text>
           {section("balance", "Bank accounts and wallets")}
           {section("card_due", "Credit cards")}

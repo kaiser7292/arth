@@ -1232,6 +1232,39 @@ export const BANK_PATTERNS: BankPattern[] = [
     },
   },
 
+  // ═══ EPFO UAN Total Balance ═══
+  // "Dear Member,Your UAN:XXXXXXXX6138,NAME:..,DOB:..,AADHAAR:..,PAN:..,Bank Details:Available, TOTAL BALANCE:467492. Team EPFO"
+  // The reply to a balance enquiry (missed call / SMS). Only the UAN's last 4 digits and the total
+  // are read; the name, DOB, Aadhaar and PAN in it are never kept. The pension account is then
+  // brought to this total (sms-to-expense: matchPensionBalance).
+  {
+    name: "EPFO UAN Total Balance",
+    bank: "EPFO",
+    type: "balance_inquiry",
+    test: /\bUAN\s*:?\s*[X*\d]{6,}[\s\S]*?TOTAL\s+BALANCE\s*:?\s*(?:Rs\.?|INR|₹)?\s*[\d,]+/i,
+    parse: (body) => {
+      const uan = body.match(/\bUAN\s*:?\s*([X*\d]{6,})/i);
+      const total = body.match(/TOTAL\s+BALANCE\s*:?\s*(?:Rs\.?|INR|₹)?\s*([\d,]+(?:\.\d+)?)/i);
+      if (!uan || !total) return null;
+      const digits = uan[1].replace(/\D/g, "");
+      if (digits.length < 3) return null;
+      return {
+        amount: 0,
+        merchant: null,
+        cardLast4: digits.slice(-4),
+        date: null,
+        bank: "EPFO",
+        type: "balance_inquiry",
+        skip: false,
+        dueDate: null,
+        isForecast: false,
+        confidence: 0.9,
+        availableBalance: parseAmount(total[1]),
+        accountType: "pension" as const,
+      };
+    },
+  },
+
   // ─── HDFC Extended ───
 
   // ═══ HDFC UPI Debit ═══

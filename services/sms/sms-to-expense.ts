@@ -83,7 +83,18 @@ export async function createExpenseFromSms(
   const IGNORED_TYPES = ["balance_inquiry"] as const;
   if (parsed.skip || (IGNORED_TYPES as readonly string[]).includes(parsed.type)) {
     if (parsed.type === "balance_inquiry") {
-      await discoverOrUpdateAccount(userId, parsed, pendingSmsId);
+      // The message's own day, so an older balance read later (a history scan) never counts as today's.
+      const dated = parsed.date ? parsed : { ...parsed, date: smsDate ? formatLocalDate(new Date(smsDate)) : null };
+      const accountId = await discoverOrUpdateAccount(userId, dated, pendingSmsId);
+      // A pension balance (EPFO "TOTAL BALANCE") is the account's true figure: match it.
+      if (accountId && dated.accountType === "pension" && dated.availableBalance != null) {
+        try {
+          const { matchBalanceFromSms } = await import("@/services/balance-update");
+          await matchBalanceFromSms(userId, accountId, dated.availableBalance, "EPFO balance from SMS");
+        } catch (e) {
+          logger.warn("Matching the pension balance from SMS failed (non-fatal):", e);
+        }
+      }
     }
     await markSmsIgnored(pendingSmsId);
     return { success: true, expenseId: null, isCredit: false, error: null };

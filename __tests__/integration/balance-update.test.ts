@@ -38,7 +38,7 @@ jest.mock("react-native-mmkv", () => ({
 jest.mock("../../database", () => ({ getDatabase: () => mockAdapter }));
 
 import { runMigrations } from "../../database/migrations";
-import { dismissBalanceNudge, getBalanceLines, getBalanceNudge, saveBalanceUpdates } from "../../services/balance-update";
+import { dismissBalanceNudge, getBalanceLines, getBalanceNudge, matchBalanceFromSms, saveBalanceUpdates } from "../../services/balance-update";
 import { todayIso } from "../../utils/date";
 
 const USER = "default-user";
@@ -122,5 +122,28 @@ describe("the Home balance check", () => {
     expect(await getBalanceNudge(USER)).toBeNull();
     spend("e2", "sav", 100, daysAgo(3));
     expect(await getBalanceNudge(USER)).toEqual({ quietDays: 3 });
+  });
+});
+
+describe("balances from the bank's own SMS", () => {
+  it("starts each line at the SMS figure: a bank balance, and what a card owes", async () => {
+    mockDb.prepare("UPDATE financial_accounts SET last_known_balance = 9200, last_balance_date = '2026-11-10' WHERE id = 'sav'").run();
+    mockDb.prepare("UPDATE financial_accounts SET last_known_balance = 96000, last_balance_date = '2026-11-11' WHERE id = 'card'").run();
+    expect((await line("sav")).sms).toEqual({ value: 9200, date: "2026-11-10" });
+    expect((await line("card")).sms).toEqual({ value: 4000, date: "2026-11-11" }); // 1,00,000 limit − 96,000 left
+    expect((await line("card2")).sms).toBeNull(); // no limit, so what's owed can't be worked out
+  });
+
+  it("brings a pension account to its EPFO total, only from the newest balance", async () => {
+    insert("financial_accounts", { id: "pf", user_id: USER, bank_name: "EPFO", account_type: "investment", account_identifier: "4321", is_active: 1 });
+    spend("pf1", "pf", 200000, daysAgo(10), "credit");
+    mockDb.prepare("UPDATE financial_accounts SET last_known_balance = 250000, last_balance_date = ? WHERE id = 'pf'").run(daysAgo(0));
+    // An older message read later: not the account's newest balance, so nothing changes.
+    expect(await matchBalanceFromSms(USER, "pf", 240000, "EPFO balance from SMS")).toBe(0);
+    expect(await matchBalanceFromSms(USER, "pf", 250000, "EPFO balance from SMS")).toBe(50000);
+    const { computeUnseededBalance } = await import("../../services/account-balance");
+    expect((await computeUnseededBalance("pf", todayIso().slice(0, 7))).closing).toBe(250000);
+    // The same message again changes nothing.
+    expect(await matchBalanceFromSms(USER, "pf", 250000, "EPFO balance from SMS")).toBe(0);
   });
 });

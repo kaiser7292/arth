@@ -26,6 +26,11 @@ export interface BalanceLine {
   current: number;
   /** Cards: the limit, when set. */
   limit: number | null;
+  /**
+   * The latest figure the bank's own SMS gave, when there is one: the balance, or (cards) what's
+   * owed, worked out as limit − available. Update balances starts the box at this.
+   */
+  sms: { value: number; date: string | null } | null;
 }
 
 const QUIET_DAYS = 3;
@@ -45,7 +50,8 @@ export async function getBalanceLines(userId: string): Promise<BalanceLine[]> {
   const lines: BalanceLine[] = [];
   for (const a of accounts.filter((x) => x.account_type !== "credit_card")) {
     const current = computed[a.id] ?? (await computeUnseededBalance(a.id, month)).closing;
-    lines.push({ accountId: a.id, accountIds: [a.id], name: name(a), kind: "balance", current: round2(current), limit: null });
+    const sms = a.last_known_balance != null ? { value: round2(a.last_known_balance), date: a.last_balance_date } : null;
+    lines.push({ accountId: a.id, accountIds: [a.id], name: name(a), kind: "balance", current: round2(current), limit: null, sms });
   }
   // Cards: one line per bank, as cards from one bank share a limit.
   const byBank = new Map<string, typeof accounts>();
@@ -57,6 +63,15 @@ export async function getBalanceLines(userId: string): Promise<BalanceLine[]> {
     const limit = Math.max(0, ...cards.map((c) => c.credit_limit ?? 0)) || null;
     // Written on the card that carries the limit: adjustAccountAvailable reads the limit from it.
     const holder = [...cards].sort((x, y) => (y.credit_limit ?? 0) - (x.credit_limit ?? 0))[0];
+    // A card's SMS reports what's left to spend; with a limit that gives what's owed. Cards
+    // sharing a limit report the shared figure, so the freshest one stands for the line.
+    const reported = cards
+      .filter((c) => c.last_known_balance != null)
+      .sort((x, y) => ((y.last_balance_date ?? "") > (x.last_balance_date ?? "") ? 1 : -1))[0];
+    const sms =
+      limit && reported?.last_known_balance != null
+        ? { value: round2(Math.max(0, limit - reported.last_known_balance)), date: reported.last_balance_date }
+        : null;
     lines.push({
       accountId: holder.id,
       accountIds: cards.map((c) => c.id),
@@ -64,6 +79,7 @@ export async function getBalanceLines(userId: string): Promise<BalanceLine[]> {
       kind: "card_due",
       current: round2(owed),
       limit,
+      sms,
     });
   }
   return lines;
@@ -86,6 +102,22 @@ export async function saveBalanceUpdates(
     changed++;
   }
   return changed;
+}
+
+/**
+ * A balance the account's own SMS reported is its true figure (a pension's EPFO "TOTAL BALANCE"):
+ * add one adjustment so Arth's balance matches it. Only when that SMS holds the account's newest
+ * balance (an older one read later doesn't overwrite it), so a history scan can't roll it back.
+ * Returns the adjustment made (0 when it already matched or the SMS wasn't the newest).
+ */
+export async function matchBalanceFromSms(userId: string, accountId: string, balance: number, note: string): Promise<number> {
+  const acct = await getDatabase().getFirstAsync<{ account_type: string; last_known_balance: number | null }>(
+    "SELECT account_type, last_known_balance FROM financial_accounts WHERE id = ?;",
+    accountId,
+  );
+  if (!acct || acct.account_type === "credit_card" || acct.account_type === "loan") return 0;
+  if (acct.last_known_balance == null || Math.abs(acct.last_known_balance - balance) >= 0.5) return 0;
+  return adjustAccountAvailable({ accountId, userId, actualAvailable: balance, description: note });
 }
 
 /** The latest day any money moved: an approved transaction, adjustment or transfer. */
