@@ -4,7 +4,7 @@ import { monthsBetween } from "@/services/cash-flow";
 import { effectiveAmountSql } from "@/services/expense-effective-amount";
 import type { Expense } from "@/services/expense-types";
 import { MONEY_IN_FROM } from "@/services/money-in-sql";
-import { LINKED_PART, NOT_PUT_AWAY, REAL_DEBIT } from "@/services/my-month";
+import { LINKED_PART, NOT_PUT_AWAY, REAL_DEBIT, BALANCE_ADJUSTMENTS_FROM, isAdjustmentMoneyIn } from "@/services/my-month";
 import { TRANSFERS_TO_INVESTMENTS_FROM } from "@/services/reports/year-review";
 import { getSalaryCreditIdsForMonth } from "@/services/salary-periods";
 import { getMonthDateRange } from "@/utils/budget-helpers";
@@ -30,7 +30,9 @@ export type MyMonthSection =
   | "people"
   | "out"
   | "left"
-  | "budget";
+  | "budget"
+  | "adjustedIn"
+  | "adjustedOut";
 
 export type MyMonthRow = { kind: "expense"; expense: Expense } | { kind: "transfer"; transfer: AccountTransfer };
 
@@ -151,10 +153,21 @@ export async function getMyMonthGroups(
         ),
       ),
     );
+  /** Balance adjustments counted as money in, or as money out (my-month's rule). */
+  const adjusted = async (wantIn: boolean) => {
+    const rows = await db.getAllAsync<Expense & { adj_account_type: string }>(
+      `SELECT e.*, fa.account_type AS adj_account_type ${BALANCE_ADJUSTMENTS_FROM} ORDER BY e.date DESC;`,
+      ...range,
+    );
+    return group(
+      wantIn ? "Balance adjustments in" : "Balance adjustments out",
+      expenses(rows.filter((r) => isAdjustmentMoneyIn(r.description ?? null, r.adj_account_type) === wantIn)),
+    );
+  };
   const saved = () => Promise.all([fd(), sip(), linked(), transfers()]);
-  const moneyIn = () => Promise.all([income(), other()]);
+  const moneyIn = () => Promise.all([income(), other(), adjusted(true)]);
   const all = async () => [...(await moneyIn()), await repaid()];
-  const out = async () => [await spent(), ...(await saved()), await bills()];
+  const out = async () => [await spent(), ...(await saved()), await bills(), await adjusted(false)];
 
   const pick = async (): Promise<MyMonthGroup[]> => {
     switch (section) {
@@ -188,6 +201,10 @@ export async function getMyMonthGroups(
         return out();
       case "left":
         return [...(await all()), ...(await out())];
+      case "adjustedIn":
+        return [await adjusted(true)];
+      case "adjustedOut":
+        return [await adjusted(false)];
       case "budget":
         // Budget's own rule (getExpenseTotal): nothing moved to an FD, a SIP or your own account.
         return [

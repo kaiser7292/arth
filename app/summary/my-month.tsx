@@ -63,11 +63,6 @@ export default function MyMonthScreen() {
   );
 
   const drill = (section: MyMonthSection, title: string, categoryId?: string) => () => {
-    // Balance adjustments live in the accounts' ledgers, not in a list of transactions.
-    if (title === BALANCE_ADJUSTMENTS) {
-      router.push("/reconciliation/bank-accounts");
-      return;
-    }
     router.push({ pathname: "/summary/my-month-rows", params: { month, section, title, ...(categoryId ? { categoryId } : {}) } });
   };
 
@@ -95,7 +90,7 @@ export default function MyMonthScreen() {
         { key: "invested", label: "Invested", amount: data.savedTotal, color: theme.warning, section: "saved" as const },
         { key: "spent", label: "Spent by you", amount: data.spent, color: theme.primary, section: "spent" as const },
         { key: "others", label: "Spent for others", amount: data.people.billsShare, color: theme.alpha("primary", 0.45), section: "bills" as const },
-        { key: "adjusted", label: BALANCE_ADJUSTMENTS, amount: data.adjustedOut, color: theme.mutedForeground, section: "spent" as const },
+        { key: "adjusted", label: BALANCE_ADJUSTMENTS, amount: data.adjustedOut, color: theme.mutedForeground, section: "adjustedOut" as const },
       ]
     : [];
   // The bar is out of money in; if more went out than came in, out of that instead.
@@ -143,7 +138,7 @@ export default function MyMonthScreen() {
               )}
               {data.otherIncome > 0 && <SubRow label="Other money in" amount={data.otherIncome} onPress={drill("other", "Other money in")} />}
               {data.people.repaid > 0 && <SubRow label="Repaid to you" amount={data.people.repaid} onPress={drill("repaid", "Repaid to you")} />}
-              {data.adjustedIn > 0 && <SubRow label={BALANCE_ADJUSTMENTS} amount={data.adjustedIn} onPress={drill("spent", BALANCE_ADJUSTMENTS)} />}
+              {data.adjustedIn > 0 && <SubRow label={BALANCE_ADJUSTMENTS} amount={data.adjustedIn} onPress={drill("adjustedIn", BALANCE_ADJUSTMENTS)} />}
               {data.salaryMovedOut > 0 && (
                 <Text className="text-xs text-faint-foreground mt-1">
                   {formatAmount(data.salaryMovedOut)} of income arrived this month but counts for another, by your income setting.
@@ -221,7 +216,7 @@ export default function MyMonthScreen() {
               <>
                 <Row label="Money came in" amount={cameIn} onPress={drill("in", "Money came in")} />
                 {data.people.billsShare > 0 && <Row label="Spent for others" amount={data.people.billsShare} sign="−" onPress={drill("bills", "Spent for others")} />}
-                {data.adjustedOut > 0 && <Row label="Balance adjustments" amount={data.adjustedOut} sign="−" />}
+                {data.adjustedOut > 0 && <Row label={BALANCE_ADJUSTMENTS} amount={data.adjustedOut} sign="−" onPress={drill("adjustedOut", BALANCE_ADJUSTMENTS)} />}
                 {data.savedTotal > 0 && <Row label="Invested" amount={data.savedTotal} sign="−" onPress={drill("saved", "Invested")} />}
                 <Row label="Your budget for the month" amount={data.afterBudget.budget} sign="−" onPress={() => router.push("/(tabs)/budget")} />
                 {data.afterBudget.overspend > 0 && (

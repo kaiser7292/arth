@@ -186,6 +186,17 @@ describe("balance adjustments in money in and out, and the budget", () => {
     expect(m.adjustedIn).toBe(300);
   });
 
+  it("lists the adjustments behind each figure, so the lists add up", async () => {
+    const { getMyMonthGroups } = await import("../../services/my-month-rows");
+    await saveBalanceUpdates(USER, [{ line: await line("sav"), value: 9600 }]); // 400 out
+    await saveBalanceUpdates(USER, [{ line: await line("card"), value: 0 }]); // nothing owed: no change
+    const out = await getMyMonthGroups(USER, month(), "adjustedOut");
+    expect(out).toEqual([expect.objectContaining({ title: "Balance adjustments out", total: 400 })]);
+    expect(await getMyMonthGroups(USER, month(), "adjustedIn")).toEqual([]);
+    const allOut = await getMyMonthGroups(USER, month(), "out");
+    expect(allOut.reduce((s, g) => s + g.total, 0)).toBe((await myMonth()).adjustedOut);
+  });
+
   it("leaves pension updates and opening-balance fixes out of money in and out", async () => {
     insert("financial_accounts", { id: "pf", user_id: USER, bank_name: "EPFO", account_type: "investment", account_identifier: "4321", is_active: 1 });
     mockDb.prepare("UPDATE financial_accounts SET last_known_balance = 250000, last_balance_date = ? WHERE id = 'pf'").run(daysAgo(0));

@@ -42,6 +42,7 @@ const PROGRESS = DEVICE("per-device progress marker");
 export const SETTINGS_REGISTRY: SettingSpec[] = [
   // ── Preferences & decisions (backed up) ──
   S("theme", "string"),
+  S("fix_my_data_ignored", "string"),
   S("fiscal_year_start_month", "number"),
   S("budget_category_sort", "string"),
   S("budget_widgets_visible", "string"),

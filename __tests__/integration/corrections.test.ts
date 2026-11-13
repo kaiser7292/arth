@@ -22,14 +22,16 @@ const mockAdapter = {
   withTransactionAsync: async (fn: () => Promise<void>) => fn(),
 };
 
+const mockStore = new Map<string, string>();
 jest.mock("react-native-mmkv", () => ({
   MMKV: jest.fn().mockImplementation(() => ({
     getBoolean: () => undefined,
     getNumber: () => undefined,
-    getString: () => undefined,
-    set: () => {},
-    delete: () => {},
-    getAllKeys: () => [],
+    getString: (k: string) => mockStore.get(k),
+    set: (k: string, v: unknown) => mockStore.set(k, String(v)),
+    delete: (k: string) => mockStore.delete(k),
+    getAllKeys: () => [...mockStore.keys()],
+    contains: (k: string) => mockStore.has(k),
     addOnValueChangedListener: () => ({ remove: () => {} }),
   })),
 }));
@@ -106,6 +108,7 @@ const expense = (id: string, over: Record<string, unknown>) =>
 const t = (id: string, date: string, amount: number) => ({ ref: shortRef("t", id), date, amount });
 
 function seed() {
+  mockStore.clear();
   mockDb.exec(`
     DELETE FROM expenses; DELETE FROM categories; DELETE FROM financial_accounts; DELETE FROM payment_modes;
     DELETE FROM account_transfers; DELETE FROM smart_rules; DELETE FROM merchant_aliases; DELETE FROM merchant_mappings; DELETE FROM merchant_corrections;
@@ -318,5 +321,38 @@ describe("what each health row opens", () => {
     const swiggy = items.groups.find((g) => g.title === "Swiggy");
     expect(swiggy?.rows.map((r) => r.id)).toEqual([E.swiggyOdd]);
     expect(swiggy?.subtitle).toMatch(/^Usually Food/);
+  });
+});
+
+describe("ignoring what a check found", () => {
+  it("leaves an ignored transaction out of the count, the list and the score, until brought back", async () => {
+    const { ignoreItems, unignoreItems } = await import("../../services/corrections/ignore");
+    const before = await getHealthReport(USER, "2026-11-12");
+    ignoreItems("uncategorised", [E.uncat]);
+    const after = await getHealthReport(USER, "2026-11-12");
+    expect(after.checks.find((c) => c.id === "uncategorised")?.count).toBe(0);
+    expect(after.score).toBeGreaterThanOrEqual(before.score);
+
+    const open = await getHealthItems(USER, "uncategorised", "2026-11-12");
+    expect(open).toMatchObject({ kind: "transactions", rows: [], ignored: 1 });
+    const ignored = await getHealthItems(USER, "uncategorised", "2026-11-12", true);
+    expect(ignored.kind === "transactions" && ignored.rows.map((r) => r.id)).toEqual([E.uncat]);
+
+    unignoreItems("uncategorised", [E.uncat]);
+    expect((await getHealthReport(USER, "2026-11-12")).checks.find((c) => c.id === "uncategorised")?.count).toBe(1);
+  });
+
+  it("shows an ignored group again when it changes", async () => {
+    const { ignoreItems } = await import("../../services/corrections/ignore");
+    const items = await getHealthItems(USER, "merchant_spellings", "2026-11-12");
+    if (items.kind !== "groups") throw new Error("expected groups");
+    ignoreItems("merchant_spellings", items.groups.map((g) => g.key));
+    expect((await getHealthReport(USER, "2026-11-12")).checks.find((c) => c.id === "merchant_spellings")?.count).toBe(0);
+    // A new spelling turns up: the group is a different one now, so it's back.
+    insert("expenses", {
+      id: "b8b8b8b8-0000-4000-8000-000000000008", user_id: USER, amount: 120, date: "2026-10-11", nature: "realized",
+      status: "approved", source: "manual", merchant_name: "Swiggy Ltd",
+    });
+    expect((await getHealthReport(USER, "2026-11-12")).checks.find((c) => c.id === "merchant_spellings")?.count).toBe(1);
   });
 });

@@ -56,6 +56,24 @@ export interface MyMonth {
 /** Label of the money in / money out line for balance adjustments, shared by the screens. */
 export const BALANCE_ADJUSTMENTS = "Balance adjustments";
 
+/**
+ * Balance adjustments that count in money in and out: ledger "[Balance Adjustment ±]" entries on
+ * bank, wallet and card accounts (not pensions or investments, and not opening-balance fixes).
+ * Takes user id, start date, end date; `e` is the entry, `fa` its account.
+ */
+export const BALANCE_ADJUSTMENTS_FROM = `FROM expenses e
+       JOIN financial_accounts fa ON fa.id = e.account_id
+       WHERE e.user_id = ? AND e.date >= ? AND e.date <= ?
+         AND e.nature = 'ledger_adjustment' AND e.status = 'approved' AND e.deleted_at IS NULL
+         AND e.description LIKE '[Balance Adjustment%'
+         AND fa.account_type IN ('savings', 'bank', 'wallet', 'credit_card')`;
+
+/** "+" raises the account's closing: more money in a bank or wallet (in), more owed on a card (out). */
+export function isAdjustmentMoneyIn(description: string | null, accountType: string): boolean {
+  const raises = !(description ?? "").includes(" -]");
+  return accountType === "credit_card" ? !raises : raises;
+}
+
 export const REAL_DEBIT = `status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
   AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)`;
 export const NOT_PUT_AWAY = `${REAL_DEBIT}
@@ -101,22 +119,14 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
       userId, startDate, endDate,
     ),
     db.getAllAsync<{ amount: number; description: string | null; account_type: string }>(
-      `SELECT e.amount, e.description, fa.account_type FROM expenses e
-       JOIN financial_accounts fa ON fa.id = e.account_id
-       WHERE e.user_id = ? AND e.date >= ? AND e.date <= ?
-         AND e.nature = 'ledger_adjustment' AND e.status = 'approved' AND e.deleted_at IS NULL
-         AND e.description LIKE '[Balance Adjustment%'
-         AND fa.account_type IN ('savings', 'bank', 'wallet', 'credit_card');`,
+      `SELECT e.amount, e.description, fa.account_type ${BALANCE_ADJUSTMENTS_FROM};`,
       userId, startDate, endDate,
     ),
   ]);
-  // "+" raises the account's closing: more money in a bank or wallet, more owed on a card.
   let adjustedIn = 0;
   let adjustedOut = 0;
   for (const a of adjusted) {
-    const raises = !(a.description ?? "").includes(" -]");
-    const moneyIn = a.account_type === "credit_card" ? !raises : raises;
-    if (moneyIn) adjustedIn += a.amount;
+    if (isAdjustmentMoneyIn(a.description, a.account_type)) adjustedIn += a.amount;
     else adjustedOut += a.amount;
   }
   const otherIncome = Math.max(0, allIn - salary.arrived);

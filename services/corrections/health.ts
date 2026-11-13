@@ -10,6 +10,7 @@ import { getTransfersInTotal, getTransfersOutTotal } from "@/services/account-tr
 import { getCurrentMonth } from "@/services/budget";
 import { getAccountTypeDoubts, getActiveAccounts, type FinancialAccount } from "@/services/financial-account";
 import { todayIso } from "@/utils/date";
+import { getIgnored, groupKey } from "./ignore";
 
 /**
  * Data health: what's inconsistent or doesn't add up, found on the phone with no AI. The same
@@ -173,29 +174,43 @@ async function count(sql: string, ...args: (string | number)[]): Promise<number>
   return (await getDatabase().getFirstAsync<{ n: number }>(sql, ...args))?.n ?? 0;
 }
 
+// Ignore keys (services/corrections/ignore.ts): stable for the same finding, new when it changes.
+export const duplicateKey = (ids: string[]) => groupKey(ids);
+export const spellingKey = (names: string[]) => groupKey(names);
+export const merchantMixKey = (merchant: string) => groupKey([merchant]);
+/** A gap is ignored for the bank figure it was seen against: a newer bank balance is checked again. */
+export const gapKey = (g: { accountId: string; bankDate: string }) => `${g.accountId}@${g.bankDate}`;
+
 export async function getHealthReport(userId: string, today: string = todayIso()): Promise<HealthReport> {
   const notTransfer = `(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)`;
+  // Each check's findings by key, less the ones the user chose to ignore.
+  const kept = (check: HealthCheckId) => {
+    const ignored = getIgnored(check);
+    return <T,>(items: T[], key: (t: T) => string) => items.filter((t) => !ignored.has(key(t)));
+  };
+  const idsOf = async (check: HealthCheckId, sql: string) =>
+    kept(check)((await getDatabase().getAllAsync<{ id: string }>(sql, userId)).map((x) => x.id), (id) => id).length;
   const [transactions, uncategorised, noAccount, refunds, redemptions, sips] = await Promise.all([
     count(`SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND ${LIVE} AND nature IN ('realized', 'credit');`, userId),
-    count(
-      `SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND ${LIVE} AND nature = 'realized' AND category_id IS NULL AND ${notTransfer};`,
-      userId,
+    idsOf(
+      "uncategorised",
+      `SELECT id FROM expenses WHERE user_id = ? AND ${LIVE} AND nature = 'realized' AND category_id IS NULL AND ${notTransfer};`,
     ),
-    count(
-      `SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND ${LIVE} AND nature IN ('realized', 'credit')
+    idsOf(
+      "no_account",
+      `SELECT id FROM expenses WHERE user_id = ? AND ${LIVE} AND nature IN ('realized', 'credit')
          AND account_id IS NULL AND source = 'sms_auto' AND ${notTransfer};`,
-      userId,
     ),
-    count(
-      `SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND ${LIVE} AND nature = 'credit'
+    idsOf(
+      "refunds",
+      `SELECT id FROM expenses WHERE user_id = ? AND ${LIVE} AND nature = 'credit'
          AND credit_kind = 'refund' AND refund_of_expense_id IS NULL;`,
-      userId,
     ),
-    count(`SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND ${LIVE} AND money_event = 'investment_withdrawal';`, userId),
-    count(
-      `SELECT COUNT(*) AS n FROM expenses e WHERE e.user_id = ? AND e.deleted_at IS NULL AND e.status = 'approved'
+    idsOf("redemptions", `SELECT id FROM expenses WHERE user_id = ? AND ${LIVE} AND money_event = 'investment_withdrawal';`),
+    idsOf(
+      "sips",
+      `SELECT e.id FROM expenses e WHERE e.user_id = ? AND e.deleted_at IS NULL AND e.status = 'approved'
          AND e.money_event = 'sip' AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id);`,
-      userId,
     ),
   ]);
 
@@ -212,7 +227,7 @@ export async function getHealthReport(userId: string, today: string = todayIso()
   const monthAgo = new Date(`${today}T00:00:00Z`);
   monthAgo.setUTCDate(monthAgo.getUTCDate() - 30);
 
-  const [dupes, transfers, gaps, spellings, mix, overdue, accounts] = await Promise.all([
+  const [dupesAll, transfersAll, gapsAll, spellingsAll, mixAll, overdueAll, accounts] = await Promise.all([
     safe(() => scanAllDuplicates(userId), { groups: [], scannedCount: 0, duplicateGroupCount: 0 }),
     safe(() => findTransferCandidates(userId), []),
     safe(() => getBalanceGaps(userId, today), []),
@@ -221,10 +236,17 @@ export async function getHealthReport(userId: string, today: string = todayIso()
     safe(() => getOverdueForecasts(userId, monthAgo.toISOString().slice(0, 10)), []),
     safe(() => getActiveAccounts(userId), []),
   ]);
+  const dupes = { groups: kept("duplicates")(dupesAll.groups, (g) => duplicateKey(g.expenses.map((e) => e.id))) };
+  const transfers = kept("transfers")(transfersAll, (t) => t.expenseId);
+  const gaps = kept("balance_gaps")(gapsAll, gapKey);
+  const spellings = kept("merchant_spellings")(spellingsAll, (g) => spellingKey(g.names.map((n) => n.name)));
+  const mix = kept("merchant_categories")(mixAll, (m) => merchantMixKey(m.merchant));
+  const overdue = kept("overdue_dues")(overdueAll, (f) => f.id);
   const everyday = accounts.filter((a) => ["savings", "bank", "wallet", "credit_card"].includes(a.account_type as string));
   const doubts = await safe(() => getAccountTypeDoubts(everyday.map((a) => a.id)), new Map());
+  const ignoredTypes = getIgnored("account_types");
   const accountTypeDoubts = everyday
-    .filter((a) => doubts.has(a.id))
+    .filter((a) => doubts.has(a.id) && !ignoredTypes.has(a.id))
     .map((a) => ({
       accountId: a.id,
       name: `${a.account_label || a.bank_name}${a.account_identifier ? ` ··${a.account_identifier}` : ""}`,
@@ -283,6 +305,8 @@ export interface HealthTxn {
 }
 
 export interface HealthGroup {
+  /** The ignore key for the whole group. */
+  key: string;
   title: string;
   subtitle: string;
   rows: HealthTxn[];
@@ -290,10 +314,14 @@ export interface HealthGroup {
   more: number;
 }
 
-export type HealthItems =
+export type HealthItems = (
   | { kind: "transactions"; rows: HealthTxn[] }
   | { kind: "groups"; groups: HealthGroup[] }
-  | { kind: "accounts"; accounts: { id: string; name: string; detail: string }[] };
+  | { kind: "accounts"; accounts: { id: string; key: string; name: string; detail: string }[] }
+) & {
+  /** How many findings of this check are ignored (not listed). */
+  ignored: number;
+};
 
 const TXN_SELECT = `SELECT e.id, e.date, e.amount, e.nature, e.merchant_name AS merchant, c.name AS category,
     COALESCE(fa.account_label, fa.bank_name) || CASE WHEN fa.account_identifier IS NOT NULL THEN ' ··' || fa.account_identifier ELSE '' END AS account,
@@ -325,9 +353,31 @@ async function txnsByIds(ids: string[]): Promise<HealthTxn[]> {
 
 /**
  * Exactly what a check found, for the list its row opens: transactions to open and fix, groups of
- * them (duplicates, merchant spellings, merchants in several categories), or accounts.
+ * them (duplicates, merchant spellings, merchants in several categories), or accounts. Ignored
+ * findings are left out and counted; with `showIgnored`, only the ignored ones are listed.
  */
-export async function getHealthItems(userId: string, check: HealthCheckId, today: string = todayIso()): Promise<HealthItems> {
+export async function getHealthItems(
+  userId: string,
+  check: HealthCheckId,
+  today: string = todayIso(),
+  showIgnored = false,
+): Promise<HealthItems> {
+  const all = await collectHealthItems(userId, check, today);
+  const ignored = getIgnored(check);
+  const keep = (key: string) => ignored.has(key) === showIgnored;
+  if (all.kind === "transactions") {
+    return { kind: "transactions", rows: all.rows.filter((r) => keep(r.id)), ignored: all.rows.filter((r) => ignored.has(r.id)).length };
+  }
+  if (all.kind === "groups") {
+    return { kind: "groups", groups: all.groups.filter((g) => keep(g.key)), ignored: all.groups.filter((g) => ignored.has(g.key)).length };
+  }
+  return { kind: "accounts", accounts: all.accounts.filter((a) => keep(a.key)), ignored: all.accounts.filter((a) => ignored.has(a.key)).length };
+}
+
+type Collected = DistOmit<HealthItems, "ignored">;
+type DistOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
+
+async function collectHealthItems(userId: string, check: HealthCheckId, today: string): Promise<Collected> {
   const notTransfer = `(e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)`;
   const live = `e.user_id = ? AND e.deleted_at IS NULL AND e.status = 'approved'`;
   const accountName = (a: FinancialAccount) => `${a.account_label || a.bank_name}${a.account_identifier ? ` ··${a.account_identifier}` : ""}`;
@@ -381,7 +431,13 @@ export async function getHealthItems(userId: string, check: HealthCheckId, today
       for (const g of (await scanAllDuplicates(userId)).groups) {
         const rows = await txnsByIds(g.expenses.map((e) => e.id));
         if (rows.length < 2) continue;
-        groups.push({ title: `${rows[0].merchant || "Same payment"} · ${rupees(rows[0].amount)}`, subtitle: g.reason, rows, more: 0 });
+        groups.push({
+          key: duplicateKey(g.expenses.map((e) => e.id)),
+          title: `${rows[0].merchant || "Same payment"} · ${rupees(rows[0].amount)}`,
+          subtitle: g.reason,
+          rows,
+          more: 0,
+        });
       }
       return { kind: "groups", groups };
     }
@@ -392,6 +448,7 @@ export async function getHealthItems(userId: string, check: HealthCheckId, today
         const odd = s.names.slice(1).map((n) => n.name);
         const rows = await txns(`${live} AND e.merchant_name IN (${odd.map(() => "?").join(",")})`, userId, ...odd);
         groups.push({
+          key: spellingKey(s.names.map((n) => n.name)),
           title: `${s.names[0].name} (${s.names[0].count})`,
           subtitle: `Also spelled ${s.names.slice(1).map((n) => `"${n.name}" (${n.count})`).join(", ")}`,
           rows: rows.slice(0, PER_GROUP),
@@ -412,6 +469,7 @@ export async function getHealthItems(userId: string, check: HealthCheckId, today
           usual,
         );
         groups.push({
+          key: merchantMixKey(m.merchant),
           title: m.merchant,
           subtitle: `Usually ${usual}: ${m.categories.map((c) => `${c.name} ${c.count}`).join(", ")}`,
           rows: rows.slice(0, PER_GROUP),
@@ -433,6 +491,7 @@ export async function getHealthItems(userId: string, check: HealthCheckId, today
             const set = NAMES[a.account_type as string] ?? a.account_type;
             return {
               id: a.id,
+              key: a.id,
               name: accountName(a),
               detail: s ? `Set as a ${set}; its messages look like a ${NAMES[s] ?? s}` : `Set as a ${set}; its messages don't say what it is`,
             };
@@ -444,6 +503,7 @@ export async function getHealthItems(userId: string, check: HealthCheckId, today
         kind: "accounts",
         accounts: (await getBalanceGaps(userId, today)).map((g) => ({
           id: g.accountId,
+          key: gapKey(g),
           name: g.name,
           detail: `Bank said ${rupees(g.bank)} on ${g.bankDate}; Arth makes it ${rupees(g.arth)}`,
         })),

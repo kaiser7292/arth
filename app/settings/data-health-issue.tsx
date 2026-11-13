@@ -7,6 +7,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getHealthItems, type HealthCheckId, type HealthItems, type HealthTxn } from "@/services/corrections/health";
+import { ignoreItems, unignoreItems } from "@/services/corrections/ignore";
 import { formatDisplayDate } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
 
@@ -53,21 +54,38 @@ export default function DataHealthIssueScreen() {
   const { check } = useLocalSearchParams<{ check: HealthCheckId }>();
   const [items, setItems] = useState<HealthItems | null>(null);
   const [failed, setFailed] = useState(false);
+  /** Listing the ignored findings, to bring some back. */
+  const [showIgnored, setShowIgnored] = useState(false);
 
   const load = useCallback(async () => {
     if (!check) return;
     try {
-      setItems(await getHealthItems(DEFAULT_USER_ID, check));
+      setItems(await getHealthItems(DEFAULT_USER_ID, check, undefined, showIgnored));
       setFailed(false);
     } catch {
       setFailed(true);
     }
-  }, [check]);
+  }, [check, showIgnored]);
   useDataRefresh(load);
+
+  // "Ignore" marks a finding as fine: it stops counting here and in the score. "Bring back" undoes it.
+  const toggle = (keys: string[]) => {
+    if (!check || keys.length === 0) return;
+    if (showIgnored) unignoreItems(check, keys);
+    else ignoreItems(check, keys);
+    void load();
+  };
+  const IgnoreButton = ({ keys, label }: { keys: string[]; label?: string }) => (
+    <Pressable onPress={() => toggle(keys)} hitSlop={8} accessibilityRole="button" className="ml-2">
+      <Text className="text-xs font-semibold" style={{ color: showIgnored ? theme.primary : theme.mutedForeground }}>
+        {label ?? (showIgnored ? "Bring back" : "Ignore")}
+      </Text>
+    </Pressable>
+  );
 
   const openTxn = (id: string) => router.push({ pathname: "/expense/[id]", params: { id } });
 
-  const Row = ({ r }: { r: HealthTxn }) => (
+  const Row = ({ r, ignorable }: { r: HealthTxn; ignorable?: boolean }) => (
     <Pressable onPress={() => openTxn(r.id)} className="flex-row items-center py-2.5" accessibilityRole="button">
       <View className="flex-1 mr-2">
         <Text className="text-sm text-foreground" numberOfLines={1}>
@@ -86,12 +104,32 @@ export default function DataHealthIssueScreen() {
         {r.nature === "credit" ? "+" : ""}
         {formatAmount(r.amount)}
       </Text>
+      {ignorable ? <IgnoreButton keys={[r.id]} /> : null}
       <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
     </Pressable>
   );
 
   const count =
     !items ? 0 : items.kind === "transactions" ? items.rows.length : items.kind === "groups" ? items.groups.length : items.accounts.length;
+  const allKeys = !items
+    ? []
+    : items.kind === "transactions"
+      ? items.rows.map((r) => r.id)
+      : items.kind === "groups"
+        ? items.groups.map((g) => g.key)
+        : items.accounts.map((a) => a.key);
+
+  // Above every list: ignore (or bring back) them all, and switch between the open and ignored ones.
+  const toolbar = items && (count > 0 || items.ignored > 0 || showIgnored) && (
+    <View className="flex-row items-center justify-between mb-3">
+      <Pressable onPress={() => setShowIgnored((v) => !v)} hitSlop={8} accessibilityRole="button">
+        <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+          {showIgnored ? "Show what's left" : items.ignored > 0 ? `Show ignored (${items.ignored})` : ""}
+        </Text>
+      </Pressable>
+      {count > 1 && <IgnoreButton keys={allKeys} label={showIgnored ? `Bring back all ${count}` : `Ignore all ${count}`} />}
+    </View>
+  );
 
   return (
     <ScreenContainer padTop={false}>
@@ -102,11 +140,26 @@ export default function DataHealthIssueScreen() {
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator color={theme.primary} />
         </View>
-      ) : count === 0 ? (
-        <EmptyState icon="checkmark-circle-outline" title="All fixed" subtitle="Nothing left here." />
+      ) : count === 0 && !showIgnored ? (
+        <View className="flex-1">
+          <EmptyState
+            icon="checkmark-circle-outline"
+            title="All fixed"
+            subtitle={items.ignored > 0 ? `Nothing left here. ${items.ignored} ignored.` : "Nothing left here."}
+          />
+          {items.ignored > 0 && (
+            <View className="px-4 pb-8">
+              <Button title={`Show ignored (${items.ignored})`} variant="outline" onPress={() => setShowIgnored(true)} />
+            </View>
+          )}
+        </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
-          <Text className="text-sm text-muted-foreground mb-3 leading-5">{check ? HOW[check] : ""}</Text>
+          <Text className="text-sm text-muted-foreground mb-3 leading-5">
+            {showIgnored ? "These are ignored: they don't count in this check or your score. Bring back any that need a look." : check ? HOW[check] : ""}
+          </Text>
+          {toolbar}
+          {count === 0 && <Text className="text-sm text-muted-foreground">Nothing ignored.</Text>}
 
           {check === "transfers" && (
             <Button title="Turn them into transfers" onPress={() => router.push("/settings/transfer-review")} className="mb-3" />
@@ -116,7 +169,7 @@ export default function DataHealthIssueScreen() {
             <Card>
               {items.rows.map((r, i) => (
                 <View key={r.id} className={i > 0 ? "border-t border-border" : ""}>
-                  <Row r={r} />
+                  <Row r={r} ignorable />
                 </View>
               ))}
               {items.rows.length >= 500 && <Text className="text-xs text-muted-foreground mt-2">Showing the latest 500.</Text>}
@@ -141,6 +194,7 @@ export default function DataHealthIssueScreen() {
                       <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Merchant</Text>
                     </Pressable>
                   )}
+                  <IgnoreButton keys={[g.key]} />
                 </View>
                 {g.rows.map((r) => (
                   <View key={r.id} className="border-t border-border mt-2">
@@ -155,7 +209,7 @@ export default function DataHealthIssueScreen() {
             <Card>
               {items.accounts.map((a, i) => (
                 <Pressable
-                  key={a.id}
+                  key={a.key}
                   onPress={() =>
                     check === "balance_gaps"
                       ? router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: a.id } })
@@ -168,7 +222,8 @@ export default function DataHealthIssueScreen() {
                     <Text className="text-sm text-foreground">{a.name}</Text>
                     <Text className="text-xs text-muted-foreground mt-0.5">{a.detail}</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
+                  <IgnoreButton keys={[a.key]} />
+                  <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
                 </Pressable>
               ))}
             </Card>
