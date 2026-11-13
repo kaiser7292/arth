@@ -266,3 +266,187 @@ export async function getHealthReport(userId: string, today: string = todayIso()
     accountTypeDoubts,
   };
 }
+
+// ─── The items behind each check ─────────────────────────────────────────────
+
+/** One transaction a check found, enough to show and open it. */
+export interface HealthTxn {
+  id: string;
+  date: string;
+  amount: number;
+  nature: string;
+  merchant: string | null;
+  category: string | null;
+  account: string | null;
+  /** Why this one is listed, when the check says more than its title. */
+  hint: string | null;
+}
+
+export interface HealthGroup {
+  title: string;
+  subtitle: string;
+  rows: HealthTxn[];
+  /** Transactions in the group beyond the ones listed. */
+  more: number;
+}
+
+export type HealthItems =
+  | { kind: "transactions"; rows: HealthTxn[] }
+  | { kind: "groups"; groups: HealthGroup[] }
+  | { kind: "accounts"; accounts: { id: string; name: string; detail: string }[] };
+
+const TXN_SELECT = `SELECT e.id, e.date, e.amount, e.nature, e.merchant_name AS merchant, c.name AS category,
+    COALESCE(fa.account_label, fa.bank_name) || CASE WHEN fa.account_identifier IS NOT NULL THEN ' ··' || fa.account_identifier ELSE '' END AS account,
+    NULL AS hint
+  FROM expenses e
+  LEFT JOIN categories c ON c.id = e.category_id
+  LEFT JOIN financial_accounts fa ON fa.id = e.account_id`;
+
+const PER_GROUP = 30;
+const rupees = (n: number) => `₹${Math.round(n).toLocaleString("en-IN")}`;
+
+async function txns(where: string, ...args: (string | number)[]): Promise<HealthTxn[]> {
+  return getDatabase().getAllAsync<HealthTxn>(`${TXN_SELECT} WHERE ${where} ORDER BY e.date DESC LIMIT 500;`, ...args);
+}
+
+async function txnsByIds(ids: string[]): Promise<HealthTxn[]> {
+  const out: HealthTxn[] = [];
+  for (let i = 0; i < ids.length; i += 400) {
+    const chunk = ids.slice(i, i + 400);
+    out.push(
+      ...(await getDatabase().getAllAsync<HealthTxn>(
+        `${TXN_SELECT} WHERE e.id IN (${chunk.map(() => "?").join(",")}) AND e.deleted_at IS NULL;`,
+        ...chunk,
+      )),
+    );
+  }
+  return out.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+
+/**
+ * Exactly what a check found, for the list its row opens: transactions to open and fix, groups of
+ * them (duplicates, merchant spellings, merchants in several categories), or accounts.
+ */
+export async function getHealthItems(userId: string, check: HealthCheckId, today: string = todayIso()): Promise<HealthItems> {
+  const notTransfer = `(e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0)`;
+  const live = `e.user_id = ? AND e.deleted_at IS NULL AND e.status = 'approved'`;
+  const accountName = (a: FinancialAccount) => `${a.account_label || a.bank_name}${a.account_identifier ? ` ··${a.account_identifier}` : ""}`;
+  switch (check) {
+    case "uncategorised":
+      return { kind: "transactions", rows: await txns(`${live} AND e.nature = 'realized' AND e.category_id IS NULL AND ${notTransfer}`, userId) };
+    case "no_account":
+      return {
+        kind: "transactions",
+        rows: await txns(`${live} AND e.nature IN ('realized', 'credit') AND e.account_id IS NULL AND e.source = 'sms_auto' AND ${notTransfer}`, userId),
+      };
+    case "refunds":
+      return {
+        kind: "transactions",
+        rows: await txns(`${live} AND e.nature = 'credit' AND e.credit_kind = 'refund' AND e.refund_of_expense_id IS NULL`, userId),
+      };
+    case "redemptions":
+      return { kind: "transactions", rows: await txns(`${live} AND e.money_event = 'investment_withdrawal'`, userId) };
+    case "sips":
+      return {
+        kind: "transactions",
+        rows: await txns(`${live} AND e.money_event = 'sip' AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id)`, userId),
+      };
+    case "overdue_dues": {
+      const { getOverdueForecasts } = await import("@/services/expense-forecasts");
+      const monthAgo = new Date(`${today}T00:00:00Z`);
+      monthAgo.setUTCDate(monthAgo.getUTCDate() - 30);
+      const due = await getOverdueForecasts(userId, monthAgo.toISOString().slice(0, 10));
+      const dueOn = new Map(due.map((d) => [d.id, d.due_date]));
+      return {
+        kind: "transactions",
+        rows: (await txnsByIds(due.map((d) => d.id))).map((r) => ({ ...r, hint: dueOn.get(r.id) ? `Was due ${dueOn.get(r.id)}` : null })),
+      };
+    }
+    case "transfers": {
+      const { findTransferCandidates } = await import("@/services/transfer-detect");
+      const found = (await findTransferCandidates(userId)).filter((t) => t.toAccountId);
+      const names = new Map((await getActiveAccounts(userId)).map((a) => [a.id, accountName(a)]));
+      const to = new Map(found.map((t) => [t.expenseId, t.toAccountId ?? ""]));
+      return {
+        kind: "transactions",
+        rows: (await txnsByIds(found.map((t) => t.expenseId))).map((r) => ({
+          ...r,
+          hint: `Looks like money moved to ${names.get(to.get(r.id) ?? "") ?? "your other account"}`,
+        })),
+      };
+    }
+    case "duplicates": {
+      const { scanAllDuplicates } = await import("@/services/duplicate-detection");
+      const groups: HealthGroup[] = [];
+      for (const g of (await scanAllDuplicates(userId)).groups) {
+        const rows = await txnsByIds(g.expenses.map((e) => e.id));
+        if (rows.length < 2) continue;
+        groups.push({ title: `${rows[0].merchant || "Same payment"} · ${rupees(rows[0].amount)}`, subtitle: g.reason, rows, more: 0 });
+      }
+      return { kind: "groups", groups };
+    }
+    case "merchant_spellings": {
+      const groups: HealthGroup[] = [];
+      for (const s of (await getMerchantSpellings(userId)).slice(0, 100)) {
+        // The less-used spellings are the ones to change: list their transactions.
+        const odd = s.names.slice(1).map((n) => n.name);
+        const rows = await txns(`${live} AND e.merchant_name IN (${odd.map(() => "?").join(",")})`, userId, ...odd);
+        groups.push({
+          title: `${s.names[0].name} (${s.names[0].count})`,
+          subtitle: `Also spelled ${s.names.slice(1).map((n) => `"${n.name}" (${n.count})`).join(", ")}`,
+          rows: rows.slice(0, PER_GROUP),
+          more: Math.max(0, rows.length - PER_GROUP),
+        });
+      }
+      return { kind: "groups", groups };
+    }
+    case "merchant_categories": {
+      const groups: HealthGroup[] = [];
+      for (const m of (await getMerchantCategoryMix(userId)).slice(0, 100)) {
+        // The usual category is the first; the entries filed elsewhere are the odd ones out.
+        const usual = m.categories[0].name;
+        const rows = await txns(
+          `${live} AND e.nature = 'realized' AND e.merchant_name = ? AND c.name IS NOT NULL AND c.name <> ? AND ${notTransfer}`,
+          userId,
+          m.merchant,
+          usual,
+        );
+        groups.push({
+          title: m.merchant,
+          subtitle: `Usually ${usual}: ${m.categories.map((c) => `${c.name} ${c.count}`).join(", ")}`,
+          rows: rows.slice(0, PER_GROUP),
+          more: Math.max(0, rows.length - PER_GROUP),
+        });
+      }
+      return { kind: "groups", groups };
+    }
+    case "account_types": {
+      const accounts = await getActiveAccounts(userId);
+      const doubts = await getAccountTypeDoubts(accounts.map((a) => a.id));
+      const NAMES: Record<string, string> = { savings: "bank account", bank: "bank account", credit_card: "credit card", wallet: "wallet", loan: "loan" };
+      return {
+        kind: "accounts",
+        accounts: accounts
+          .filter((a) => doubts.has(a.id) && ["savings", "bank", "wallet", "credit_card"].includes(a.account_type as string))
+          .map((a) => {
+            const s = doubts.get(a.id)?.suggested;
+            const set = NAMES[a.account_type as string] ?? a.account_type;
+            return {
+              id: a.id,
+              name: accountName(a),
+              detail: s ? `Set as a ${set}; its messages look like a ${NAMES[s] ?? s}` : `Set as a ${set}; its messages don't say what it is`,
+            };
+          }),
+      };
+    }
+    case "balance_gaps":
+      return {
+        kind: "accounts",
+        accounts: (await getBalanceGaps(userId, today)).map((g) => ({
+          id: g.accountId,
+          name: g.name,
+          detail: `Bank said ${rupees(g.bank)} on ${g.bankDate}; Arth makes it ${rupees(g.arth)}`,
+        })),
+      };
+  }
+}

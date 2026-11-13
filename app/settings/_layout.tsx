@@ -36,6 +36,8 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="recycle-bin" options={{ title: "Recycle Bin" }} />
       <Stack.Screen name="dismissed-duplicates" options={{ title: "Duplicates You Kept" }} />
       <Stack.Screen name="fix-my-data" options={{ title: "Fix My Data" }} />
+      <Stack.Screen name="data-health-issue" options={{ title: "Data Health" }} />
+      <Stack.Screen name="update-balances" options={{ title: "Update Balances" }} />
       <Stack.Screen name="recurring-rules" options={{ title: "Reminders" }} />
       <Stack.Screen name="recurring-rule-detail" options={{ title: "Reminder" }} />
       <Stack.Screen name="audit-log" options={{ title: "Audit Log" }} />

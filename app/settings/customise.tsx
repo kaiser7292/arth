@@ -152,8 +152,9 @@ export default function CustomiseScreen() {
             </View>
           ))}
           <View className="pt-1">{cardRow("min_balance_alert", null)}</View>
+          {cardRow("balance_check", null)}
           <Text className="text-xs text-muted-foreground mt-2">
-            Low-balance alerts always sit at the top of Home. "This Month" only shows as a title when those cards aren't first.
+            Low-balance alerts and the balance check always sit at the top of Home. "This Month" only shows as a title when those cards aren't first.
           </Text>
         </Card>
 

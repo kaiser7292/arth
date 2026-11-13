@@ -1,0 +1,153 @@
+import { useCallback, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Button, Card, EmptyState, Input, ScreenContainer, Text, useToast } from "@/components/ui";
+import { DEFAULT_USER_ID } from "@/constants/app";
+import { useAlert } from "@/hooks/use-alert";
+import { useDataRefresh } from "@/hooks/use-data-refresh";
+import { useTheme } from "@/hooks/use-theme";
+import { getBalanceLines, saveBalanceUpdates, type BalanceLine } from "@/services/balance-update";
+import { parseAmount } from "@/utils/expense-validation";
+import { formatAmount } from "@/utils/format";
+
+/**
+ * Update balances: what's really in each bank account and wallet, and what's owed on each card.
+ * Each box starts at Arth's figure; change the ones that are off. Where a figure changes, Arth
+ * adds one balance adjustment for the difference, with the note if one is given. Opened from
+ * Settings and from the Home balance check.
+ */
+export default function UpdateBalancesScreen() {
+  const router = useRouter();
+  const theme = useTheme();
+  const alert = useAlert();
+  const toast = useToast();
+  const [lines, setLines] = useState<BalanceLine[] | null>(null);
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const l = await getBalanceLines(DEFAULT_USER_ID);
+      setLines(l);
+      // Start each box at Arth's figure, keeping anything already typed.
+      setValues((prev) => {
+        const next = { ...prev };
+        for (const x of l) if (next[x.accountId] == null) next[x.accountId] = String(x.current);
+        return next;
+      });
+    } catch {
+      setLines([]);
+    }
+  }, []);
+  useDataRefresh(load);
+
+  const changed = (lines ?? []).filter((l) => {
+    const v = parseAmount(values[l.accountId] ?? "");
+    return v != null && Math.abs(v - l.current) >= 1;
+  });
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const n = await saveBalanceUpdates(
+        DEFAULT_USER_ID,
+        changed.map((line) => ({ line, value: parseAmount(values[line.accountId] ?? "") ?? line.current, note: notes[line.accountId] })),
+      );
+      toast(n === 0 ? "Everything already matched" : `Updated ${n} ${n === 1 ? "account" : "accounts"}`, { tone: "success" });
+      router.back();
+    } catch (e) {
+      alert("Couldn't update", e instanceof Error ? e.message : "Try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!lines) {
+    return (
+      <ScreenContainer padTop={false}>
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator color={theme.primary} />
+        </View>
+      </ScreenContainer>
+    );
+  }
+  if (lines.length === 0) {
+    return (
+      <ScreenContainer padTop={false}>
+        <EmptyState icon="wallet-outline" title="No accounts yet" subtitle="Add a bank account, wallet or card first." />
+      </ScreenContainer>
+    );
+  }
+
+  const section = (kind: BalanceLine["kind"], title: string) => {
+    const list = lines.filter((l) => l.kind === kind);
+    if (list.length === 0) return null;
+    return (
+      <>
+        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-2">{title}</Text>
+        {list.map((l) => {
+          const v = parseAmount(values[l.accountId] ?? "");
+          const diff = v != null ? v - l.current : 0;
+          const isChanged = v != null && Math.abs(diff) >= 1;
+          return (
+            <Card key={l.accountId} className="mb-2">
+              <Text className="text-sm font-semibold text-foreground">{l.name}</Text>
+              <Text className="text-xs text-muted-foreground mt-0.5">
+                Arth: {formatAmount(l.current)}
+                {kind === "card_due" ? " owed" : ""}
+                {kind === "card_due" && l.limit ? ` of ${formatAmount(l.limit)} limit` : ""}
+              </Text>
+              <Input
+                value={values[l.accountId] ?? ""}
+                onChangeText={(t) => setValues((s) => ({ ...s, [l.accountId]: t }))}
+                keyboardType="decimal-pad"
+                placeholder={kind === "card_due" ? "Owed now" : "Balance now"}
+                containerClassName="mt-2"
+                accessibilityLabel={`${kind === "card_due" ? "Owed now on" : "Balance now in"} ${l.name}`}
+              />
+              {isChanged && (
+                <>
+                  <Text className="text-xs mt-1" style={{ color: theme.warning }}>
+                    {diff > 0 ? "+" : "−"}
+                    {formatAmount(Math.abs(diff))} adjustment
+                  </Text>
+                  <Input
+                    value={notes[l.accountId] ?? ""}
+                    onChangeText={(t) => setNotes((s) => ({ ...s, [l.accountId]: t }))}
+                    placeholder="Note (optional): cash withdrawal, bank charges…"
+                    containerClassName="mt-2"
+                    maxLength={120}
+                    accessibilityLabel={`Note for ${l.name}`}
+                  />
+                </>
+              )}
+            </Card>
+          );
+        })}
+      </>
+    );
+  };
+
+  return (
+    <ScreenContainer padTop={false}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
+          <Text className="text-sm text-muted-foreground mb-3 leading-5">
+            Each box shows Arth&apos;s figure. Change any that don&apos;t match your bank or card app, and Arth adds one adjustment for the
+            difference, shown in that account&apos;s ledger.
+          </Text>
+          {section("balance", "Bank accounts and wallets")}
+          {section("card_due", "Credit cards")}
+          <Button
+            title={changed.length === 0 ? "Nothing changed" : `Update ${changed.length} ${changed.length === 1 ? "account" : "accounts"}`}
+            onPress={() => void save()}
+            disabled={changed.length === 0}
+            loading={saving}
+            className="mt-3"
+          />
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ScreenContainer>
+  );
+}

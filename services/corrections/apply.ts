@@ -12,7 +12,7 @@ import { logger } from "@/utils/logger";
 import { APPLY_ORDER, GROUP_LABELS, SHARED_TYPES, type FixType, type SharedType } from "./format";
 import { diffMetrics, measure, type MetricChange } from "./impact";
 import type { Fix } from "./read";
-import { recordApplied, takeSnapshot } from "./snapshot";
+import { addFixHistory, takeSnapshot } from "./snapshot";
 
 /**
  * Applies the corrections the user left ticked (docs/AI_CORRECTIONS_DESIGN.md):
@@ -145,11 +145,16 @@ export async function applyCorrections(
   onProgress?.({ done: total, total, doing: "Measuring what changed" });
   const after = await measure(userId);
   const applied = [...counts.values()].reduce((s, n) => s + n, 0);
-  recordApplied(applied);
-  return {
-    applied,
-    byGroup: APPLY_ORDER.filter((t) => (counts.get(t) ?? 0) > 0).map((t) => ({ label: GROUP_LABELS[t], count: counts.get(t) ?? 0 })),
-    failed,
-    changes: diffMetrics(before, after),
-  };
+  const byGroup = APPLY_ORDER.filter((t) => (counts.get(t) ?? 0) > 0).map((t) => ({ label: GROUP_LABELS[t], count: counts.get(t) ?? 0 }));
+  const changes = diffMetrics(before, after);
+  addFixHistory({
+    kind: "ai",
+    at: new Date().toISOString(),
+    title: `${applied} correction${applied === 1 ? "" : "s"} from your AI`,
+    changes: applied,
+    groups: byGroup,
+    moved: changes.map((c) => ({ label: c.label, before: c.before, value: c.value, unit: c.unit })),
+    failed: failed.length,
+  });
+  return { applied, byGroup, failed, changes };
 }

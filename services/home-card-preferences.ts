@@ -10,6 +10,7 @@ import { settingsStorage } from "./storage";
 
 export type HomeCardId =
   | "min_balance_alert"
+  | "balance_check"
   | "upcoming_dues"
   | "check_ins"
   | "my_month"
@@ -38,6 +39,12 @@ export interface HomeCardMeta {
  * user can toggle any of them on/off.
  */
 export const HOME_CARDS: HomeCardMeta[] = [
+  {
+    id: "balance_check",
+    label: "Balance check",
+    description: "After 3 days with no money moving, a reminder to check your balances and card dues are still right",
+    defaultVisible: true,
+  },
   {
     id: "min_balance_alert",
     label: "Low-balance alerts",

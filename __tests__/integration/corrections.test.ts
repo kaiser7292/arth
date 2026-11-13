@@ -64,15 +64,16 @@ jest.mock("expo-clipboard", () => ({ setStringAsync: async () => true }));
 jest.mock("expo-sharing", () => ({ isAvailableAsync: async () => false }));
 // The undo snapshot writes a file; backup restore has its own tests.
 const mockSnapshot = jest.fn(async () => {});
+const mockHistory: object[] = [];
 jest.mock("../../services/corrections/snapshot", () => ({
   takeSnapshot: () => mockSnapshot(),
-  recordApplied: () => {},
+  addFixHistory: (e: object) => mockHistory.push(e),
 }));
 
 import { runMigrations } from "../../database/migrations";
 import { shortRef } from "../../services/ai-reply-format";
 import { applyCorrections } from "../../services/corrections/apply";
-import { getHealthReport, merchantKey } from "../../services/corrections/health";
+import { getHealthItems, getHealthReport, merchantKey } from "../../services/corrections/health";
 import { accountFixRef, findCorrectionObjects, readCorrections } from "../../services/corrections/read";
 
 const USER = "default-user";
@@ -290,5 +291,32 @@ describe("the Fix my data file", () => {
     expect(json).not.toMatch(/LEAK_/);
     // The keys first, so an assistant reading only the start still has the instructions.
     expect(Object.keys(data).slice(0, 5)).toEqual(["guide", "format", "request", "reply_instructions", "health"]);
+  });
+});
+
+describe("what each health row opens", () => {
+  it("lists exactly the transactions a check counted", async () => {
+    const uncat = await getHealthItems(USER, "uncategorised", "2026-11-12");
+    expect(uncat.kind === "transactions" && uncat.rows.map((r) => r.id)).toEqual([E.uncat]);
+    const refunds = await getHealthItems(USER, "refunds", "2026-11-12");
+    expect(refunds.kind === "transactions" && refunds.rows.map((r) => r.id)).toEqual([E.refund]);
+  });
+
+  it("groups merchant spellings with the entries spelled the odd way", async () => {
+    const items = await getHealthItems(USER, "merchant_spellings", "2026-11-12");
+    expect(items.kind).toBe("groups");
+    if (items.kind !== "groups") return;
+    const swiggy = items.groups.find((g) => g.title.startsWith("Swiggy"));
+    expect(swiggy?.rows.map((r) => r.id)).toEqual([E.swiggyOdd]);
+    expect(swiggy?.subtitle).toContain("SWIGGY*ORDER");
+  });
+
+  it("lists the entries filed outside a merchant's usual category", async () => {
+    mockDb.prepare("UPDATE expenses SET merchant_name = 'Swiggy' WHERE id = ?").run(E.swiggyOdd);
+    const items = await getHealthItems(USER, "merchant_categories", "2026-11-12");
+    if (items.kind !== "groups") throw new Error("expected groups");
+    const swiggy = items.groups.find((g) => g.title === "Swiggy");
+    expect(swiggy?.rows.map((r) => r.id)).toEqual([E.swiggyOdd]);
+    expect(swiggy?.subtitle).toMatch(/^Usually Food/);
   });
 });

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Switch, TextInput, View } from "react-native";
-import { useRouter, type Href } from "expo-router";
+import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, ScreenContainer, Text } from "@/components/ui";
@@ -12,10 +12,17 @@ import { adjustAccountAvailable } from "@/services/account-balance";
 import { applyCorrections, type CorrectionsResult } from "@/services/corrections/apply";
 import { buildFixExport, shareFixExport, type FixExport } from "@/services/corrections/export";
 import { DELIBERATE, GROUP_LABELS, APPLY_ORDER } from "@/services/corrections/format";
-import { getHealthReport, type HealthCheckId, type HealthReport } from "@/services/corrections/health";
+import { getHealthReport, type HealthReport } from "@/services/corrections/health";
 import type { MetricChange } from "@/services/corrections/impact";
 import { readCorrections, type CorrectionsReply, type Fix } from "@/services/corrections/read";
-import { getLastCorrection, undoLastCorrection, type LastCorrection } from "@/services/corrections/snapshot";
+import {
+  addFixHistory,
+  getFixHistory,
+  getUndoable,
+  undoChangesSince,
+  undoLastCorrection,
+  type FixHistoryEntry,
+} from "@/services/corrections/snapshot";
 import { formatDisplayDate } from "@/utils/date";
 import { formatAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
@@ -28,16 +35,6 @@ import { logger } from "@/utils/logger";
 
 type Phase = "home" | "review" | "applying" | "done";
 
-const ROUTES: Partial<Record<HealthCheckId, Href>> = {
-  uncategorised: { pathname: "/expense/review-queue", params: { filter: "uncategorized" } },
-  duplicates: { pathname: "/expense/review-queue", params: { filter: "duplicates" } },
-  overdue_dues: { pathname: "/expense/review-queue", params: { filter: "overdue" } },
-  transfers: "/settings/transfer-review",
-  merchant_spellings: "/settings/merchants",
-  merchant_categories: "/settings/merchants",
-  account_types: "/settings/account-master",
-  no_account: "/settings/account-master",
-};
 
 function showMetric(m: { unit: string }, v: number): string {
   if (m.unit === "money") return formatAmount(v);
@@ -51,7 +48,13 @@ export default function FixMyDataScreen() {
   const alert = useAlert();
   const [phase, setPhase] = useState<Phase>("home");
   const [health, setHealth] = useState<HealthReport | null>(null);
-  const [last, setLast] = useState<LastCorrection | null>(getLastCorrection());
+  const [history, setHistory] = useState<FixHistoryEntry[]>(getFixHistory());
+  const [undoable, setUndoable] = useState<FixHistoryEntry | null>(getUndoable());
+  const [openEntry, setOpenEntry] = useState<string | null>(null);
+  const refreshHistory = () => {
+    setHistory(getFixHistory());
+    setUndoable(getUndoable());
+  };
   const [showGaps, setShowGaps] = useState(false);
   const [matching, setMatching] = useState<string | null>(null);
 
@@ -77,7 +80,7 @@ export default function FixMyDataScreen() {
     } catch (e) {
       logger.warn("Data health failed", e);
     }
-    setLast(getLastCorrection());
+    refreshHistory();
   }, [phase]);
   useDataRefresh(loadHealth);
 
@@ -148,7 +151,7 @@ export default function FixMyDataScreen() {
     if (chosen.length === 0) return;
     alert(
       `Apply ${chosen.length} correction${chosen.length === 1 ? "" : "s"}?`,
-      "Arth saves a copy first, so you can undo the whole lot afterwards.",
+      "Arth saves a copy of all your data first. You can undo this until you apply your next AI fix. Undo puts everything back as it is now, so anything added after it is removed too.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -160,12 +163,12 @@ export default function FixMyDataScreen() {
               const r = await applyCorrections(DEFAULT_USER_ID, chosen, setProgress);
               setResult(r);
               setPhase("done");
-              setLast(getLastCorrection());
+              refreshHistory();
             } catch (e) {
               logger.error("Fix my data: apply failed", e);
               alert("Couldn't apply the corrections", `${e instanceof Error ? e.message : "Something went wrong"}. Use Undo to put things back if anything changed.`);
               setPhase("home");
-              setLast(getLastCorrection());
+              refreshHistory();
             }
           },
         },
@@ -173,8 +176,20 @@ export default function FixMyDataScreen() {
     );
   };
 
-  const undo = () => {
-    alert("Undo the last correction?", "Everything goes back to how it was just before it, including anything you changed since.", [
+  const undo = async () => {
+    if (!undoable) return;
+    // Undo restores the copy taken before the fix: say exactly what that would also take away.
+    const since = await undoChangesSince(undoable.at).catch(() => ({ added: 0, changed: 0 }));
+    const lost =
+      since.added + since.changed === 0
+        ? "Nothing has been added or changed since, so nothing else is lost."
+        : `Since then, ${[
+            since.added ? `${since.added} transaction${since.added === 1 ? " was" : "s were"} added` : null,
+            since.changed ? `${since.changed} ${since.changed === 1 ? "was" : "were"} edited` : null,
+          ]
+            .filter(Boolean)
+            .join(" and ")}. Those go too; new bank messages come back on the next scan.`;
+    alert(`Undo "${undoable.title}"?`, `Your data goes back to how it was on ${formatDisplayDate(undoable.at.slice(0, 10))}, just before it. ${lost}`, [
       { text: "Cancel", style: "cancel" },
       {
         text: "Undo",
@@ -183,7 +198,7 @@ export default function FixMyDataScreen() {
           setUndoing(true);
           try {
             await undoLastCorrection();
-            setLast(null);
+            refreshHistory();
             setResult(null);
             setReply(null);
             setPasted("");
@@ -199,7 +214,7 @@ export default function FixMyDataScreen() {
     ]);
   };
 
-  const matchBank = (accountId: string, name: string, bank: number) => {
+  const matchBank = (accountId: string, name: string, bank: number, arth: number) => {
     alert(`Match ${name} to ${formatAmount(bank)}?`, "Arth adds a visible balance adjustment for the difference. You can delete it from the ledger later.", [
       { text: "Cancel", style: "cancel" },
       {
@@ -208,6 +223,16 @@ export default function FixMyDataScreen() {
           setMatching(accountId);
           try {
             await adjustAccountAvailable({ accountId, userId: DEFAULT_USER_ID, actualAvailable: bank, description: "Matched to the bank (Data health)" });
+            addFixHistory({
+              kind: "match",
+              at: new Date().toISOString(),
+              title: `${name} matched to ${formatAmount(bank)}`,
+              changes: 1,
+              groups: [],
+              moved: [{ label: name, before: arth, value: bank, unit: "money" }],
+              failed: 0,
+            });
+            refreshHistory();
             await loadHealth();
           } catch (e) {
             alert("Couldn't match it", e instanceof Error ? e.message : "Try again.");
@@ -296,7 +321,8 @@ export default function FixMyDataScreen() {
           )}
 
           <Button title="Done" onPress={() => { setPhase("home"); setReply(null); setPasted(""); void loadHealth(); }} className="mb-2" />
-          <Button title="Undo all of this" variant="outline" onPress={undo} loading={undoing} />
+          <Button title="Undo all of this" variant="outline" onPress={() => void undo()} loading={undoing} />
+          <Text className="text-xs text-muted-foreground mt-2 text-center">You can also undo it later from Fixes done, until your next AI fix.</Text>
         </ScrollView>
       </ScreenContainer>
     );
@@ -385,19 +411,6 @@ export default function FixMyDataScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-        {last && (
-          <Card className="mb-3">
-            <View className="flex-row items-center">
-              <Ionicons name="arrow-undo-outline" size={18} color={theme.primary} />
-              <Text className="text-sm text-foreground ml-2 flex-1">
-                {last.changes} corrections applied {formatDisplayDate(last.appliedAt.slice(0, 10))}
-              </Text>
-              <Pressable onPress={undo} hitSlop={8} accessibilityRole="button" disabled={undoing}>
-                <Text className="text-sm font-semibold" style={{ color: theme.primary }}>{undoing ? "Undoing…" : "Undo"}</Text>
-              </Pressable>
-            </View>
-          </Card>
-        )}
 
         <Card className="mb-3">
           <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data health</Text>
@@ -417,35 +430,43 @@ export default function FixMyDataScreen() {
         </Card>
 
         {issues.map((c) => {
-          const route = ROUTES[c.id];
           const isGaps = c.id === "balance_gaps";
           return (
             <Card key={c.id} className="mb-2 py-3">
               <Pressable
-                onPress={() => (isGaps ? setShowGaps((v) => !v) : route ? router.push(route) : undefined)}
-                disabled={!isGaps && !route}
+                onPress={() =>
+                  isGaps ? setShowGaps((v) => !v) : router.push({ pathname: "/settings/data-health-issue", params: { check: c.id } })
+                }
                 className="flex-row items-center"
-                accessibilityRole={isGaps || route ? "button" : "text"}
+                accessibilityRole="button"
               >
                 <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("warning", 0.14) }}>
                   <Text className="text-xs font-bold" style={{ color: theme.warning }}>{c.count > 999 ? "999+" : c.count}</Text>
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-medium text-foreground">{c.label}</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">{route || isGaps ? c.hint : `${c.hint}. Your AI can fix these.`}</Text>
+                  <Text className="text-xs text-muted-foreground mt-0.5">{c.hint}</Text>
                 </View>
-                {(route || isGaps) && <Ionicons name={isGaps && showGaps ? "chevron-up" : "chevron-forward"} size={15} color={theme.mutedForeground} />}
+                <Ionicons name={isGaps && showGaps ? "chevron-up" : isGaps ? "chevron-down" : "chevron-forward"} size={15} color={theme.mutedForeground} />
               </Pressable>
               {isGaps && showGaps &&
                 health?.balanceGaps.map((g) => (
                   <View key={g.accountId} className="mt-3 pt-3 border-t border-border">
-                    <Text className="text-sm text-foreground">{g.name}</Text>
+                    <Pressable
+                      onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: g.accountId } })}
+                      className="flex-row items-center"
+                      accessibilityRole="button"
+                      accessibilityLabel={`Open ${g.name}'s ledger`}
+                    >
+                      <Text className="text-sm text-foreground flex-1">{g.name}</Text>
+                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Ledger</Text>
+                    </Pressable>
                     <Text className="text-xs text-muted-foreground mt-0.5">
                       Bank said {formatAmount(g.bank)} on {formatDisplayDate(g.bankDate)}; Arth makes it {formatAmount(g.arth)} ({g.gap > 0 ? "+" : "−"}
                       {formatAmount(Math.abs(g.gap))})
                     </Text>
                     <Pressable
-                      onPress={() => matchBank(g.accountId, g.name, g.bank)}
+                      onPress={() => matchBank(g.accountId, g.name, g.bank, g.arth)}
                       disabled={matching === g.accountId}
                       className="self-start mt-2 px-3 py-1.5 rounded-full"
                       style={{ backgroundColor: theme.alpha("primary", 0.12) }}
@@ -506,6 +527,80 @@ export default function FixMyDataScreen() {
           />
           {pasted.trim().length > 0 && <Button title="Read the reply" onPress={() => void read(pasted)} loading={reading} className="mt-2" />}
         </Card>
+
+        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-3">Fixes done</Text>
+        <Text className="text-xs text-muted-foreground mb-2 leading-4">
+          Only your latest AI fix can be undone, at any time until you apply the next one. Undo puts all your data back as it was just before
+          that fix, so anything added or edited after it goes too. Bank matches are undone by deleting the adjustment in the account&apos;s ledger.
+        </Text>
+        {history.length === 0 ? (
+          <Card className="mb-3">
+            <Text className="text-sm text-muted-foreground">No fixes yet.</Text>
+          </Card>
+        ) : (
+          history.map((e) => {
+            const open = openEntry === e.id;
+            const canUndo = undoable?.id === e.id;
+            return (
+              <Card key={e.id} className="mb-2 py-3">
+                <Pressable onPress={() => setOpenEntry(open ? null : e.id)} className="flex-row items-center" accessibilityRole="button">
+                  <Ionicons
+                    name={e.kind === "match" ? "swap-horizontal-outline" : "sparkles-outline"}
+                    size={16}
+                    color={e.undoneAt ? theme.mutedForeground : theme.primary}
+                  />
+                  <View className="flex-1 ml-2.5">
+                    <Text className="text-sm text-foreground" style={e.undoneAt ? { textDecorationLine: "line-through" } : undefined} numberOfLines={1}>
+                      {e.title}
+                    </Text>
+                    <Text className="text-xs text-muted-foreground mt-0.5">
+                      {formatDisplayDate(e.at.slice(0, 10))}
+                      {e.undoneAt
+                        ? ` · undone ${formatDisplayDate(e.undoneAt.slice(0, 10))}`
+                        : canUndo
+                          ? " · can be undone"
+                          : e.kind === "ai"
+                            ? " · can't be undone now"
+                            : ""}
+                      {e.failed > 0 ? ` · ${e.failed} couldn't be applied` : ""}
+                    </Text>
+                  </View>
+                  {canUndo && (
+                    <Pressable onPress={() => void undo()} hitSlop={8} accessibilityRole="button" disabled={undoing} className="ml-2">
+                      <Text className="text-sm font-semibold" style={{ color: theme.primary }}>{undoing ? "Undoing…" : "Undo"}</Text>
+                    </Pressable>
+                  )}
+                  <Ionicons name={open ? "chevron-up" : "chevron-down"} size={14} color={theme.mutedForeground} style={{ marginLeft: 6 }} />
+                </Pressable>
+                {open && (
+                  <View className="mt-2">
+                    {e.groups.map((g) => (
+                      <View key={g.label} className="flex-row justify-between mt-1">
+                        <Text className="text-xs text-muted-foreground flex-1 mr-2">{g.label}</Text>
+                        <Text className="text-xs text-foreground">{g.count}</Text>
+                      </View>
+                    ))}
+                    {e.moved.length > 0 && <Text className="text-xs font-semibold text-foreground mt-2">What moved</Text>}
+                    {e.moved.map((m) => (
+                      <View key={m.label} className="flex-row justify-between mt-1">
+                        <Text className="text-xs text-muted-foreground flex-1 mr-2" numberOfLines={1}>{m.label}</Text>
+                        <Text className="text-xs text-foreground">
+                          {showMetric(m, m.before)} → {showMetric(m, m.value)}
+                        </Text>
+                      </View>
+                    ))}
+                    {e.groups.length === 0 && e.moved.length === 0 && (
+                      <Text className="text-xs text-muted-foreground">No details kept for this one.</Text>
+                    )}
+                    {!canUndo && e.kind === "ai" && !e.undoneAt && (
+                      <Text className="text-xs text-muted-foreground mt-2">A later AI fix replaced its undo copy.</Text>
+                    )}
+                  </View>
+                )}
+              </Card>
+            );
+          })
+        )}
       </ScrollView>
     </ScreenContainer>
   );

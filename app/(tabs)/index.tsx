@@ -13,6 +13,7 @@ import { Platform, Pressable, RefreshControl, ScrollView, View } from "react-nat
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { LinkExpenseSheet } from "@/components/expense/LinkExpenseSheet";
 import { HomeTile } from "@/components/home/HomeTile";
+import { BalanceCheckBanner } from "@/components/home/BalanceCheckBanner";
 import { CheckInsCard } from "@/components/home/CheckInsCard";
 import { DueRow } from "@/components/home/DueRow";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
@@ -520,6 +521,9 @@ export default function HomeScreen() {
             </Pressable>
           </Pressable>
         )}
+
+        {/* No money has moved for 3 days: are the balances still right? Self-loading; closable. */}
+        {isHomeCardVisible("balance_check") && <BalanceCheckBanner />}
 
         {/* v15.5: Savings min-balance breach alerts (one per breached account) */}
         {isHomeCardVisible("min_balance_alert") && minBalanceBreaches.map((breach) => (
