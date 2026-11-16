@@ -30,23 +30,26 @@ function Chevron({ open, color }: { open: boolean; color: string }) {
 }
 
 /**
- * A month's header: "Nov 2026", how many transactions, the month's totals as chips, and an
- * arrow that turns when it opens. Open, it's the top of a card the month's rows continue.
+ * A drawer's header: a title, a line under it, whatever chips the list wants on the right, and an
+ * arrow that turns when it opens. Open, it's the top of a card the rows continue. Months on the
+ * Transactions tab, days in the audit log.
  */
-export function MonthDrawerHeader({
-  summary,
+export function DrawerHeader({
+  title,
+  subtitle,
   open,
-  mode,
   onToggle,
+  right,
+  accessibilityLabel,
 }: {
-  summary: MonthSummary;
+  title: string;
+  subtitle: string;
   open: boolean;
-  mode: DrawerMode;
   onToggle: () => void;
+  right?: React.ReactNode;
+  accessibilityLabel?: string;
 }) {
   const theme = useTheme();
-  const label = formatMonthLabel(summary.month, "short");
-  const count = `${summary.count} ${summary.count === 1 ? "transaction" : "transactions"}`;
   return (
     <View style={{ marginHorizontal: CARD_MX, marginTop: 10 }}>
       <Pressable
@@ -65,22 +68,53 @@ export function MonthDrawerHeader({
         }}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        accessibilityLabel={`${formatMonthLabel(summary.month, "long")}, ${count}`}
-        accessibilityHint={open ? "Hides this month" : "Shows this month"}
+        accessibilityLabel={accessibilityLabel ?? `${title}, ${subtitle}`}
+        accessibilityHint={open ? "Hides these" : "Shows these"}
       >
         <View className="flex-1" style={{ minWidth: 0 }}>
-          <Text className="text-body font-bold text-foreground">{label}</Text>
-          <Text className="text-meta text-muted-foreground mt-0.5">{count}</Text>
+          <Text className="text-body font-bold text-foreground">{title}</Text>
+          <Text className="text-meta text-muted-foreground mt-0.5">{subtitle}</Text>
         </View>
-        <View className="flex-row flex-wrap justify-end" style={{ gap: 6, flexShrink: 1 }}>
+        {right ? (
+          <View className="flex-row flex-wrap justify-end" style={{ gap: 6, flexShrink: 1 }}>
+            {right}
+          </View>
+        ) : null}
+        <Chevron open={open} color={theme.mutedForeground} />
+      </Pressable>
+    </View>
+  );
+}
+
+/** A month's header: "Nov 2026", how many transactions, and the month's totals as chips. */
+export function MonthDrawerHeader({
+  summary,
+  open,
+  mode,
+  onToggle,
+}: {
+  summary: MonthSummary;
+  open: boolean;
+  mode: DrawerMode;
+  onToggle: () => void;
+}) {
+  const count = `${summary.count} ${summary.count === 1 ? "transaction" : "transactions"}`;
+  return (
+    <DrawerHeader
+      title={formatMonthLabel(summary.month, "short")}
+      subtitle={count}
+      open={open}
+      onToggle={onToggle}
+      accessibilityLabel={`${formatMonthLabel(summary.month, "long")}, ${count}`}
+      right={
+        <>
           {(mode === "all" || mode === "credit") && <MoneyChip tone="in" amount={summary.received} label="money in" />}
           {/* Spending is the normal case: ink, not red. */}
           {(mode === "all" || mode === "spend") && <MoneyChip tone="out" amount={summary.spent} label="money out" />}
           {mode === "transfer" && <MoneyChip tone="moved" amount={summary.received + summary.spent} label="moved" />}
-        </View>
-        <Chevron open={open} color={theme.mutedForeground} />
-      </Pressable>
-    </View>
+        </>
+      }
+    />
   );
 }
 
