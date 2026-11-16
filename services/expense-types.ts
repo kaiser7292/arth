@@ -242,6 +242,9 @@ export interface ExpenseFilters {
   merchantNames?: string[];
   /** Filter by smart rule ID — matches expenses where any of these rules fired. */
   ruleIds?: string[];
+  /** Amount at least / at most this (rupees). A split matches on your share or the whole bill. */
+  minAmount?: number;
+  maxAmount?: number;
   /** Sort order for the list. Defaults to date_desc (newest first). */
   sortBy?: "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "name_asc";
 }

@@ -16,12 +16,12 @@ import { parseNLQuery } from "@/utils/nl-search";
 import { matchesSearch } from "@/utils/amount-search";
 import { transactionDayLabel } from "@/utils/day-label";
 import { isSpeechRecognitionAvailable, SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
-import { View, FlatList, Pressable, TextInput, ScrollView, Platform } from "react-native";
+import { View, FlatList, Pressable, TextInput, Platform } from "react-native";
 import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
+import { ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage, ToolbarChip } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -33,6 +33,7 @@ import { getDataVersion } from "@/services/settings";
 import {
   getExpensesPaginated,
   getFilteredExpenseSummary,
+  getFilteredMonthTotals,
   getPendingExpenseCount,
   getPreviousPeriodTotal,
   deleteExpense,
@@ -61,7 +62,10 @@ import type { Tag } from "@/services/tags";
 import { formatAmount } from "@/utils/expense-validation";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { FilterDropdown } from "@/components/expense/FilterDropdown";
-import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
+import { TransactionFilterSheet, draftTotal, type TxFilterDraft } from "@/components/expense/TransactionFilterSheet";
+import { DrawerBody, DrawerEmpty, DrawerEnd, DrawerLoading, MonthDrawerHeader, type DrawerMode } from "@/components/expense/MonthDrawer";
+import { buildDrawerRows, monthBounds, orderMonths, summarizeByMonth, type DrawerRow, type MonthSummary } from "@/utils/month-drawers";
+import { formatDateForDisplay } from "@/utils/expense-validation";
 import { BulkActionBar } from "@/components/expense/BulkActionBar";
 import { bulkSetCategory, bulkSetCreditKind, bulkUpdateExpenses } from "@/services/expense-bulk";
 import {
@@ -74,7 +78,6 @@ import {
   clearDefaultFilterView,
   resolveDatePreset,
   DATE_PRESET_LABELS,
-  DATE_PRESET_ORDER,
   type SavedFilterView,
   type FilterViewState,
   type DatePreset,
@@ -85,11 +88,12 @@ import { settingsStorage } from "@/services/storage";
 import { Modal } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeTransactionsPreload } from "@/services/home-preload";
-import { Rows } from "@/components/ui/Rows";
 
 const SORT_KEY = "expenses.sortBy";
 
 const PAGE_SIZE = 50;
+/** What the list opens on, and what "Clear all" goes back to: a year of month drawers. */
+const DEFAULT_PRESET: DatePreset = "last_12_months";
 // Groups only add up with every row in them, so a list grouped by anything but date isn't paged.
 const ALL_ROWS = LIST_ROW_LIMIT;
 const SPEND_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "category", "merchant", "account", "payment_mode", "person"];
@@ -148,10 +152,23 @@ export default function ExpensesScreen() {
   const groupByForCreditRef = useRef<"category" | "account" | "payment_mode" | "merchant" | "type">("type");
 
   // Date filter — dynamic presets
-  const [datePreset, setDatePreset] = useState<DatePreset>("this_month");
+  const [datePreset, setDatePreset] = useState<DatePreset>(DEFAULT_PRESET);
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  /** The filter sheet, and the section it opens on. */
+  const [filterSheet, setFilterSheet] = useState<{ open: boolean; field?: "date" }>({ open: false });
+
+  // Month drawers. Totals come from the database for every month in the range; a month's rows
+  // load when it's opened, and stay in `expenses` (keyed by their date) until the filters change.
+  const [monthTotals, setMonthTotals] = useState<Map<string, MonthSummary>>(new Map());
+  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
+  const [loadedMonths, setLoadedMonths] = useState<Set<string>>(new Set());
+  const openMonthsRef = useRef(openMonths);
+  openMonthsRef.current = openMonths;
+  /** Bumped on every full reload, so a month that finishes loading after the filters changed is dropped. */
+  const loadGen = useRef(0);
 
   const { start: filterStartDate, end: filterEndDate } = useMemo(
     () => resolveDatePreset(datePreset, customStartDate, customEndDate),
@@ -173,7 +190,6 @@ export default function ExpensesScreen() {
   const [filterStatus, setFilterStatus] = useState<"" | "pending_review" | "approved">("");
   const [filterAvoidability, setFilterAvoidability] = useState<"" | "avoidable" | "unavoidable" | "unclassified">("");
   const [filterNature, setFilterNature] = useState<"realized" | "committed" | "credit" | "transfers" | "all">("realized");
-  const [showFilters, setShowFilters] = useState(false);
   const [savedViews, setSavedViews] = useState<SavedFilterView[]>(() => getSavedFilterViews());
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [bulkMode, setBulkMode] = useState(false);
@@ -252,7 +268,10 @@ export default function ExpensesScreen() {
     names: { categoryMap, accountMap, paymentModeMap },
     amountOf: rowAmount,
   });
-  const loadEverything = grouping.groupBy !== "date";
+  // Date (and month) order shows month drawers, each loading its own rows; any other grouping
+  // needs every row at once to add its groups up.
+  const drawerMode = filterNature !== "transfers" && (grouping.groupBy === "date" || grouping.groupBy === "month");
+  const loadEverything = !drawerMode && grouping.groupBy !== "date";
   const [transferGroupBy, setTransferGroupBy] = useGroupBy<TransferGroupBy>("transactions_transfers", TRANSFER_GROUPS, "date");
 
   // v17.5.3 — offset read via ref to avoid re-creating callback on every
@@ -286,11 +305,59 @@ export default function ExpensesScreen() {
     filterAvoidability,
     filterRuleIds.join(","),
     filterStatus,
+    minAmount,
+    maxAmount,
+    drawerMode,
     filterNature,
     summaryGroupBy,
     sortBy,
     loadEverything,
   ].join("|");
+
+  /** The filters the drawers were last loaded with: a change clears them, a data change doesn't. */
+  const drawerSigRef = useRef<string | null>(null);
+  /** The filters of the last full load; opening a month later loads it with the same ones. */
+  const lastFiltersRef = useRef<Parameters<typeof getExpensesPaginated>[1] | null>(null);
+
+  /** One month's rows, into `expenses` in place of whatever that month had. */
+  const loadMonth = useCallback(async (month: string, filters: Parameters<typeof getExpensesPaginated>[1], gen: number) => {
+    try {
+      const bounds = monthBounds(month, filters?.startDate, filters?.endDate);
+      const rows = await getExpensesPaginated(DEFAULT_USER_ID, { ...filters, startDate: bounds.start, endDate: bounds.end }, ALL_ROWS, 0);
+      const ids = rows.map((e) => e.id);
+      const [tagMap, refundMap] = await Promise.all([getTagsForExpenses(ids), sumRefundsByExpenseIds(ids)]);
+      if (gen !== loadGen.current) return;
+      setExpenses((prev) => [...prev.filter((e) => e.date?.slice(0, 7) !== month), ...rows]);
+      setExpenseTagMap((prev) => ({ ...prev, ...tagMap }));
+      setRefundedMap((prev) => {
+        const next = new Map(prev);
+        refundMap.forEach((v, k) => next.set(k, v));
+        return next;
+      });
+      setLoadedMonths((prev) => new Set(prev).add(month));
+    } catch {
+      if (gen !== loadGen.current) return;
+      // Shows as empty rather than spinning for ever; closing and opening it tries again.
+      setLoadedMonths((prev) => new Set(prev).add(month));
+      toast("Couldn't load that month. Close and open it to try again.", { tone: "danger" });
+    }
+  }, [toast]);
+
+  const loadedMonthsRef = useRef(loadedMonths);
+  loadedMonthsRef.current = loadedMonths;
+  const toggleMonth = useCallback((month: string) => {
+    const next = new Set(openMonthsRef.current);
+    if (next.has(month)) {
+      next.delete(month);
+    } else {
+      next.add(month);
+      // Rows already loaded stay until the next reload; a data change reloads everything anyway.
+      if (filterNature !== "transfers" && !loadedMonthsRef.current.has(month) && lastFiltersRef.current) {
+        void loadMonth(month, lastFiltersRef.current, loadGen.current);
+      }
+    }
+    setOpenMonths(next);
+  }, [filterNature, loadMonth]);
 
   const loadExpenses = useCallback(
     async (reset = true) => {
@@ -322,11 +389,19 @@ export default function ExpensesScreen() {
           }
           setHasMore(false);
           setExpenses([]);
+          if (reset) {
+            const months = summarizeByMonth(transferData, (t) => t.date, (t) => t.amount);
+            const ordered = orderMonths(months);
+            const kept = ordered.filter((m) => openMonthsRef.current.has(m.month)).map((m) => m.month);
+            setOpenMonths(new Set(kept.length > 0 ? kept : ordered.slice(0, 1).map((m) => m.month)));
+          }
           setLoading(false);
           return;
         }
 
         const offset = reset ? 0 : expensesLenRef.current;
+        const minN = parseFloat(minAmount);
+        const maxN = parseFloat(maxAmount);
         const nature: "realized" | "credit" | "all" = filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "realized";
         const segment = filterNature === "committed" ? "committed" as const
           : filterNature === "realized" ? "spend" as const
@@ -345,10 +420,48 @@ export default function ExpensesScreen() {
           avoidability: filterAvoidability || undefined,
           ruleIds: filterRuleIds.length > 0 ? filterRuleIds : undefined,
           status: filterStatus || undefined,
+          minAmount: Number.isFinite(minN) ? minN : undefined,
+          maxAmount: Number.isFinite(maxN) ? maxN : undefined,
           sortBy,
           nature,
           segment,
         };
+        lastFiltersRef.current = filters;
+
+        if (drawerMode) {
+          // Only a full reload gets here: drawers don't page.
+          const gen = ++loadGen.current;
+          const [summaryResult, prevTotal, months] = await Promise.all([
+            getFilteredExpenseSummary(DEFAULT_USER_ID, filters, summaryGroupBy),
+            getPreviousPeriodTotal(DEFAULT_USER_ID, filters),
+            getFilteredMonthTotals(DEFAULT_USER_ID, filters),
+          ]);
+          if (gen !== loadGen.current) return;
+          setSummary(summaryResult);
+          setPreviousTotal(prevTotal);
+          setMonthTotals(months);
+          setTransfers([]);
+          setHasMore(false);
+          // Months that were open stay open; with none of them left, the newest one opens.
+          const ordered = orderMonths(months, sortBy === "date_asc");
+          const kept = ordered.filter((m) => openMonthsRef.current.has(m.month)).map((m) => m.month);
+          const open = new Set(kept.length > 0 ? kept : ordered.slice(0, 1).map((m) => m.month));
+          setOpenMonths(open);
+          if (drawerSigRef.current === filterSignature) {
+            // Same filters, newer data: open months keep showing their rows until the fresh ones
+            // replace them, so coming back to the tab doesn't flash a spinner. Closed months reload
+            // when they're opened.
+            setLoadedMonths((prev) => new Set([...prev].filter((m) => open.has(m))));
+          } else {
+            setExpenses([]);
+            setLoadedMonths(new Set());
+          }
+          drawerSigRef.current = filterSignature;
+          setLoadFailed(false);
+          await Promise.all([...open].map((m) => loadMonth(m, filters, gen)));
+          return;
+        }
+
         const [data, summaryResult, prevTotal] = await Promise.all([
           getExpensesPaginated(DEFAULT_USER_ID, filters, loadEverything ? ALL_ROWS : PAGE_SIZE, offset),
           reset ? getFilteredExpenseSummary(DEFAULT_USER_ID, filters, summaryGroupBy) : Promise.resolve(null),
@@ -389,7 +502,7 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything],
+    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything, drawerMode, minAmount, maxAmount, loadMonth],
   );
 
   // Load reference data once (skipped if already seeded from preload)
@@ -426,7 +539,7 @@ export default function ExpensesScreen() {
       loadExpenses(true);
       getPendingExpenseCount(DEFAULT_USER_ID).then(setPendingCount).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, filterNature, summaryGroupBy, sortBy, loadEverything]),
+    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, filterNature, summaryGroupBy, sortBy, loadEverything, drawerMode, minAmount, maxAmount]),
   );
 
   const handleDelete = useCallback(
@@ -459,6 +572,19 @@ export default function ExpensesScreen() {
                     }
                   : prev,
               );
+              const deletedMonth = expense.date?.slice(0, 7) ?? "";
+              setMonthTotals((prev) => {
+                const m = prev.get(deletedMonth);
+                if (!m) return prev;
+                const next = new Map(prev);
+                next.set(deletedMonth, {
+                  ...m,
+                  count: Math.max(0, m.count - 1),
+                  spent: expense.nature === "credit" ? m.spent : Math.max(0, m.spent - expense.amount),
+                  received: expense.nature === "credit" ? Math.max(0, m.received - expense.amount) : m.received,
+                });
+                return next;
+              });
 
               // The delete is soft, so it is recoverable - but until now the only way back was to
               // find the Recycle Bin in Settings. A split expense is excluded: restoring one has to
@@ -512,7 +638,9 @@ export default function ExpensesScreen() {
   }, [filterNature, summaryGroupBy, natureTabs]);
 
   const clearFilters = useCallback(() => {
-    setDatePreset("this_month");
+    setDatePreset(DEFAULT_PRESET);
+    setMinAmount("");
+    setMaxAmount("");
     setCustomStartDate("");
     setCustomEndDate("");
     setSearch("");
@@ -551,6 +679,8 @@ export default function ExpensesScreen() {
       setFilterAvoidability(f.avoidability ?? "");
       setFilterRuleIds(f.ruleIds ?? []);
       setFilterStatus(f.status ?? "");
+      setMinAmount(f.minAmount != null ? String(f.minAmount) : "");
+      setMaxAmount(f.maxAmount != null ? String(f.maxAmount) : "");
       if (f.sortBy) {
         setSortBy(f.sortBy as ExpenseSortBy);
         settingsStorage.set(SORT_KEY, f.sortBy);
@@ -558,7 +688,7 @@ export default function ExpensesScreen() {
       if (f.groupBy) setGroupByPreference(`transactions_${f.nature ?? "realized"}`, f.groupBy);
       setSearch(f.search ?? "");
       setActiveViewId(view.id);
-      setShowFilters(false);
+      setFilterSheet({ open: false });
     } catch {
       // Corrupted view — ignore silently
     }
@@ -580,9 +710,11 @@ export default function ExpensesScreen() {
     search,
     ruleIds: filterRuleIds,
     status: filterStatus,
+    minAmount: minAmount.trim() && Number.isFinite(parseFloat(minAmount)) ? parseFloat(minAmount) : undefined,
+    maxAmount: maxAmount.trim() && Number.isFinite(parseFloat(maxAmount)) ? parseFloat(maxAmount) : undefined,
     sortBy,
     groupBy: grouping.groupBy,
-  }), [filterRuleIds, filterStatus, sortBy, grouping.groupBy, datePreset, customStartDate, customEndDate, filterNature, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, search]);
+  }), [minAmount, maxAmount, filterRuleIds, filterStatus, sortBy, grouping.groupBy, datePreset, customStartDate, customEndDate, filterNature, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, search]);
 
   const [saveViewName, setSaveViewName] = useState("");
   const [showSaveViewInput, setShowSaveViewInput] = useState(false);
@@ -686,13 +818,13 @@ export default function ExpensesScreen() {
     setIsVoiceSearching(false);
   }, []);
 
-  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterCreditKinds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || !!filterStatus;
+  const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterCreditKinds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || !!filterStatus || !!minAmount.trim() || !!maxAmount.trim();
   const activeNatureIndex = Math.max(0, natureTabs.findIndex((t) => t.key === filterNature));
   // The tab showing was just switched off, or a saved view points at one that is.
   useEffect(() => {
     if (!natureTabs.some((t) => t.key === filterNature)) setFilterNature("realized");
   }, [natureTabs, filterNature]);
-  const hasActiveFilters = hasNonDateFilters || datePreset !== "this_month";
+  const hasActiveFilters = hasNonDateFilters || datePreset !== DEFAULT_PRESET;
 
   const handleItemPress = useCallback(
     (id: string) => {
@@ -947,6 +1079,81 @@ export default function ExpensesScreen() {
     [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, colors],
   );
 
+  // ── Month drawers ──
+  const expensesByMonth = useMemo(() => {
+    const map = new Map<string, Expense[]>();
+    for (const e of expenses) {
+      const m = e.date?.slice(0, 7) ?? "";
+      const list = map.get(m);
+      if (list) list.push(e);
+      else map.set(m, [e]);
+    }
+    return map;
+  }, [expenses]);
+  const dateSorted = sortBy === "date_desc" || sortBy === "date_asc";
+  const drawerRows = useMemo<DrawerRow<Expense>[]>(
+    () =>
+      drawerMode
+        ? buildDrawerRows<Expense>({
+            months: orderMonths(monthTotals, sortBy === "date_asc"),
+            open: openMonths,
+            rowsOf: (m) => (loadedMonths.has(m) ? expensesByMonth.get(m) ?? [] : undefined),
+            dateOf: (e) => e.date ?? "",
+            amountOf: rowAmount,
+            // Day headings in date order; "Group by month" is just the months.
+            dayHeadings: dateSorted && grouping.groupBy === "date",
+          })
+        : [],
+    [drawerMode, monthTotals, sortBy, openMonths, loadedMonths, expensesByMonth, rowAmount, dateSorted, grouping.groupBy],
+  );
+  const transferDrawerMode = filterNature === "transfers" && (transferGroupBy === "date" || transferGroupBy === "month");
+  const transferDrawerRows = useMemo<DrawerRow<AccountTransfer>[]>(() => {
+    if (!transferDrawerMode) return [];
+    const byMonth = new Map<string, AccountTransfer[]>();
+    for (const t of shownTransfers) {
+      const m = t.date.slice(0, 7);
+      byMonth.set(m, [...(byMonth.get(m) ?? []), t]);
+    }
+    return buildDrawerRows<AccountTransfer>({
+      months: orderMonths(summarizeByMonth(shownTransfers, (t) => t.date, (t) => t.amount)),
+      open: openMonths,
+      rowsOf: (m) => byMonth.get(m) ?? [],
+      dateOf: (t) => t.date,
+      amountOf: (t) => t.amount,
+      dayHeadings: false,
+    });
+  }, [transferDrawerMode, shownTransfers, openMonths]);
+  const drawerKind: DrawerMode = filterNature === "all" ? "all" : filterNature === "credit" ? "credit" : filterNature === "transfers" ? "transfer" : "spend";
+
+  const renderDrawerRow = useCallback(
+    <T,>(row: DrawerRow<T>, renderItem: (item: T) => React.ReactElement | null) => {
+      switch (row.kind) {
+        case "month":
+          return <MonthDrawerHeader summary={row.summary} open={row.open} mode={drawerKind} onToggle={() => toggleMonth(row.month)} />;
+        case "day":
+          return (
+            <DrawerBody>
+              <View className="px-4 pt-3 pb-1.5 flex-row items-baseline justify-between border-t border-border">
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground" style={{ letterSpacing: 0.6 }}>
+                  {transactionDayLabel(row.date)}
+                </Text>
+                {row.total !== 0 && <Money value={row.total} signed showPlus className="text-label font-semibold" />}
+              </View>
+            </DrawerBody>
+          );
+        case "item":
+          return <DrawerBody>{renderItem(row.item)}</DrawerBody>;
+        case "loading":
+          return <DrawerLoading />;
+        case "empty":
+          return <DrawerEmpty />;
+        case "end":
+          return <DrawerEnd />;
+      }
+    },
+    [drawerKind, toggleMonth],
+  );
+
   const chooseSort = (v: ExpenseSortBy) => {
     setSortBy(v);
     settingsStorage.set(SORT_KEY, v);
@@ -982,10 +1189,158 @@ export default function ExpensesScreen() {
     }),
     ...(filterRefundedStatus ? [{ key: "refund", label: filterRefundedStatus === "refunded" ? "Refunded" : "Not refunded", onRemove: () => setFilterRefundedStatus("") }] : []),
     ...(filterStatus ? [{ key: "status", label: filterStatus === "pending_review" ? "Pending Review" : "Approved", onRemove: () => setFilterStatus("") }] : []),
+    ...(minAmount.trim() || maxAmount.trim()
+      ? [{
+          key: "amount",
+          label: minAmount.trim() && maxAmount.trim()
+            ? `₹${minAmount}–${maxAmount}`
+            : minAmount.trim() ? `Over ₹${minAmount}` : `Under ₹${maxAmount}`,
+          onRemove: () => { setMinAmount(""); setMaxAmount(""); },
+        }]
+      : []),
+    ...((filterNature === "transfers" ? transferGroupBy : grouping.groupBy) !== "date"
+      ? [{
+          key: "group",
+          label: `Grouped: ${(filterNature === "transfers" ? TRANSFER_GROUP_OPTIONS : grouping.options).find((o) => o.value === (filterNature === "transfers" ? transferGroupBy : grouping.groupBy))?.label ?? ""}`,
+          onRemove: () => (filterNature === "transfers" ? setTransferGroupBy("date") : grouping.setGroupBy("date")),
+        }]
+      : []),
     ...(filterAvoidability
       ? [{ key: "avoid", label: filterAvoidability === "avoidable" ? "Discretionary" : filterAvoidability === "unavoidable" ? "Unavoidable" : "Not classified", onRemove: () => setFilterAvoidability("") }]
       : []),
   ];
+
+  const currentDraft: TxFilterDraft = {
+    sortBy,
+    groupBy: filterNature === "transfers" ? transferGroupBy : grouping.groupBy,
+    datePreset,
+    customStart: customStartDate,
+    customEnd: customEndDate,
+    categoryIds: filterCategoryIds,
+    creditKinds: filterCreditKinds,
+    minAmount,
+    maxAmount,
+    accountIds: filterAccountIds,
+    paymentModeIds: filterPaymentModeIds,
+    status: filterStatus,
+    tagIds: filterTagIds,
+    merchantNames: filterMerchantNames,
+    refundedStatus: filterRefundedStatus,
+    avoidability: filterAvoidability,
+    ruleIds: filterRuleIds,
+  };
+  const appliedCount = draftTotal(currentDraft, DEFAULT_PRESET);
+
+  const applyDraft = (d: TxFilterDraft) => {
+    if (d.sortBy !== sortBy) chooseSort(d.sortBy as ExpenseSortBy);
+    if (filterNature === "transfers") setTransferGroupBy(d.groupBy as TransferGroupBy);
+    else if (d.groupBy !== grouping.groupBy) grouping.setGroupBy(d.groupBy as ExpenseGroupBy);
+    setDatePreset(d.datePreset);
+    setCustomStartDate(d.customStart);
+    setCustomEndDate(d.customEnd);
+    setFilterCategoryIds(d.categoryIds);
+    setFilterCreditKinds(d.creditKinds);
+    setMinAmount(d.minAmount);
+    setMaxAmount(d.maxAmount);
+    setFilterAccountIds(d.accountIds);
+    setFilterPaymentModeIds(d.paymentModeIds);
+    setFilterStatus(d.status);
+    setFilterTagIds(d.tagIds);
+    setFilterMerchantNames(d.merchantNames);
+    setFilterRefundedStatus(d.refundedStatus);
+    setFilterAvoidability(d.avoidability);
+    setFilterRuleIds(d.ruleIds);
+    setActiveViewId(null);
+  };
+
+  // "Dec 2025 – Nov 2026" for whole months, the days otherwise.
+  const rangeLabel = (() => {
+    if (!filterStartDate && !filterEndDate) return "Everything";
+    if (!filterStartDate || !filterEndDate) return filterStartDate ? `From ${formatDateForDisplay(filterStartDate)}` : `Until ${formatDateForDisplay(filterEndDate!)}`;
+    const sm = filterStartDate.slice(0, 7);
+    const em = filterEndDate.slice(0, 7);
+    if (filterStartDate.endsWith("-01") && sm !== em) return `${formatMonthLabel(sm)} – ${formatMonthLabel(em)}`;
+    if (filterStartDate === filterEndDate) return formatDateForDisplay(filterStartDate);
+    return `${formatDateForDisplay(filterStartDate)} – ${formatDateForDisplay(filterEndDate)}`;
+  })();
+
+  const summaryHeader = (
+<>
+                    {summary && summary.count > 0 ? (
+                      <FilterSummaryCard
+                        summary={summary}
+                        groupLabelHeader={
+                          summaryGroupBy === "category"
+                            ? "Category"
+                            : summaryGroupBy === "type"
+                              ? "Type"
+                            : summaryGroupBy === "account"
+                              ? "Account"
+                              : summaryGroupBy === "merchant"
+                                ? "Merchant"
+                                : "Payment Mode"
+                        }
+                        resolveGroupLabel={(key) => {
+                          if (summaryGroupBy === "type") return creditLook(key).name;
+                          if (!key) return summaryGroupBy === "merchant" ? "No merchant" : "Uncategorized";
+                          if (summaryGroupBy === "category") {
+                            const hidden = hiddenCategoryNames.get(key);
+                            return categoryMap.get(key)?.name ?? (hidden ? `${hidden} (hidden)` : "Unknown");
+                          }
+                          if (summaryGroupBy === "payment_mode") return paymentModeMap.get(key)?.name ?? "Unknown";
+                          if (summaryGroupBy === "merchant") return key;
+                          const acct = accountMap.get(key);
+                          return acct
+                            ? `${acct.bank_name} ****${acct.account_identifier}`
+                            : "Unknown";
+                        }}
+                        allowGroupByChange
+                        onChangeGroupBy={setSummaryGroupBy}
+                        previousTotal={previousTotal}
+                        natureKind={filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : ("realized" as const)}
+                        availableGroupBys={
+                          filterNature === "credit"
+                            ? (["type", "account", "merchant"] as const)
+                            : (["category", "account", "payment_mode", "merchant"] as const)
+                        }
+                        groupByLabels={{ type: "Type" }}
+                      />
+                    ) : null}
+                    </>
+  );
+  const expenseEmpty = loadFailed ? <LoadFailed onRetry={() => loadExpenses(true)} /> : loading ? <SkeletonList rows={7} /> : (() => {
+                      const isCreditView = filterNature === "credit";
+                      const emptyIcon = isCreditView ? "arrow-down-circle-outline" : "receipt-outline";
+                      const emptyTitle = hasActiveFilters
+                        ? isCreditView ? "No matching credits" : "No matching expenses"
+                        : isCreditView ? "No credits yet" : "No expenses yet";
+                      const emptySubtitle = hasActiveFilters
+                        ? "Try adjusting your filters"
+                        : isCreditView
+                          ? "Credits appear here when an incoming SMS is parsed"
+                          : "Tap + to add your first expense";
+                      return <EmptyState icon={emptyIcon} title={emptyTitle} subtitle={emptySubtitle} />;
+                    })();
+
+  const drawerKey = <T,>(row: DrawerRow<T>, idOf: (t: T) => string) =>
+    row.kind === "item" ? idOf(row.item) : row.kind === "day" ? `day-${row.date}` : `${row.kind}-${row.month}`;
+
+  const rangeRow = (
+    <View className="flex-row items-center justify-between px-4 pt-3 pb-1" style={{ gap: 8 }}>
+      <Pressable
+        onPress={() => setFilterSheet({ open: true, field: "date" })}
+        className="flex-row items-center rounded-full border border-border bg-card px-3"
+        style={{ height: 34, gap: 6 }}
+        accessibilityRole="button"
+        accessibilityLabel={`Dates: ${DATE_PRESET_LABELS[datePreset]}. Change`}
+      >
+        <Ionicons name="calendar-outline" size={15} color={theme.foreground} />
+        <Text className="text-meta font-semibold text-foreground">{DATE_PRESET_LABELS[datePreset]}</Text>
+        <Ionicons name="chevron-down" size={14} color={theme.foreground} />
+      </Pressable>
+      <Text className="text-xs text-muted-foreground flex-shrink" numberOfLines={1}>{rangeLabel}</Text>
+    </View>
+  );
 
   return (
     <ScreenContainer>
@@ -998,74 +1353,6 @@ export default function ExpensesScreen() {
           onPress: () => router.push("/expense/review-queue"),
         } : undefined}
       />
-      {/* Date preset selector */}
-      <View className="px-4 pt-3">
-        <Pressable
-          onPress={() => setShowDatePicker(!showDatePicker)}
-          className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
-        >
-          <View className="flex-row items-center">
-            <Ionicons name="calendar-outline" size={14} color={theme.primary} style={{ marginRight: 6 }} />
-            <Text className="text-sm font-medium" style={{ color: theme.primary }}>
-              {DATE_PRESET_LABELS[datePreset]}
-            </Text>
-          </View>
-          <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />
-        </Pressable>
-
-        {showDatePicker && (
-          <ScrollView
-            className="mt-1 rounded-lg bg-card overflow-hidden"
-            style={{ maxHeight: 300 }}
-            nestedScrollEnabled
-            showsVerticalScrollIndicator={false}
-          >
-            {DATE_PRESET_ORDER.map((preset) => {
-              const isSelected = datePreset === preset;
-              return (
-                <Pressable
-                  key={preset}
-                  onPress={() => {
-                    setDatePreset(preset);
-                    if (preset !== "custom") setShowDatePicker(false);
-                  }}
-                  className="flex-row items-center justify-between px-3 py-3 border-b border-border"
-                >
-                  <Text
-                    className="text-sm text-foreground"
-                    style={isSelected ? { color: theme.primary, fontWeight: "600" } : undefined}
-                  >
-                    {DATE_PRESET_LABELS[preset]}
-                  </Text>
-                  {isSelected && <Ionicons name="checkmark" size={16} color={theme.primary} />}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        )}
-
-        {datePreset === "custom" && (
-          <View className="flex-row mt-2 gap-3">
-            <View className="flex-1">
-              <DateInput
-                label="From"
-                value={customStartDate}
-                onChange={setCustomStartDate}
-                maximumDate={null}
-              />
-            </View>
-            <View className="flex-1">
-              <DateInput
-                label="To"
-                value={customEndDate}
-                onChange={setCustomEndDate}
-                maximumDate={null}
-              />
-            </View>
-          </View>
-        )}
-      </View>
-
       <ListToolbar<ExpenseSortBy, string>
         search={{
           value: search,
@@ -1099,16 +1386,13 @@ export default function ExpensesScreen() {
             </Pressable>
           ) : null,
         }}
-        filter={{ onPress: () => setShowFilters(true), activeCount: toolbarChips.length }}
+        filter={{ onPress: () => setFilterSheet({ open: true }), activeCount: appliedCount, showCount: true }}
         sort={filterNature === "transfers" ? undefined : {
           value: sortBy,
           defaultValue: "date_desc",
           options: EXPENSE_SORT_OPTIONS,
           onChange: chooseSort,
         }}
-        group={filterNature === "transfers"
-          ? { value: transferGroupBy, defaultValue: "date", options: TRANSFER_GROUP_OPTIONS, onChange: (v) => setTransferGroupBy(v as TransferGroupBy) }
-          : { value: grouping.groupBy, defaultValue: "date", options: grouping.options, onChange: (v) => grouping.setGroupBy(v as ExpenseGroupBy) }}
         chips={toolbarChips}
         onClearAll={() => {
           // Stays on the tab it's on: clearing what's narrowing the list isn't leaving it.
@@ -1143,96 +1427,36 @@ export default function ExpensesScreen() {
         </View>
       )}
 
-      {/* Full-screen filter modal */}
-      <FullScreenFilter
-        visible={showFilters}
-        sections={[
-          ...(savedViews.length > 0
-            ? [{
-                key: "savedViews",
-                label: "Saved views",
-                type: "custom" as const,
-                options: [],
-                selectedIds: [],
-                render: () => (
-                  <Rows className="rounded-lg bg-card overflow-hidden">
-              {savedViews.map((view) => {
-                const isActive = activeViewId === view.id;
-                const isDefault = getDefaultFilterViewId() === view.id;
-                return (
-                  <View key={view.id} className="flex-row items-center border-b border-border">
-                    <Pressable
-                      onPress={() => { applyFilterView(view); setShowFilters(false); }}
-                      className="flex-1 flex-row items-center px-3 py-2.5"
-                    >
-                      {isDefault && <Ionicons name="star" size={11} color={theme.warning} style={{ marginRight: 5 }} />}
-                      <Text className={`text-sm flex-1 ${isActive ? "font-semibold" : "text-foreground"}`} style={isActive ? { color: theme.primary } : undefined}>
-                        {view.name}
-                      </Text>
-                      {isActive && <Ionicons name="checkmark" size={14} color={theme.primary} />}
-                    </Pressable>
-                    <Pressable
-                      onPress={() => handleSetDefault(view.id)}
-                      className="px-2 py-2.5"
-                    >
-                      <Ionicons name={isDefault ? "star" : "star-outline"} size={14} color={theme.warning} />
-                    </Pressable>
-                    <Pressable
-                      onPress={() => { handleDeleteView(view.id, view.name); }}
-                      className="px-2 py-2.5 mr-1"
-                    >
-                      <Ionicons name="trash-outline" size={14} color={colors.textSecondary} />
-                    </Pressable>
-                  </View>
-                );
-              })}
-                  </Rows>
-                ),
-              }]
-            : []),
-          // Each list starts with "No ..." (NOT_SET): transactions with nothing set there.
-          ...(filterNature === "credit"
-            ? [{ key: "creditKind", label: "Type", type: "multi" as const, options: CREDIT_KINDS.map((k) => ({ id: k as string, label: CREDIT_KIND_LABELS[k] })), selectedIds: filterCreditKinds }]
-            : [{ key: "category", label: "Category", type: "multi" as const, options: [{ id: NOT_SET, label: NOT_SET_LABELS.category }, ...categories.map((c) => ({ id: c.id, label: c.name }))], selectedIds: filterCategoryIds, searchable: true },]),
-          { key: "paymentMode", label: "Payment Mode", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.paymentMode }, ...paymentModes.map((p) => ({ id: p.id, label: p.name }))], selectedIds: filterPaymentModeIds },
-          { key: "account", label: "Account", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.account }, ...accounts.map((a) => ({ id: a.id, label: `${a.bank_name} ****${a.account_identifier}` }))], selectedIds: filterAccountIds, searchable: true },
-          { key: "tags", label: "Tags", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.tags }, ...allTags.map((t) => ({ id: t.id, label: t.name, color: t.color }))], selectedIds: filterTagIds },
-          { key: "merchant", label: "Merchant", type: "multi", options: [{ id: NOT_SET, label: NOT_SET_LABELS.merchant }, ...allMerchantNames.map((m) => ({ id: m, label: m }))], selectedIds: filterMerchantNames, searchable: true },
-          ...(allRules.length > 0 ? [{ key: "rule", label: "Smart Rule", type: "multi" as const, options: allRules.map((r) => ({ id: r.id, label: r.name })), selectedIds: filterRuleIds }] : []),
-          ...(filterNature !== "transfers" ? [
-            { key: "status", label: "Status", type: "single" as const, options: [{ id: "pending_review", label: "Pending Review" }, { id: "approved", label: "Approved" }], selectedIds: filterStatus ? [filterStatus] : [] },
-          ] : []),
-          ...(filterNature === "realized" ? [
-            { key: "refundStatus", label: "Refund Status", type: "single" as const, options: [{ id: "refunded", label: "Refunded" }, { id: "not_refunded", label: "Not Refunded" }], selectedIds: filterRefundedStatus ? [filterRefundedStatus] : [] },
-            { key: "avoidability", label: "Unavoidable or discretionary", type: "single" as const, options: [{ id: "unavoidable", label: "Unavoidable" }, { id: "avoidable", label: "Discretionary" }, { id: "unclassified", label: "Not classified" }], selectedIds: filterAvoidability ? [filterAvoidability] : [] },
-          ] : []),
+      <TransactionFilterSheet
+        visible={filterSheet.open}
+        initialField={filterSheet.field}
+        onClose={() => setFilterSheet({ open: false })}
+        onApply={applyDraft}
+        value={currentDraft}
+        nature={filterNature}
+        defaultPreset={DEFAULT_PRESET}
+        sortOptions={EXPENSE_SORT_OPTIONS}
+        groupOptions={filterNature === "transfers" ? TRANSFER_GROUP_OPTIONS : grouping.options}
+        categories={[{ id: NOT_SET, label: NOT_SET_LABELS.category }, ...categories.map((c) => ({ id: c.id, label: c.name, color: c.color }))]}
+        creditKinds={CREDIT_KINDS.map((k) => ({ id: k as string, label: CREDIT_KIND_LABELS[k] }))}
+        accounts={[
+          ...accounts.map((a) => ({
+            id: a.id,
+            label: a.account_label || a.bank_name,
+            sub: a.account_identifier ? `•• ${a.account_identifier.slice(-4)}` : undefined,
+          })),
+          { id: NOT_SET, label: NOT_SET_LABELS.account },
         ]}
-        onApply={(selections) => {
-          setFilterCategoryIds(selections.category ?? []);
-          setFilterCreditKinds(selections.creditKind ?? []);
-          setFilterPaymentModeIds(selections.paymentMode ?? []);
-          setFilterAccountIds(selections.account ?? []);
-          setFilterTagIds(selections.tags ?? []);
-          setFilterMerchantNames(selections.merchant ?? []);
-          setFilterRuleIds(selections.rule ?? []);
-          setFilterStatus(((selections.status ?? [])[0] ?? "") as typeof filterStatus);
-          setFilterRefundedStatus(((selections.refundStatus ?? [])[0] ?? "") as typeof filterRefundedStatus);
-          setFilterAvoidability(((selections.avoidability ?? [])[0] ?? "") as typeof filterAvoidability);
-        }}
-        onReset={() => {
-          setFilterCategoryIds([]);
-          setFilterCreditKinds([]);
-          setFilterPaymentModeIds([]);
-          setFilterAccountIds([]);
-          setFilterTagIds([]);
-          setFilterMerchantNames([]);
-          setFilterRuleIds([]);
-          setFilterStatus("");
-          setFilterRefundedStatus("");
-          setFilterAvoidability("");
-          setActiveViewId(null);
-        }}
-        onClose={() => setShowFilters(false)}
+        paymentModes={[...paymentModes.map((p) => ({ id: p.id, label: p.name })), { id: NOT_SET, label: NOT_SET_LABELS.paymentMode }]}
+        tags={[...allTags.map((t) => ({ id: t.id, label: t.name, color: t.color })), { id: NOT_SET, label: NOT_SET_LABELS.tags }]}
+        merchants={[{ id: NOT_SET, label: NOT_SET_LABELS.merchant }, ...allMerchantNames.map((m) => ({ id: m, label: m }))]}
+        rules={allRules.map((r) => ({ id: r.id, label: r.name }))}
+        savedViews={savedViews}
+        activeViewId={activeViewId}
+        defaultViewId={getDefaultFilterViewId()}
+        onApplyView={applyFilterView}
+        onDeleteView={(v) => handleDeleteView(v.id, v.name)}
+        onToggleDefaultView={(v) => handleSetDefault(v.id)}
       />
 
       {/* Nature tabs + transaction list */}
@@ -1244,8 +1468,29 @@ export default function ExpensesScreen() {
         {natureTabs.map((page, pageIdx) => (
           <View key={page.key} style={{ flex: 1 }}>
             {activeNatureIndex === pageIdx ? (
-              filterNature === "transfers" ? (
+              <View style={{ flex: 1 }}>
+              {rangeRow}
+              {filterNature === "transfers" ? (
+                transferDrawerMode ? (
+                  <FlatList
+                    style={{ flex: 1 }}
+                    data={transferDrawerRows}
+                    keyExtractor={(row) => drawerKey(row, (t) => t.id)}
+                    renderItem={({ item: row }) => renderDrawerRow(row, (t) => renderTransferItem({ item: t }))}
+                    contentContainerStyle={{ paddingBottom: 96 }}
+                    refreshing={loading && transfers.length === 0}
+                    onRefresh={() => loadExpenses(true)}
+                    ListEmptyComponent={
+                      loading ? (
+                        <SkeletonList rows={5} />
+                      ) : (
+                        <EmptyState icon="swap-horizontal-outline" title="No transfers yet" subtitle="Transfers between accounts will appear here" />
+                      )
+                    }
+                  />
+                ) : (
                 <FlatList
+                  style={{ flex: 1 }}
                   initialNumToRender={12}
                   maxToRenderPerBatch={10}
                   windowSize={7}
@@ -1292,8 +1537,28 @@ export default function ExpensesScreen() {
                     )
                   }
                 />
+                )
+              ) : drawerMode ? (
+                <Animated.FlatList
+                  style={{ flex: 1 }}
+                  itemLayoutAnimation={listLayout()}
+                  initialNumToRender={16}
+                  maxToRenderPerBatch={12}
+                  windowSize={9}
+                  data={drawerRows}
+                  keyExtractor={(row) => drawerKey(row, (e) => e.id)}
+                  renderItem={({ item: row }) =>
+                    renderDrawerRow(row, (e) => renderExpenseItem({ item: { _type: "item", expense: e } }))
+                  }
+                  contentContainerStyle={{ paddingBottom: 96 }}
+                  refreshing={loading && drawerRows.length === 0}
+                  onRefresh={() => loadExpenses(true)}
+                  ListHeaderComponent={summaryHeader}
+                  ListEmptyComponent={expenseEmpty}
+                />
               ) : (
                 <Animated.FlatList
+                  style={{ flex: 1 }}
                   // Rows slide up to close the gap when one is approved, deleted or moved.
                   itemLayoutAnimation={listLayout()}
                   initialNumToRender={12}
@@ -1307,65 +1572,8 @@ export default function ExpensesScreen() {
                   contentContainerStyle={{ paddingBottom: 80 }}
                   refreshing={loading && expenses.length === 0}
                   onRefresh={() => loadExpenses(true)}
-                  ListHeaderComponent={
-                    <>
-                    {summary && summary.count > 0 ? (
-                      <FilterSummaryCard
-                        summary={summary}
-                        groupLabelHeader={
-                          summaryGroupBy === "category"
-                            ? "Category"
-                            : summaryGroupBy === "type"
-                              ? "Type"
-                            : summaryGroupBy === "account"
-                              ? "Account"
-                              : summaryGroupBy === "merchant"
-                                ? "Merchant"
-                                : "Payment Mode"
-                        }
-                        resolveGroupLabel={(key) => {
-                          if (summaryGroupBy === "type") return creditLook(key).name;
-                          if (!key) return summaryGroupBy === "merchant" ? "No merchant" : "Uncategorized";
-                          if (summaryGroupBy === "category") {
-                            const hidden = hiddenCategoryNames.get(key);
-                            return categoryMap.get(key)?.name ?? (hidden ? `${hidden} (hidden)` : "Unknown");
-                          }
-                          if (summaryGroupBy === "payment_mode") return paymentModeMap.get(key)?.name ?? "Unknown";
-                          if (summaryGroupBy === "merchant") return key;
-                          const acct = accountMap.get(key);
-                          return acct
-                            ? `${acct.bank_name} ****${acct.account_identifier}`
-                            : "Unknown";
-                        }}
-                        allowGroupByChange
-                        onChangeGroupBy={setSummaryGroupBy}
-                        previousTotal={previousTotal}
-                        natureKind={filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : ("realized" as const)}
-                        availableGroupBys={
-                          filterNature === "credit"
-                            ? (["type", "account", "merchant"] as const)
-                            : (["category", "account", "payment_mode", "merchant"] as const)
-                        }
-                        groupByLabels={{ type: "Type" }}
-                      />
-                    ) : null}
-                    </>
-                  }
-                  ListEmptyComponent={
-                    loadFailed ? <LoadFailed onRetry={() => loadExpenses(true)} /> : loading ? <SkeletonList rows={7} /> : (() => {
-                      const isCreditView = filterNature === "credit";
-                      const emptyIcon = isCreditView ? "arrow-down-circle-outline" : "receipt-outline";
-                      const emptyTitle = hasActiveFilters
-                        ? isCreditView ? "No matching credits" : "No matching expenses"
-                        : isCreditView ? "No credits yet" : "No expenses yet";
-                      const emptySubtitle = hasActiveFilters
-                        ? "Try adjusting your filters"
-                        : isCreditView
-                          ? "Credits appear here when an incoming SMS is parsed"
-                          : "Tap + to add your first expense";
-                      return <EmptyState icon={emptyIcon} title={emptyTitle} subtitle={emptySubtitle} />;
-                    })()
-                  }
+                  ListHeaderComponent={summaryHeader}
+                  ListEmptyComponent={expenseEmpty}
                   ListFooterComponent={
                     loadEverything && expenses.length >= ALL_ROWS ? <ListCapNote limit={ALL_ROWS} /> :
                     // Only while paginating: the empty state already covers the first load.
@@ -1376,7 +1584,8 @@ export default function ExpensesScreen() {
                     ) : null
                   }
                 />
-              )
+              )}
+              </View>
             ) : (
               <View style={{ flex: 1 }} />
             )}

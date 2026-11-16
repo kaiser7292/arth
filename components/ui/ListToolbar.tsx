@@ -31,7 +31,8 @@ export interface ListToolbarProps<S extends string = string, G extends string = 
   };
   /** A list that picks its own dates: this opens that screen's date sheet. */
   dates?: { onPress: () => void; active: boolean };
-  filter?: { onPress: () => void; activeCount: number };
+  /** showCount: a number on the button (how many filters are on) rather than a dot. */
+  filter?: { onPress: () => void; activeCount: number; showCount?: boolean };
   sort?: ToolbarChoice<S>;
   group?: ToolbarChoice<G>;
   /** What's on, each with its own ×. A changed sort and group are added to these. */
@@ -43,12 +44,14 @@ export interface ListToolbarProps<S extends string = string, G extends string = 
   inset?: boolean;
 }
 
-function ToolButton({ icon, activeIcon, label, active, onPress }: {
+function ToolButton({ icon, activeIcon, label, active, onPress, count }: {
   icon: keyof typeof Ionicons.glyphMap;
   activeIcon?: keyof typeof Ionicons.glyphMap;
   label: string;
   active: boolean;
   onPress: () => void;
+  /** Shown as a number badge instead of the dot. */
+  count?: number;
 }) {
   const theme = useTheme();
   return (
@@ -62,10 +65,26 @@ function ToolButton({ icon, activeIcon, label, active, onPress }: {
         backgroundColor: active ? theme.alpha("primary", 0.1) : "transparent",
       }}
       accessibilityRole="button"
-      accessibilityLabel={active ? `${label}, on` : label}
+      accessibilityLabel={count ? `${label}, ${count} on` : active ? `${label}, on` : label}
     >
       <Ionicons name={active ? (activeIcon ?? icon) : icon} size={18} color={active ? theme.primary : theme.mutedForeground} />
-      {active && (
+      {count != null && count > 0 ? (
+        <View
+          className="absolute items-center justify-center rounded-full"
+          style={{
+            top: -6,
+            right: -6,
+            minWidth: 20,
+            height: 20,
+            paddingHorizontal: 5,
+            backgroundColor: theme.primary,
+            borderWidth: 2,
+            borderColor: theme.background,
+          }}
+        >
+          <Text style={{ fontSize: 10, fontWeight: "700", color: theme.primaryForeground }}>{count}</Text>
+        </View>
+      ) : active && (
         <View className="absolute rounded-full" style={{ top: 5, right: 5, width: 6, height: 6, backgroundColor: theme.primary }} />
       )}
     </Pressable>
@@ -144,7 +163,14 @@ export function ListToolbar<S extends string = string, G extends string = string
         )}
         {dates && <ToolButton icon="calendar-outline" label="Dates" active={dates.active} onPress={dates.onPress} />}
         {filter && (
-          <ToolButton icon="funnel-outline" activeIcon="funnel" label="Filter" active={filter.activeCount > 0} onPress={filter.onPress} />
+          <ToolButton
+            icon="funnel-outline"
+            activeIcon="funnel"
+            label="Filter"
+            active={filter.activeCount > 0}
+            onPress={filter.onPress}
+            count={filter.showCount ? filter.activeCount : undefined}
+          />
         )}
         {sort && <ToolButton icon="swap-vertical-outline" label="Sort" active={sortOn} onPress={() => setSheet("sort")} />}
         {group && <ToolButton icon="layers-outline" label="Group by" active={groupOn} onPress={() => setSheet("group")} />}

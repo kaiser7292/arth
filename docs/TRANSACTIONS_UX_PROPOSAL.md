@@ -1,6 +1,6 @@
 # Transactions UX — Learning from Niyo
 
-**Version:** 1.1 | **Date:** November 2026 | **Status:** Ideas 1, 2 and 3a were built (c83d345) and then reverted at the owner's request on 16 Nov 2026; nothing from this proposal is in the app
+**Version:** 1.1 | **Date:** November 2026 | **Status:** The first build (c83d345) was reverted on 16 Nov 2026. The owner then supplied their own design (month drawers + a 20/80 filter sheet), which is what was built; Idea 3b (quick-look drawer) is still open
 
 ---
 

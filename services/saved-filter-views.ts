@@ -20,6 +20,7 @@ export type DatePreset =
   | "this_month"
   | "last_month"
   | "last_3_months"
+  | "last_12_months"
   | "this_quarter"
   | "this_fy"
   | "last_fy"
@@ -51,6 +52,9 @@ export interface FilterViewState {
   /** Missing on views saved before these were kept. */
   ruleIds?: string[];
   status?: "" | "pending_review" | "approved";
+  /** Amount range in rupees; missing on views saved before it existed. */
+  minAmount?: number;
+  maxAmount?: number;
   sortBy?: string;
   groupBy?: string;
 }
@@ -101,6 +105,11 @@ export function resolveDatePreset(preset: DatePreset, customStart?: string, cust
       const d = new Date(now.getFullYear(), now.getMonth() - 2, 1);
       return { start: fmt(d), end: today };
     }
+    case "last_12_months": {
+      // This month and the eleven before it, whole months: what the month drawers show.
+      const d = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+      return { start: fmt(d), end: today };
+    }
     case "this_quarter": {
       const qStart = Math.floor(now.getMonth() / 3) * 3;
       const d = new Date(now.getFullYear(), qStart, 1);
@@ -132,6 +141,7 @@ export const DATE_PRESET_LABELS: Record<DatePreset, string> = {
   this_month: "This Month",
   last_month: "Last Month",
   last_3_months: "Last 3 Months",
+  last_12_months: "Rolling 12 Months",
   this_quarter: "This Quarter",
   this_fy: "This Financial Year",
   last_fy: "Last Financial Year",
@@ -146,6 +156,7 @@ export const DATE_PRESET_ORDER: DatePreset[] = [
   "this_month",
   "last_month",
   "last_3_months",
+  "last_12_months",
   "this_quarter",
   "this_fy",
   "last_fy",
