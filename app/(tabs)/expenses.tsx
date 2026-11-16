@@ -21,8 +21,8 @@ import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, MultiSelectSheet, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
-import type { FABMenuItem, FilterPill, MultiSelectOption, SwipePagerPage, ToolbarChip } from "@/components/ui";
+import { Card, ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
+import type { FABMenuItem, SwipePagerPage, ToolbarChip } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -33,7 +33,6 @@ import { getDataVersion } from "@/services/settings";
 import {
   getExpensesPaginated,
   getFilteredExpenseSummary,
-  getFilteredMonthTotals,
   getPendingExpenseCount,
   getPreviousPeriodTotal,
   deleteExpense,
@@ -45,7 +44,7 @@ import {
   deleteTransfer,
 } from "@/services/account-transfer";
 import type { AccountTransfer } from "@/services/account-transfer";
-import type { FilteredMonthTotal, FilteredSummary } from "@/services/expense";
+import type { FilteredSummary } from "@/services/expense";
 import { FilterSummaryCard } from "@/components/expense/FilterSummaryCard";
 import { getAllCategories, getCategories } from "@/services/category";
 import { getPaymentModes } from "@/services/payment-mode";
@@ -152,10 +151,7 @@ export default function ExpensesScreen() {
   const [datePreset, setDatePreset] = useState<DatePreset>("this_month");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
-  /** Which quick-filter drawer is open, from the pill row under the search box. */
-  const [pillSheet, setPillSheet] = useState<null | "date" | "category" | "creditKind" | "account" | "paymentMode" | "tags">(null);
-  /** Per-month totals for the month headings, from the database (the list itself is paged). */
-  const [monthTotals, setMonthTotals] = useState<Map<string, FilteredMonthTotal>>(new Map());
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const { start: filterStartDate, end: filterEndDate } = useMemo(
     () => resolveDatePreset(datePreset, customStartDate, customEndDate),
@@ -321,7 +317,6 @@ export default function ExpensesScreen() {
             setTransfers(transferData);
             setSummary(null);
             setPreviousTotal(null);
-            setMonthTotals(new Map());
           } else {
             setTransfers((prev) => [...prev, ...transferData]);
           }
@@ -354,19 +349,16 @@ export default function ExpensesScreen() {
           nature,
           segment,
         };
-        const [data, summaryResult, prevTotal, months] = await Promise.all([
+        const [data, summaryResult, prevTotal] = await Promise.all([
           getExpensesPaginated(DEFAULT_USER_ID, filters, loadEverything ? ALL_ROWS : PAGE_SIZE, offset),
           reset ? getFilteredExpenseSummary(DEFAULT_USER_ID, filters, summaryGroupBy) : Promise.resolve(null),
           reset ? getPreviousPeriodTotal(DEFAULT_USER_ID, filters) : Promise.resolve(null),
-          // Month headings are extra: if they fail the list still shows, just without them.
-          reset ? getFilteredMonthTotals(DEFAULT_USER_ID, filters).catch(() => new Map<string, FilteredMonthTotal>()) : Promise.resolve(null),
         ]);
         if (reset) {
           setExpenses(data);
           setTransfers([]);
           if (summaryResult) setSummary(summaryResult);
           setPreviousTotal(prevTotal);
-          if (months) setMonthTotals(months);
         } else {
           setExpenses((prev) => [...prev, ...data]);
         }
@@ -467,19 +459,6 @@ export default function ExpensesScreen() {
                     }
                   : prev,
               );
-              const deletedMonth = expense.date?.slice(0, 7) ?? "";
-              setMonthTotals((prev) => {
-                const m = prev.get(deletedMonth);
-                if (!m) return prev;
-                const next = new Map(prev);
-                next.set(deletedMonth, {
-                  ...m,
-                  count: m.count - 1,
-                  spent: expense.nature === "credit" ? m.spent : Math.max(0, m.spent - expense.amount),
-                  received: expense.nature === "credit" ? Math.max(0, m.received - expense.amount) : m.received,
-                });
-                return next;
-              });
 
               // The delete is soft, so it is recoverable - but until now the only way back was to
               // find the Recycle Bin in Settings. A split expense is excluded: restoring one has to
@@ -874,16 +853,8 @@ export default function ExpensesScreen() {
   // sentinel or an expense item. useMemo keeps it O(n) and only reruns when
   // the expenses array reference changes.
   type DateGroupRow =
-    | { _type: "month"; month: string; total: FilteredMonthTotal | null }
     | { _type: "header"; date: string; label: string; total: number }
     | { _type: "item"; expense: Expense };
-
-  // A month heading above each month's days, once the list covers more than one month. Only in
-  // date order: sorted by amount, months are interleaved and a heading per row would be noise.
-  const showMonthBands =
-    grouping.groupBy === "date" &&
-    (sortBy === "date_desc" || sortBy === "date_asc") &&
-    (monthTotals.size > 1 || new Set(expenses.map((e) => e.date?.slice(0, 7))).size > 1);
 
   const groupedExpenses = useMemo<DateGroupRow[]>(() => {
     if (expenses.length === 0) return [];
@@ -896,15 +867,9 @@ export default function ExpensesScreen() {
     }
     const rows: DateGroupRow[] = [];
     let lastDate = "";
-    let lastMonth = "";
     let currentHeader: Extract<DateGroupRow, { _type: "header" }> | null = null;
     for (const expense of expenses) {
       const expDate = expense.date?.slice(0, 10) ?? "";
-      const expMonth = expDate.slice(0, 7);
-      if (showMonthBands && expMonth !== lastMonth) {
-        rows.push({ _type: "month", month: expMonth, total: monthTotals.get(expMonth) ?? null });
-        lastMonth = expMonth;
-      }
       if (expDate !== lastDate) {
         currentHeader = { _type: "header", date: expDate, label: transactionDayLabel(expDate), total: 0 };
         rows.push(currentHeader);
@@ -919,42 +884,10 @@ export default function ExpensesScreen() {
       }
     }
     return rows;
-  }, [expenses, grouping.groupBy, grouping.rows, rowAmount, showMonthBands, monthTotals]);
-
-  // Month headings stay at the top while their month scrolls under them. Shifted by one for the
-  // list's header (the summary card), which the list counts as its first child.
-  const stickyMonthIndices = useMemo(
-    () => (showMonthBands ? groupedExpenses.flatMap((row, i) => (row._type === "month" ? [i + 1] : [])) : undefined),
-    [groupedExpenses, showMonthBands],
-  );
+  }, [expenses, grouping.groupBy, grouping.rows, rowAmount]);
 
   const renderExpenseItem = useCallback(
     ({ item }: { item: DateGroupRow }) => {
-      if (item._type === "month") {
-        const t = item.total;
-        return (
-          // Solid background: it sticks to the top with rows scrolling beneath it.
-          <View
-            className="px-4 pt-3 pb-2 flex-row items-baseline justify-between bg-background border-b border-border"
-            accessibilityRole="header"
-          >
-            <Text className="text-sm font-bold text-foreground">
-              {formatMonthLabel(item.month, "long")}
-              {t ? <Text className="text-xs font-normal text-muted-foreground">{`  ·  ${t.count}`}</Text> : null}
-            </Text>
-            {t && (
-              <View className="flex-row items-baseline" style={{ gap: 10 }}>
-                {filterNature !== "credit" && (filterNature !== "all" || t.spent > 0) && (
-                  <Money value={-t.spent} signed className="text-sm font-semibold" />
-                )}
-                {(filterNature === "credit" || (filterNature === "all" && t.received > 0)) && (
-                  <Money value={t.received} signed showPlus className="text-sm font-semibold" />
-                )}
-              </View>
-            )}
-          </View>
-        );
-      }
       if (item._type === "header") {
         return (
           // The day's net sits beside its date, so scanning down the list answers "what did that
@@ -1011,7 +944,7 @@ export default function ExpensesScreen() {
         </View>
       );
     },
-    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, colors, filterNature],
+    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, colors],
   );
 
   const chooseSort = (v: ExpenseSortBy) => {
@@ -1054,155 +987,6 @@ export default function ExpensesScreen() {
       : []),
   ];
 
-  // Everything the pill row shows itself is left out of the "what's on" line; the rest still goes there.
-  const shownAsPill = (key: string) =>
-    filterNature !== "transfers" &&
-    ((key.startsWith("kind-") && filterNature === "credit") || (key.startsWith("cat-") && filterNature !== "credit") ||
-      key.startsWith("pm-") || key.startsWith("acct-") || key.startsWith("tag-") ||
-      (key === "status" && filterStatus === "pending_review") ||
-      (key === "refund" && filterRefundedStatus === "refunded" && filterNature === "realized"));
-  const extraChips = toolbarChips.filter((c) => !shownAsPill(c.key));
-
-  /** "Food", "Food +2", or the pill's own name when nothing is picked. */
-  const pillLabel = (ids: string[], nameOf: (id: string) => string | undefined, empty: string) => {
-    if (ids.length === 0) return empty;
-    const first = nameOf(ids[0]) ?? empty;
-    return ids.length === 1 ? first : `${first} +${ids.length - 1}`;
-  };
-  const categoryName = (id: string) => (id === NOT_SET ? NOT_SET_LABELS.category : categoryMap.get(id)?.name);
-  const accountName = (id: string) => {
-    if (id === NOT_SET) return NOT_SET_LABELS.account;
-    const a = accountMap.get(id);
-    return a ? `${a.bank_name} ${a.account_identifier ? `••${a.account_identifier.slice(-4)}` : ""}`.trim() : undefined;
-  };
-  const paymentModeName = (id: string) => (id === NOT_SET ? NOT_SET_LABELS.paymentMode : paymentModeMap.get(id)?.name);
-  const tagName = (id: string) => (id === NOT_SET ? NOT_SET_LABELS.tags : allTags.find((t) => t.id === id)?.name);
-
-  const datePill: FilterPill = {
-    key: "date",
-    label: DATE_PRESET_LABELS[datePreset],
-    active: datePreset !== "this_month",
-    caret: true,
-    onPress: () => setPillSheet("date"),
-    onClear: () => setDatePreset("this_month"),
-    icon: "calendar-outline",
-  };
-  const filterPills: FilterPill[] = filterNature === "transfers"
-    ? [{ ...datePill, pinned: true }]
-    : [
-        {
-          key: "all",
-          label: "Filters",
-          icon: "options-outline",
-          active: extraChips.length > 0,
-          count: extraChips.length,
-          onPress: () => setShowFilters(true),
-          pinned: true,
-        },
-        datePill,
-        filterNature === "credit"
-          ? {
-              key: "creditKind",
-              label: pillLabel(filterCreditKinds, (k) => creditLook(k).name, "Type"),
-              active: filterCreditKinds.length > 0,
-              caret: true,
-              onPress: () => setPillSheet("creditKind"),
-              onClear: () => setFilterCreditKinds([]),
-            }
-          : {
-              key: "category",
-              label: pillLabel(filterCategoryIds, categoryName, "Category"),
-              active: filterCategoryIds.length > 0,
-              caret: true,
-              onPress: () => setPillSheet("category"),
-              onClear: () => setFilterCategoryIds([]),
-            },
-        {
-          key: "account",
-          label: pillLabel(filterAccountIds, accountName, "Account"),
-          active: filterAccountIds.length > 0,
-          caret: true,
-          onPress: () => setPillSheet("account"),
-          onClear: () => setFilterAccountIds([]),
-        },
-        {
-          key: "paymentMode",
-          label: pillLabel(filterPaymentModeIds, paymentModeName, "Payment mode"),
-          active: filterPaymentModeIds.length > 0,
-          caret: true,
-          onPress: () => setPillSheet("paymentMode"),
-          onClear: () => setFilterPaymentModeIds([]),
-        },
-        {
-          key: "review",
-          label: "Needs review",
-          active: filterStatus === "pending_review",
-          onPress: () => setFilterStatus((v) => (v === "pending_review" ? "" : "pending_review")),
-          onClear: () => setFilterStatus(""),
-        },
-        ...(filterNature === "realized"
-          ? [{
-              key: "refunded",
-              label: "Refunded",
-              active: filterRefundedStatus === "refunded",
-              onPress: () => setFilterRefundedStatus((v) => (v === "refunded" ? "" : "refunded")),
-              onClear: () => setFilterRefundedStatus(""),
-            }]
-          : []),
-        ...(allTags.length > 0
-          ? [{
-              key: "tags",
-              label: pillLabel(filterTagIds, tagName, "Tags"),
-              active: filterTagIds.length > 0,
-              caret: true,
-              onPress: () => setPillSheet("tags"),
-              onClear: () => setFilterTagIds([]),
-            }]
-          : []),
-      ];
-
-  const multiSheet: { title: string; options: MultiSelectOption[]; selected: string[]; apply: (v: string[]) => void } | null =
-    pillSheet === "category"
-      ? {
-          title: "Category",
-          options: [{ value: NOT_SET, label: NOT_SET_LABELS.category }, ...categories.map((c) => ({ value: c.id, label: c.name }))],
-          selected: filterCategoryIds,
-          apply: setFilterCategoryIds,
-        }
-      : pillSheet === "creditKind"
-        ? {
-            title: "Type",
-            options: CREDIT_KINDS.map((k) => ({ value: k as string, label: CREDIT_KIND_LABELS[k] })),
-            selected: filterCreditKinds,
-            apply: setFilterCreditKinds,
-          }
-        : pillSheet === "account"
-          ? {
-              title: "Account",
-              options: [{ value: NOT_SET, label: NOT_SET_LABELS.account }, ...accounts.map((a) => ({ value: a.id, label: `${a.bank_name} ****${a.account_identifier}` }))],
-              selected: filterAccountIds,
-              apply: setFilterAccountIds,
-            }
-          : pillSheet === "paymentMode"
-            ? {
-                title: "Payment mode",
-                options: [{ value: NOT_SET, label: NOT_SET_LABELS.paymentMode }, ...paymentModes.map((p) => ({ value: p.id, label: p.name }))],
-                selected: filterPaymentModeIds,
-                apply: setFilterPaymentModeIds,
-              }
-            : pillSheet === "tags"
-              ? {
-                  title: "Tags",
-                  options: [{ value: NOT_SET, label: NOT_SET_LABELS.tags }, ...allTags.map((t) => ({ value: t.id, label: t.name, color: t.color }))],
-                  selected: filterTagIds,
-                  apply: setFilterTagIds,
-                }
-              : null;
-  // Keeps the drawer's contents while it slides away, instead of emptying them as it closes.
-  const lastMultiSheet = useRef(multiSheet);
-  if (multiSheet) lastMultiSheet.current = multiSheet;
-  const shownMultiSheet = multiSheet ?? lastMultiSheet.current;
-
   return (
     <ScreenContainer>
       <ContextualHeader
@@ -1214,6 +998,74 @@ export default function ExpensesScreen() {
           onPress: () => router.push("/expense/review-queue"),
         } : undefined}
       />
+      {/* Date preset selector */}
+      <View className="px-4 pt-3">
+        <Pressable
+          onPress={() => setShowDatePicker(!showDatePicker)}
+          className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card"
+        >
+          <View className="flex-row items-center">
+            <Ionicons name="calendar-outline" size={14} color={theme.primary} style={{ marginRight: 6 }} />
+            <Text className="text-sm font-medium" style={{ color: theme.primary }}>
+              {DATE_PRESET_LABELS[datePreset]}
+            </Text>
+          </View>
+          <Ionicons name={showDatePicker ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />
+        </Pressable>
+
+        {showDatePicker && (
+          <ScrollView
+            className="mt-1 rounded-lg bg-card overflow-hidden"
+            style={{ maxHeight: 300 }}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+          >
+            {DATE_PRESET_ORDER.map((preset) => {
+              const isSelected = datePreset === preset;
+              return (
+                <Pressable
+                  key={preset}
+                  onPress={() => {
+                    setDatePreset(preset);
+                    if (preset !== "custom") setShowDatePicker(false);
+                  }}
+                  className="flex-row items-center justify-between px-3 py-3 border-b border-border"
+                >
+                  <Text
+                    className="text-sm text-foreground"
+                    style={isSelected ? { color: theme.primary, fontWeight: "600" } : undefined}
+                  >
+                    {DATE_PRESET_LABELS[preset]}
+                  </Text>
+                  {isSelected && <Ionicons name="checkmark" size={16} color={theme.primary} />}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
+
+        {datePreset === "custom" && (
+          <View className="flex-row mt-2 gap-3">
+            <View className="flex-1">
+              <DateInput
+                label="From"
+                value={customStartDate}
+                onChange={setCustomStartDate}
+                maximumDate={null}
+              />
+            </View>
+            <View className="flex-1">
+              <DateInput
+                label="To"
+                value={customEndDate}
+                onChange={setCustomEndDate}
+                maximumDate={null}
+              />
+            </View>
+          </View>
+        )}
+      </View>
+
       <ListToolbar<ExpenseSortBy, string>
         search={{
           value: search,
@@ -1247,7 +1099,7 @@ export default function ExpensesScreen() {
             </Pressable>
           ) : null,
         }}
-        pills={filterPills}
+        filter={{ onPress: () => setShowFilters(true), activeCount: toolbarChips.length }}
         sort={filterNature === "transfers" ? undefined : {
           value: sortBy,
           defaultValue: "date_desc",
@@ -1257,8 +1109,7 @@ export default function ExpensesScreen() {
         group={filterNature === "transfers"
           ? { value: transferGroupBy, defaultValue: "date", options: TRANSFER_GROUP_OPTIONS, onChange: (v) => setTransferGroupBy(v as TransferGroupBy) }
           : { value: grouping.groupBy, defaultValue: "date", options: grouping.options, onChange: (v) => grouping.setGroupBy(v as ExpenseGroupBy) }}
-        chips={extraChips}
-        clearable={hasActiveFilters}
+        chips={toolbarChips}
         onClearAll={() => {
           // Stays on the tab it's on: clearing what's narrowing the list isn't leaving it.
           const tab = filterNature;
@@ -1268,17 +1119,6 @@ export default function ExpensesScreen() {
         }}
         action={hasActiveFilters ? { label: "Save view", onPress: handleSaveView } : undefined}
       />
-
-      {datePreset === "custom" && (
-        <View className="flex-row px-4 pb-1 gap-3">
-          <View className="flex-1">
-            <DateInput label="From" value={customStartDate} onChange={setCustomStartDate} maximumDate={null} />
-          </View>
-          <View className="flex-1">
-            <DateInput label="To" value={customEndDate} onChange={setCustomEndDate} maximumDate={null} />
-          </View>
-        </View>
-      )}
 
       {/* Save view inline input */}
       {showSaveViewInput && (
@@ -1395,25 +1235,6 @@ export default function ExpensesScreen() {
         onClose={() => setShowFilters(false)}
       />
 
-      {/* Quick-filter drawers, opened from the pill row. */}
-      <SelectSheet<DatePreset>
-        visible={pillSheet === "date"}
-        title="Dates"
-        options={DATE_PRESET_ORDER.map((p) => ({ value: p, label: DATE_PRESET_LABELS[p] }))}
-        value={datePreset}
-        onChange={setDatePreset}
-        onClose={() => setPillSheet(null)}
-        searchable={false}
-      />
-      <MultiSelectSheet
-        visible={multiSheet != null}
-        title={shownMultiSheet?.title ?? ""}
-        options={shownMultiSheet?.options ?? []}
-        selected={shownMultiSheet?.selected ?? []}
-        onApply={(v) => shownMultiSheet?.apply(v)}
-        onClose={() => setPillSheet(null)}
-      />
-
       {/* Nature tabs + transaction list */}
       <SwipePager
         pages={natureTabs}
@@ -1479,9 +1300,7 @@ export default function ExpensesScreen() {
                   maxToRenderPerBatch={10}
                   windowSize={7}
                   data={groupedExpenses}
-                  keyExtractor={(item, index) =>
-                    item._type === "month" ? `month-${item.month}` : item._type === "header" ? `header-${item.date}-${index}` : item.expense.id}
-                  stickyHeaderIndices={stickyMonthIndices}
+                  keyExtractor={(item, index) => item._type === "header" ? `header-${item.date}-${index}` : item.expense.id}
                   renderItem={renderExpenseItem}
                   onEndReached={handleLoadMore}
                   onEndReachedThreshold={0.3}

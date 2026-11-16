@@ -1,6 +1,6 @@
 # Transactions UX — Learning from Niyo
 
-**Version:** 1.1 | **Date:** November 2026 | **Status:** Ideas 1, 2 and 3a built (Nov 2026, owner approved "build it"); 3b, 4 and 5 not started
+**Version:** 1.1 | **Date:** November 2026 | **Status:** Ideas 1, 2 and 3a were built (c83d345) and then reverted at the owner's request on 16 Nov 2026; nothing from this proposal is in the app
 
 ---
 

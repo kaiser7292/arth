@@ -324,47 +324,6 @@ export async function getFilteredExpenseSummary(
   };
 }
 
-/** One month of a filtered list: what went out, what came in, and how many rows. */
-export interface FilteredMonthTotal {
-  /** "YYYY-MM" */
-  month: string;
-  spent: number;
-  received: number;
-  count: number;
-}
-
-/**
- * Per-month totals for the same filters as getExpensesPaginated, for the month headings in the
- * Transactions list. The list loads in pages, so a month can be half-loaded: its heading must come
- * from here, not from adding up the rows on screen.
- *
- * Spends are counted the way the list's day totals count them: after refunds on a spending list,
- * as paid on All (where refunds are their own credit rows, so taking them off too would count them
- * twice).
- */
-export async function getFilteredMonthTotals(
-  userId: string,
-  filters: ExpenseFilters = {},
-): Promise<Map<string, FilteredMonthTotal>> {
-  const db = getDatabase();
-  const nature = filters.nature ?? "realized";
-  const { conditions, params } = buildFilterConditions(userId, filters);
-  const spendExpr = nature === "all" ? "expenses.amount" : effectiveAmountSql("expenses");
-  const rows = await db.getAllAsync<{ month: string; spent: number | null; received: number | null; count: number }>(
-    `SELECT SUBSTR(date, 1, 7) as month,
-            SUM(CASE WHEN nature = 'credit' THEN 0 ELSE ${spendExpr} END) as spent,
-            SUM(CASE WHEN nature = 'credit' THEN amount ELSE 0 END) as received,
-            COUNT(*) as count
-       FROM expenses
-      WHERE ${conditions.join(" AND ")}
-      GROUP BY SUBSTR(date, 1, 7);`,
-    ...params,
-  );
-  const out = new Map<string, FilteredMonthTotal>();
-  for (const r of rows) out.set(r.month, { month: r.month, spent: r.spent ?? 0, received: r.received ?? 0, count: r.count });
-  return out;
-}
-
 /**
  * Get total spending for the previous period of the same length as [startDate, endDate].
  * Used to compute MoM / period-over-period trend deltas for the filter summary card.
