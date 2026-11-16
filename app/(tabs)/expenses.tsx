@@ -32,6 +32,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { getDataVersion } from "@/services/settings";
 import {
   getExpensesPaginated,
+  countFilteredExpenses,
   getFilteredExpenseSummary,
   getFilteredMonthTotals,
   getPendingExpenseCount,
@@ -116,6 +117,39 @@ const NATURE_TABS: SwipePagerPage[] = [
   { key: "credit", label: "Credits" },
   { key: "transfers", label: "Transfers" },
 ];
+
+/** The query a set of filters runs. One place, so the list and the sheet's count can't disagree. */
+function filtersFromDraft(
+  d: Omit<TxFilterDraft, "groupBy">,
+  filterNature: "realized" | "committed" | "credit" | "transfers" | "all",
+  search: string,
+) {
+  const { start, end } = resolveDatePreset(d.datePreset, d.customStart, d.customEnd);
+  const minN = parseFloat(d.minAmount);
+  const maxN = parseFloat(d.maxAmount);
+  const nature: "realized" | "credit" | "all" = filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "realized";
+  const segment = filterNature === "committed" ? ("committed" as const) : filterNature === "realized" ? ("spend" as const) : undefined;
+  return {
+    startDate: start,
+    endDate: end,
+    search: search.trim() || undefined,
+    categoryIds: d.categoryIds.length > 0 ? d.categoryIds : undefined,
+    creditKinds: d.creditKinds.length > 0 ? d.creditKinds : undefined,
+    paymentModeIds: d.paymentModeIds.length > 0 ? d.paymentModeIds : undefined,
+    accountIds: d.accountIds.length > 0 ? d.accountIds : undefined,
+    tagIds: d.tagIds.length > 0 ? d.tagIds : undefined,
+    merchantNames: d.merchantNames.length > 0 ? d.merchantNames : undefined,
+    refundedStatus: d.refundedStatus || undefined,
+    avoidability: d.avoidability || undefined,
+    ruleIds: d.ruleIds.length > 0 ? d.ruleIds : undefined,
+    status: d.status || undefined,
+    minAmount: Number.isFinite(minN) ? minN : undefined,
+    maxAmount: Number.isFinite(maxN) ? maxN : undefined,
+    sortBy: d.sortBy as ExpenseSortBy,
+    nature,
+    segment,
+  };
+}
 
 export default function ExpensesScreen() {
   const alert = useAlert();
@@ -400,32 +434,28 @@ export default function ExpensesScreen() {
         }
 
         const offset = reset ? 0 : expensesLenRef.current;
-        const minN = parseFloat(minAmount);
-        const maxN = parseFloat(maxAmount);
-        const nature: "realized" | "credit" | "all" = filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "realized";
-        const segment = filterNature === "committed" ? "committed" as const
-          : filterNature === "realized" ? "spend" as const
-          : undefined;
-        const filters = {
-          startDate: filterStartDate,
-          endDate: filterEndDate,
-          search: debouncedSearch.trim() || undefined,
-          categoryIds: filterCategoryIds.length > 0 ? filterCategoryIds : undefined,
-          creditKinds: filterCreditKinds.length > 0 ? filterCreditKinds : undefined,
-          paymentModeIds: filterPaymentModeIds.length > 0 ? filterPaymentModeIds : undefined,
-          accountIds: filterAccountIds.length > 0 ? filterAccountIds : undefined,
-          tagIds: filterTagIds.length > 0 ? filterTagIds : undefined,
-          merchantNames: filterMerchantNames.length > 0 ? filterMerchantNames : undefined,
-          refundedStatus: filterRefundedStatus || undefined,
-          avoidability: filterAvoidability || undefined,
-          ruleIds: filterRuleIds.length > 0 ? filterRuleIds : undefined,
-          status: filterStatus || undefined,
-          minAmount: Number.isFinite(minN) ? minN : undefined,
-          maxAmount: Number.isFinite(maxN) ? maxN : undefined,
-          sortBy,
-          nature,
-          segment,
-        };
+        const filters = filtersFromDraft(
+          {
+            sortBy,
+            datePreset,
+            customStart: customStartDate,
+            customEnd: customEndDate,
+            categoryIds: filterCategoryIds,
+            creditKinds: filterCreditKinds,
+            minAmount,
+            maxAmount,
+            accountIds: filterAccountIds,
+            paymentModeIds: filterPaymentModeIds,
+            status: filterStatus,
+            tagIds: filterTagIds,
+            merchantNames: filterMerchantNames,
+            refundedStatus: filterRefundedStatus,
+            avoidability: filterAvoidability,
+            ruleIds: filterRuleIds,
+          },
+          filterNature,
+          debouncedSearch,
+        );
         lastFiltersRef.current = filters;
 
         if (drawerMode) {
@@ -502,7 +532,7 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything, drawerMode, minAmount, maxAmount, loadMonth],
+    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, datePreset, customStartDate, customEndDate, filterCreditKinds, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything, drawerMode, minAmount, maxAmount, loadMonth],
   );
 
   // Load reference data once (skipped if already seeded from preload)
@@ -1231,6 +1261,18 @@ export default function ExpensesScreen() {
   };
   const appliedCount = draftTotal(currentDraft, DEFAULT_PRESET);
 
+  // The filter sheet's "Show 24 transactions": same query as the list, counted.
+  const countForDraft = useCallback(
+    async (d: TxFilterDraft): Promise<number | null> => {
+      if (filterNature === "transfers") {
+        const { start, end } = resolveDatePreset(d.datePreset, d.customStart, d.customEnd);
+        return (await getTransfersForUser(DEFAULT_USER_ID, start || "", end || "")).length;
+      }
+      return countFilteredExpenses(DEFAULT_USER_ID, filtersFromDraft(d, filterNature, debouncedSearch));
+    },
+    [filterNature, debouncedSearch],
+  );
+
   const applyDraft = (d: TxFilterDraft) => {
     if (d.sortBy !== sortBy) chooseSort(d.sortBy as ExpenseSortBy);
     if (filterNature === "transfers") setTransferGroupBy(d.groupBy as TransferGroupBy);
@@ -1457,6 +1499,7 @@ export default function ExpensesScreen() {
         onApplyView={applyFilterView}
         onDeleteView={(v) => handleDeleteView(v.id, v.name)}
         onToggleDefaultView={(v) => handleSetDefault(v.id)}
+        countFor={countForDraft}
       />
 
       {/* Nature tabs + transaction list */}

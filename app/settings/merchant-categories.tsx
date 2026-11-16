@@ -131,6 +131,7 @@ export default function MerchantCategoriesScreen() {
   return (
     <ScreenContainer padTop={false}>
       <FullScreenFilter
+        noun={{ one: "merchant", many: "merchants" }}
         visible={filterOpen}
         sections={[{
           key: "show",

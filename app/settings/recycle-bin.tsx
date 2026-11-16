@@ -569,6 +569,7 @@ export default function RecycleBinScreen() {
   const section = sectionConfig[activeFilter];
   const tools = useListTools<any>({
     screen: "recycle_bin",
+    noun: { one: "item", many: "items" },
     rows: section.data,
     fields: NO_FIELDS,
     sorts: BIN_SORTS,

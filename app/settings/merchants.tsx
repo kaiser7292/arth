@@ -77,6 +77,7 @@ export default function MerchantsScreen() {
 
   const tools = useListTools<MerchantSummary>({
     screen: "merchants",
+    noun: { one: "merchant", many: "merchants" },
     rows: merchants ?? [],
     fields: MERCHANT_FIELDS,
     sorts: MERCHANT_SORTS,

@@ -118,3 +118,22 @@ describe("SearchField", () => {
     expect(AMOUNT_SEARCH_PLACEHOLDER).toContain(">5000");
   });
 });
+
+import { applyLabelFor, iconForFilter } from "../../components/ui/FilterSheetParts";
+
+describe("filter sheet frame", () => {
+  it("says how many will show", () => {
+    expect(applyLabelFor(24, 2)).toBe("Show 24 transactions");
+    expect(applyLabelFor(1, 1)).toBe("Show 1 transaction");
+    expect(applyLabelFor(0, 3)).toBe("No transactions match");
+    expect(applyLabelFor(null, 0)).toBe("Show all transactions");
+    expect(applyLabelFor(null, 2)).toBe("Apply");
+    expect(applyLabelFor(5000, 1, { one: "merchant", many: "merchants" })).toBe("Show 5,000 merchants");
+  });
+
+  it("guesses a rail icon from the field", () => {
+    expect(iconForFilter("date")).toBe("calendar-outline");
+    expect(iconForFilter("merchant")).toBe("storefront-outline");
+    expect(iconForFilter("xyz")).toBe("funnel-outline");
+  });
+});

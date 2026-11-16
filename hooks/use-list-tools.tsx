@@ -43,6 +43,7 @@ export function useListTools<T>({
   noGrouping = true,
   amountOf,
   extraFilter,
+  noun,
 }: {
   screen: string;
   rows: readonly T[];
@@ -58,6 +59,8 @@ export function useListTools<T>({
   noGrouping?: boolean;
   amountOf?: (row: T) => number;
   extraFilter?: ExtraFilter;
+  /** What the rows are called, for the filter sheet's "Show 24 merchants". */
+  noun?: { one: string; many: string };
 }) {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Record<string, string[]>>({});
@@ -152,6 +155,16 @@ export function useListTools<T>({
       }}
       onReset={clearFilters}
       onClose={() => setFilterOpen(false)}
+      noun={noun}
+      countFor={(selections) => {
+        // A screen's own filters (a date range that decides what is loaded) can't be counted here.
+        const extraChanged = (extraFilter?.sections ?? []).some(
+          (s) => (selections[s.key] ?? []).join("|") !== s.selectedIds.join("|"),
+        );
+        if (extraChanged) return null;
+        const own = Object.fromEntries(filterFields.map((f) => [f.id, selections[f.id] ?? []]));
+        return filterRows(rows, fields, own, query, search).length;
+      }}
     />
   ) : null;
 

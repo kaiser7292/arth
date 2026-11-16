@@ -343,6 +343,7 @@ export default function LedgerScreen() {
   );
   const tools = useListTools<HisaabEntry>({
     screen: "hisaab_ledger",
+    noun: { one: "entry", many: "entries" },
     rows: entries,
     fields,
     search: hisaabSearch,

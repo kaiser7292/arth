@@ -1,9 +1,14 @@
-import { useState, useMemo, type ReactNode } from "react";
-import { DateInput, Text } from "@/components/ui";
-import { View, Pressable, ScrollView, TextInput, Modal } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ScrollView, View, useWindowDimensions } from "react-native";
+import type Ionicons from "@expo/vector-icons/Ionicons";
+import { CheckRow, DateInput, RadioRow, SearchField, SectionTitle, Sheet, Text } from "@/components/ui";
+import {
+  FilterRailItem,
+  FilterSheetFooter,
+  FilterSheetHeader,
+  applyLabelFor,
+  iconForFilter,
+} from "@/components/ui/FilterSheetParts";
 import { useTheme } from "@/hooks/use-theme";
 
 interface FilterSection {
@@ -15,10 +20,24 @@ interface FilterSection {
   selectedIds: string[];
   searchable?: boolean;
   render?: () => ReactNode;
+  /** Rail icon. Guessed from the key and label when left out. */
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** Under the section title. Defaults to "Select any" / "Pick one" / "Choose a range". */
+  hint?: string;
 }
 
 const countOn = (section: FilterSection, selected: string[]) =>
   section.type === "custom" ? 0 : section.type === "dates" ? (selected[0] && selected[1] ? 1 : 0) : selected.length;
+
+const HINT: Record<FilterSection["type"], string> = {
+  multi: "Select any",
+  single: "Pick one",
+  dates: "Choose a range",
+  custom: "",
+};
+
+/** Long lists show this many until a search narrows them. */
+const LIST_CAP = 60;
 
 interface FullScreenFilterProps {
   visible: boolean;
@@ -26,18 +45,20 @@ interface FullScreenFilterProps {
   onApply: (selections: Record<string, string[]>) => void;
   onReset: () => void;
   onClose: () => void;
+  /** How many rows the selections would show, for "Show 24 items". Null when it can't tell. */
+  countFor?: (selections: Record<string, string[]>) => number | null;
+  /** What the rows are called: { one: "merchant", many: "merchants" }. */
+  noun?: { one: string; many: string };
 }
 
-export function FullScreenFilter({
-  visible,
-  sections,
-  onApply,
-  onReset,
-  onClose,
-}: FullScreenFilterProps) {
-  const { colors, colorScheme } = useColorScheme();
+/**
+ * The filter sheet for every list that isn't the Transactions tab: the same frame as
+ * TransactionFilterSheet (icon rail, section title with its icon, Cancel / Apply) showing one
+ * section at a time. Name kept for its callers; it is now a bottom sheet, not a full-screen modal.
+ */
+export function FullScreenFilter({ visible, sections, onApply, onReset, onClose, countFor, noun }: FullScreenFilterProps) {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
+  const { height: winH } = useWindowDimensions();
 
   // Opens on a filter, not on a section like saved views.
   const firstSection = (sections.find((s) => s.type !== "custom") ?? sections[0])?.key ?? "";
@@ -49,24 +70,29 @@ export function FullScreenFilter({
   });
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Reset local state when modal opens
-  const resetLocal = () => {
+  // Each opening starts from what's applied.
+  useEffect(() => {
+    if (!visible) return;
     const map: Record<string, string[]> = {};
     for (const s of sections) map[s.key] = [...s.selectedIds];
     setLocalSelections(map);
     setActiveSection(firstSection);
     setSearchQuery("");
-  };
+    // Only on opening.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
   const currentSection = sections.find((s) => s.key === activeSection);
   const currentSelected = localSelections[activeSection] ?? [];
 
   const filteredOptions = useMemo(() => {
     if (!currentSection) return [];
-    if (!searchQuery.trim()) return currentSection.options;
-    const q = searchQuery.toLowerCase();
-    return currentSection.options.filter((o) => o.label.toLowerCase().includes(q));
-  }, [currentSection, searchQuery]);
+    const q = searchQuery.trim().toLowerCase();
+    const matches = q ? currentSection.options.filter((o) => o.label.toLowerCase().includes(q)) : currentSection.options;
+    // Picked options stay visible even when the cap would hide them.
+    return [...matches.filter((o) => currentSelected.includes(o.id)), ...matches.filter((o) => !currentSelected.includes(o.id))];
+  }, [currentSection, searchQuery, currentSelected]);
+  const shownOptions = filteredOptions.slice(0, Math.max(LIST_CAP, currentSelected.length));
 
   const toggle = (id: string) => {
     setLocalSelections((prev) => {
@@ -76,9 +102,7 @@ export function FullScreenFilter({
       }
       return {
         ...prev,
-        [activeSection]: current.includes(id)
-          ? current.filter((x) => x !== id)
-          : [...current, id],
+        [activeSection]: current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
       };
     });
   };
@@ -115,154 +139,105 @@ export function FullScreenFilter({
     onClose();
   };
 
+  const count = countFor ? countFor(localSelections) : null;
+  const Row = currentSection?.type === "single" ? RadioRow : CheckRow;
+  const currentCount = currentSection ? countOn(currentSection, currentSelected) : 0;
+  const hint = currentSection ? currentSection.hint ?? HINT[currentSection.type] : "";
+
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" onShow={resetLocal}>
-      <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: insets.top }}>
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-          <Pressable onPress={onClose} className="flex-row items-center">
-            <Ionicons name="close" size={22} color={colors.text} />
-          </Pressable>
-          <Text className="text-base font-semibold text-foreground">
-            Filters
-          </Text>
-          <Pressable onPress={handleReset}>
-            <Text className="text-sm" style={{ color: theme.primary }}>Reset</Text>
-          </Pressable>
-        </View>
+    <Sheet visible={visible} onClose={onClose} maxHeightPct={88} draggable>
+      <View style={{ height: Math.round(winH * 0.8), flexShrink: 1 }}>
+        <FilterSheetHeader onClear={handleReset} clearDisabled={totalSelected === 0} onClose={onClose} />
 
-        {/* Body: sidebar + options */}
-        <View className="flex-1 flex-row">
-          {/* Left sidebar — filter categories (30% width) */}
-          <View style={{ flex: 0.3 }} className="border-r border-border">
+        <View className="flex-1 flex-row" style={{ minHeight: 0 }}>
           <ScrollView
+            style={{ width: "22%", flexGrow: 0, backgroundColor: theme.alpha("foreground", 0.035) }}
+            contentContainerStyle={{ paddingVertical: 6 }}
             showsVerticalScrollIndicator={false}
+            accessibilityRole="tablist"
           >
-            {sections.map((section) => {
-              const isActive = activeSection === section.key;
-              const count = countOn(section, localSelections[section.key] ?? []);
-              return (
-                <Pressable
-                  key={section.key}
-                  onPress={() => { setActiveSection(section.key); setSearchQuery(""); }}
-                  className={`px-2 py-3.5 border-b border-border ${isActive ? "border-l-2" : ""}`}
-                  style={isActive ? { borderLeftColor: theme.primary, backgroundColor: colors.background } : { backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#F5F5F5" }}
-                >
-                  <Text
-                    className={`text-label ${isActive ? "font-semibold" : "text-muted-foreground"}`}
-                    style={isActive ? { color: theme.primary } : undefined}
-                    numberOfLines={2}
-                  >
-                    {section.label}
-                  </Text>
-                  {count > 0 && (
-                    <View
-                      className="absolute top-1.5 right-1 w-4 h-4 rounded-full items-center justify-center"
-                      style={{ backgroundColor: theme.primary }}
-                    >
-                      <Text className="text-label font-bold text-primary-foreground">{count}</Text>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
+            {sections.map((section) => (
+              <FilterRailItem
+                key={section.key}
+                label={section.label}
+                icon={section.icon ?? iconForFilter(section.key, section.label)}
+                count={countOn(section, localSelections[section.key] ?? [])}
+                on={activeSection === section.key}
+                onPress={() => {
+                  setActiveSection(section.key);
+                  setSearchQuery("");
+                }}
+              />
+            ))}
           </ScrollView>
-          </View>
 
-          {/* Right side — options for active section (70% width) */}
-          <View style={{ flex: 0.7 }}>
+          <View style={{ flex: 1 }}>
+            {currentSection && (
+              <SectionTitle
+                className="px-4 pt-4 pb-2"
+                icon={currentSection.icon ?? iconForFilter(currentSection.key, currentSection.label)}
+                title={currentSection.label}
+                hint={hint ? (currentCount > 0 ? `${hint} · ${currentCount} on` : hint) : undefined}
+                active={currentCount > 0}
+              />
+            )}
             {currentSection?.type === "custom" && (
-              <ScrollView className="flex-1 px-3 pt-3" showsVerticalScrollIndicator={false}>
+              <ScrollView className="flex-1 px-4 pt-1" showsVerticalScrollIndicator={false}>
                 {currentSection.render?.()}
               </ScrollView>
             )}
             {currentSection?.type === "dates" && (
-              <View className="px-3 pt-3">
+              <View className="px-4 pt-1">
                 <DateInput label="From" value={currentSelected[0] ?? ""} onChange={(v) => setDate(0, v)} />
                 <DateInput label="To" value={currentSelected[1] ?? ""} onChange={(v) => setDate(1, v)} />
-                {dateProblem ? <Text className="text-xs text-danger mt-1">{dateProblem}</Text> : null}
               </View>
             )}
             {currentSection?.type !== "custom" && currentSection?.type !== "dates" && (
-            <>
-            {/* Search (if applicable) */}
-            {currentSection?.searchable && currentSection.options.length > 6 && (
-              <View className="mx-3 mt-3 mb-2 flex-row items-center rounded-lg bg-card px-3 py-2">
-                <Ionicons name="search" size={14} color={colors.textSecondary} />
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder={`Search...`}
-                  placeholderTextColor={colors.tabIconDefault}
-                  className="flex-1 ml-2 text-sm text-foreground"
-                />
-                {searchQuery !== "" && (
-                  <Pressable onPress={() => setSearchQuery("")}>
-                    <Ionicons name="close-circle" size={14} color={colors.textSecondary} />
-                  </Pressable>
+              <>
+                {currentSection?.searchable && currentSection.options.length > 6 && (
+                  <SearchField
+                    className="mx-4 mb-2"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder={`Search ${currentSection.label.toLowerCase()}`}
+                    accessibilityLabel={`Search ${currentSection.label}`}
+                  />
                 )}
-              </View>
-            )}
-
-            {/* Options list */}
-            <ScrollView className="flex-1 px-3" showsVerticalScrollIndicator={false}>
-              {filteredOptions.map((option) => {
-                const isSelected = currentSelected.includes(option.id);
-                return (
-                  <Pressable
-                    key={option.id}
-                    onPress={() => toggle(option.id)}
-                    className="flex-row items-center py-3 border-b border-border"
-                  >
-                    <View
-                      className="w-5 h-5 rounded items-center justify-center mr-3"
-                      style={{
-                        backgroundColor: isSelected ? theme.primary : "transparent",
-                        borderWidth: isSelected ? 0 : 1.5,
-                        borderColor: isSelected ? theme.primary : colors.border,
-                      }}
-                    >
-                      {isSelected && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
-                    </View>
-                    {option.color && (
-                      <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: option.color }} />
-                    )}
-                    <Text className="text-sm text-foreground flex-1">
-                      {option.label}
+                <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  {shownOptions.map((option) => (
+                    <Row
+                      key={option.id}
+                      label={option.label}
+                      color={option.color}
+                      on={currentSelected.includes(option.id)}
+                      onPress={() => toggle(option.id)}
+                    />
+                  ))}
+                  {filteredOptions.length > shownOptions.length && (
+                    <Text className="text-meta text-muted-foreground mt-2">
+                      {filteredOptions.length - shownOptions.length} more. Search to find them.
                     </Text>
-                  </Pressable>
-                );
-              })}
-              {filteredOptions.length === 0 && (
-                <Text className="text-xs text-faint-foreground text-center py-8">No options match</Text>
-              )}
-              <View style={{ height: 20 }} />
-            </ScrollView>
-            </>
+                  )}
+                  {filteredOptions.length === 0 && (
+                    <Text className="text-meta text-muted-foreground text-center py-8">Nothing matches</Text>
+                  )}
+                  <View style={{ height: 20 }} />
+                </ScrollView>
+              </>
             )}
           </View>
         </View>
 
-        {/* Footer — Apply button */}
-        <View
-          className="flex-row items-center justify-between px-4 py-3 border-t border-border"
-          style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-        >
-          <Text className="text-xs text-muted-foreground">
-            {totalSelected > 0 ? `${totalSelected} filter${totalSelected > 1 ? "s" : ""} selected` : "No filters applied"}
-          </Text>
-          <Pressable
-            onPress={handleApply}
-            disabled={!!dateProblem}
-            className="px-5 py-2.5 rounded-lg"
-            style={{ backgroundColor: dateProblem ? theme.alpha("foreground", 0.25) : theme.primary }}
-          >
-            <Text className="text-sm font-semibold text-primary-foreground">Apply</Text>
-          </Pressable>
-        </View>
+        <FilterSheetFooter
+          onCancel={onClose}
+          onApply={handleApply}
+          disabled={!!dateProblem}
+          note={dateProblem}
+          applyLabel={applyLabelFor(count, totalSelected, noun ?? { one: "item", many: "items" })}
+        />
       </View>
-    </Modal>
+    </Sheet>
   );
 }

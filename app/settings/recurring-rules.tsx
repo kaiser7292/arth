@@ -101,6 +101,7 @@ export default function RecurringRulesScreen() {
 
   const tools = useListTools<ReminderWithSource>({
     screen: "reminders",
+    noun: { one: "reminder", many: "reminders" },
     rows: reminders,
     fields: REMINDER_FIELDS,
     sorts: REMINDER_SORTS,

@@ -525,6 +525,7 @@ export default function AuditLogScreen() {
       />
 
       <FullScreenFilter
+        noun={{ one: "change", many: "changes" }}
         visible={showFilters}
         sections={[
           { key: "source", label: "Source", type: "multi", options: SOURCE_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(sources) },

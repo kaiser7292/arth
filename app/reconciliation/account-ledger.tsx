@@ -234,6 +234,7 @@ export default function AccountLedgerScreen() {
   );
   const tools = useListTools<LedgerEntry>({
     screen: "account_ledger",
+    noun: { one: "transaction", many: "transactions" },
     rows: ledgerRowsIn,
     fields: ledgerFields,
     search: ledgerSearch,

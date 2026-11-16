@@ -118,6 +118,7 @@ export default function MyMonthRowsScreen() {
   }, [categoryMap]);
   const tools = useListTools<FigureRow>({
     screen: `my_month_${params.section}`,
+    noun: { one: "transaction", many: "transactions" },
     rows: allRows,
     fields,
     search: rowSearch,

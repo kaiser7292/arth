@@ -276,6 +276,7 @@ export default function TogetherTransactionsScreen() {
       <PaidBillSheet bill={filing} onClose={() => setFiling(null)} />
 
       <FullScreenFilter
+        noun={{ one: "transaction", many: "transactions" }}
         visible={filtersOpen}
         sections={[
           { key: "member", label: "Paid by", type: "multi", options: (s?.members ?? []).map((m) => ({ id: m.id, label: nameOf(m.id) })), selectedIds: members },

@@ -248,6 +248,20 @@ export async function getExpensesPaginated(
   );
 }
 
+/**
+ * How many rows getExpensesPaginated would return with no limit. For the filter sheet's
+ * "Show 24 transactions" button, so the count always matches the list it opens.
+ */
+export async function countFilteredExpenses(userId: string, filters: ExpenseFilters = {}): Promise<number> {
+  const db = getDatabase();
+  const { conditions, params } = buildFilterConditions(userId, filters);
+  const row = await db.getFirstAsync<{ n: number }>(
+    `SELECT COUNT(*) as n FROM expenses WHERE ${conditions.join(" AND ")};`,
+    ...params,
+  );
+  return row?.n ?? 0;
+}
+
 export interface FilteredSummaryGroup {
   key: string | null;
   total: number;
