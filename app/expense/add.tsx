@@ -33,10 +33,9 @@ import type { CreditKind } from "@/services/expense-types";
 import { getLastAccount, rememberAccount, type FormAccountSlot } from "@/services/form-memory";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
 import { inferCreditKind } from "@/services/sms/money-signals";
-import { Input, ScreenContainer, Text } from "@/components/ui";
+import { Input, ScreenContainer, SectionTitle, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getLinkedModesForAccount } from "@/services/account-master";
 import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
@@ -107,7 +106,6 @@ export default function AddExpenseScreen() {
   const copyFromExpenseId = params.copyFromExpenseId ?? null;
   const fulfillsReminderId = params.fulfillsReminderId ?? null;
   const refundAccountId = params.refundAccountId ?? null;
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
@@ -782,9 +780,9 @@ export default function AddExpenseScreen() {
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
           <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-            <Ionicons name="close" size={24} color={colors.textSecondary} />
+            <Ionicons name="close" size={24} color={theme.mutedForeground} />
           </Pressable>
-          <Text className="text-lg font-semibold text-foreground">
+          <Text className="text-heading font-semibold text-foreground">
             {isRefund ? "New refund" : `New ${TYPE_LABEL[txType].noun}`}
           </Text>
           <View className="w-10" />
@@ -809,12 +807,13 @@ export default function AddExpenseScreen() {
               error={errors.amount}
               autoFocus={!params.prefillAmount && !params.prefillMerchant && !params.prefillPaymentModeId}
             />
-            <Text className="text-xs text-center mb-4" style={{ color: typeColor }}>
+            <Text className="text-label text-center mb-4" style={{ color: typeColor }}>
               {TYPE_LABEL[txType].amountHint}
             </Text>
 
             {txType === "spent" && (
               <>
+                <SectionTitle icon="pricetags-outline" title="What" className="mb-3" />
                 <MerchantPicker {...merchantProps} label="Paid to" placeholder="Swiggy, rent, electricity bill (optional)" />
                 <CategoryPicker
                   categories={categories}
@@ -836,6 +835,7 @@ export default function AddExpenseScreen() {
                     if (cat) setIsRightSpend(cat.is_unavoidable === 1);
                   }}
                 />
+                <SectionTitle icon="business-outline" title="Where" className="mb-3 mt-1" />
                 <AccountPicker
                   accounts={accounts}
                   accountId={accountId}
@@ -885,13 +885,13 @@ export default function AddExpenseScreen() {
                   {splitConfig && splitPreview ? (
                     <Pressable
                       onPress={() => setShowSplitSheet(true)}
-                      className="p-4 rounded-xl border"
+                      className="p-4 rounded-control border"
                       style={{ backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.alpha("primary", 0.25) }}
                     >
                       <View className="flex-row items-center justify-between mb-2">
                         <View className="flex-row items-center">
                           <Ionicons name="people" size={18} color={theme.primary} />
-                          <Text className="ml-2 text-sm font-semibold" style={{ color: theme.primary }}>
+                          <Text className="ml-2 text-body font-semibold" style={{ color: theme.primary }}>
                             Split with {splitPerson?.name ?? "someone"}
                           </Text>
                         </View>
@@ -899,14 +899,14 @@ export default function AddExpenseScreen() {
                           onPress={() => setSplitConfig(null)}
                           className="p-1"
                         >
-                          <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                          <Ionicons name="close-circle" size={20} color={theme.mutedForeground} />
                         </Pressable>
                       </View>
                       <View className="flex-row items-center justify-between">
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-label text-muted-foreground">
                           My budget: {"\u20B9"}{splitPreview.myBudgetAmount.toLocaleString("en-IN")}
                         </Text>
-                        <Text className="text-xs text-warning">
+                        <Text className="text-label text-warning">
                           {splitPreview.hisaabType === "debit" ? "They owe" : "I owe"}: {"\u20B9"}{splitPreview.hisaabAmount.toLocaleString("en-IN")}
                         </Text>
                       </View>
@@ -915,13 +915,13 @@ export default function AddExpenseScreen() {
                   ) : (
                     <Pressable
                       onPress={() => setShowSplitSheet(true)}
-                      className="flex-row items-center rounded-lg border border-border bg-card px-4 py-3"
+                      className="flex-row items-center rounded-control border border-border bg-card px-4 py-3"
                     >
-                      <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
-                      <Text className="ml-3 text-base font-medium text-foreground">
+                      <Ionicons name="people-outline" size={20} color={theme.mutedForeground} />
+                      <Text className="ml-3 text-body font-medium text-foreground">
                         Split with someone?
                       </Text>
-                      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} style={{ marginLeft: "auto" }} />
+                      <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: "auto" }} />
                     </Pressable>
                   )}
                 </View>
@@ -953,14 +953,14 @@ export default function AddExpenseScreen() {
                       return (
                         <View
                           key={leg.key}
-                          className="rounded-xl border border-border p-3 mb-2"
+                          className="rounded-control border border-border p-3 mb-2"
                           style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                         >
                           <View className="flex-row items-center justify-between mb-2">
                             <View className="flex-row items-center">
                               <Ionicons name="card-outline" size={16} color={theme.primary} />
                               <Text
-                                className="ml-2 text-xs font-semibold uppercase tracking-wider"
+                                className="ml-2 text-label font-semibold uppercase tracking-wider"
                                 style={{ color: theme.primary }}
                               >
                                 Extra payment {idx + 1}
@@ -974,7 +974,7 @@ export default function AddExpenseScreen() {
                               accessibilityLabel="Remove this payment source"
                               accessibilityRole="button"
                             >
-                              <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                              <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
                             </Pressable>
                           </View>
 
@@ -1054,12 +1054,12 @@ export default function AddExpenseScreen() {
                     })}
 
                     {extraLegs.length > 0 && (
-                      <View className="p-3 rounded-xl bg-card mb-2 flex-row items-center">
-                        <Ionicons name="calculator-outline" size={16} color={colors.textSecondary} />
-                        <Text className="ml-2 text-xs text-muted-foreground flex-1">
+                      <View className="p-3 rounded-control bg-card mb-2 flex-row items-center">
+                        <Ionicons name="calculator-outline" size={16} color={theme.mutedForeground} />
+                        <Text className="ml-2 text-label text-muted-foreground flex-1">
                           Purchase total
                         </Text>
-                        <Text className="text-sm font-bold text-foreground">
+                        <Text className="text-body font-bold text-foreground">
                           {"₹"}
                           {(
                             (parseAmount(amount) ?? 0) +
@@ -1084,7 +1084,7 @@ export default function AddExpenseScreen() {
                             },
                           ])
                         }
-                        className="flex-row items-center justify-center py-3 rounded-xl border border-dashed border-border"
+                        className="flex-row items-center justify-center py-3 rounded-control border border-dashed border-border"
                         accessibilityRole="button"
                         accessibilityLabel="Add another payment source"
                       >
@@ -1094,7 +1094,7 @@ export default function AddExpenseScreen() {
                           color={theme.primary}
                         />
                         <Text
-                          className="ml-2 text-sm font-medium"
+                          className="ml-2 text-body font-medium"
                           style={{ color: theme.primary }}
                         >
                           Add another payment source
@@ -1117,7 +1117,7 @@ export default function AddExpenseScreen() {
 
                 {/* Tags */}
                 <View className="mb-4">
-                  <Text className="text-xs font-medium text-muted-foreground mb-2">
+                  <Text className="text-label font-medium text-muted-foreground mb-2">
                     Tags (optional)
                   </Text>
                   <TagPicker
@@ -1145,14 +1145,14 @@ export default function AddExpenseScreen() {
               <>
                 {/* Other person's refund share — only for exact-amount splits */}
                 {isRefund && linkedExpenseSplitMode === 'exact' && (
-                  <View className="mb-4 p-4 rounded-xl border border-border bg-card">
+                  <View className="mb-4 p-4 rounded-control border border-border bg-card">
                     <View className="flex-row items-center mb-3">
-                      <Ionicons name="people-outline" size={16} color={colors.textSecondary} />
-                      <Text className="ml-2 text-sm font-semibold text-foreground">
+                      <Ionicons name="people-outline" size={16} color={theme.mutedForeground} />
+                      <Text className="ml-2 text-body font-semibold text-foreground">
                         Split refund
                       </Text>
                     </View>
-                    <Text className="text-xs text-muted-foreground mb-3">
+                    <Text className="text-label text-muted-foreground mb-3">
                       This expense was split by exact amount. How much of this refund goes back to the other person?
                     </Text>
                     <Input
@@ -1168,6 +1168,7 @@ export default function AddExpenseScreen() {
                   </View>
                 )}
 
+                <SectionTitle icon="pricetags-outline" title="What" className="mb-3" />
                 <MerchantPicker {...merchantProps} label="Received from" placeholder="Employer, bank, friend (optional)" />
                 <CreditKindChips
                   value={creditKind}
@@ -1180,18 +1181,19 @@ export default function AddExpenseScreen() {
                 {creditKind === "refund" && !isRefund && (
                   <Pressable
                     onPress={() => setRefundPickerOpen(true)}
-                    className="flex-row items-center rounded-lg border border-border bg-card px-4 py-3 mb-4"
+                    className="flex-row items-center rounded-control border border-border bg-card px-4 py-3 mb-4"
                   >
-                    <Ionicons name="link-outline" size={18} color={colors.textSecondary} />
-                    <Text className="flex-1 ml-3 text-sm text-foreground" numberOfLines={1}>
+                    <Ionicons name="link-outline" size={18} color={theme.mutedForeground} />
+                    <Text className="flex-1 ml-3 text-meta text-foreground" numberOfLines={1}>
                       {pickedRefund ? pickedRefund.summary : "Refund of which expense? (optional)"}
                     </Text>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                    <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
                   </Pressable>
                 )}
                 {creditKind === "salary" && (
                   <CreditSalaryMonth date={date} override={salaryForMonth} onChange={setSalaryForMonth} className="mb-4" />
                 )}
+                <SectionTitle icon="business-outline" title="Where" className="mb-3 mt-1" />
                 <AccountPicker
                   accounts={accounts}
                   accountId={accountId}
@@ -1216,7 +1218,7 @@ export default function AddExpenseScreen() {
                 />
                 {/* Tags */}
                 <View className="mb-4">
-                  <Text className="text-xs font-medium text-muted-foreground mb-2">
+                  <Text className="text-label font-medium text-muted-foreground mb-2">
                     Tags (optional)
                   </Text>
                   <TagPicker
@@ -1242,6 +1244,7 @@ export default function AddExpenseScreen() {
 
             {txType === "transfer" && (
               <>
+                <SectionTitle icon="swap-horizontal-outline" title="Where it moved" className="mb-3" />
                 <AccountPicker
                   accounts={accounts}
                   accountId={accountId}
@@ -1270,8 +1273,8 @@ export default function AddExpenseScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Swap from and to accounts"
                   >
-                    <Ionicons name="swap-vertical" size={18} color={colors.textSecondary} />
-                    <Text className="text-xs text-muted-foreground ml-1">Swap</Text>
+                    <Ionicons name="swap-vertical" size={18} color={theme.mutedForeground} />
+                    <Text className="text-label text-muted-foreground ml-1">Swap</Text>
                   </Pressable>
                 </View>
                 <AccountPicker

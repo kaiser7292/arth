@@ -1896,6 +1896,8 @@ export default function ExpenseDetailScreen() {
                 error={errors.amount}
               />
 
+              <SectionTitle icon="pricetags-outline" title="What" className="mb-3" />
+
               {/* Description */}
               <Input
                 label="Note"
@@ -1925,7 +1927,7 @@ export default function ExpenseDetailScreen() {
 
               {editIsCredit && (editCreditKind === "settlement" ? (
                 <View className="mb-4">
-                  <Text className="text-body font-medium text-muted-foreground mb-1">Type</Text>
+                  <Text className="text-label font-semibold text-muted-foreground mb-1.5">Type</Text>
                   <Text className="text-meta text-foreground">Hisaab settlement</Text>
                   <Text className="text-label text-muted-foreground mt-0.5">It comes from the link to Hisaab. Unlink it to choose another type.</Text>
                 </View>
@@ -1934,55 +1936,6 @@ export default function ExpenseDetailScreen() {
               ))}
               {editIsCredit && editCreditKind === "salary" && (
                 <CreditSalaryMonth date={date} override={editSalaryMonth} onChange={setEditSalaryMonth} className="mb-4" />
-              )}
-
-              {/* Account picker (V4) */}
-              <AccountPicker
-                label={editIsCredit ? "Into account" : "Paid from"}
-                accounts={accounts}
-                accountId={accountId}
-                selectedAccount={selectedAccount}
-                showAccounts={showAccounts}
-                onToggle={() => {
-                  setShowAccounts(!showAccounts);
-                  setShowCategories(false);
-                  setShowPaymentModes(false);
-                }}
-                onSelect={handleAccountSelect}
-              />
-
-              {/* Date selector */}
-              <DateSelector
-                date={date}
-                showDatePicker={showDatePicker}
-                onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
-                onDateShift={handleDateShift}
-                onSetDate={setDate}
-                onCloseDatePicker={() => setShowDatePicker(false)}
-                dateError={errors.date}
-              />
-
-              {/* Transaction Time (read-only — from SMS, not editable) */}
-              {expense.transaction_time && expense.transaction_time !== "00:00:00" && (
-                <View className="mb-4">
-                  <Text className="text-body font-medium text-muted-foreground mb-2">
-                    Transaction Time
-                  </Text>
-                  <View className="flex-row items-center rounded-control border border-border bg-card px-4 py-3">
-                    <Ionicons name="time-outline" size={18} color={theme.mutedForeground} />
-                    <Text className="text-body text-muted-foreground ml-3">
-                      {(() => {
-                        const [h, m] = expense.transaction_time.split(":").map(Number);
-                        const ampm = h >= 12 ? "PM" : "AM";
-                        const hour12 = h % 12 || 12;
-                        return `${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
-                      })()}
-                    </Text>
-                    <Text className="text-label text-muted-foreground ml-auto">
-                      Read-only
-                    </Text>
-                  </View>
-                </View>
               )}
 
               {/* Category picker: credits have a type instead. */}
@@ -2007,9 +1960,31 @@ export default function ExpenseDetailScreen() {
               />
               )}
 
-              {/* Spending-only fields: payment mode, unavoidable. */}
-              {!editIsCredit && (<>
-              {/* Payment mode picker */}
+              {!editIsCredit && (
+              <RightSpendToggle
+                isRightSpend={isRightSpend}
+                onToggle={() => setIsRightSpend(!isRightSpend)}
+              />
+              )}
+
+              <SectionTitle icon="business-outline" title="Where" className="mb-3 mt-1" />
+
+              {/* Account picker (V4) */}
+              <AccountPicker
+                label={editIsCredit ? "Into account" : "Paid from"}
+                accounts={accounts}
+                accountId={accountId}
+                selectedAccount={selectedAccount}
+                showAccounts={showAccounts}
+                onToggle={() => {
+                  setShowAccounts(!showAccounts);
+                  setShowCategories(false);
+                  setShowPaymentModes(false);
+                }}
+                onSelect={handleAccountSelect}
+              />
+
+              {!editIsCredit && (
               <PaymentModePicker
                 paymentModes={paymentModes}
                 paymentModeId={paymentModeId}
@@ -2025,13 +2000,45 @@ export default function ExpenseDetailScreen() {
                   setShowPaymentModes(false);
                 }}
               />
+              )}
 
-              {/* Spend classification toggle */}
-              <RightSpendToggle
-                isRightSpend={isRightSpend}
-                onToggle={() => setIsRightSpend(!isRightSpend)}
+              {/* Date selector */}
+              <DateSelector
+                date={date}
+                showDatePicker={showDatePicker}
+                onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
+                onDateShift={handleDateShift}
+                onSetDate={setDate}
+                onCloseDatePicker={() => setShowDatePicker(false)}
+                dateError={errors.date}
               />
-              </>)}
+
+              {expense.transaction_time && expense.transaction_time !== "00:00:00" && (
+              <SectionTitle icon="chatbubble-outline" title="Source" className="mb-3 mt-1" />
+              )}
+              {/* Transaction Time (read-only — from SMS, not editable) */}
+              {expense.transaction_time && expense.transaction_time !== "00:00:00" && (
+                <View className="mb-4">
+                  <Text className="text-label font-semibold text-muted-foreground mb-1.5">
+                    Transaction Time
+                  </Text>
+                  <View className="flex-row items-center rounded-control border border-border bg-card px-4 py-3">
+                    <Ionicons name="time-outline" size={18} color={theme.mutedForeground} />
+                    <Text className="text-body text-muted-foreground ml-3">
+                      {(() => {
+                        const [h, m] = expense.transaction_time.split(":").map(Number);
+                        const ampm = h >= 12 ? "PM" : "AM";
+                        const hour12 = h % 12 || 12;
+                        return `${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
+                      })()}
+                    </Text>
+                    <Text className="text-label text-muted-foreground ml-auto">
+                      Read-only
+                    </Text>
+                  </View>
+                </View>
+              )}
+
 
               {/* ───── Split-tender management ─────
                   - Standalone expenses can be converted to split-tender
