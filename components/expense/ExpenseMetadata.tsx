@@ -1,19 +1,18 @@
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Text } from "@/components/ui";
+import { FieldRow, SectionTitle, Text } from "@/components/ui";
 import type { Expense } from "@/services/expense";
 
 import { formatDisplayDate as formatDate } from "@/utils/date";
 import { formatDateTimeInTimezone } from "@/utils/timezone";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 
 const SOURCE_LABELS: Record<string, string> = {
-  manual: "Manual",
-  sms_auto: "SMS Auto",
-  email_auto: "Email Auto",
+  manual: "Added by you",
+  sms_auto: "Read from an SMS",
+  email_auto: "Read from an email",
 };
 
 function formatTimestamp(iso: string): string {
@@ -34,10 +33,15 @@ function formatTimestamp(iso: string): string {
 
 interface ExpenseMetadataProps {
   expense: Expense;
+  /** Rows that belong with where this came from: the smart rule that changed it, a reminder it fulfilled. */
+  children?: ReactNode;
 }
 
-export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
-  const { colors } = useColorScheme();
+/**
+ * The Source card: how this transaction got here. The details and the bank's message are folded
+ * away; anything a rule or reminder did to it stays visible above the fold.
+ */
+export default function ExpenseMetadata({ expense, children }: ExpenseMetadataProps) {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [showRawSms, setShowRawSms] = useState(false);
@@ -47,108 +51,71 @@ export default function ExpenseMetadata({ expense }: ExpenseMetadataProps) {
   const hasRawSms = expense.raw_source_text != null;
 
   return (
-    <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
-      {/* Header — always visible */}
+    <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pt-4 pb-1">
       <Pressable
         onPress={() => setExpanded(!expanded)}
-        className="flex-row items-center justify-between px-4 py-3"
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+        className="pb-3"
       >
-        <Text className="text-sm font-semibold text-muted-foreground">
-          Other Info
-        </Text>
-        <Ionicons
-          name={expanded ? "chevron-up" : "chevron-down"}
-          size={18}
-          color={colors.textSecondary}
+        <SectionTitle
+          icon={expense.source === "sms_auto" ? "chatbubble-outline" : "information-circle-outline"}
+          title="Source"
+          hint={SOURCE_LABELS[expense.source] ?? expense.source}
+          right={<Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />}
         />
       </Pressable>
 
-      {expanded && (
-        <View className="px-4 pb-4">
-          {/* Source */}
-          <MetadataRow
-            label="Source"
-            value={SOURCE_LABELS[expense.source] ?? expense.source}
-          />
+      {children}
 
-          {/* Nature */}
-          <MetadataRow
-            label="Nature"
+      {expanded && (
+        <View>
+          <FieldRow
+            label="Kind"
             value={
               expense.nature === "forecast" && expense.due_date
-                ? `Forecast \u2014 due ${formatDate(expense.due_date)}`
+                ? `Forecast, due ${formatDate(expense.due_date)}`
                 : expense.nature === "forecast"
                   ? "Forecast"
-                  : "Realized"
+                  : expense.nature === "credit"
+                    ? "Money in"
+                    : "Spent"
             }
           />
-
-          {/* Created */}
-          <MetadataRow
-            label="Created"
-            value={formatTimestamp(expense.created_at)}
-          />
-
-          {/* Raw SMS */}
+          <FieldRow label="Added" value={formatTimestamp(expense.created_at)} />
+          {hasRefund && (
+            <FieldRow
+              label="Refund of"
+              value="View original expense"
+              valueColor={theme.primary}
+              onPress={() => router.push(`/expense/${expense.refund_of_expense_id}`)}
+            />
+          )}
           {hasRawSms && (
-            <View className="mt-2">
+            <View className="border-t border-border py-3">
               <Pressable
                 onPress={() => setShowRawSms(!showRawSms)}
-                className="flex-row items-center"
+                className="flex-row items-center justify-between"
+                style={{ minHeight: 32 }}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showRawSms }}
               >
-                <Text className="text-xs font-medium text-muted-foreground">
-                  Raw SMS
+                <Text className="text-meta text-muted-foreground">Original bank message</Text>
+                <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
+                  {showRawSms ? "Hide" : "Tap to show"}
                 </Text>
-                <Ionicons
-                  name={showRawSms ? "chevron-up" : "chevron-down"}
-                  size={14}
-                  color={colors.textSecondary}
-                  style={{ marginLeft: 4 }}
-                />
               </Pressable>
               {showRawSms && (
-                <View className="mt-1.5 p-3 rounded-lg bg-background">
-                  <Text className="text-xs text-muted-foreground leading-4">
+                <View className="mt-2 p-3 rounded-control" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
+                  <Text className="text-meta text-muted-foreground" selectable>
                     {expense.raw_source_text}
                   </Text>
                 </View>
               )}
             </View>
           )}
-
-          {/* Refund link */}
-          {hasRefund && (
-            <View className="mt-2">
-              <Pressable
-                onPress={() =>
-                  router.push(`/expense/${expense.refund_of_expense_id}`)
-                }
-                className="flex-row items-center"
-              >
-                <Text className="text-xs font-medium text-muted-foreground">
-                  Refund of:
-                </Text>
-                <Text className="text-xs ml-1.5 underline" style={{ color: theme.primary }}>
-                  View original expense
-                </Text>
-              </Pressable>
-            </View>
-          )}
         </View>
       )}
-    </View>
-  );
-}
-
-function MetadataRow({ label, value }: { label: string; value: string }) {
-  return (
-    <View className="flex-row items-center justify-between py-1.5">
-      <Text className="text-xs text-muted-foreground">
-        {label}
-      </Text>
-      <Text className="text-xs font-medium text-foreground">
-        {value}
-      </Text>
     </View>
   );
 }

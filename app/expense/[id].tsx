@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import { isPartOn } from "@/services/customise";
 import { CreditSalaryMonth } from "@/components/expense/CreditSalaryMonth";
 import { applyRuleToPastTransactions, countPastTransactionsForRule, findRuleForMerchant, keywordForAlwaysFile, setMerchantRule } from "@/services/merchant-categories";
@@ -38,13 +39,13 @@ import { HouseholdShareLink } from "@/components/household/HouseholdShareLink";
 import { SplitCard } from "@/components/expense/SplitCard";
 import { SplitEditSheet } from "@/components/expense/SplitEditSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
-import { Button, Input, LoadingState, ScreenContainer, Sheet, Text, useToast } from "@/components/ui";
+import { ActionRow, Button, Chip, FieldRow, Input, LoadingState, ScreenContainer, SectionTitle, Sheet, Text, useToast, type ActionRowItem } from "@/components/ui";
+import { MoreActionsSheet, type MoreActionGroup } from "@/components/expense/MoreActionsSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
 
 
 import { useAlert } from "@/hooks/use-alert";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getLinkedModesForAccount } from "@/services/account-master";
 import { reclassifyCreditAsTransfer, reclassifyExpenseAsTransfer, undoTransfer, getTransferByLinkedExpenseId, type AccountTransfer } from "@/services/account-transfer";
 import type { Category } from "@/services/category";
@@ -129,7 +130,6 @@ import { todayIso } from "@/utils/local-date";
 export default function ExpenseDetailScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const toast = useToast();
   // act=money: opened from a money-event card (Catch Up / review queue) — jump straight to its action.
@@ -733,6 +733,8 @@ export default function ExpenseDetailScreen() {
       setSaving(false);
     }
   }, [amount, description, merchantName, categoryId, paymentModeId, accountId, date, isRightSpend, id, expense, originalExpense, multiSplitSummary, extraLegs, categories, editType, editCreditKind]);
+
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const openRulePicker = useCallback(async () => {
     try {
@@ -1698,6 +1700,129 @@ export default function ExpenseDetailScreen() {
     );
   }
 
+  // ── Actions on this transaction ──
+  // Each action keeps the exact condition it had as its own row on this page; they are just
+  // grouped now: four likely next steps under the hero, the rest in the More sheet.
+  const originalAmount = expense.split_original_amount ?? expense.amount;
+  const isSavingsDebit = !transfer && !investmentLink && !loanLink && expense.nature === "realized" && !!expense.account_id && expenseAccount?.account_type === "savings";
+  const canCreditTransfer = !transfer && expense.nature === "credit" && !!expense.account_id && !linkedSettlement;
+  const plainCredit = !transfer && expense.nature === "credit" && !!expense.account_id && !linkedSettlement
+    && expenseAccount?.account_type !== "credit_card"
+    && !expense.split_person_id && !expense.split_mode && !expense.fulfills_rule_id;
+  const canFdClosure = plainCredit && !expense.money_event && expense.reclassified_as_transfer !== 1;
+  const canWithdrawal = plainCredit && expense.money_event !== "investment_withdrawal";
+  const canSettlement = expense.nature === "credit" && !!expense.account_id && expenseAccount?.account_type !== "credit_card" && !linkedSettlement;
+  const canTagRefund = expense.nature === "credit" && !expense.refund_of_expense_id && !linkedSettlement && !transfer;
+  const linkable = expense.nature === "realized" && !expense.refund_of_expense_id && !expense.purchase_group_id && !investmentLink && !loanLink && !transfer;
+  const canInvest = V15_FLAGS.v17_expense_investment_link && linkable;
+  const canLoan = V15_FLAGS.v17_loans_v1 && linkable;
+  const canRecordRefund = expense.nature === "realized" && refundedAmount < originalAmount;
+  const canSplit = expense.nature !== "credit" && expense.nature !== "forecast" && !expense.household_ref && isPartOn("hisaab");
+  const canDuplicate = expense.nature === "realized" || expense.nature === "credit";
+  const isCC = expenseAccount?.account_type === "credit_card";
+
+  const markFdClosure = async () => {
+    try {
+      const { setMoneyEvent } = await import("@/services/money-events");
+      await setMoneyEvent(expense.id, "fd_closure");
+      const fresh = await getExpenseById(id);
+      if (fresh) setExpense(fresh);
+      setOpenFdPicker(true);
+    } catch (e) {
+      alert("Couldn't do that", e instanceof Error ? e.message : String(e));
+    }
+  };
+  const duplicate = () => router.push({ pathname: "/expense/add", params: { copyFromExpenseId: expense.id } });
+  const more: ActionRowItem = { key: "more", label: "More", icon: "ellipsis-horizontal", onPress: () => setMoreOpen(true) };
+  const edit: ActionRowItem = { key: "edit", label: "Edit", icon: "create-outline", onPress: handleEdit };
+
+  const primary: (ActionRowItem | false)[] =
+    expense.status === "pending_review" && !transfer
+      ? [
+          { key: "approve", label: "Approve", icon: "checkmark", onPress: handleApprove, primary: true },
+          { key: "reject", label: "Reject", icon: "close", onPress: handleReject, danger: true },
+          edit,
+          more,
+        ]
+      : transfer
+        ? [edit, !fdProduct && { key: "undo-transfer", label: "Undo transfer", icon: "arrow-undo-outline", onPress: handleUndoTransfer }, more]
+        : expense.nature === "credit"
+          ? [
+              edit,
+              canTagRefund && { key: "link-refund", label: "Link refund", icon: "return-up-back-outline", onPress: () => setRefundExpensePickerVisible(true) },
+              canCreditTransfer && { key: "credit-transfer", label: isCC ? "Bill payment" : "Transfer", icon: "swap-horizontal-outline", onPress: () => setCreditTransferPickerVisible(true) },
+              more,
+            ]
+          : expense.nature === "forecast"
+            ? [edit, { key: "delete", label: "Delete", icon: "trash-outline", onPress: handleDelete, danger: true }, more]
+            : [
+                edit,
+                canSplit && { key: "split", label: splitView ? "Edit split" : "Split", icon: "people-outline", onPress: () => setShowSplitEdit(true) },
+                canRecordRefund && { key: "refund", label: "Refund", icon: "return-down-back-outline", onPress: () => setRefundTargetSheetVisible(true) },
+                more,
+              ];
+  const primaryActions = primary.filter((a): a is ActionRowItem => !!a);
+  const inRow = new Set(primaryActions.map((a) => a.key));
+
+  const moreGroups: MoreActionGroup[] = [
+    {
+      key: "organise",
+      title: "Organise",
+      icon: "pricetags-outline",
+      items: [
+        { key: "tags", label: "Tags", hint: "Add or change tags", icon: "pricetag-outline", onPress: scrollTagsIntoView },
+        { key: "rule", label: "Apply a smart rule", hint: "Run one of your rules on this", icon: "flash-outline", onPress: openRulePicker },
+        ...(expense.nature === "realized"
+          ? [
+              recurringRule
+                ? { key: "reminder", label: "Stop reminder", hint: `Reminds ${recurringRule.frequency}${recurringRule.end_date ? ` · until ${recurringRule.end_date}` : ""}`, icon: "pause-circle-outline" as const, onPress: handleStopRecurring }
+                : { key: "reminder", label: "Set reminder", hint: "Get reminded on a schedule", icon: "repeat-outline" as const, onPress: () => setRecurringSheetVisible(true) },
+            ]
+          : []),
+      ],
+    },
+    {
+      key: "moved",
+      title: "Money moved",
+      icon: "swap-horizontal-outline",
+      items: [
+        ...(isSavingsDebit
+          ? [
+              { key: "transfer", label: "Mark as transfer", hint: "This was a transfer, not spending", icon: "swap-horizontal-outline" as const, onPress: () => setTransferPickerVisible(true) },
+              { key: "fd", label: "Mark as fixed deposit", hint: "This debit opened a new FD", icon: "cash-outline" as const, onPress: () => setMarkAsFDVisible(true) },
+            ]
+          : []),
+        ...(canCreditTransfer && !inRow.has("credit-transfer")
+          ? [{ key: "credit-transfer", label: isCC ? "Mark as CC bill payment" : "Mark as transfer", hint: isCC ? "This was your bill paid from another account" : "This money came from another account of yours", icon: "swap-horizontal-outline" as const, onPress: () => setCreditTransferPickerVisible(true) }]
+          : []),
+        ...(canFdClosure ? [{ key: "fd-closure", label: "FD matured or closed", hint: "This money came back from a fixed deposit", icon: "lock-open-outline" as const, onPress: markFdClosure }] : []),
+        ...(canWithdrawal ? [{ key: "withdrawal", label: "Investment withdrawal", hint: "Money out of a fund, stocks, PPF, NPS or similar", icon: "trending-down-outline" as const, onPress: () => setWithdrawalSheetVisible(true) }] : []),
+      ],
+    },
+    {
+      key: "link",
+      title: "Link it to",
+      icon: "link-outline",
+      items: [
+        ...(canInvest ? [{ key: "invest", label: "An investment", hint: "Credits an investment bucket instead of counting as spend", icon: "trending-up-outline" as const, onPress: () => setInvestmentSheetVisible(true) }] : []),
+        ...(canLoan ? [{ key: "loan", label: "A loan payment", hint: "EMI or prepayment. Left out of the budget", icon: "cash-outline" as const, onPress: () => setLoanSheetVisible(true) }] : []),
+        ...(canSettlement ? [{ key: "settlement", label: "A hisaab settlement", hint: "Someone paid you back", icon: "people-outline" as const, onPress: () => setHisaabSettlementSheetVisible(true) }] : []),
+        ...(canTagRefund && !inRow.has("link-refund") ? [{ key: "link-refund", label: "The expense it refunds", hint: "Link to the expense this money came back for", icon: "return-up-back-outline" as const, onPress: () => setRefundExpensePickerVisible(true) }] : []),
+        ...(canSplit && !inRow.has("split") ? [{ key: "split", label: splitView ? "Edit the split" : "Split with someone", hint: "Equally, by percentage or by amount", icon: "people-outline" as const, onPress: () => setShowSplitEdit(true) }] : []),
+        ...(canRecordRefund && !inRow.has("refund") ? [{ key: "refund", label: "A refund", hint: "Money came back for this expense", icon: "return-down-back-outline" as const, onPress: () => setRefundTargetSheetVisible(true) }] : []),
+      ],
+    },
+    {
+      key: "copy",
+      title: "Copy and remove",
+      icon: "copy-outline",
+      items: [
+        ...(canDuplicate ? [{ key: "duplicate", label: "Duplicate", hint: expense.nature === "credit" ? "Start a new credit filled in from this one" : "Start a new expense filled in from this one", icon: "copy-outline" as const, onPress: duplicate }] : []),
+        ...(!inRow.has("delete") ? [{ key: "delete", label: "Delete", hint: "Moves it to the recycle bin for 30 days", icon: "trash-outline" as const, onPress: handleDelete, danger: true }] : []),
+      ],
+    },
+  ];
+
   return (
     <ScreenContainer>
       <KeyboardAvoidingView
@@ -1708,13 +1833,13 @@ export default function ExpenseDetailScreen() {
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
           <View className="flex-row items-center -ml-2">
             <Pressable onPress={() => router.back()} className="p-2">
-              <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
+              <Ionicons name="arrow-back" size={24} color={theme.mutedForeground} />
             </Pressable>
             <Pressable onPress={() => router.replace("/(tabs)")} className="p-2" hitSlop={8} accessibilityLabel="Go to home">
-              <Ionicons name="home-outline" size={20} color={colors.tint} />
+              <Ionicons name="home-outline" size={20} color={theme.primary} />
             </Pressable>
           </View>
-          <Text className="text-lg font-semibold text-foreground">
+          <Text className="text-heading font-semibold text-foreground">
             {editing
               ? expense.nature === "forecast"
                 ? "Edit forecast"
@@ -1727,20 +1852,12 @@ export default function ExpenseDetailScreen() {
           </Text>
           {editing ? (
             <Pressable onPress={handleCancelEdit} className="p-2 -mr-2">
-              <Text className="text-sm font-medium" style={{ color: theme.primary }}>Cancel</Text>
+              <Text className="text-body font-medium" style={{ color: theme.primary }}>Cancel</Text>
             </Pressable>
           ) : (
-            <View className="flex-row items-center">
-              <Pressable onPress={openRulePicker} className="p-2" accessibilityLabel="Apply rule">
-                <Ionicons name="flash-outline" size={21} color={colors.textSecondary} />
-              </Pressable>
-              <Pressable onPress={handleEdit} className="p-2">
-                <Ionicons name="create-outline" size={22} color={colors.blue} />
-              </Pressable>
-              <Pressable onPress={handleDelete} className="p-2 -mr-2">
-                <Ionicons name="trash-outline" size={22} color={theme.danger} />
-              </Pressable>
-            </View>
+            <Pressable onPress={() => setMoreOpen(true)} className="p-2 -mr-2" hitSlop={6} accessibilityRole="button" accessibilityLabel="More actions">
+              <Ionicons name="ellipsis-horizontal" size={22} color={theme.foreground} />
+            </Pressable>
           )}
         </View>
 
@@ -1808,9 +1925,9 @@ export default function ExpenseDetailScreen() {
 
               {editIsCredit && (editCreditKind === "settlement" ? (
                 <View className="mb-4">
-                  <Text className="text-sm font-medium text-muted-foreground mb-1">Type</Text>
-                  <Text className="text-sm text-foreground">Hisaab settlement</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">It comes from the link to Hisaab. Unlink it to choose another type.</Text>
+                  <Text className="text-body font-medium text-muted-foreground mb-1">Type</Text>
+                  <Text className="text-meta text-foreground">Hisaab settlement</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5">It comes from the link to Hisaab. Unlink it to choose another type.</Text>
                 </View>
               ) : (
                 <CreditKindChips value={editCreditKind} onChange={setEditCreditKind} />
@@ -1848,12 +1965,12 @@ export default function ExpenseDetailScreen() {
               {/* Transaction Time (read-only — from SMS, not editable) */}
               {expense.transaction_time && expense.transaction_time !== "00:00:00" && (
                 <View className="mb-4">
-                  <Text className="text-sm font-medium text-muted-foreground mb-2">
+                  <Text className="text-body font-medium text-muted-foreground mb-2">
                     Transaction Time
                   </Text>
-                  <View className="flex-row items-center rounded-lg border border-border bg-card px-4 py-3">
-                    <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
-                    <Text className="text-base text-muted-foreground ml-3">
+                  <View className="flex-row items-center rounded-control border border-border bg-card px-4 py-3">
+                    <Ionicons name="time-outline" size={18} color={theme.mutedForeground} />
+                    <Text className="text-body text-muted-foreground ml-3">
                       {(() => {
                         const [h, m] = expense.transaction_time.split(":").map(Number);
                         const ampm = h >= 12 ? "PM" : "AM";
@@ -1861,7 +1978,7 @@ export default function ExpenseDetailScreen() {
                         return `${hour12}:${String(m).padStart(2, "0")} ${ampm}`;
                       })()}
                     </Text>
-                    <Text className="text-xs text-muted-foreground ml-auto">
+                    <Text className="text-label text-muted-foreground ml-auto">
                       Read-only
                     </Text>
                   </View>
@@ -1930,14 +2047,14 @@ export default function ExpenseDetailScreen() {
                     return (
                       <View
                         key={leg.key}
-                        className="rounded-xl border border-border p-3 mb-2"
+                        className="rounded-control border border-border p-3 mb-2"
                         style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                       >
                         <View className="flex-row items-center justify-between mb-2">
                           <View className="flex-row items-center">
                             <Ionicons name="card-outline" size={16} color={theme.primary} />
                             <Text
-                              className="ml-2 text-xs font-semibold uppercase tracking-wider"
+                              className="ml-2 text-label font-semibold uppercase tracking-wider"
                               style={{ color: theme.primary }}
                             >
                               New payment source {idx + 1}
@@ -1951,7 +2068,7 @@ export default function ExpenseDetailScreen() {
                             accessibilityLabel="Remove this new payment source"
                             accessibilityRole="button"
                           >
-                            <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                            <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
                           </Pressable>
                         </View>
 
@@ -2038,7 +2155,7 @@ export default function ExpenseDetailScreen() {
                           },
                         ])
                       }
-                      className="flex-row items-center justify-center py-3 rounded-xl border border-dashed border-border"
+                      className="flex-row items-center justify-center py-3 rounded-control border border-dashed border-border"
                       accessibilityRole="button"
                       accessibilityLabel="Add another payment source"
                     >
@@ -2048,7 +2165,7 @@ export default function ExpenseDetailScreen() {
                         color={theme.primary}
                       />
                       <Text
-                        className="ml-2 text-sm font-medium"
+                        className="ml-2 text-body font-medium"
                         style={{ color: theme.primary }}
                       >
                         Add another payment source
@@ -2085,8 +2202,8 @@ export default function ExpenseDetailScreen() {
                           ],
                         );
                       }}
-                      className="flex-row items-center justify-center py-3 mt-2 rounded-xl"
-                      style={{ backgroundColor: theme.danger + "14" }}
+                      className="flex-row items-center justify-center py-3 mt-2 rounded-control"
+                      style={{ backgroundColor: tint(theme.danger, 0.08) }}
                       accessibilityRole="button"
                       accessibilityLabel="Remove this leg from the split purchase"
                     >
@@ -2096,7 +2213,7 @@ export default function ExpenseDetailScreen() {
                         color={theme.danger}
                       />
                       <Text
-                        className="ml-2 text-sm font-medium"
+                        className="ml-2 text-body font-medium"
                         style={{ color: theme.danger }}
                       >
                         Remove from split purchase
@@ -2135,7 +2252,11 @@ export default function ExpenseDetailScreen() {
                 status={expense.status}
                 refundedAmount={refundedAmount}
                 splitOriginalAmount={expense.split_original_amount}
+                isTransfer={!!transfer}
               />
+
+              {/* The likely next steps, by state; everything else is behind More. */}
+              <ActionRow className="mx-4 mb-1" items={primaryActions} />
 
               {expense.nature === "credit" && expense.credit_kind === "salary" && (
                 <CreditSalaryMonth expenseId={expense.id} date={expense.date} override={expense.salary_for_month} />
@@ -2162,7 +2283,7 @@ export default function ExpenseDetailScreen() {
 
               {/* 1b. Split-tender siblings (if this expense is one leg of a split purchase) */}
               {siblings.length > 0 && (
-                <Rows className="mx-4 mt-3 rounded-xl bg-card">
+                <Rows className="mx-4 mt-3 rounded-card bg-card">
                   <View className="flex-row items-center px-4 py-3 border-b border-border">
                     <View
                       className="w-8 h-8 rounded-full items-center justify-center mr-2.5"
@@ -2171,14 +2292,14 @@ export default function ExpenseDetailScreen() {
                       <Ionicons name="git-branch-outline" size={16} color={theme.primary} />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
                         Split Tender
                       </Text>
-                      <Text className="text-xs text-faint-foreground mt-0.5">
+                      <Text className="text-label text-faint-foreground mt-0.5">
                         Paid across {siblings.length + 1} payment source{siblings.length + 1 !== 1 ? "s" : ""}
                       </Text>
                     </View>
-                    <Text className="text-sm font-bold text-foreground">
+                    <Text className="text-body font-bold text-foreground">
                       {formatAmount(
                         expense.amount + siblings.reduce((s, sib) => s + sib.amount, 0),
                       )}
@@ -2204,48 +2325,23 @@ export default function ExpenseDetailScreen() {
                         <Ionicons
                           name="card-outline"
                           size={16}
-                          color={colors.textSecondary}
+                          color={theme.mutedForeground}
                           style={{ marginRight: 8 }}
                         />
                         <Text
-                          className="flex-1 text-sm text-foreground"
+                          className="flex-1 text-meta text-foreground"
                           numberOfLines={1}
                         >
                           {label}
                         </Text>
-                        <Text className="text-sm font-semibold text-foreground mr-2">
+                        <Text className="text-body font-semibold text-foreground mr-2">
                           {formatAmount(sib.amount)}
                         </Text>
-                        <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+                        <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
                       </Pressable>
                     );
                   })}
                 </Rows>
-              )}
-
-              {/* 1c. Pending Review Action Bar */}
-              {expense.status === "pending_review" && !transfer && (
-                <View className="mx-4 mt-1 flex-row rounded-xl overflow-hidden" style={{ backgroundColor: theme.warning + "12" }}>
-                  <Pressable
-                    onPress={handleApprove}
-                    className="flex-1 flex-row items-center justify-center py-3"
-                  >
-                    <Ionicons name="checkmark-circle" size={20} color={theme.success} />
-                    <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.success }}>
-                      Approve
-                    </Text>
-                  </Pressable>
-                  <View className="w-px bg-border" />
-                  <Pressable
-                    onPress={handleReject}
-                    className="flex-1 flex-row items-center justify-center py-3"
-                  >
-                    <Ionicons name="close-circle" size={20} color={theme.danger} />
-                    <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.danger }}>
-                      Reject
-                    </Text>
-                  </Pressable>
-                </View>
               )}
 
               {/* 2a. Timeline — detection + due + payment dates (forecasts only) */}
@@ -2265,23 +2361,23 @@ export default function ExpenseDetailScreen() {
                     })
                   : null;
                 return (
-                  <Rows className="mx-4 mt-3 rounded-xl bg-card">
+                  <Rows className="mx-4 mt-3 rounded-card bg-card">
                     <View className="flex-row items-center px-4 py-3 border-b border-border">
-                      <Ionicons name="scan-outline" size={16} color={colors.textSecondary} />
-                      <Text className="text-xs text-muted-foreground ml-3 w-24">
+                      <Ionicons name="scan-outline" size={16} color={theme.mutedForeground} />
+                      <Text className="text-label text-muted-foreground ml-3 w-24">
                         Detected
                       </Text>
-                      <Text className="text-sm font-medium text-foreground flex-1 text-right">
+                      <Text className="text-body font-medium text-foreground flex-1 text-right">
                         {detected}
                       </Text>
                     </View>
                     {due && (
                       <View className={`flex-row items-center px-4 py-3 ${paidOn ? "border-b border-border" : ""}`}>
-                        <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-                        <Text className="text-xs text-muted-foreground ml-3 w-24">
+                        <Ionicons name="calendar-outline" size={16} color={theme.mutedForeground} />
+                        <Text className="text-label text-muted-foreground ml-3 w-24">
                           Due
                         </Text>
-                        <Text className="text-sm font-medium text-foreground flex-1 text-right">
+                        <Text className="text-body font-medium text-foreground flex-1 text-right">
                           {due}
                         </Text>
                       </View>
@@ -2289,10 +2385,10 @@ export default function ExpenseDetailScreen() {
                     {paidOn && (
                       <View className="flex-row items-center px-4 py-3">
                         <Ionicons name="checkmark-circle-outline" size={16} color={theme.success} />
-                        <Text className="text-xs text-muted-foreground ml-3 w-24">
+                        <Text className="text-label text-muted-foreground ml-3 w-24">
                           Paid on
                         </Text>
-                        <Text className="text-sm font-medium flex-1 text-right" style={{ color: theme.success }}>
+                        <Text className="text-body font-medium flex-1 text-right" style={{ color: theme.success }}>
                           {paidOn}
                         </Text>
                       </View>
@@ -2301,135 +2397,55 @@ export default function ExpenseDetailScreen() {
                 );
               })()}
 
-              {/* 2. Summary Fields (read-only) */}
-              <Rows className="mx-4 mt-3 rounded-xl bg-card">
-                {/* Account */}
-                <View className="flex-row items-center px-4 py-3 border-b border-border">
-                  <Ionicons name="business-outline" size={16} color={colors.textSecondary} />
-                  <Text className="text-xs text-muted-foreground ml-3 w-20">
-                    Account
-                  </Text>
-                  {expenseAccount ? (
-                    <Text className="text-sm font-medium text-foreground flex-1 text-right" numberOfLines={1}>
-                      {expenseAccount.account_label || `${expenseAccount.bank_name} ****${expenseAccount.account_identifier}`}
-                    </Text>
-                  ) : (
-                    <Text className="text-sm text-muted-foreground flex-1 text-right">
-                      Not set
-                    </Text>
-                  )}
-                </View>
-
-                {/* Category */}
-                <View className="flex-row items-center px-4 py-3 border-b border-border">
-                  <Ionicons name="pricetags-outline" size={16} color={colors.textSecondary} />
-                  <Text className="text-xs text-muted-foreground ml-3 w-20">
-                    {expense.nature === "credit" ? "Type" : "Category"}
-                  </Text>
+              {/* 2. What and Where */}
+              <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pt-4 pb-1">
+                <SectionTitle icon="pricetags-outline" title="What" className="mb-2" />
+                <FieldRow
+                  divider={false}
+                  label={expense.nature === "credit" ? "Type" : "Category"}
+                  onPress={handleEdit}
+                  accessibilityLabel={`${expense.nature === "credit" ? "Type" : "Category"}: ${expenseCategory?.name ?? "not set"}. Edit`}
+                >
                   {expenseCategory ? (
-                    <View className="flex-row items-center flex-1 justify-end">
-                      <View
-                        className="w-5 h-5 rounded-full items-center justify-center mr-1.5"
-                        style={{ backgroundColor: expenseCategory.color + "14" }}
-                      >
-                        <Ionicons
-                          name={expenseCategory.icon as keyof typeof Ionicons.glyphMap}
-                          size={10}
-                          color={expenseCategory.color}
-                        />
-                      </View>
-                      <Text className="text-sm font-medium text-foreground">
-                        {expenseCategory.name}
-                      </Text>
-                    </View>
+                    <Chip variant="category" icon={expenseCategory.icon as keyof typeof Ionicons.glyphMap} color={expenseCategory.color} label={expenseCategory.name} />
+                  ) : expense.nature === "credit" ? (
+                    <Text className="text-body text-muted-foreground">Not set</Text>
                   ) : (
-                    <Text className="text-sm text-muted-foreground flex-1 text-right">
-                      Uncategorized
-                    </Text>
+                    <Chip variant="add" label="Add category" />
                   )}
-                </View>
-
-                {/* Merchant */}
-                <View className="flex-row items-center px-4 py-3 border-b border-border">
-                  <Ionicons name="storefront-outline" size={16} color={colors.textSecondary} />
-                  <Text className="text-xs text-muted-foreground ml-3 w-20">
-                    Merchant
-                  </Text>
-                  {expense.merchant_name ? (
-                    <Text className="text-sm font-medium text-foreground flex-1 text-right">
-                      {expense.merchant_name}
-                    </Text>
-                  ) : (
-                    <Text className="text-sm text-muted-foreground flex-1 text-right">
-                      Not set
-                    </Text>
-                  )}
-                </View>
-
-                {/* Payment Mode */}
-                <View className="flex-row items-center px-4 py-3 border-b border-border">
-                  <Ionicons name="card-outline" size={16} color={colors.textSecondary} />
-                  <Text className="text-xs text-muted-foreground ml-3 w-20">
-                    Payment
-                  </Text>
-                  {expensePaymentMode ? (
-                    <View className="flex-row items-center flex-1 justify-end">
-                      <Ionicons
-                        name={TYPE_ICONS[expensePaymentMode.type as PaymentModeType]}
-                        size={14}
-                        color={colors.textSecondary}
-                      />
-                      <Text className="text-sm font-medium text-foreground ml-1.5">
-                        {expensePaymentMode.name}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text className="text-sm text-muted-foreground flex-1 text-right">
-                      Not set
-                    </Text>
-                  )}
-                </View>
-
-                {/* Spend Classification — hidden for credits (doesn't apply to income) */}
+                </FieldRow>
                 {expense.nature !== "credit" && (
-                  <View className="flex-row items-center px-4 py-3 border-b border-border">
-                    <Ionicons
-                      name={expense.is_right_spend !== 0 ? "lock-closed" : "pricetag-outline"}
-                      size={16}
-                      color={expense.is_right_spend !== 0 ? colors.blue : theme.warning}
-                    />
-                    <Text className="text-xs text-muted-foreground ml-3 w-20">
-                      Spend
-                    </Text>
-                    <Text className="text-sm font-medium text-foreground flex-1 text-right">
-                      {expense.is_right_spend !== 0 ? "Unavoidable" : "Discretionary"}
-                    </Text>
-                  </View>
+                  <FieldRow label="Spend" value={expense.is_right_spend !== 0 ? "Unavoidable" : "Discretionary"} />
                 )}
+                {expense.description ? <FieldRow label="Note" value={expense.description} multiline /> : null}
+              </View>
 
-                {/* Description / Notes */}
-                {expense.description && (
-                  <View className="flex-row items-start px-4 py-3">
-                    <Ionicons name="document-text-outline" size={16} color={colors.textSecondary} />
-                    <Text className="text-xs text-muted-foreground ml-3 w-20">
-                      Notes
-                    </Text>
-                    <Text
-                      className="text-sm text-foreground flex-1 text-right"
-                      numberOfLines={3}
-                    >
-                      {expense.description}
-                    </Text>
-                  </View>
-                )}
-              </Rows>
+              <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pt-4 pb-1">
+                <SectionTitle icon="business-outline" title="Where" className="mb-2" />
+                <FieldRow
+                  divider={false}
+                  label="Account"
+                  value={
+                    expenseAccount
+                      ? expenseAccount.account_label || `${expenseAccount.bank_name} ••${expenseAccount.account_identifier.slice(-4)}`
+                      : "Not set"
+                  }
+                  valueColor={expenseAccount ? undefined : theme.mutedForeground}
+                  onPress={expenseAccount ? () => navigateToTransferAccountLedger(expenseAccount.id) : undefined}
+                />
+                <FieldRow label={expense.nature === "credit" ? "From" : "Merchant"} value={expense.merchant_name || "Not set"} valueColor={expense.merchant_name ? undefined : theme.mutedForeground} />
+                <FieldRow label="Paid by" value={expensePaymentMode?.name ?? "Not set"} valueColor={expensePaymentMode ? undefined : theme.mutedForeground}>
+                  {expensePaymentMode ? (
+                    <Ionicons name={TYPE_ICONS[expensePaymentMode.type as PaymentModeType]} size={14} color={theme.mutedForeground} style={{ marginLeft: 6 }} />
+                  ) : null}
+                </FieldRow>
+              </View>
 
               {/* 4. Split Section — not applicable for credits, nor my share of a household member's
                   bill (Together keeps that one; its split is theirs) */}
-              {expense.nature !== "credit" && !expense.household_ref && (splitView || isPartOn("hisaab")) && (
+              {expense.nature !== "credit" && !expense.household_ref && splitView && (
               <View className="mx-4 mt-3">
-                {splitView ? (
-                  <SplitCard
+                <SplitCard
                     view={splitView}
                     onEdit={() => setShowSplitEdit(true)}
                     onOpenPerson={(p) => {
@@ -2440,22 +2456,6 @@ export default function ExpenseDetailScreen() {
                       });
                     }}
                   />
-                ) : (
-                  <Pressable
-                    onPress={() => setShowSplitEdit(true)}
-                    className="flex-row items-center py-3 px-4 rounded-xl bg-card"
-                    accessibilityRole="button"
-                  >
-                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                      <Ionicons name="people-outline" size={20} color={colors.blue} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-sm font-semibold text-foreground">Split this expense</Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">With one person or several, equally, by percentage or amount</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                  </Pressable>
-                )}
               </View>
               )}
 
@@ -2479,7 +2479,7 @@ export default function ExpenseDetailScreen() {
 
               {/* 4b. Tags */}
               <View className="mx-4 mt-3" ref={tagsSectionRef} collapsable={false}>
-                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wide mb-2">
                   Tags
                 </Text>
                 <TagPicker
@@ -2501,9 +2501,9 @@ export default function ExpenseDetailScreen() {
 
               {/* 4c. Forecast Actions (only for forecasts) */}
               {expense.nature === "forecast" && (
-                <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
+                <View className="mx-4 mt-3 rounded-card bg-card overflow-hidden">
                   <View className="px-4 pt-3 pb-1">
-                    <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
                       Forecast Actions
                     </Text>
                   </View>
@@ -2521,64 +2521,64 @@ export default function ExpenseDetailScreen() {
 
               {/* 4d. Transfer Details (shown when expense is reclassified as transfer, but NOT when the destination is a fixed deposit — that gets its own card below). */}
               {transfer && !fdProduct && (
-                <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
+                <View className="mx-4 mt-3 rounded-card bg-card overflow-hidden">
                   <View className="px-4 pt-3 pb-1">
-                    <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
                       Transfer Details
                     </Text>
                   </View>
                   <View className="px-4 py-3">
                     <View className="flex-row items-center mb-3">
                       <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="swap-horizontal-outline" size={20} color={colors.blue} />
+                        <Ionicons name="swap-horizontal-outline" size={20} color={theme.primary} />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">
+                        <Text className="text-body font-semibold text-foreground">
                           Marked as transfer
                         </Text>
                       </View>
                     </View>
                     <View className="ml-13 mb-3">
-                      <Text className="text-xs text-muted-foreground mb-1">From:</Text>
+                      <Text className="text-label text-muted-foreground mb-1">From:</Text>
                       <Pressable onPress={() => navigateToTransferAccountLedger(transfer.from_account_id)}>
-                        <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
+                        <Text className="text-body font-semibold" style={{ color: theme.primary }}>
                           {accounts.find(a => a.id === transfer.from_account_id)?.bank_name || "Unknown"} ****{accounts.find(a => a.id === transfer.from_account_id)?.account_identifier || ""}
                         </Text>
                       </Pressable>
                     </View>
                     <View className="ml-13 mb-3">
-                      <Text className="text-xs text-muted-foreground mb-1">To:</Text>
+                      <Text className="text-label text-muted-foreground mb-1">To:</Text>
                       <Pressable onPress={() => navigateToTransferAccountLedger(transfer.to_account_id)}>
-                        <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
+                        <Text className="text-body font-semibold" style={{ color: theme.primary }}>
                           {accounts.find(a => a.id === transfer.to_account_id)?.bank_name || "Unknown"} ****{accounts.find(a => a.id === transfer.to_account_id)?.account_identifier || ""}
                         </Text>
                       </Pressable>
                     </View>
                     <View className="ml-13 mb-3">
-                      <Text className="text-xs text-muted-foreground mb-1">Amount:</Text>
-                      <Text className="text-sm font-semibold text-foreground">
+                      <Text className="text-label text-muted-foreground mb-1">Amount:</Text>
+                      <Text className="text-body font-semibold text-foreground">
                         ₹{transfer.amount.toLocaleString()}
                       </Text>
                     </View>
                     <View className="ml-13">
-                      <Text className="text-xs text-muted-foreground mb-1">Date:</Text>
-                      <Text className="text-sm font-semibold text-foreground">
+                      <Text className="text-label text-muted-foreground mb-1">Date:</Text>
+                      <Text className="text-body font-semibold text-foreground">
                         {transfer.date}
                       </Text>
                     </View>
                   </View>
                   <Pressable
                     onPress={handleUndoTransfer}
-                    className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-xl bg-background"
+                    className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-control bg-background"
                   >
                     <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                      <Ionicons name="arrow-undo-outline" size={20} color={colors.blue} />
+                      <Ionicons name="arrow-undo-outline" size={20} color={theme.primary} />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-foreground">
+                      <Text className="text-body font-semibold text-foreground">
                         Undo transfer
                       </Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">
+                      <Text className="text-label text-muted-foreground mt-0.5">
                         Convert back to expense
                       </Text>
                     </View>
@@ -2589,9 +2589,9 @@ export default function ExpenseDetailScreen() {
               {/* 4d-ii. Fixed Deposit Details (shown when this expense is the deposit
                   transfer for an FD created via "Mark as fixed deposit"). */}
               {transfer && fdProduct && (
-                <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
+                <View className="mx-4 mt-3 rounded-card bg-card overflow-hidden">
                   <View className="px-4 pt-3 pb-1">
-                    <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
                       Fixed Deposit Details
                     </Text>
                   </View>
@@ -2601,48 +2601,48 @@ export default function ExpenseDetailScreen() {
                       onPress={() => router.push({ pathname: "/settings/account-detail", params: { accountId: fdProduct.financial_account_id } })}
                     >
                       <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="cash-outline" size={20} color={colors.blue} />
+                        <Ionicons name="cash-outline" size={20} color={theme.primary} />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
+                        <Text className="text-body font-semibold" style={{ color: theme.primary }}>
                           {accounts.find(a => a.id === fdProduct.financial_account_id)?.account_label
                             ?? accounts.find(a => a.id === fdProduct.financial_account_id)?.bank_name
                             ?? "Fixed Deposit"}
                         </Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
+                        <Text className="text-label text-muted-foreground mt-0.5">
                           {INSTRUMENT_LABELS[fdProduct.instrument]} · tap to edit
                         </Text>
                       </View>
                     </Pressable>
                     <View className="ml-13 mb-3">
-                      <Text className="text-xs text-muted-foreground mb-1">Principal:</Text>
-                      <Text className="text-sm font-semibold text-foreground">
+                      <Text className="text-label text-muted-foreground mb-1">Principal:</Text>
+                      <Text className="text-body font-semibold text-foreground">
                         {fdProduct.principal != null ? formatAmount(fdProduct.principal) : "—"}
                       </Text>
                     </View>
                     {isFDIncomplete(fdProduct) ? (
                       <View className="ml-13">
-                        <Text className="text-xs text-muted-foreground mb-1">Interest & maturity:</Text>
-                        <Text className="text-sm font-semibold text-foreground">Not set yet</Text>
+                        <Text className="text-label text-muted-foreground mb-1">Interest & maturity:</Text>
+                        <Text className="text-body font-semibold text-foreground">Not set yet</Text>
                       </View>
                     ) : (
                       <>
                         <View className="ml-13 mb-3">
-                          <Text className="text-xs text-muted-foreground mb-1">Interest rate:</Text>
-                          <Text className="text-sm font-semibold text-foreground">
+                          <Text className="text-label text-muted-foreground mb-1">Interest rate:</Text>
+                          <Text className="text-body font-semibold text-foreground">
                             {fdProduct.interest_rate_pa}% p.a. ({fdProduct.interest_method})
                           </Text>
                         </View>
                         <View className="ml-13 mb-3">
-                          <Text className="text-xs text-muted-foreground mb-1">Matures:</Text>
-                          <Text className="text-sm font-semibold text-foreground">
+                          <Text className="text-label text-muted-foreground mb-1">Matures:</Text>
+                          <Text className="text-body font-semibold text-foreground">
                             {fdProduct.maturity_date ? formatDate(fdProduct.maturity_date) : "—"}
                           </Text>
                         </View>
                         {fdProduct.maturity_amount_override != null && (
                           <View className="ml-13 mb-3">
-                            <Text className="text-xs text-muted-foreground mb-1">Corrected maturity amount:</Text>
-                            <Text className="text-sm font-semibold text-foreground">
+                            <Text className="text-label text-muted-foreground mb-1">Corrected maturity amount:</Text>
+                            <Text className="text-body font-semibold text-foreground">
                               {formatAmount(fdProduct.maturity_amount_override)}
                             </Text>
                           </View>
@@ -2650,36 +2650,36 @@ export default function ExpenseDetailScreen() {
                       </>
                     )}
                     <View className="ml-13 mb-3">
-                      <Text className="text-xs text-muted-foreground mb-1">Status:</Text>
-                      <Text className="text-sm font-semibold text-foreground capitalize">{fdProduct.status}</Text>
+                      <Text className="text-label text-muted-foreground mb-1">Status:</Text>
+                      <Text className="text-body font-semibold text-foreground capitalize">{fdProduct.status}</Text>
                     </View>
                     {fdBucketName && (
                       <View className="ml-13">
-                        <Text className="text-xs text-muted-foreground mb-1">Investment bucket:</Text>
-                        <Text className="text-sm font-semibold text-foreground">{fdBucketName}</Text>
+                        <Text className="text-label text-muted-foreground mb-1">Investment bucket:</Text>
+                        <Text className="text-body font-semibold text-foreground">{fdBucketName}</Text>
                       </View>
                     )}
                   </View>
                   {fdProduct.status === "active" ? (
                     <Pressable
                       onPress={handleUndoFD}
-                      className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-xl bg-background"
+                      className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-control bg-background"
                     >
                       <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="arrow-undo-outline" size={20} color={colors.blue} />
+                        <Ionicons name="arrow-undo-outline" size={20} color={theme.primary} />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">
+                        <Text className="text-body font-semibold text-foreground">
                           Undo fixed deposit
                         </Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
+                        <Text className="text-label text-muted-foreground mt-0.5">
                           Convert back to expense
                         </Text>
                       </View>
                     </Pressable>
                   ) : (
                     <View className="mx-4 mb-3 px-4 py-2">
-                      <Text className="text-xs text-muted-foreground">
+                      <Text className="text-label text-muted-foreground">
                         This fixed deposit has matured — it can no longer be undone.
                       </Text>
                     </View>
@@ -2687,178 +2687,12 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* 4e. Mark as transfer (realized savings debits only, shown when not
-                   already reclassified, nor marked as an investment or loan payment —
-                   these four "Mark as" actions are mutually exclusive). */}
-              {!transfer && !investmentLink && !loanLink && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
-                <Pressable
-                  onPress={() => setTransferPickerVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="swap-horizontal-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as transfer
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      This was a transfer, not spending
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
-              {/* 4e. Mark as fixed deposit (realized savings debits only) — a shortcut
-                   for the common case where an SMS-detected debit is actually the
-                   deposit that opened a new FD, so it doesn't have to be manually
-                   reclassified as a transfer to an FD account created separately. */}
-              {!transfer && !investmentLink && !loanLink && expense.nature === "realized" && expense.account_id && expenseAccount?.account_type === "savings" && (
-                <Pressable
-                  onPress={() => setMarkAsFDVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="cash-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as fixed deposit
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      This debit opened a new FD
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
-              {/* 4e. Mark as transfer (credits) — for incoming SMS credits that were
-                   actually a CC bill payment or a self-transfer. Labels differ for
-                   CC credits (bill payment mental model) vs savings credits.
-                   Hidden once a settlement link is in place (the credit's
-                   already been claimed). */}
-              {!transfer && expense.nature === "credit" && expense.account_id && !linkedSettlement && (
-                <Pressable
-                  onPress={() => setCreditTransferPickerVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Mark this credit as a transfer from another account"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="swap-horizontal-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      {expenseAccount?.account_type === "credit_card" ? "Mark as CC Bill Payment" : "Mark as transfer"}
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      {expenseAccount?.account_type === "credit_card"
-                        ? "This was your bill paid from another account"
-                        : "This money came from another account of yours"}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
-              {/* 4e-1. FD matured or closed - for a closing Arth didn't spot in the message. Flags
-                   the credit as 'fd_closure' so the money-event card at the top takes over (pick the
-                   FD, or record it), the same as when Arth flags it itself. */}
-              {!transfer && expense.nature === "credit" && expense.account_id && !linkedSettlement
-                && expenseAccount?.account_type !== "credit_card" && !expense.money_event
-                && expense.reclassified_as_transfer !== 1
-                && !expense.split_person_id && !expense.split_mode && !expense.fulfills_rule_id && (
-                <Pressable
-                  onPress={async () => {
-                    try {
-                      const { setMoneyEvent } = await import("@/services/money-events");
-                      await setMoneyEvent(expense.id, "fd_closure");
-                      const fresh = await getExpenseById(id);
-                      if (fresh) setExpense(fresh);
-                      setOpenFdPicker(true);
-                    } catch (e) {
-                      alert("Couldn't do that", e instanceof Error ? e.message : String(e));
-                    }
-                  }}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Record this as money from a fixed deposit that matured or was closed"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="lock-open-outline" size={20} color={theme.primary} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">FD matured or closed</Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      This money came back from a fixed deposit
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
-              {/* 4e-2. Money back from an investment (MF redemption, broker payout, PPF/NPS/EPF
-                   withdrawal) — recorded against the investment instead of as income. */}
-              {!transfer && expense.nature === "credit" && expense.account_id && !linkedSettlement
-                && expenseAccount?.account_type !== "credit_card" && expense.money_event !== "investment_withdrawal"
-                && !expense.split_person_id && !expense.split_mode && !expense.fulfills_rule_id && (
-                <Pressable
-                  onPress={() => setWithdrawalSheetVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Record this as money back from an investment"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="trending-down-outline" size={20} color={theme.primary} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">Investment withdrawal</Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      This money came out of a fund, stocks, PPF, NPS or similar
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
-              {/* 4f. v15.12.0: Mark as settlement (credits only, non-CC). For
-                   incoming money that was actually a friend/family settling
-                   up a hisaab balance. Hidden for credit-card accounts (a CC
-                   credit is always a bill payment/refund, not a settlement)
-                   and hidden if already linked. */}
-              {expense.nature === "credit"
-                && expense.account_id
-                && expenseAccount?.account_type !== "credit_card"
-                && !linkedSettlement && (
-                <Pressable
-                  onPress={() => setHisaabSettlementSheetVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Mark this credit as a settlement from a hisaab person"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="people-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as settlement
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      Someone paid you back from hisaab
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
               {/* v15.12.0: Linked-to-hisaab badge — shown when this credit is
                    already marked as a settlement. Tap the person name to jump
                    to their hisaab ledger; tap Unlink to unmark (keeps credit). */}
               {expense.nature === "credit" && linkedSettlement && (
                 <View
-                  className="mx-4 mt-3 p-3 rounded-xl"
+                  className="mx-4 mt-3 p-3 rounded-card"
                   style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-center">
@@ -2873,10 +2707,10 @@ export default function ExpenseDetailScreen() {
                       />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                         Settlement from {linkedSettlement.personName}
                       </Text>
-                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                         Applied against their hisaab balance.
                       </Text>
                     </View>
@@ -2884,21 +2718,21 @@ export default function ExpenseDetailScreen() {
                   <View className="flex-row mt-3 gap-2">
                     <Pressable
                       onPress={() => router.push(`/hisaab/ledger?personId=${linkedSettlement.personId}`)}
-                      className="flex-1 py-2 rounded-lg items-center"
+                      className="flex-1 py-2 rounded-control items-center"
                       style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
                       accessibilityLabel={`View ${linkedSettlement.personName}'s hisaab ledger`}
                     >
-                      <Text className="text-sm font-semibold text-primary-foreground">View ledger</Text>
+                      <Text className="text-body font-semibold text-primary-foreground">View ledger</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleUnlinkSettlement}
-                      className="flex-1 py-2 rounded-lg items-center"
-                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      className="flex-1 py-2 rounded-control items-center"
+                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
                       accessibilityRole="button"
                       accessibilityLabel="Unlink settlement"
                     >
-                      <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
                         Unlink
                       </Text>
                     </Pressable>
@@ -2906,39 +2740,11 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* Tag as refund (credits only) — links this credit to the expense it
-                   refunded. Hidden when already linked, or already classified
-                   as settlement/transfer (mutually exclusive). */}
-              {expense.nature === "credit"
-                && !expense.refund_of_expense_id
-                && !linkedSettlement
-                && !transfer && (
-                <Pressable
-                  onPress={() => setRefundExpensePickerVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Tag this credit as a refund for an expense"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Tag as refund
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      Link to the expense this money came back for
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
               {/* Badge: credit already tagged as refund. Tap expense name to deep-link;
                    tap Unlink to remove the soft link (credit stays in ledger). */}
               {expense.nature === "credit" && expense.refund_of_expense_id && (
                 <View
-                  className="mx-4 mt-3 p-3 rounded-xl"
+                  className="mx-4 mt-3 p-3 rounded-card"
                   style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-center">
@@ -2953,10 +2759,10 @@ export default function ExpenseDetailScreen() {
                       />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                         Refund for {linkedExpenseSummary ?? "an expense"}
                       </Text>
-                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                         Reduces effective spend in budget &amp; insights
                       </Text>
                     </View>
@@ -2964,21 +2770,21 @@ export default function ExpenseDetailScreen() {
                   <View className="flex-row mt-3 gap-2">
                     <Pressable
                       onPress={() => router.push(`/expense/${expense.refund_of_expense_id}`)}
-                      className="flex-1 py-2 rounded-lg items-center"
+                      className="flex-1 py-2 rounded-control items-center"
                       style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
                       accessibilityLabel="Open the linked expense"
                     >
-                      <Text className="text-sm font-semibold text-primary-foreground">View expense</Text>
+                      <Text className="text-body font-semibold text-primary-foreground">View expense</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleUnlinkCreditAsRefund}
-                      className="flex-1 py-2 rounded-lg items-center"
-                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      className="flex-1 py-2 rounded-control items-center"
+                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
                       accessibilityRole="button"
                       accessibilityLabel="Unlink refund"
                     >
-                      <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
                         Unlink
                       </Text>
                     </Pressable>
@@ -2986,45 +2792,10 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* v17.0.0: Mark as investment (realized, non-credit, non-refund,
-                   non-split, non-transfer, non-loan-linked — these four
-                   "Mark as" actions are mutually exclusive: a transaction can
-                   only be one of a transfer/FD, an investment contribution,
-                   or a loan payment, never two at once). Lets user promote an
-                   expense (SIP, PPF, gold purchase) to an investment bucket
-                   contribution. */}
-              {V15_FLAGS.v17_expense_investment_link
-                && expense.nature === "realized"
-                && !expense.refund_of_expense_id
-                && !expense.purchase_group_id
-                && !investmentLink
-                && !loanLink
-                && !transfer && (
-                <Pressable
-                  onPress={() => setInvestmentSheetVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Mark this expense as an investment contribution"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="trending-up-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as investment
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      Credits an Investment Bucket instead of counting as spend
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
               {/* v17.0.0: Investment-linked badge */}
               {investmentLink && (
                 <View
-                  className="mx-4 mt-3 p-3 rounded-xl"
+                  className="mx-4 mt-3 p-3 rounded-card"
                   style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-center">
@@ -3039,10 +2810,10 @@ export default function ExpenseDetailScreen() {
                       />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                         Investment · {investmentBucketName ?? "Bucket"}
                       </Text>
-                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                         Credited to the bucket. Excluded from this month's budget.
                       </Text>
                     </View>
@@ -3050,21 +2821,21 @@ export default function ExpenseDetailScreen() {
                   <View className="flex-row mt-3 gap-2">
                     <Pressable
                       onPress={() => router.push({ pathname: "/goals/investment-detail", params: { bucketId: investmentLink.investment_bucket_id } })}
-                      className="flex-1 py-2 rounded-lg items-center"
+                      className="flex-1 py-2 rounded-control items-center"
                       style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
                       accessibilityLabel={`View ${investmentBucketName} bucket`}
                     >
-                      <Text className="text-sm font-semibold text-primary-foreground">View bucket</Text>
+                      <Text className="text-body font-semibold text-primary-foreground">View bucket</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleUnlinkInvestment}
-                      className="flex-1 py-2 rounded-lg items-center"
-                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      className="flex-1 py-2 rounded-control items-center"
+                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
                       accessibilityRole="button"
                       accessibilityLabel="Unlink investment"
                     >
-                      <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
                         Unlink
                       </Text>
                     </Pressable>
@@ -3072,41 +2843,10 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* v17.4.0: Mark as loan payment (realized, non-credit, non-refund,
-                   non-split, non-investment-linked, non-transfer). Same
-                   mutual-exclusion guard family as Mark-as-Investment. */}
-              {V15_FLAGS.v17_loans_v1
-                && expense.nature === "realized"
-                && !expense.refund_of_expense_id
-                && !expense.purchase_group_id
-                && !investmentLink
-                && !loanLink
-                && !transfer && (
-                <Pressable
-                  onPress={() => setLoanSheetVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Mark this expense as a loan payment"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="cash-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Mark as loan payment
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      EMI or prepayment. Excluded from budget.
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
               {/* v17.4.0: Loan-linked badge */}
               {loanLink && (
                 <View
-                  className="mx-4 mt-3 p-3 rounded-xl"
+                  className="mx-4 mt-3 p-3 rounded-card"
                   style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-center">
@@ -3121,12 +2861,12 @@ export default function ExpenseDetailScreen() {
                       />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                         {loanLink.link_kind === "emi" ? "EMI" : "Prepayment"}
                         {linkedLoanBankName ? ` · ${linkedLoanBankName}` : ""}
                         {linkedLoan ? ` ${linkedLoan.loan_type}` : ""}
                       </Text>
-                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                         {loanLink.link_kind === "emi"
                           ? "Logged against the scheduled installment."
                           : "Principal reduced. Excluded from budget."}
@@ -3138,59 +2878,26 @@ export default function ExpenseDetailScreen() {
                       onPress={() =>
                         router.push({ pathname: "/loans/[id]", params: { id: loanLink.loan_account_id } })
                       }
-                      className="flex-1 py-2 rounded-lg items-center"
+                      className="flex-1 py-2 rounded-control items-center"
                       style={{ backgroundColor: theme.primary }}
                       accessibilityRole="button"
                       accessibilityLabel="View loan"
                     >
-                      <Text className="text-sm font-semibold text-primary-foreground">View loan</Text>
+                      <Text className="text-body font-semibold text-primary-foreground">View loan</Text>
                     </Pressable>
                     <Pressable
                       onPress={handleUnlinkLoan}
-                      className="flex-1 py-2 rounded-lg items-center"
-                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      className="flex-1 py-2 rounded-control items-center"
+                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
                       accessibilityRole="button"
                       accessibilityLabel="Unlink loan payment"
                     >
-                      <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
                         Unlink
                       </Text>
                     </Pressable>
                   </View>
                 </View>
-              )}
-
-              {/* Set reminder / Stop reminder — realized expenses only.
-                  Forecasts themselves don't get a reminder (that would be a
-                  reminder on a reminder's output). */}
-              {expense.nature === "realized" && (
-                <Pressable
-                  onPress={() =>
-                    recurringRule ? handleStopRecurring() : setRecurringSheetVisible(true)
-                  }
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel={recurringRule ? "Stop reminder" : "Set reminder"}
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons
-                      name={recurringRule ? "pause-circle-outline" : "repeat-outline"}
-                      size={20}
-                      color={colors.blue}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      {recurringRule ? "Stop reminder" : "Set reminder"}
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      {recurringRule
-                        ? `Reminds ${recurringRule.frequency}${recurringRule.end_date ? ` · Until ${recurringRule.end_date}` : ""}`
-                        : "Get reminded on a schedule"}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
               )}
 
               {/* v14.7.0: Recurring-reminder suggestion banner. Shown only
@@ -3200,19 +2907,19 @@ export default function ExpenseDetailScreen() {
                   for this session only. */}
               {expense.nature === "realized" && suggestedReminder && (
                 <View
-                  className="mx-4 mt-3 p-3 rounded-xl"
+                  className="mx-4 mt-3 p-3 rounded-card"
                   style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                 >
                   <View className="flex-row items-start">
                     <Ionicons name="repeat-outline" size={18} color={theme.primary} />
                     <View className="flex-1 ml-2">
                       <Text
-                        className="text-sm font-semibold"
+                        className="text-body font-semibold"
                         style={{ color: theme.primary }}
                       >
                         Link to a reminder?
                       </Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">
+                      <Text className="text-label text-muted-foreground mt-0.5">
                         Looks like this could fulfill a recurring reminder due {suggestedReminder.next_due_date}.
                       </Text>
                       <View className="flex-row mt-2">
@@ -3230,20 +2937,20 @@ export default function ExpenseDetailScreen() {
                               alert("Couldn't link", formatError("Link reminder", e));
                             }
                           }}
-                          className="px-3 py-1.5 rounded-lg mr-2"
+                          className="px-3 py-1.5 rounded-control mr-2"
                           style={{ backgroundColor: theme.primary }}
                           accessibilityRole="button"
                           accessibilityLabel="Link this expense to the reminder"
                         >
-                          <Text className="text-xs font-semibold text-primary-foreground">Link</Text>
+                          <Text className="text-label font-semibold text-primary-foreground">Link</Text>
                         </Pressable>
                         <Pressable
                           onPress={() => setSuggestedReminder(null)}
-                          className="px-3 py-1.5 rounded-lg"
+                          className="px-3 py-1.5 rounded-control"
                           accessibilityRole="button"
                           accessibilityLabel="Dismiss suggestion"
                         >
-                          <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
+                          <Text className="text-label font-semibold" style={{ color: theme.mutedForeground }}>
                             Dismiss
                           </Text>
                         </Pressable>
@@ -3253,111 +2960,11 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* v15.2: Smart-rule-applied badge (tap to open the rule). */}
-              {expense.applied_rule_id && appliedRuleSummary && (
-                <Pressable
-                  onPress={() =>
-                    router.push(`/settings/smart-rules/${expense.applied_rule_id}`)
-                  }
-                  className="mx-4 mt-3 p-3 rounded-xl flex-row items-center bg-card"
-                  accessibilityRole="button"
-                >
-                  <Ionicons name={expense.applied_rule_manually ? "flash-outline" : "sparkles"} size={18} color={colors.textSecondary} />
-                  <View className="flex-1 ml-2">
-                    <Text className="text-sm font-semibold text-foreground">
-                      {expense.applied_rule_manually ? "Applied manually" : "Processed by rule"}
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      {appliedRuleSummary}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
-              {/* v14.7.0: Fulfilled-reminder badge + tap to detail + Undo. */}
-              {expense.nature === "realized" && fulfilledRule && (
-                <Pressable
-                  onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${fulfilledRule.id}`)}
-                  className="mx-4 mt-3 p-3 rounded-xl flex-row items-center"
-                  style={{ backgroundColor: theme.success + "14" }}
-                  accessibilityRole="button"
-                  accessibilityLabel="View reminder details"
-                >
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={18}
-                    color={theme.success}
-                  />
-                  <View className="flex-1 ml-2">
-                    <Text
-                      className="text-sm font-semibold"
-                      style={{ color: theme.success }}
-                    >
-                      {fulfilledRule.notes
-                        ? fulfilledRule.notes
-                        : "Fulfilled a recurring reminder"}
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      {fulfilledRule.frequency} reminder · Tap to view
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center ml-1">
-                    <Pressable
-                      onPress={async () => {
-                        try {
-                          await unfulfillReminder(expense.id);
-                          setFulfilledRule(null);
-                        } catch (err) {
-                          alert("Couldn't unlink", formatError("Unlink reminder", err));
-                        }
-                      }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Unlink this reminder"
-                      hitSlop={8}
-                    >
-                      <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
-                        Undo
-                      </Text>
-                    </Pressable>
-                    <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 8 }} />
-                  </View>
-                </Pressable>
-              )}
-
-              {/* Duplicate — create a new expense/credit pre-filled from this one. */}
-              {(expense.nature === "realized" || expense.nature === "credit") && (
-                <Pressable
-                  onPress={() =>
-                    router.push({
-                      pathname: "/expense/add",
-                      params: { copyFromExpenseId: expense.id },
-                    })
-                  }
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Duplicate this expense"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="copy-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Duplicate
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      {expense.nature === "credit" ? "Start a new credit pre-filled from this one" : "Start a new expense pre-filled from this one"}
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
               {/* Refund Details card — shown when at least one refund has been recorded */}
               {expense.nature === "realized" && refunds.length > 0 && (
-                <View className="mx-4 mt-3 rounded-xl bg-card overflow-hidden">
+                <View className="mx-4 mt-3 rounded-card bg-card overflow-hidden">
                   <View className="px-4 pt-3 pb-1">
-                    <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
                       Refund Details
                     </Text>
                   </View>
@@ -3366,39 +2973,39 @@ export default function ExpenseDetailScreen() {
                       <View className="px-4 py-3">
                         <View className="flex-row items-center mb-2">
                           <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                            <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
+                            <Ionicons name="return-up-back-outline" size={20} color={theme.primary} />
                           </View>
                           <View className="flex-1">
-                            <Text className="text-sm font-semibold text-foreground">
+                            <Text className="text-body font-semibold text-foreground">
                               {refunds.length > 1 ? `Refund ${idx + 1}` : "Refunded"}
                             </Text>
                           </View>
                         </View>
                         <View className="ml-13 mb-1">
-                          <Text className="text-xs text-muted-foreground mb-0.5">Amount:</Text>
-                          <Text className="text-sm font-semibold text-foreground">
+                          <Text className="text-label text-muted-foreground mb-0.5">Amount:</Text>
+                          <Text className="text-body font-semibold text-foreground">
                             {formatAmount(refund.amount)}
                           </Text>
                         </View>
                         <View className="ml-13">
-                          <Text className="text-xs text-muted-foreground mb-0.5">Date:</Text>
-                          <Text className="text-sm font-semibold text-foreground">
+                          <Text className="text-label text-muted-foreground mb-0.5">Date:</Text>
+                          <Text className="text-body font-semibold text-foreground">
                             {refund.date}
                           </Text>
                         </View>
                       </View>
                       <Pressable
                         onPress={() => handleUndoRefund(refund.id)}
-                        className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-xl bg-background"
+                        className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-control bg-background"
                       >
                         <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                          <Ionicons name="arrow-undo-outline" size={20} color={colors.blue} />
+                          <Ionicons name="arrow-undo-outline" size={20} color={theme.primary} />
                         </View>
                         <View className="flex-1">
-                          <Text className="text-sm font-semibold text-foreground">
+                          <Text className="text-body font-semibold text-foreground">
                             Undo refund
                           </Text>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
+                          <Text className="text-label text-muted-foreground mt-0.5">
                             Remove this refund record
                           </Text>
                         </View>
@@ -3408,36 +3015,48 @@ export default function ExpenseDetailScreen() {
                 </View>
               )}
 
-              {/* Record a refund — hidden once the expense is fully refunded */}
-              {expense.nature === "realized" && refundedAmount < (expense.split_original_amount ?? expense.amount) && (
-                <Pressable
-                  onPress={() => setRefundTargetSheetVisible(true)}
-                  className="mx-4 mt-3 flex-row items-center py-3 px-4 rounded-xl bg-card"
-                  accessibilityRole="button"
-                  accessibilityLabel="Record a refund for this expense"
-                >
-                  <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                    <Ionicons name="return-up-back-outline" size={20} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      Record a refund
-                    </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      Money came back for this expense
-                    </Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </Pressable>
-              )}
-
-              {/* 5. Other Info (Collapsible Metadata) */}
-              <ExpenseMetadata expense={expense} />
+              {/* 5. Source: how it got here, with what a rule or reminder did to it */}
+              <ExpenseMetadata expense={expense}>
+                {expense.applied_rule_id && appliedRuleSummary ? (
+                  <FieldRow
+                    label={expense.applied_rule_manually ? "Rule applied by you" : "Changed by a rule"}
+                    value={appliedRuleSummary}
+                    onPress={() => router.push(`/settings/smart-rules/${expense.applied_rule_id}`)}
+                  />
+                ) : null}
+                {expense.nature === "realized" && fulfilledRule ? (
+                  <FieldRow
+                    label="Reminder"
+                    value={fulfilledRule.notes ? fulfilledRule.notes : `Fulfilled a ${fulfilledRule.frequency} reminder`}
+                    onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${fulfilledRule.id}`)}
+                  >
+                    <Pressable
+                      onPress={async () => {
+                        try {
+                          await unfulfillReminder(expense.id);
+                          setFulfilledRule(null);
+                          toast("Reminder unlinked");
+                        } catch (err) {
+                          alert("Couldn't unlink", formatError("Unlink reminder", err));
+                        }
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel="Unlink this reminder"
+                      hitSlop={8}
+                      className="ml-3"
+                    >
+                      <Text className="text-meta font-semibold" style={{ color: theme.primary }}>Undo</Text>
+                    </Pressable>
+                  </FieldRow>
+                ) : null}
+              </ExpenseMetadata>
             </View>
           )}
         </ScrollView>
         {editing && <StickySaveBar title="Save changes" onPress={handleSave} loading={saving} />}
       </KeyboardAvoidingView>
+
+      <MoreActionsSheet visible={moreOpen} onClose={() => setMoreOpen(false)} groups={moreGroups} />
 
       {expense && (
         <SplitEditSheet
@@ -3594,14 +3213,14 @@ export default function ExpenseDetailScreen() {
       {/* Rule picker sheet */}
       <Sheet visible={rulePickerVisible} onClose={() => setRulePickerVisible(false)} maxHeightPct={70}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingBottom: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.text }}>Apply rule</Text>
+            <Text className="text-heading font-bold text-foreground">Apply rule</Text>
             <Pressable onPress={() => setRulePickerVisible(false)} hitSlop={8}>
-              <Ionicons name="close" size={20} color={colors.textSecondary} />
+              <Ionicons name="close" size={20} color={theme.mutedForeground} />
             </Pressable>
           </View>
           {availableRules.length === 0 ? (
             <View style={{ alignItems: "center", padding: 32 }}>
-              <Text style={{ fontSize: 14, color: colors.textSecondary }}>No active rules found.</Text>
+              <Text className="text-meta text-muted-foreground">No active rules found.</Text>
             </View>
           ) : (
             <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
@@ -3619,8 +3238,9 @@ export default function ExpenseDetailScreen() {
                   accessibilityLabel={`Apply rule: ${rule.name}`}
                 >
                   <View
+                    className="rounded-control"
                     style={{
-                      width: 36, height: 36, borderRadius: 18,
+                      width: 36, height: 36,
                       backgroundColor: theme.alpha("primary", 0.09),
                       alignItems: "center", justifyContent: "center", marginRight: 12,
                     }}
@@ -3628,15 +3248,15 @@ export default function ExpenseDetailScreen() {
                     <Ionicons name="flash-outline" size={17} color={theme.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: colors.text }}>{rule.name}</Text>
-                    <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>
+                    <Text className="text-body font-semibold text-foreground">{rule.name}</Text>
+                    <Text className="text-meta text-muted-foreground mt-0.5">
                       {rule.actions.map((a) => a.type.replace(/_/g, " ")).join(" · ")}
                     </Text>
                   </View>
                   {applyingRuleId === rule.id ? (
-                    <Text style={{ fontSize: 12, color: colors.textSecondary }}>Applying…</Text>
+                    <Text className="text-meta text-muted-foreground">Applying…</Text>
                   ) : (
-                    <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                    <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
                   )}
                 </Pressable>
               ))}

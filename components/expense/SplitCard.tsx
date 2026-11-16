@@ -20,12 +20,12 @@ export function SplitCard({
   return (
     <Card>
       <View className="flex-row items-center justify-between">
-        <Text className="text-sm font-semibold text-foreground">Split</Text>
+        <Text className="text-body font-semibold text-foreground">Split</Text>
         <Pressable onPress={onEdit} hitSlop={10} accessibilityRole="button" accessibilityLabel="Edit split">
-          <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Edit</Text>
+          <Text className="text-body font-semibold" style={{ color: theme.primary }}>Edit</Text>
         </Pressable>
       </View>
-      <Text className="text-xs text-muted-foreground mt-0.5">
+      <Text className="text-label text-muted-foreground mt-0.5">
         {formatAmount(view.total)} · {payer} · {view.modeLabel}
       </Text>
 
@@ -35,9 +35,9 @@ export function SplitCard({
       </View>
 
       <View className="flex-row items-center justify-between py-1.5">
-        <Text className="text-sm text-foreground">You</Text>
-        <Text className="text-sm text-muted-foreground">
-          {view.me.pct}% · <Text className="text-sm font-semibold text-foreground">{formatAmount(view.me.amount)}</Text>
+        <Text className="text-meta text-foreground">You</Text>
+        <Text className="text-meta text-muted-foreground">
+          {view.me.pct}% · <Text className="text-body font-semibold text-foreground">{formatAmount(view.me.amount)}</Text>
         </Text>
       </View>
       {view.people.map((p) => (
@@ -49,11 +49,11 @@ export function SplitCard({
           accessibilityLabel={`${p.name}, ${p.pct} percent, ${formatAmount(p.amount)}. Open their Hisaab`}
         >
           <View className="flex-1 mr-3">
-            <Text className="text-sm text-foreground" numberOfLines={1}>{p.name}</Text>
-            {p.description ? <Text className="text-xs text-muted-foreground" numberOfLines={1}>{p.description}</Text> : null}
+            <Text className="text-meta text-foreground" numberOfLines={1}>{p.name}</Text>
+            {p.description ? <Text className="text-label text-muted-foreground" numberOfLines={1}>{p.description}</Text> : null}
           </View>
-          <Text className="text-sm text-muted-foreground">
-            {p.pct}% · <Text className="text-sm font-semibold text-foreground">{formatAmount(p.amount)}</Text>
+          <Text className="text-meta text-muted-foreground">
+            {p.pct}% · <Text className="text-body font-semibold text-foreground">{formatAmount(p.amount)}</Text>
           </Text>
           <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
         </Pressable>
@@ -61,8 +61,8 @@ export function SplitCard({
 
       {view.owes && (
         <View className="flex-row items-center justify-between pt-2 mt-1.5 border-t border-border">
-          <Text className="text-xs font-semibold text-muted-foreground">{view.owes.text}</Text>
-          <Text className="text-sm font-bold text-foreground">{formatAmount(view.owes.amount)}</Text>
+          <Text className="text-label font-semibold text-muted-foreground">{view.owes.text}</Text>
+          <Text className="text-body font-bold text-foreground">{formatAmount(view.owes.amount)}</Text>
         </View>
       )}
     </Card>
