@@ -4,8 +4,10 @@ import { updateExpense } from "@/services/expense";
 import { FormulaTextInput } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from "react-native";
+import { ActivityIndicator, Keyboard, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Money, SelectSheet, Sheet, Text } from "@/components/ui";
+import { COMPONENTS } from "@/constants/design-tokens";
 import { DeckCard } from "@/components/check-in/DeckParts";
 import { TYPE_ICONS } from "@/constants/icons";
 import type { FooterAction } from "@/components/check-in/DeckParts";
@@ -364,32 +366,16 @@ function SingleExpenseBody({
       {/* Together: shared with the household, and how it's split. Hidden outside a household. */}
       {canSplit && <SharedWithHome expenseId={expense.id} categoryId={categoryId} total={total} />}
 
-      <Sheet visible={editingDescription} onClose={() => onSaveDescription(expense.id, draft)}>
-        <View className="px-5 pb-2">
-          <Text className="text-base font-bold text-foreground mb-3">Description</Text>
-          <View className="flex-row items-center rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
-            <TextInput
-              value={draft}
-              onChangeText={(t) => {
-                setDraft(t);
-                onDescriptionDraft(expense.id, t);
-              }}
-              placeholder="Dinner with team, Mom's medicines"
-              placeholderTextColor={theme.mutedForeground}
-              autoFocus
-              maxLength={200}
-              returnKeyType="done"
-              onSubmitEditing={() => onSaveDescription(expense.id, draft)}
-              className="flex-1 text-sm text-foreground py-2"
-              accessibilityLabel="Description"
-            />
-            {savingDescription && <ActivityIndicator size="small" color={theme.primary} />}
-          </View>
-          <View className="mt-3">
-            <Button title="Save" onPress={() => onSaveDescription(expense.id, draft)} disabled={savingDescription} />
-          </View>
-        </View>
-      </Sheet>
+      <DescriptionBar
+        visible={editingDescription}
+        value={draft}
+        saving={savingDescription}
+        onChangeText={(t) => {
+          setDraft(t);
+          onDescriptionDraft(expense.id, t);
+        }}
+        onSave={() => onSaveDescription(expense.id, draft)}
+      />
         <Pressable
           onPress={onEditDescription}
           className="flex-row items-center self-center mt-3 px-3"
@@ -408,6 +394,88 @@ function SingleExpenseBody({
         </Pressable>
 
     </View>
+  );
+}
+
+/**
+ * The description, typed in a bar that sits right on top of the keyboard, not in a bottom sheet:
+ * one line to type in, nothing between it and the keys. Tapping outside, Done on the keyboard or
+ * the tick saves it; the back button saves too, so nothing typed is lost.
+ *
+ * A Modal (not a view on the card) so the keyboard pushes it up: the Modal's window resizes with
+ * the keyboard, which pins a bottom-aligned bar to the keyboard's top edge. Not
+ * statusBarTranslucent, for the same reason as Sheet: a fullscreen Modal window ignores the resize.
+ */
+function DescriptionBar({
+  visible,
+  value,
+  saving,
+  onChangeText,
+  onSave,
+}: {
+  visible: boolean;
+  value: string;
+  saving: boolean;
+  onChangeText: (text: string) => void;
+  onSave: () => void;
+}) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  const [keyboardUp, setKeyboardUp] = useState(false);
+  useEffect(() => {
+    if (!visible) return;
+    const show = Keyboard.addListener("keyboardDidShow", () => setKeyboardUp(true));
+    const hide = Keyboard.addListener("keyboardDidHide", () => setKeyboardUp(false));
+    return () => {
+      show.remove();
+      hide.remove();
+      setKeyboardUp(false);
+    };
+  }, [visible]);
+
+  if (!visible) return null;
+  return (
+    <Modal transparent animationType="fade" visible onRequestClose={onSave}>
+      <View style={{ flex: 1, justifyContent: "flex-end" }}>
+        <Pressable
+          style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: COMPONENTS.sheet.backdrop }}
+          onPress={onSave}
+          accessibilityRole="button"
+          accessibilityLabel="Save description"
+        />
+        <View
+          className="px-4 pt-2 border-t border-border"
+          style={{
+            backgroundColor: theme.card,
+            // Above the keyboard the bar sits on the keys; without it, clear of the navigation bar.
+            paddingBottom: keyboardUp ? 8 : insets.bottom + 8,
+          }}
+        >
+          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Description</Text>
+          <View className="flex-row items-center rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
+            <TextInput
+              value={value}
+              onChangeText={onChangeText}
+              placeholder="Dinner with team, Mom's medicines"
+              placeholderTextColor={theme.mutedForeground}
+              autoFocus
+              maxLength={200}
+              returnKeyType="done"
+              onSubmitEditing={onSave}
+              className="flex-1 text-sm text-foreground py-2"
+              accessibilityLabel="Description"
+            />
+            {saving ? (
+              <ActivityIndicator size="small" color={theme.primary} />
+            ) : (
+              <Pressable onPress={onSave} hitSlop={10} accessibilityRole="button" accessibilityLabel="Save description">
+                <Ionicons name="checkmark" size={22} color={theme.primary} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+      </View>
+    </Modal>
   );
 }
 
