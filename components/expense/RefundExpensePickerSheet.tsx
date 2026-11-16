@@ -131,7 +131,8 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
           onChangeText={setQuery}
           placeholder="Search by merchant or description…"
           placeholderTextColor={theme.mutedForeground}
-          style={{ flex: 1, paddingVertical: 10, fontSize: 14, color: theme.foreground }}
+          className="text-body"
+          style={{ flex: 1, paddingVertical: 10, color: theme.foreground }}
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"

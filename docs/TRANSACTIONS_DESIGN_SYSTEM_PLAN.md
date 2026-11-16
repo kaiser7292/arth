@@ -1,6 +1,8 @@
 # Transactions design system — plan
 
-Status: **proposal, waiting for the owner's OK** (2026-11-16). Nothing below is built yet.
+Status (2026-11-16): **steps 1-15 built** on branch `claude/txn-design-system-488495`, approved by
+the owner ("Yes, start building"). Step 16, sub-categories, waits for the owner's OK on the
+database change. See "What was built" at the end for where it differs from the plan.
 
 Sources: the "Arth filters" canvas (icon rail, section title plus hint, Cancel + Apply) and the
 follow-up study (code audit, design-system parts, light-theme mockups of the list, filter sheet,
@@ -376,3 +378,30 @@ so the clean-up can't regress.
 
 Version bumps, releases, pushes. Non-transaction screens beyond what the shared filter sheet
 carries for free. iOS-specific styling.
+
+---
+
+## What was built, and where it differs from the plan
+
+Built as planned: tokens (label 12px, `MONEY`, recipes), the shared parts, both filter sheets on one
+frame with "Show N", month drawers and filtered total in money tones, the new row with in-place
+"Add category" (Transactions tab), the list toolbar, every transaction list, the audit log (day
+drawers on the shared `DrawerHeader`), the detail page (hero, `ActionRow`, More sheet, What /
+Where / Source), add and edit on the same groups, transfer detail, ledger forms as sheets, catch-up,
+just-arrived and every expense sheet on the tokens, the guard test, and the rewritten
+`.context/DESIGN_SYSTEM.md`.
+
+Differences:
+
+- **Forecast primary row** is Edit, Delete, More, not Mark paid / Paid elsewhere. The forecast's own
+  `ForecastActionBar` card stays, because its options depend on the forecast type (loan repayment
+  picks an account, others don't) and duplicating that logic in the row risked getting one wrong.
+- **Detail header**: Apply rule / Edit / Delete icons became one "More" button; all three are in the
+  action row or More sheet.
+- **"Add category" in place** is wired on the Transactions tab. Other lists show the row's category
+  chip but open the detail page on tap, as before.
+- **Filter-sheet counts** on lists whose screen owns a filter (a loaded date range) say "Apply"
+  when that filter changes, since the list can't count rows it hasn't loaded.
+- **Not touched**: `app/loans/[id].tsx` and `app/simulator/[id]/entry.tsx` (they only reuse a shared
+  part; their own styling passes colours down to children and is a separate clean-up).
+- **Approve / categorise undo toasts** were not added; approve and reject behave as before.

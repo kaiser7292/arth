@@ -1,0 +1,92 @@
+/**
+ * @jest-environment node
+ *
+ * Keeps the transaction screens on the design system (docs/TRANSACTIONS_DESIGN_SYSTEM_PLAN.md).
+ *
+ * The audit that started this found 178 off-scale text sizes and 59 off-token corners in these
+ * files, plus colours made by gluing "14" onto a hex string. They were moved onto the tokens in
+ * constants/design-tokens.js; this fails if any come back:
+ *
+ *   text-xs / sm / base / lg / xl / 2xl / 3xl   -> text-label ... text-hero
+ *   rounded-sm / md / lg / xl / 2xl / 3xl        -> rounded-control / card / sheet / pill
+ *   fontSize: 14 in a style                      -> a type-scale class
+ *   colour + "14"                                -> theme.alpha() or tint()
+ *   useColorScheme().colors.*                    -> useTheme()
+ */
+import * as fs from "fs";
+import * as path from "path";
+
+const ROOT = path.resolve(__dirname, "../..");
+
+const FILES = [
+  "app/(tabs)/expenses.tsx",
+  "app/expense/[id].tsx",
+  "app/expense/add.tsx",
+  "app/expense/catch-up.tsx",
+  "app/expense/just-arrived.tsx",
+  "app/expense/review-queue.tsx",
+  "app/transfer/[id].tsx",
+  "app/settings/audit-log.tsx",
+  "app/settings/recycle-bin.tsx",
+  "app/budget/transactions.tsx",
+  "app/budget/[categoryId].tsx",
+  "app/insights/filtered.tsx",
+  "app/summary/my-month-rows.tsx",
+  "app/together/transactions.tsx",
+  "app/reconciliation/account-ledger.tsx",
+  "app/hisaab/ledger.tsx",
+  "components/home/pages/ReviewQueuePage.tsx",
+  "components/ui/ListToolbar.tsx",
+  "components/ui/SwipePager.tsx",
+  "components/ui/FilterChip.tsx",
+  "components/ui/SearchField.tsx",
+  "components/ui/SectionHeader.tsx",
+  "components/ui/Chip.tsx",
+  "components/ui/OptionRows.tsx",
+  "components/ui/Segmented.tsx",
+  "components/ui/SectionTitle.tsx",
+  "components/ui/ActionRow.tsx",
+  "components/ui/MoneyChip.tsx",
+  "components/ui/FieldRow.tsx",
+  "components/ui/FilterSheetParts.tsx",
+];
+
+const DIRS = ["components/expense", "components/expense/catch-up"];
+
+const RULES: { name: string; re: RegExp }[] = [
+  { name: "off-scale text class", re: /(^|[^\w-])text-(xs|sm|base|lg|xl|2xl|3xl|4xl)(?![\w-])/ },
+  { name: "off-token corner", re: /(^|[^\w-])rounded(-[tblr]{1,2})?-(sm|md|lg|xl|2xl|3xl)(?![\w-])/ },
+  { name: "inline fontSize", re: /fontSize:\s*\d/ },
+  { name: "hex + alpha suffix", re: /\+\s*"[0-9A-Fa-f]{2}"/ },
+  { name: "legacy colors.*", re: /\bcolors\.(text|textSecondary|background|surface|border|tint|icon|tabIconDefault|tabIconSelected|blue)\b/ },
+];
+
+function allFiles(): string[] {
+  const fromDirs = DIRS.flatMap((d) =>
+    fs
+      .readdirSync(path.join(ROOT, d))
+      .filter((f) => f.endsWith(".tsx"))
+      .map((f) => `${d}/${f}`),
+  );
+  return [...new Set([...FILES, ...fromDirs])];
+}
+
+describe("transaction screens stay on the design tokens", () => {
+  it.each(RULES.map((r) => [r.name, r.re] as const))("no %s", (_name, re) => {
+    const hits: string[] = [];
+    for (const rel of allFiles()) {
+      const file = path.join(ROOT, rel);
+      if (!fs.existsSync(file)) continue;
+      fs.readFileSync(file, "utf8")
+        .split(/\r?\n/)
+        .forEach((line, i) => {
+          if (re.test(line)) hits.push(`${rel}:${i + 1}: ${line.trim()}`);
+        });
+    }
+    expect(hits).toEqual([]);
+  });
+
+  it("covers files that exist", () => {
+    for (const rel of FILES) expect(fs.existsSync(path.join(ROOT, rel))).toBe(true);
+  });
+});

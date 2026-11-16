@@ -1043,7 +1043,7 @@ const loadData = useCallback(async () => {
                     style={{
                       backgroundColor: isTransfer
                         ? tint(transferColor, 0.08)
-                        : (entry.creditType?.color ?? entryColor) + "14",
+                        : tint(entry.creditType?.color ?? entryColor, 0.08),
                     }}
                   >
                     <Ionicons

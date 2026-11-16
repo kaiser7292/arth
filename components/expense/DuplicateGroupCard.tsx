@@ -95,7 +95,7 @@ export function DuplicateGroupCard({
               {/* Lane indicator — keep vs reject */}
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: (isFirst ? success : danger) + "14" }}
+                style={{ backgroundColor: tint(isFirst ? success : danger, 0.08) }}
               >
                 <Ionicons
                   name={isFirst ? "shield-checkmark-outline" : "close-outline"}

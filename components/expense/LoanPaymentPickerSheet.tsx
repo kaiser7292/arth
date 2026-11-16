@@ -67,7 +67,7 @@ export function LoanPaymentPickerSheet({
   onSubmit,
   onClose,
 }: Props) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const [step, setStep] = useState<Step>("loan");
@@ -358,10 +358,10 @@ export function LoanPaymentPickerSheet({
               accessibilityRole="button"
               accessibilityLabel="Back"
             >
-              <Ionicons name="chevron-back" size={20} color={colors.text} />
+              <Ionicons name="chevron-back" size={20} color={theme.foreground} />
             </Pressable>
           )}
-          <Text className="text-body font-bold flex-1" style={{ color: colors.text }}>
+          <Text className="text-body font-bold flex-1" style={{ color: theme.foreground }}>
             {step === "loan"
               ? "Mark as loan payment"
               : step === "emi_installment"
@@ -373,7 +373,7 @@ export function LoanPaymentPickerSheet({
                   : "Payment details"}
           </Text>
         </View>
-        <Text className="text-meta mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           {formatAmount(expenseAmount)} on {formatDate(expenseDate)}
         </Text>
       </View>
@@ -392,7 +392,7 @@ export function LoanPaymentPickerSheet({
       >
         {loading && (
           <View className="px-5 py-8 items-center">
-            <Text className="text-meta" style={{ color: colors.textSecondary }}>
+            <Text className="text-meta" style={{ color: theme.mutedForeground }}>
               Loading…
             </Text>
           </View>
@@ -403,10 +403,10 @@ export function LoanPaymentPickerSheet({
           <>
             {loans.length === 0 ? (
               <View className="px-5 py-8 items-center">
-                <Ionicons name="cash-outline" size={40} color={colors.textSecondary} />
+                <Ionicons name="cash-outline" size={40} color={theme.mutedForeground} />
                 <Text
                   className="text-meta mt-3 text-center"
-                  style={{ color: colors.textSecondary }}
+                  style={{ color: theme.mutedForeground }}
                 >
                   No active loans yet. Add one from Goals → Loans.
                 </Text>
@@ -418,9 +418,9 @@ export function LoanPaymentPickerSheet({
                   onPress={() => handlePickLoan(l)}
                   className="flex-row items-center py-3 px-4 rounded-control mb-2"
                   style={{
-                    backgroundColor: colors.surface,
+                    backgroundColor: theme.card,
                     borderWidth: 1,
-                    borderColor: colors.border,
+                    borderColor: theme.border,
                   }}
                   accessibilityRole="button"
                   accessibilityLabel={`Select ${l.bank_name} loan`}
@@ -438,18 +438,18 @@ export function LoanPaymentPickerSheet({
                   <View className="flex-1">
                     <Text
                       className="text-body font-semibold"
-                      style={{ color: colors.text }}
+                      style={{ color: theme.foreground }}
                     >
                       {l.bank_name} · {l.loan_type}
                     </Text>
                     <Text
                       className="text-label mt-0.5"
-                      style={{ color: colors.textSecondary }}
+                      style={{ color: theme.mutedForeground }}
                     >
                       EMI {formatAmount(l.emi_amount)} · {l.tenure_months}mo @ {l.interest_rate_pa}%
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                  <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
                 </Pressable>
               ))
             )}
@@ -463,7 +463,7 @@ export function LoanPaymentPickerSheet({
               <>
                 <Text
                   className="text-meta mb-3"
-                  style={{ color: colors.textSecondary }}
+                  style={{ color: theme.mutedForeground }}
                 >
                   No scheduled installments near this date. You can record this as a prepayment instead.
                 </Text>
@@ -487,7 +487,7 @@ export function LoanPaymentPickerSheet({
                   >
                     Record as prepayment
                   </Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                  <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
                 </Pressable>
               </>
             ) : (
@@ -498,7 +498,7 @@ export function LoanPaymentPickerSheet({
                   style={{
                     backgroundColor: theme.alpha("primary", 0.05),
                     borderWidth: 1,
-                    borderColor: colors.border,
+                    borderColor: theme.border,
                   }}
                 >
                   <Ionicons
@@ -509,23 +509,23 @@ export function LoanPaymentPickerSheet({
                   <View className="flex-1 ml-3">
                     <Text
                       className="text-body font-semibold"
-                      style={{ color: colors.text }}
+                      style={{ color: theme.foreground }}
                     >
                       This is a prepayment, not an EMI
                     </Text>
                     <Text
                       className="text-label mt-0.5"
-                      style={{ color: colors.textSecondary }}
+                      style={{ color: theme.mutedForeground }}
                     >
                       Over-and-above the schedule
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                  <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
                 </Pressable>
 
                 <Text
                   className="text-label font-semibold uppercase tracking-wider mb-2"
-                  style={{ color: colors.textSecondary }}
+                  style={{ color: theme.mutedForeground }}
                 >
                   Scheduled installments
                 </Text>
@@ -535,21 +535,21 @@ export function LoanPaymentPickerSheet({
                     onPress={() => handlePickInstallment(s.id)}
                     className="flex-row items-center py-3 px-4 rounded-control mb-2"
                     style={{
-                      backgroundColor: colors.surface,
+                      backgroundColor: theme.card,
                       borderWidth: 1,
-                      borderColor: colors.border,
+                      borderColor: theme.border,
                     }}
                   >
                     <View className="flex-1">
                       <Text
                         className="text-body font-semibold"
-                        style={{ color: colors.text }}
+                        style={{ color: theme.foreground }}
                       >
                         #{s.installment_num} · Due {formatDate(s.due_date)}
                       </Text>
                       <Text
                         className="text-label mt-0.5"
-                        style={{ color: colors.textSecondary }}
+                        style={{ color: theme.mutedForeground }}
                       >
                         EMI {formatAmount(s.emi_amount)}
                       </Text>
@@ -557,7 +557,7 @@ export function LoanPaymentPickerSheet({
                     <Ionicons
                       name="chevron-forward"
                       size={16}
-                      color={colors.textSecondary}
+                      color={theme.mutedForeground}
                     />
                   </Pressable>
                 ))}
@@ -572,7 +572,7 @@ export function LoanPaymentPickerSheet({
           <>
             <Text
               className="text-meta mb-3"
-              style={{ color: colors.textSecondary }}
+              style={{ color: theme.mutedForeground }}
             >
               How should we apply this prepayment of {formatAmount(expenseAmount)}?
             </Text>
@@ -582,7 +582,6 @@ export function LoanPaymentPickerSheet({
               sublabel="Keep EMI same. Loan ends earlier. Saves the most interest."
               recommended
               onPress={() => handlePickStrategy("reduce_tenure")}
-              colors={colors}
               colorScheme={colorScheme}
             />
             <StrategyTile
@@ -590,7 +589,6 @@ export function LoanPaymentPickerSheet({
               label="Reduce EMI"
               sublabel="Keep remaining months same. Lower EMI going forward."
               onPress={() => handlePickStrategy("reduce_emi")}
-              colors={colors}
               colorScheme={colorScheme}
             />
           </>
@@ -605,7 +603,7 @@ export function LoanPaymentPickerSheet({
           <>
             <Text
               className="text-meta mb-3"
-              style={{ color: colors.textSecondary }}
+              style={{ color: theme.mutedForeground }}
             >
               Review this prepayment of {formatAmount(expenseAmount)} before saving.
             </Text>
@@ -613,7 +611,7 @@ export function LoanPaymentPickerSheet({
             {/* Kind toggle */}
             <Text
               className="text-label font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
+              style={{ color: theme.mutedForeground }}
             >
               Type
             </Text>
@@ -622,14 +620,12 @@ export function LoanPaymentPickerSheet({
                 label="Part payment"
                 selected={prepaymentKind === "part_payment"}
                 onPress={() => setPrepaymentKind("part_payment")}
-                colors={colors}
                 colorScheme={colorScheme}
               />
               <KindChip
                 label="Foreclosure"
                 selected={prepaymentKind === "foreclosure"}
                 onPress={() => setPrepaymentKind("foreclosure")}
-                colors={colors}
                 colorScheme={colorScheme}
               />
             </View>
@@ -640,21 +636,20 @@ export function LoanPaymentPickerSheet({
               <View
                 className="p-3 rounded-control mb-3"
                 style={{
-                  backgroundColor: colors.surface,
+                  backgroundColor: theme.card,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: theme.border,
                 }}
               >
                 <Text
                   className="text-label font-semibold uppercase tracking-wider mb-2"
-                  style={{ color: colors.textSecondary }}
+                  style={{ color: theme.mutedForeground }}
                 >
                   Preview
                 </Text>
                 <PreviewRow
                   label="Prepayment"
                   value={formatAmount(expenseAmount)}
-                  colors={colors}
                 />
                 <PreviewRow
                   label="Charge"
@@ -664,40 +659,34 @@ export function LoanPaymentPickerSheet({
                       ? theme.danger
                       : theme.success
                   }
-                  colors={colors}
                 />
                 <PreviewRow
                   label="GST (on charge)"
                   value={impact.gst > 0 ? `− ${formatAmount(impact.gst)}` : "-"}
-                  colors={colors}
                 />
                 <View className="border-t border-border my-2" />
                 <PreviewRow
                   label="Net applied to principal"
                   value={formatAmount(impact.netApplied)}
                   bold
-                  colors={colors}
                 />
                 <View className="border-t border-border my-2" />
                 <PreviewRow
                   label="Interest saved"
                   value={formatAmount(impact.interestSavedTotal)}
                   color={theme.success}
-                  colors={colors}
                 />
                 {chosenStrategy === "reduce_tenure" && impact.monthsSaved > 0 && (
                   <PreviewRow
                     label="Months saved"
                     value={`${impact.monthsSaved}`}
                     color={theme.success}
-                    colors={colors}
                   />
                 )}
                 {chosenStrategy === "reduce_emi" && impact.newEMI && (
                   <PreviewRow
                     label="New EMI"
                     value={formatAmount(Math.round(impact.newEMI))}
-                    colors={colors}
                   />
                 )}
               </View>
@@ -725,11 +714,11 @@ export function LoanPaymentPickerSheet({
                   <Ionicons
                     name={overrideExpanded ? "chevron-down" : "chevron-forward"}
                     size={14}
-                    color={colors.textSecondary}
+                    color={theme.mutedForeground}
                   />
                   <Text
                     className="text-label ml-1"
-                    style={{ color: colors.textSecondary }}
+                    style={{ color: theme.mutedForeground }}
                   >
                     Override charges (optional)
                   </Text>
@@ -738,9 +727,9 @@ export function LoanPaymentPickerSheet({
                   <View
                     className="p-3 rounded-control"
                     style={{
-                      backgroundColor: colors.surface,
+                      backgroundColor: theme.card,
                       borderWidth: 1,
-                      borderColor: colors.border,
+                      borderColor: theme.border,
                     }}
                   >
                     <Input
@@ -763,7 +752,7 @@ export function LoanPaymentPickerSheet({
                     />
                     <Text
                       className="text-label mt-1"
-                      style={{ color: colors.textSecondary }}
+                      style={{ color: theme.mutedForeground }}
                     >
                       Your values override the auto-computed ones. Leave blank to use the auto figures.
                     </Text>
@@ -773,7 +762,7 @@ export function LoanPaymentPickerSheet({
             )}
             <Text
               className="text-label mb-4"
-              style={{ color: colors.textSecondary }}
+              style={{ color: theme.mutedForeground }}
             >
               Charges are auto-computed from your loan's configured rates.
               The expense amount of {formatAmount(expenseAmount)} covers
@@ -802,14 +791,14 @@ export function LoanPaymentPickerSheet({
           accessibilityLabel="Cancel"
           className="py-3 rounded-control items-center"
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: theme.card,
             borderWidth: 1,
-            borderColor: colors.border,
+            borderColor: theme.border,
           }}
         >
           <Text
             className="text-body font-semibold"
-            style={{ color: colors.textSecondary }}
+            style={{ color: theme.mutedForeground }}
           >
             Cancel
           </Text>
@@ -829,22 +818,21 @@ function PreviewRow({
   value,
   color,
   bold,
-  colors,
 }: {
   label: string;
   value: string;
   color?: string;
   bold?: boolean;
-  colors: ReturnType<typeof useColorScheme>["colors"];
 }) {
+  const theme = useTheme();
   return (
     <View className="flex-row items-center justify-between py-1">
-      <Text className="text-label" style={{ color: colors.textSecondary }}>
+      <Text className="text-label" style={{ color: theme.mutedForeground }}>
         {label}
       </Text>
       <Text
         className={`text-body ${bold ? "font-bold" : "font-medium"}`}
-        style={{ color: color ?? colors.text }}
+        style={{ color: color ?? theme.foreground }}
       >
         {value}
       </Text>
@@ -861,13 +849,11 @@ function KindChip({
   label,
   selected,
   onPress,
-  colors,
   colorScheme,
 }: {
   label: string;
   selected: boolean;
   onPress: () => void;
-  colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
 }) {
   const theme = useTheme();
@@ -886,9 +872,9 @@ function KindChip({
               borderColor: theme.primary,
             }
           : {
-              backgroundColor: colors.surface,
+              backgroundColor: theme.card,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: theme.border,
             }
       }
     >
@@ -897,7 +883,7 @@ function KindChip({
         style={
           selected
             ? { color: theme.primary, fontWeight: "600" }
-            : { color: colors.textSecondary }
+            : { color: theme.mutedForeground }
         }
       >
         {label}
@@ -917,7 +903,6 @@ function StrategyTile({
   sublabel,
   recommended,
   onPress,
-  colors,
   colorScheme,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
@@ -925,7 +910,6 @@ function StrategyTile({
   sublabel: string;
   recommended?: boolean;
   onPress: () => void;
-  colors: ReturnType<typeof useColorScheme>["colors"];
   colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
 }) {
   const theme = useTheme();
@@ -939,9 +923,9 @@ function StrategyTile({
       <View
         className="flex-row items-center py-3 px-4 rounded-control mb-2"
         style={{
-          backgroundColor: colors.surface,
+          backgroundColor: theme.card,
           borderWidth: 1,
-          borderColor: colors.border,
+          borderColor: theme.border,
         }}
       >
         <View
@@ -952,7 +936,7 @@ function StrategyTile({
         </View>
         <View className="flex-1">
           <View className="flex-row items-center">
-            <Text className="text-body font-semibold" style={{ color: colors.text }}>
+            <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
               {label}
             </Text>
             {recommended && (
@@ -969,11 +953,11 @@ function StrategyTile({
               </View>
             )}
           </View>
-          <Text className="text-label mt-0.5" style={{ color: colors.textSecondary }}>
+          <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
             {sublabel}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+        <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
       </View>
     </Pressable>
   );
