@@ -37,6 +37,21 @@ export function withAlpha(channels: Channels, alpha: number): string {
   return "rgba(" + channels.split(/\s+/).join(", ") + ", " + alpha + ")";
 }
 
+/**
+ * A colour at some opacity, whether it arrives as channels ("15 118 110") or hex ("#0F766E" /
+ * "#0F7"). Use this for colour that carries data (a category's or tag's own colour); semantic
+ * roles go through `theme.alpha()`. Replaces gluing "14" or "20" onto a hex string.
+ */
+export function tint(color: string, alpha: number): string {
+  const c = color.trim();
+  if (!c.startsWith("#")) return withAlpha(c, alpha);
+  let h = c.slice(1);
+  if (h.length === 3 || h.length === 4) h = h.split("").map((x) => x + x).join("");
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  if ([r, g, b].some((n) => Number.isNaN(n))) return c;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 /** The single brand ramp, as hex, in the 50–900 shape the legacy `accent` palette used. */
 export const BRAND_RAMP = Object.fromEntries(
   Object.entries(teal).map(([shade, channels]) => [shade, toHex(channels)]),

@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { View } from "react-native";
 import { Text } from "./Text";
 import { useTheme } from "@/hooks/use-theme";
-import { withAlpha } from "@/constants/brand";
+import { tint } from "@/constants/brand";
 import { COMPONENTS, type SemanticRole } from "@/constants/design-tokens";
 
 export type BadgeVariant =
@@ -22,7 +22,7 @@ export interface BadgeProps {
   variant?: BadgeVariant;
   tone?: BadgeTone;
   icon?: keyof typeof Ionicons.glyphMap;
-  /** sm is the 11px row-level badge; md is the 13px standalone one. */
+  /** sm is the 12px row-level badge; md is the 13px standalone one. */
   size?: "sm" | "md";
   /**
    * Escape hatch for colour that carries DATA rather than status - a category's own colour, an
@@ -80,13 +80,13 @@ export function Badge({
       : tone === "outline"
         ? "transparent"
         : color
-          ? withAlpha(color, COMPONENTS.badge.tintAlpha)
+          ? tint(color, COMPONENTS.badge.tintAlpha)
           : theme.alpha(role, COMPONENTS.badge.tintAlpha);
   const fg = tone === "solid" ? theme.primaryForeground : c;
 
   return (
     <View
-      className={`flex-row items-center self-start rounded-full ${S.pad} ${className}`}
+      className={`flex-row items-center self-start rounded-pill ${S.pad} ${className}`}
       style={{
         backgroundColor: bg,
         borderWidth: tone === "outline" ? 1 : 0,
