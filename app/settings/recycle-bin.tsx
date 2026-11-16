@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import { useState, useCallback, useEffect, useMemo } from "react";
 
 import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-native";
@@ -121,7 +122,7 @@ const FREQ_LABELS: Record<string, string> = {
 export default function RecycleBinScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const [activeFilter, setActiveFilter] = useState<SectionFilter>("deleted");
   const [loading, setLoading] = useState(true);
@@ -245,13 +246,13 @@ export default function RecycleBinScreen() {
       onRestore: () => void; onDelete: () => void;
     }) => (
       <View className="flex-row items-center px-4 py-3 border-b border-border">
-        <Ionicons name={icon} size={18} color={colors.textSecondary} />
+        <Ionicons name={icon} size={18} color={theme.mutedForeground} />
         <View className="flex-1 ml-3">
-          <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+          <Text className="text-body font-medium text-foreground" numberOfLines={1}>
             {title}
           </Text>
           {subtitle ? (
-            <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
+            <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
               {subtitle}
             </Text>
           ) : null}
@@ -264,7 +265,7 @@ export default function RecycleBinScreen() {
         </Pressable>
       </View>
     ),
-    [colors, colorScheme],
+    [theme, colorScheme],
   );
 
   // ═══════════════════════════════════════
@@ -279,25 +280,25 @@ export default function RecycleBinScreen() {
       if (count === 0) return null;
       return (
         <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
-          <Text className="text-sm text-muted-foreground flex-1 mr-2">
+          <Text className="text-meta text-muted-foreground flex-1 mr-2">
             {count} {label}
           </Text>
           <View className="flex-row items-center">
             {onRestoreAll && (
               <Pressable onPress={onRestoreAll} disabled={purging}
-                className="flex-row items-center py-1.5 px-3 rounded-lg bg-success/8 mr-2">
+                className="flex-row items-center py-1.5 px-3 rounded-control bg-success/8 mr-2">
                 <Ionicons name="refresh-outline" size={14} color={theme.success} />
-                <Text className="text-xs font-medium ml-1" style={{ color: theme.success }}>
+                <Text className="text-label font-medium ml-1" style={{ color: theme.success }}>
                   {restoreLabel ?? "Restore all"}
                 </Text>
               </Pressable>
             )}
             <Pressable onPress={onPurgeAll} disabled={purging}
-              className="flex-row items-center py-1.5 px-3 rounded-lg bg-danger/8">
+              className="flex-row items-center py-1.5 px-3 rounded-control bg-danger/8">
               {purging ? <ActivityIndicator size="small" color={theme.danger} /> : (
                 <>
                   <Ionicons name="trash-outline" size={14} color={theme.danger} />
-                  <Text className="text-xs font-medium text-danger ml-1">{purgeLabel ?? "Delete All"}</Text>
+                  <Text className="text-label font-medium text-danger ml-1">{purgeLabel ?? "Delete All"}</Text>
                 </>
               )}
             </Pressable>
@@ -510,16 +511,16 @@ export default function RecycleBinScreen() {
       <View className="flex-row items-center px-4 py-3 border-b border-border">
         <View className="flex-1">
           <View className="flex-row items-center mb-1">
-            <Ionicons name="chatbox-outline" size={14} color={colors.textSecondary} />
-            <Text className="text-xs font-semibold text-foreground ml-1.5 flex-1 mr-2" numberOfLines={1}>
+            <Ionicons name="chatbox-outline" size={14} color={theme.mutedForeground} />
+            <Text className="text-label font-semibold text-foreground ml-1.5 flex-1 mr-2" numberOfLines={1}>
               {item.address}
             </Text>
-            <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: style.color + "14" }}>
+            <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: tint(style.color, 0.08) }}>
               <Text className="text-label font-semibold" style={{ color: style.color }}>{style.label}</Text>
             </View>
             <Text className="text-label text-faint-foreground">{formatSmsDate(item.sms_date)}</Text>
           </View>
-          <Text className="text-xs text-muted-foreground" numberOfLines={2}>
+          <Text className="text-label text-muted-foreground" numberOfLines={2}>
             {truncate(item.body, 150)}
           </Text>
         </View>
@@ -543,7 +544,7 @@ export default function RecycleBinScreen() {
         </Pressable>
       </View>
     );
-  }, [colors, colorScheme, confirm, loadData]);
+  }, [theme, colorScheme, confirm, loadData]);
 
   // ═══════════════════════════════════════
   // Section config map
@@ -588,7 +589,7 @@ export default function RecycleBinScreen() {
       {/* Total summary */}
       {totalCount > 0 && (
         <View className="px-4 py-2 border-b border-border">
-          <Text className="text-xs text-faint-foreground">
+          <Text className="text-label text-faint-foreground">
             {totalCount} item{totalCount !== 1 ? "s" : ""} across all sections
           </Text>
         </View>
@@ -606,9 +607,9 @@ export default function RecycleBinScreen() {
                 className={`flex-row items-center px-3 py-1.5 rounded-full ${isActive ? "border" : "bg-card"}`}
                 style={isActive ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary } : undefined}>
                 <Ionicons name={opt.icon} size={14}
-                  color={isActive ? theme.primary : colors.textSecondary}
+                  color={isActive ? theme.primary : theme.mutedForeground}
                   style={{ marginRight: 4 }} />
-                <Text className={`text-xs ${isActive ? "font-semibold" : "text-muted-foreground"}`}
+                <Text className={`text-label ${isActive ? "font-semibold" : "text-muted-foreground"}`}
                   style={isActive ? { color: theme.primary } : undefined}>
                   {opt.label}
                 </Text>
@@ -676,7 +677,7 @@ export default function RecycleBinScreen() {
 
       {!tools.narrowed && activeFilter === "sms" && smsRecords.length > 0 && (
         <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
-          <Text className="text-xs text-muted-foreground flex-1 mr-2">
+          <Text className="text-label text-muted-foreground flex-1 mr-2">
             {smsRecords.filter((s) => s.status === "processed").length} processed
             {" \u00b7 "}{smsRecords.filter((s) => s.status === "ignored").length} ignored
             {" \u00b7 "}{smsRecords.filter((s) => s.status === "pending").length} pending
@@ -689,11 +690,11 @@ export default function RecycleBinScreen() {
               : `Delete all ${smsRecords.length} SMS records?`;
             confirm("Clear all", msg, "Clear all", true, async () => { await deleteAllSmsRecords(DEFAULT_USER_ID); setSmsRecords([]); loadData(); });
           }}
-            disabled={purging} className="flex-row items-center py-1.5 px-3 rounded-lg bg-danger/8">
+            disabled={purging} className="flex-row items-center py-1.5 px-3 rounded-control bg-danger/8">
             {purging ? <ActivityIndicator size="small" color={theme.danger} /> : (
               <>
                 <Ionicons name="trash-outline" size={14} color={theme.danger} />
-                <Text className="text-xs font-medium text-danger ml-1">Clear all</Text>
+                <Text className="text-label font-medium text-danger ml-1">Clear all</Text>
               </>
             )}
           </Pressable>
@@ -705,11 +706,11 @@ export default function RecycleBinScreen() {
       {/* List */}
       {section.data.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name={section.emptyIcon} size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Ionicons name={section.emptyIcon} size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-medium text-foreground mt-4">
             {section.emptyTitle}
           </Text>
-          <Text className="text-sm text-muted-foreground text-center mt-2">
+          <Text className="text-meta text-muted-foreground text-center mt-2">
             {section.emptySubtitle}
           </Text>
         </View>
@@ -721,20 +722,20 @@ export default function RecycleBinScreen() {
           data={tools.rows}
           keyExtractor={(item: any) => item.id}
           keyboardShouldPersistTaps="handled"
-          ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
+          ListEmptyComponent={<Text className="text-meta text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
           renderItem={section.renderItem}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
           ListHeaderComponent={
             (activeFilter === "deleted" || activeFilter === "rejected") && section.data.length > 0 ? (
-              <View className="mx-4 my-3 p-4 rounded-xl bg-card">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <View className="mx-4 my-3 p-4 rounded-control bg-card">
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
                   Total at Risk
                 </Text>
-                <Text className="text-xl font-bold text-foreground mt-1">
+                <Text className="text-title font-bold text-foreground mt-1">
                   {formatAmount(section.data.reduce((sum: number, e: any) => sum + (e.amount ?? 0), 0))}
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
+                <Text className="text-label text-muted-foreground mt-0.5">
                   {section.data.length} {section.data.length === 1 ? "expense" : "expenses"}
                 </Text>
               </View>

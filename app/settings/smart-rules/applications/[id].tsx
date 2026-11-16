@@ -3,7 +3,6 @@ import { View, FlatList, ActivityIndicator } from "react-native";
 import { Stack, useLocalSearchParams, useFocusEffect, useRouter } from "expo-router";
 import { LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getRule } from "@/services/smart-rules";
 import { getExpensesPaginated } from "@/services/expense";
 import { getCategories } from "@/services/category";
@@ -19,7 +18,6 @@ import { useTheme } from "@/hooks/use-theme";
 
 export default function RuleApplicationsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const router = useRouter();
 
@@ -70,11 +68,11 @@ export default function RuleApplicationsScreen() {
         <LoadingState />
       ) : expenses.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Ionicons name="sparkles-outline" size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-medium text-foreground mt-4">
             No applications yet
           </Text>
-          <Text className="text-sm text-faint-foreground text-center mt-2">
+          <Text className="text-meta text-faint-foreground text-center mt-2">
             Transactions matched by this rule will appear here.
           </Text>
         </View>
@@ -87,7 +85,7 @@ export default function RuleApplicationsScreen() {
           keyExtractor={(e) => e.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
           ListHeaderComponent={
-            <Text className="text-xs text-faint-foreground mb-3">
+            <Text className="text-label text-faint-foreground mb-3">
               {expenses.length} transaction{expenses.length === 1 ? "" : "s"} matched by this rule
             </Text>
           }

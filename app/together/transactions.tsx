@@ -249,7 +249,7 @@ export default function TogetherTransactionsScreen() {
         ListEmptyComponent={
           s ? (
             <View className="items-center py-12 px-6">
-              <Text className="text-sm text-muted-foreground text-center">
+              <Text className="text-meta text-muted-foreground text-center">
                 {active.length > 0 || query.trim() ? "Nothing matches in this month." : "Nothing shared this month."}
               </Text>
             </View>

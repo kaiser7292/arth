@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import { isPartOn } from "@/services/customise";
 import { creditLook } from "@/services/expense-types";
 import { useListTools } from "@/hooks/use-list-tools";
@@ -10,7 +11,6 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 
 import { useAlert } from "@/hooks/use-alert";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import {
     adjustAccountAvailable,
@@ -127,7 +127,6 @@ export default function AccountLedgerScreen() {
     transferId?: string;
     filterMode?: string;
   }>();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   // Theme-aware status colors (migrated from flat STATUS_COLORS in v14.8.0).
   const scrollRef = useRef<ScrollView>(null);
@@ -820,14 +819,14 @@ const loadData = useCallback(async () => {
                 })}
                 className="flex-1 flex-row items-center justify-center"
               >
-                <Ionicons name="checkmark-done-outline" size={14} color={colors.textSecondary} />
+                <Ionicons name="checkmark-done-outline" size={14} color={theme.mutedForeground} />
                 <Text className="text-label font-semibold text-muted-foreground ml-1.5">
                   Reconcile
                 </Text>
               </Pressable>
               {isPartOn("vault") && (
               <>
-              <View className="w-px" style={{ backgroundColor: colors.border }} />
+              <View className="w-px" style={{ backgroundColor: theme.border }} />
               <Pressable
                 onPress={async () => {
                   try {
@@ -846,7 +845,7 @@ const loadData = useCallback(async () => {
                 }}
                 className="flex-1 flex-row items-center justify-center"
               >
-                <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} />
+                <Ionicons name="lock-closed-outline" size={14} color={theme.mutedForeground} />
                 <Text className="text-label font-semibold text-muted-foreground ml-1.5">
                   Credentials
                 </Text>
@@ -873,9 +872,9 @@ const loadData = useCallback(async () => {
                 containerClassName="mb-3"
               />
               <TextInput
-                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-meta text-foreground"
+                className="border border-border rounded-control px-3 py-2.5 mb-3 text-meta text-foreground"
                 placeholder="Description (e.g. Salary, UPI received)"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 maxLength={200}
                 value={creditDescription}
                 onChangeText={setCreditDescription}
@@ -889,13 +888,13 @@ const loadData = useCallback(async () => {
               <View className="flex-row">
                 <Pressable
                   onPress={handleCancelCreditForm}
-                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border"
+                  className="flex-1 py-2.5 rounded-control items-center mr-2 border border-border"
                 >
                   <Text className="text-meta font-semibold text-muted-foreground">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleSaveCreditForm}
-                  className="flex-1 py-2.5 rounded-lg items-center"
+                  className="flex-1 py-2.5 rounded-control items-center"
                   style={{ backgroundColor: theme.primary }}
                 >
                   <Text className="text-meta font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add credit"}</Text>
@@ -926,9 +925,9 @@ const loadData = useCallback(async () => {
                 value={adjustDescription}
                 onChangeText={setAdjustDescription}
                 placeholder="e.g. Prepayment, untracked spend"
-                placeholderTextColor={colors.textSecondary}
-                className="border rounded-lg px-3 py-2.5 mb-3 text-meta text-foreground"
-                style={{ borderColor: colors.border }}
+                placeholderTextColor={theme.mutedForeground}
+                className="border rounded-control px-3 py-2.5 mb-3 text-meta text-foreground"
+                style={{ borderColor: theme.border }}
               />
               <View className="flex-row">
                 <Button
@@ -949,7 +948,7 @@ const loadData = useCallback(async () => {
 
           {/* Filter banner — shown when opened with filterMode=transfers */}
           {filterMode === "transfers" && (
-            <View className="mx-4 mt-3 mb-1 flex-row items-center px-3 py-2 rounded-lg" style={{ backgroundColor: TRANSFER_COLOR + "18" }}>
+            <View className="mx-4 mt-3 mb-1 flex-row items-center px-3 py-2 rounded-control" style={{ backgroundColor: tint(TRANSFER_COLOR, 0.09) }}>
               <Ionicons name="swap-horizontal-outline" size={14} color={TRANSFER_COLOR} />
               <Text className="ml-2 text-label font-medium" style={{ color: TRANSFER_COLOR }}>
                 Showing transfers only
@@ -1064,7 +1063,7 @@ const loadData = useCallback(async () => {
                     className="w-8 h-8 rounded-full items-center justify-center mr-3"
                     style={{
                       backgroundColor: isTransfer
-                        ? transferColor + "14"
+                        ? tint(transferColor, 0.08)
                         : (entry.creditType?.color ?? entryColor) + "14",
                     }}
                   >
@@ -1121,19 +1120,19 @@ const loadData = useCallback(async () => {
                       )}
                       {/* A Hisaab credit's own tag below already says what it is. */}
                       {!entry.isRefund && !isTransfer && !(entry.type === "credit" && entry.linkedHisaabPersonName) && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: entryColor + "14" }}>
+                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: tint(entryColor, 0.08) }}>
                           <Text className="text-label font-semibold" style={{ color: entryColor }}>
                             {entry.isAdjustment ? "ADJUSTMENT" : entry.type === "credit" ? (entry.creditType?.name.toUpperCase() ?? "CREDIT") : "EXPENSE"}
                           </Text>
                         </View>
                       )}
                       {entry.isRefund && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: theme.success + "14" }}>
+                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: tint(theme.success, 0.08) }}>
                           <Text className="text-label font-semibold" style={{ color: theme.success }}>REFUND</Text>
                         </View>
                       )}
                       {isTransfer && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: transferColor + "14" }}>
+                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: tint(transferColor, 0.08) }}>
                           <Text className="text-label font-semibold" style={{ color: transferColor }}>TRANSFER</Text>
                         </View>
                       )}
@@ -1203,7 +1202,7 @@ const loadData = useCallback(async () => {
                     || (entry.type === "credit" && !!entry.linkedHisaabPersonId)
                     || (isTransfer && !!entry.rawSourceText)
                     || (isTransfer && !!entry.linkedExpenseId)) && (
-                    <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} className="ml-1" />
+                    <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} className="ml-1" />
                   )}
                 </View>
               </Pressable>
@@ -1214,7 +1213,7 @@ const loadData = useCallback(async () => {
           {/* Empty state */}
           {!guarded.failed && filteredEntries.length === 0 && (
             <View className="items-center py-12">
-              <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
+              <Ionicons name="receipt-outline" size={40} color={theme.mutedForeground} />
               <Text className="text-meta text-muted-foreground mt-3">
                 {tools.narrowed ? "Nothing matches" : "No transactions this month"}
               </Text>
@@ -1234,7 +1233,7 @@ const loadData = useCallback(async () => {
               <Text className="text-meta ml-3 flex-1" style={{ color: theme.danger }}>
                 Clear all ledger data
               </Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
             </Pressable>
           </View>
         </ScrollView>
@@ -1322,7 +1321,7 @@ const loadData = useCallback(async () => {
             <Pressable
               onPress={(e) => e.stopPropagation()}
               style={{
-                backgroundColor: colors.surface,
+                backgroundColor: theme.card,
                 borderRadius: 16,
                 padding: 20,
                 maxWidth: 480,
@@ -1331,10 +1330,10 @@ const loadData = useCallback(async () => {
             >
               <View className="flex-row items-start justify-between mb-3">
                 <View className="flex-1 mr-3">
-                  <Text className="text-body font-bold" style={{ color: colors.text }}>
+                  <Text className="text-body font-bold" style={{ color: theme.foreground }}>
                     Source SMS
                   </Text>
-                  <Text className="text-label mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={2}>
+                  <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }} numberOfLines={2}>
                     {sourceSmsModal.description}
                   </Text>
                 </View>
@@ -1343,42 +1342,42 @@ const loadData = useCallback(async () => {
                   hitSlop={12}
                   accessibilityLabel="Close"
                 >
-                  <Ionicons name="close" size={22} color={colors.textSecondary} />
+                  <Ionicons name="close" size={22} color={theme.mutedForeground} />
                 </Pressable>
               </View>
 
               {sourceSmsModal.address && (
                 <View className="mb-3">
-                  <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: theme.mutedForeground }}>
                     Sender
                   </Text>
-                  <Text className="text-label" style={{ color: colors.text }}>
+                  <Text className="text-label" style={{ color: theme.foreground }}>
                     {sourceSmsModal.address}
                   </Text>
                 </View>
               )}
 
-              <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+              <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: theme.mutedForeground }}>
                 Body
               </Text>
               <ScrollView
                 style={{
                   maxHeight: 280,
-                  backgroundColor: colors.background,
+                  backgroundColor: theme.background,
                   borderRadius: 8,
                   padding: 10,
                 }}
               >
                 <Text
                   className="text-label"
-                  style={{ color: colors.text, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
+                  style={{ color: theme.foreground, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
                   selectable
                 >
                   {sourceSmsModal.body}
                 </Text>
               </ScrollView>
 
-              <Text className="text-label mt-3" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mt-3" style={{ color: theme.mutedForeground }}>
                 This SMS originally came in as a credit or expense and was reclassified as a transfer.
               </Text>
             </Pressable>

@@ -1,3 +1,4 @@
+import { useTheme } from "@/hooks/use-theme";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
@@ -6,7 +7,6 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { GroupHeading, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { settingsStorage } from "@/services/storage";
 
@@ -46,7 +46,7 @@ export default function InsightFilteredListScreen() {
     expenseIds?: string;
     title?: string;
   }>();
-  const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const ids = useMemo(
     () => (expenseIds ? expenseIds.split(",").filter((s) => s.length > 0) : []),
@@ -219,7 +219,7 @@ export default function InsightFilteredListScreen() {
         {title && (
           <View className="px-4 pt-3 pb-2">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+              className="text-label font-semibold uppercase tracking-wider text-muted-foreground"
               numberOfLines={2}
             >
               {title}
@@ -228,12 +228,12 @@ export default function InsightFilteredListScreen() {
         )}
 
         {/* ── Summary card ──────────────────────────────────────────── */}
-        <View className="mx-4 my-2 p-4 rounded-xl bg-card">
+        <View className="mx-4 my-2 p-4 rounded-control bg-card">
           <View className="flex-row items-center justify-between">
-            <Text className="text-sm font-medium text-muted-foreground">
+            <Text className="text-body font-medium text-muted-foreground">
               Total
             </Text>
-            <Text className="text-lg font-bold text-foreground">
+            <Text className="text-heading font-bold text-foreground">
               {formatAmount(total)}
             </Text>
           </View>
@@ -254,11 +254,11 @@ export default function InsightFilteredListScreen() {
           <LoadFailed onRetry={() => { setLoading(true); load(); }} />
         ) : expenses.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
-            <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-foreground mt-4">
+            <Ionicons name="receipt-outline" size={48} color={theme.mutedForeground} />
+            <Text className="text-heading font-medium text-foreground mt-4">
               No transactions
             </Text>
-            <Text className="text-sm text-muted-foreground text-center mt-2">
+            <Text className="text-meta text-muted-foreground text-center mt-2">
               The expenses that fed this insight may have been deleted.
             </Text>
           </View>
@@ -272,7 +272,7 @@ export default function InsightFilteredListScreen() {
             windowSize={7}
             data={tools.grouped}
             keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
+            ListEmptyComponent={<Text className="text-meta text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
             keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
             renderItem={({ item: row }) => row.type === "heading" ? (
               <GroupHeading label={row.label} count={row.count} total={row.total} />
@@ -286,6 +286,7 @@ export default function InsightFilteredListScreen() {
                 onPress={handleItemPress}
                 onLongPress={() => {}}
                 splitNote={splitNoteMap.get(row.item.id)}
+                hideDate={tools.groupBy === "date"}
               />
             )}
             showsVerticalScrollIndicator={false}

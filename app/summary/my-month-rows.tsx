@@ -149,6 +149,7 @@ export default function MyMonthRowsScreen() {
           accountMap={accountMap}
           onPress={openExpense}
           onLongPress={noop}
+          hideDate={tools.groupBy === "date"}
         />
       );
     }
@@ -164,12 +165,12 @@ export default function MyMonthRowsScreen() {
           <Ionicons name="swap-horizontal-outline" size={20} color={theme.primary} />
         </View>
         <View className="flex-1 mr-3">
-          <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>{t.description || "Transfer"}</Text>
-          {to && <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>To {to.account_label || to.bank_name}</Text>}
+          <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{t.description || "Transfer"}</Text>
+          {to && <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>To {to.account_label || to.bank_name}</Text>}
         </View>
         <View className="items-end shrink-0">
-          <Text className="text-sm font-bold text-foreground">{formatAmount(t.amount)}</Text>
-          <Text className="text-xs text-muted-foreground mt-0.5">{formatDateForDisplay(t.date)}</Text>
+          <Text className="text-body font-bold text-foreground">{formatAmount(t.amount)}</Text>
+          <Text className="text-label text-muted-foreground mt-0.5">{formatDateForDisplay(t.date)}</Text>
         </View>
       </Pressable>
     );
@@ -183,7 +184,7 @@ export default function MyMonthRowsScreen() {
       {failed ? (
         <View className="p-4">
           <Card>
-            <Text className="text-sm text-muted-foreground">Couldn&apos;t load these transactions. Go back and try again.</Text>
+            <Text className="text-meta text-muted-foreground">Couldn&apos;t load these transactions. Go back and try again.</Text>
           </Card>
         </View>
       ) : !groups ? (
@@ -201,7 +202,7 @@ export default function MyMonthRowsScreen() {
           ListHeaderComponent={
             count > 0 ? (
               <>
-                <Text className="text-xs text-muted-foreground px-4 pt-3">
+                <Text className="text-label text-muted-foreground px-4 pt-3">
                   {count} transaction{count === 1 ? "" : "s"} in this figure
                 </Text>
               </>
@@ -210,14 +211,14 @@ export default function MyMonthRowsScreen() {
           renderSectionHeader={({ section }) => (
             <View className="px-4 pt-4 pb-1.5 flex-row items-baseline justify-between">
               <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">{section.title}</Text>
-              <Text className={single ? "text-sm font-bold text-foreground" : "text-label font-semibold text-muted-foreground"}>
+              <Text className={single ? "text-body font-bold text-foreground" : "text-label font-semibold text-muted-foreground"}>
                 {formatAmount(section.total)}
               </Text>
             </View>
           )}
           ListEmptyComponent={
             <View className="items-center py-12 px-6">
-              <Text className="text-sm text-muted-foreground text-center">
+              <Text className="text-meta text-muted-foreground text-center">
                 {tools.narrowed ? "Nothing matches." : "No transactions behind this figure this month."}
               </Text>
             </View>

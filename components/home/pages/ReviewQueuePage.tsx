@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { DuplicateGroupCard } from "@/components/expense/DuplicateGroupCard";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
@@ -79,7 +80,7 @@ const FILTER_OPTIONS: { key: SectionFilter; label: string; icon: keyof typeof Io
 export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean } = {}) {
   const alert = useAlert();
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const { filter: initialFilter } = useLocalSearchParams<{ filter?: string }>();
 
@@ -589,7 +590,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
   if (showSection("auto") && realized.length > 0) {
     const key = "auto";
     if (isAll) {
-      listData.push({ type: "header", key, title: "Auto-Detected", count: realized.length, icon: "swap-horizontal-outline", color: colors.blue });
+      listData.push({ type: "header", key, title: "Auto-Detected", count: realized.length, icon: "swap-horizontal-outline", color: theme.primary });
     }
     listData.push({ type: "approve_auto_detected", count: realized.length, sectionKey: key });
     if (!isAll || (searching || openSections[key])) {
@@ -685,13 +686,13 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <View className="flex-row items-center -ml-2">
           <Pressable onPress={() => router.back()} className="p-2">
-            <Ionicons name="arrow-back" size={24} color={colors.textSecondary} />
+            <Ionicons name="arrow-back" size={24} color={theme.mutedForeground} />
           </Pressable>
           <Pressable onPress={() => router.replace("/(tabs)")} className="p-2" hitSlop={8} accessibilityLabel="Go to home">
-            <Ionicons name="home-outline" size={20} color={colors.tint} />
+            <Ionicons name="home-outline" size={20} color={theme.primary} />
           </Pressable>
         </View>
-        <Text className="text-lg font-semibold text-foreground">
+        <Text className="text-heading font-semibold text-foreground">
           Review Queue
         </Text>
         <Pressable
@@ -713,7 +714,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
           <Ionicons
             name={scanning ? "sync" : "refresh-outline"}
             size={22}
-            color={scanning ? colors.textSecondary : colors.blue}
+            color={scanning ? theme.mutedForeground : theme.primary}
           />
         </Pressable>
       </View>
@@ -727,8 +728,8 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       {/* Scan loader banner */}
       {scanning && (
         <View className="flex-row items-center px-4 py-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-          <Ionicons name="sync" size={14} color={colors.blue} />
-          <Text className="text-xs ml-2" style={{ color: colors.blue }}>
+          <Ionicons name="sync" size={14} color={theme.primary} />
+          <Text className="text-label ml-2" style={{ color: theme.primary }}>
             Scanning SMS for new transactions...
           </Text>
         </View>
@@ -738,8 +739,8 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       {totalItems > 0 && (
         <View className="px-4 py-2.5" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
           <View className="flex-row items-center">
-            <Ionicons name="layers-outline" size={16} color={colors.blue} />
-            <Text className="text-sm font-semibold ml-1.5 flex-1" style={{ color: theme.primary }}>
+            <Ionicons name="layers-outline" size={16} color={theme.primary} />
+            <Text className="text-body font-semibold ml-1.5 flex-1" style={{ color: theme.primary }}>
               {totalItems} item{totalItems !== 1 ? "s" : ""} to review
             </Text>
             {catchUpCount > 0 && (
@@ -751,7 +752,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                 accessibilityLabel={`Catch up on ${catchUpCount} items one at a time`}
               >
                 <Ionicons name="albums-outline" size={14} color={theme.primaryForeground} />
-                <Text className="text-xs font-semibold ml-1" style={{ color: theme.primaryForeground }}>
+                <Text className="text-label font-semibold ml-1" style={{ color: theme.primaryForeground }}>
                   Catch up ({catchUpCount})
                 </Text>
               </Pressable>
@@ -787,11 +788,11 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                 <Ionicons
                   name={opt.icon}
                   size={14}
-                  color={isActive ? theme.primary : colors.textSecondary}
+                  color={isActive ? theme.primary : theme.mutedForeground}
                   style={{ marginRight: 4 }}
                 />
                 <Text
-                  className={`text-xs ${isActive ? "font-semibold" : "text-muted-foreground"}`}
+                  className={`text-label ${isActive ? "font-semibold" : "text-muted-foreground"}`}
                   style={isActive ? { color: theme.primary } : undefined}
                 >
                   {opt.label}
@@ -832,7 +833,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
               >
                 <View className="flex-row items-center">
                   <Ionicons name={item.icon} size={14} color={item.color} />
-                  <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground ml-1.5">
+                  <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground ml-1.5">
                     {item.title}
                   </Text>
                   <Badge label={item.count} color={theme.faintForeground} className="ml-1.5" />
@@ -840,7 +841,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                 <Ionicons
                   name={isOpen ? "chevron-up" : "chevron-down"}
                   size={14}
-                  color={colors.textSecondary}
+                  color={theme.mutedForeground}
                 />
               </Pressable>
             );
@@ -863,11 +864,11 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
             return (
               <Pressable
                 onPress={handleDismissOverdue}
-                className="flex-row items-center justify-center mx-4 my-2 py-2.5 rounded-lg"
+                className="flex-row items-center justify-center mx-4 my-2 py-2.5 rounded-control"
                 style={{ backgroundColor: theme.alpha("danger", 0.08) }}
               >
                 <Ionicons name="trash-outline" size={16} color={theme.danger} />
-                <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.danger }}>
+                <Text className="text-body font-semibold ml-1.5" style={{ color: theme.danger }}>
                   Dismiss {item.count} Overdue
                 </Text>
               </Pressable>
@@ -880,21 +881,21 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
               <View className="flex-row mx-4 my-2 gap-2">
                 <Pressable
                   onPress={handleApproveAutoDetected}
-                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg"
+                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-control"
                   style={{ backgroundColor: theme.alpha("success", 0.08) }}
                 >
                   <Ionicons name="checkmark-done-outline" size={16} color={theme.success} />
-                  <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.success }}>
+                  <Text className="text-body font-semibold ml-1.5" style={{ color: theme.success }}>
                     Approve all
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={handleRejectAutoDetected}
-                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg"
+                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-control"
                   style={{ backgroundColor: theme.alpha("danger", 0.08) }}
                 >
                   <Ionicons name="close-circle-outline" size={16} color={theme.danger} />
-                  <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.danger }}>
+                  <Text className="text-body font-semibold ml-1.5" style={{ color: theme.danger }}>
                     Reject all
                   </Text>
                 </Pressable>
@@ -908,21 +909,21 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
               <View className="flex-row mx-4 my-2 gap-2">
                 <Pressable
                   onPress={handleKeepBothAllDuplicates}
-                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg"
+                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-control"
                   style={{ backgroundColor: theme.alpha("success", 0.08) }}
                 >
                   <Ionicons name="checkmark-done-circle-outline" size={15} color={theme.success} />
-                  <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.success }}>
+                  <Text className="text-label font-semibold ml-1.5" style={{ color: theme.success }}>
                     Keep all
                   </Text>
                 </Pressable>
                 <Pressable
                   onPress={handleResolveAllDuplicates}
-                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg"
+                  className="flex-1 flex-row items-center justify-center py-2.5 rounded-control"
                   style={{ backgroundColor: theme.alpha("danger", 0.08) }}
                 >
                   <Ionicons name="checkmark-done-outline" size={15} color={theme.danger} />
-                  <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.danger }}>
+                  <Text className="text-label font-semibold ml-1.5" style={{ color: theme.danger }}>
                     Resolve all
                   </Text>
                 </Pressable>
@@ -948,7 +949,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
           if (item.type === "uncat_select_all") {
             return (
               <View className="flex-row items-center justify-between px-4 py-2">
-                <Text className="text-xs text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   {selectedUncat.size > 0
                     ? `${selectedUncat.size} selected (${formatAmount(
                         uncategorizedItems
@@ -958,7 +959,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                     : "Long-press or tap checkbox to select"}
                 </Text>
                 <Pressable onPress={toggleUncatSelectAll}>
-                  <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+                  <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                     {selectedUncat.size === uncategorizedItems.length ? "Deselect All" : "Select All"}
                   </Text>
                 </Pressable>
@@ -988,7 +989,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                   <View
                     className="w-5 h-5 rounded border items-center justify-center"
                     style={{
-                      borderColor: isSelected ? theme.primary : colors.border,
+                      borderColor: isSelected ? theme.primary : theme.border,
                       backgroundColor: isSelected ? theme.primary : "transparent",
                     }}
                   >
@@ -996,26 +997,26 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                   </View>
                 </Pressable>
 
-                <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.faintForeground + "14" }}>
+                <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: tint(theme.faintForeground, 0.08) }}>
                   <Ionicons name="help-circle-outline" size={20} color={theme.faintForeground} />
                 </View>
 
                 <View className="flex-1 mr-3">
-                  <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>
+                  <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
                     {exp.description || exp.merchant_name || "No description"}
                   </Text>
                   {pm && (
-                    <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
+                    <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
                       {pm.name}
                     </Text>
                   )}
                 </View>
 
                 <View className="items-end shrink-0">
-                  <Text className="text-sm font-bold text-foreground">
+                  <Text className="text-body font-bold text-foreground">
                     {formatAmount(exp.amount)}
                   </Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">
+                  <Text className="text-label text-muted-foreground mt-0.5">
                     {new Date(exp.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                   </Text>
                 </View>
@@ -1047,10 +1048,10 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
               <View className="w-16 h-16 rounded-full items-center justify-center mb-4" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
                 <Ionicons name="checkmark-done" size={32} color={theme.success} />
               </View>
-              <Text className="text-lg font-semibold text-foreground">
+              <Text className="text-heading font-semibold text-foreground">
                 All caught up!
               </Text>
-              <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
+              <Text className="text-meta text-muted-foreground mt-1 text-center px-8">
                 {activeFilter === "all"
                   ? "No pending items to review."
                   : `No ${FILTER_OPTIONS.find((f) => f.key === activeFilter)?.label.toLowerCase() ?? ""} items.`}
@@ -1080,15 +1081,15 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       {selectedUncat.size > 0 && !showCategoryPicker && (
         <View
           className="absolute bottom-0 left-0 right-0 px-4 py-3 border-t border-border"
-          style={{ backgroundColor: colors.background }}
+          style={{ backgroundColor: theme.background }}
         >
           <Pressable
             onPress={() => setShowCategoryPicker(true)}
-            className="flex-row items-center justify-center py-3 rounded-xl"
+            className="flex-row items-center justify-center py-3 rounded-control"
             style={{ backgroundColor: theme.primary }}
           >
             <Ionicons name="pricetag-outline" size={18} color="#FFFFFF" />
-            <Text className="text-sm font-semibold text-primary-foreground ml-2">
+            <Text className="text-body font-semibold text-primary-foreground ml-2">
               Assign Category to {selectedUncat.size} Expense{selectedUncat.size !== 1 ? "s" : ""}
             </Text>
           </Pressable>
@@ -1099,14 +1100,14 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
       {showCategoryPicker && (
         <View
           className="absolute bottom-0 left-0 right-0 border-t border-border"
-          style={{ backgroundColor: colors.background, maxHeight: "50%" }}
+          style={{ backgroundColor: theme.background, maxHeight: "50%" }}
         >
           <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-            <Text className="text-sm font-semibold text-foreground">
+            <Text className="text-body font-semibold text-foreground">
               Choose Category
             </Text>
             <Pressable onPress={() => setShowCategoryPicker(false)}>
-              <Ionicons name="close" size={20} color={colors.textSecondary} />
+              <Ionicons name="close" size={20} color={theme.mutedForeground} />
             </Pressable>
           </View>
           <FlatList
@@ -1124,7 +1125,7 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
               >
                 <View
                   className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: cat.color + "14" }}
+                  style={{ backgroundColor: tint(cat.color, 0.08) }}
                 >
                   <Ionicons
                     name={cat.icon as keyof typeof Ionicons.glyphMap}
@@ -1132,10 +1133,10 @@ export function ReviewQueuePage({ showHeader = false }: { showHeader?: boolean }
                     color={cat.color}
                   />
                 </View>
-                <Text className="text-sm font-medium text-foreground flex-1">
+                <Text className="text-body font-medium text-foreground flex-1">
                   {cat.name}
                 </Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
               </Pressable>
             )}
           />

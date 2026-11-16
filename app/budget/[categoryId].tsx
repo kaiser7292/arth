@@ -1,3 +1,5 @@
+import { tint } from "@/constants/brand";
+import { useTheme } from "@/hooks/use-theme";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
@@ -7,7 +9,6 @@ import { Card, EmptyState, GroupHeading, ListCapNote, ListToolbar, LoadingState,
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import type { GroupedRow } from "@/utils/group-rows";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { TrendBarChart } from "@/components/charts/TrendBarChart";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
@@ -46,7 +47,7 @@ const NO_CATEGORIES = new Map<string, { name: string }>();
 
 export default function CategoryDetailScreen() {
   const router = useRouter();
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const { categoryId, month: initialMonth } = useLocalSearchParams<{
     categoryId: string;
     month: string;
@@ -173,6 +174,7 @@ export default function CategoryDetailScreen() {
       refundedAmount={refunds.get(item.id) ?? 0}
       splitNote={buildSplitNote(item, personMap)}
       onPress={() => router.push(`/expense/${item.id}`)}
+      hideDate={tools.groupBy === "date"}
     />
     );
   };
@@ -184,11 +186,11 @@ export default function CategoryDetailScreen() {
       {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2 mr-2">
-          <Ionicons name="arrow-back" size={22} color={colors.textSecondary} />
+          <Ionicons name="arrow-back" size={22} color={theme.mutedForeground} />
         </Pressable>
         <View
           className="w-9 h-9 rounded-full items-center justify-center mr-3"
-          style={{ backgroundColor: category.color + "14" }}
+          style={{ backgroundColor: tint(category.color, 0.08) }}
         >
           <Ionicons
             name={category.icon as keyof typeof Ionicons.glyphMap}
@@ -197,10 +199,10 @@ export default function CategoryDetailScreen() {
           />
         </View>
         <View className="flex-1">
-          <Text className="text-lg font-semibold text-foreground">
+          <Text className="text-heading font-semibold text-foreground">
             {category.name}
           </Text>
-          <Text className="text-xs text-muted-foreground">
+          <Text className="text-label text-muted-foreground">
             {monthLabel}
           </Text>
         </View>
@@ -210,15 +212,15 @@ export default function CategoryDetailScreen() {
       <Card className="mx-4 mt-3 mb-2">
         <View className="flex-row items-center justify-between mb-2">
           <View>
-            <Text className="text-xs text-faint-foreground">Spent</Text>
-            <Text className="text-xl font-bold" style={{ color }}>
+            <Text className="text-label text-faint-foreground">Spent</Text>
+            <Text className="text-title font-bold" style={{ color }}>
               {formatAmount(totalSpent)}
             </Text>
           </View>
           {budgetAmount > 0 && (
             <View className="items-end">
-              <Text className="text-xs text-faint-foreground">Budget</Text>
-              <Text className="text-xl font-bold text-foreground">
+              <Text className="text-label text-faint-foreground">Budget</Text>
+              <Text className="text-title font-bold text-foreground">
                 {formatAmount(budgetAmount)}
               </Text>
             </View>
@@ -230,7 +232,7 @@ export default function CategoryDetailScreen() {
             <View className="mb-2">
               <ProgressBar value={pct} color={color} height={8} animated={false} />
             </View>
-            <Text className="text-xs text-faint-foreground">
+            <Text className="text-label text-faint-foreground">
               {remaining >= 0
                 ? `${formatAmount(remaining)} remaining (${Math.round(pct * 100)}% used)`
                 : `${formatAmount(Math.abs(remaining))} over budget (${Math.round(pct * 100)}% used)`}
@@ -252,7 +254,7 @@ export default function CategoryDetailScreen() {
       {/* Monthly trend chart */}
       {trend.some((t) => t.total > 0) && (
         <Card className="mx-4 mt-2 mb-2">
-          <Text className="text-xs font-medium text-muted-foreground mb-3">
+          <Text className="text-label font-medium text-muted-foreground mb-3">
             Monthly Trend (Last 6 Months)
           </Text>
           <TrendBarChart
@@ -267,7 +269,7 @@ export default function CategoryDetailScreen() {
 
       {/* Transaction count */}
       <View className="px-4 py-2">
-        <Text className="text-sm font-medium text-muted-foreground">
+        <Text className="text-body font-medium text-muted-foreground">
           {txCount} transaction{txCount !== 1 ? "s" : ""}
         </Text>
       </View>
@@ -298,7 +300,7 @@ export default function CategoryDetailScreen() {
         }
         ListEmptyComponent={
           tools.narrowed ? (
-            <Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>
+            <Text className="text-meta text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>
           ) : (
             <EmptyState
               icon="receipt-outline"
