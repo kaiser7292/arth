@@ -1,11 +1,12 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 
 import { View, FlatList, Pressable } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { EmptyState, FAB, ListSeparator, ScreenContainer, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { tint } from "@/constants/brand";
+import { buildCategoryTree } from "@/utils/category-tree";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getAllCategories,
@@ -24,8 +25,22 @@ export default function CategoriesScreen() {
   const theme = useTheme();
   const router = useRouter();
   const alert = useAlert();
-  const { colors } = useColorScheme();
   const [categories, setCategories] = useState<Category[]>([]);
+  // Shown as a tree: each main category, then its sub-categories indented under it (095).
+  const shown = useMemo(
+    () => buildCategoryTree(categories).flatMap(({ parent, children }) => [parent, ...children]),
+    [categories],
+  );
+  /** The category this one swaps places with: the next sibling up or down in the same group. */
+  const siblingOf = useCallback(
+    (cat: Category, dir: -1 | 1): Category | undefined => {
+      const isChild = !!cat.parent_id && categories.some((c) => c.id === cat.parent_id);
+      const group = shown.filter((c) => (isChild ? c.parent_id === cat.parent_id : !(c.parent_id && categories.some((p) => p.id === c.parent_id))));
+      const i = group.findIndex((c) => c.id === cat.id);
+      return group[i + dir];
+    },
+    [shown, categories],
+  );
 
   const [loadFailed, setLoadFailed] = useState(false);
   const loadCategories = useCallback(async () => {
@@ -99,11 +114,10 @@ export default function CategoriesScreen() {
   );
 
   const handleMoveUp = useCallback(
-    async (index: number) => {
-      if (index <= 0) return;
+    async (current: Category) => {
+      const above = siblingOf(current, -1);
+      if (!above) return;
       try {
-        const current = categories[index];
-        const above = categories[index - 1];
         await swapCategoryOrder(
           current.id,
           current.sort_order,
@@ -115,15 +129,14 @@ export default function CategoriesScreen() {
         alert("Couldn't reorder", getErrorMessage(e, "Failed to reorder."));
       }
     },
-    [categories, loadCategories],
+    [siblingOf, loadCategories],
   );
 
   const handleMoveDown = useCallback(
-    async (index: number) => {
-      if (index >= categories.length - 1) return;
+    async (current: Category) => {
+      const below = siblingOf(current, 1);
+      if (!below) return;
       try {
-        const current = categories[index];
-        const below = categories[index + 1];
         await swapCategoryOrder(
           current.id,
           current.sort_order,
@@ -135,7 +148,7 @@ export default function CategoriesScreen() {
         alert("Couldn't reorder", getErrorMessage(e, "Failed to reorder."));
       }
     },
-    [categories, loadCategories],
+    [siblingOf, loadCategories],
   );
 
   const handleDelete = useCallback(
@@ -168,7 +181,12 @@ export default function CategoriesScreen() {
     [loadCategories, confirmMerchantRules],
   );
 
-  const renderItem = ({ item, index }: { item: Category; index: number }) => (
+  const renderItem = ({ item }: { item: Category }) => {
+    const isChild = !!item.parent_id && categories.some((c) => c.id === item.parent_id);
+    const subCount = categories.filter((c) => c.parent_id === item.id).length;
+    const canUp = !!siblingOf(item, -1);
+    const canDown = !!siblingOf(item, 1);
+    return (
     <Pressable
       onPress={() =>
         router.push({
@@ -176,58 +194,81 @@ export default function CategoriesScreen() {
           params: { id: item.id },
         })
       }
-      className={`flex-row items-center px-4 py-3 ${
+      className={`flex-row items-center py-3 ${isChild ? "pl-14 pr-4" : "px-4"} ${
         item.is_active === 0 ? "opacity-40" : ""
       }`}
+      accessibilityLabel={isChild ? `${item.name}, a sub-category` : item.name}
     >
       <View
-        className="w-10 h-10 rounded-full items-center justify-center mr-3"
-        style={{ backgroundColor: item.color + "14" }}
+        className={`${isChild ? "w-8 h-8" : "w-10 h-10"} rounded-control items-center justify-center mr-3`}
+        style={{ backgroundColor: tint(item.color, 0.12) }}
       >
         <Ionicons
           name={item.icon as keyof typeof Ionicons.glyphMap}
-          size={20}
+          size={isChild ? 16 : 20}
           color={item.color}
         />
       </View>
       <View className="flex-1">
-        <Text className="text-base font-medium text-foreground">
+        <Text className={`${isChild ? "text-meta" : "text-body"} font-medium text-foreground`}>
           {item.name}
         </Text>
         <View className="flex-row items-center">
+          {!isChild && subCount > 0 && (
+            <Text className="text-label text-muted-foreground mr-2">
+              {subCount} sub-categor{subCount === 1 ? "y" : "ies"}
+            </Text>
+          )}
           {item.is_unavoidable === 1 && (
-            <Text className="text-xs text-muted-foreground mr-2">
+            <Text className="text-label text-muted-foreground mr-2">
               Unavoidable
             </Text>
           )}
           {item.is_active === 0 && (
-            <Text className="text-xs text-danger">Inactive</Text>
+            <Text className="text-label text-danger">Inactive</Text>
           )}
         </View>
       </View>
 
+      {/* Add a sub-category under a main category */}
+      {!isChild && item.is_active === 1 && (
+        <Pressable
+          onPress={() => router.push({ pathname: "/settings/category-edit", params: { parentId: item.id } })}
+          className="p-2"
+          hitSlop={4}
+          accessibilityRole="button"
+          accessibilityLabel={`Add a sub-category under ${item.name}`}
+        >
+          <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
+        </Pressable>
+      )}
+
       {/* Reorder buttons */}
       <View className="flex-row mr-2">
         <Pressable
-          onPress={() => handleMoveUp(index)}
-          disabled={index === 0}
+          onPress={() => handleMoveUp(item)}
+          disabled={!canUp}
           className="p-1"
+          accessibilityRole="button"
+          accessibilityLabel={`Move ${item.name} up`}
         >
           <Ionicons
             name="chevron-up"
             size={16}
-            color={index === 0 ? theme.faintForeground : theme.mutedForeground}
+            color={!canUp ? theme.faintForeground : theme.mutedForeground}
           />
         </Pressable>
         <Pressable
-          onPress={() => handleMoveDown(index)}
-          disabled={index === categories.length - 1}
+          onPress={() => handleMoveDown(item)}
+          disabled={!canDown}
           className="p-1"
+          accessibilityRole="button"
+          accessibilityLabel={`Move ${item.name} down`}
         >
           <Ionicons
             name="chevron-down"
             size={16}
-            color={index === categories.length - 1 ? theme.faintForeground : theme.mutedForeground}
+            color={!canDown ? theme.faintForeground : theme.mutedForeground}
           />
         </Pressable>
       </View>
@@ -237,7 +278,7 @@ export default function CategoriesScreen() {
         <Ionicons
           name={item.is_active === 1 ? "eye-outline" : "eye-off-outline"}
           size={18}
-          color={item.is_active === 1 ? colors.blue : theme.faintForeground}
+          color={item.is_active === 1 ? theme.primary : theme.faintForeground}
         />
       </Pressable>
 
@@ -246,7 +287,8 @@ export default function CategoriesScreen() {
         <Ionicons name="trash-outline" size={18} color={theme.danger} />
       </Pressable>
     </Pressable>
-  );
+    );
+  };
 
   return (
     <ScreenContainer padTop={false}>
@@ -255,7 +297,7 @@ export default function CategoriesScreen() {
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}
-        data={categories}
+        data={shown}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={ListSeparator}
         renderItem={renderItem}

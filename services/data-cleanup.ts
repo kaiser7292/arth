@@ -558,6 +558,8 @@ export async function cleanupData(
         await db.runAsync("UPDATE merchant_aliases SET category_id = NULL WHERE category_id = ?;", cat.id);
         await db.runAsync("UPDATE recurring_transactions SET category_id = NULL WHERE category_id = ?;", cat.id);
         await db.runAsync("DELETE FROM household_category_map WHERE local_category_id = ?;", cat.id);
+        // Sub-categories (095) of a deleted parent move up to the top level.
+        await db.runAsync("UPDATE categories SET parent_id = NULL WHERE parent_id = ?;", cat.id);
         await db.runAsync("UPDATE household_their_categories SET local_category_id = NULL WHERE local_category_id = ?;", cat.id);
         await db.runAsync("DELETE FROM categories WHERE id = ?;", cat.id);
       }

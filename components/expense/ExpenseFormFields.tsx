@@ -19,6 +19,7 @@ import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { Rows } from "@/components/ui/Rows";
+import { buildCategoryTree, categoryPath } from "@/utils/category-tree";
 
 // ---------------------------------------------------------------------------
 // Searchable Picker List — shared helper for all pickers
@@ -404,7 +405,7 @@ export function CategoryPicker({
               />
             </View>
             <Text className="flex-1 text-body text-foreground">
-              {selectedCategory.name}
+              {categoryPath(selectedCategory, new Map(categories.map((c) => [c.id, c])))}
             </Text>
           </>
         ) : (
@@ -423,12 +424,11 @@ export function CategoryPicker({
       </Pressable>
       {showCategories && (
         <SearchablePickerList
-          items={categories.map((cat) => ({
-            id: cat.id,
-            label: cat.name,
-            icon: cat.icon,
-            color: cat.color,
-          }))}
+          // Each category followed by its sub-categories (095); search finds a sub-category by its parent too.
+          items={buildCategoryTree(categories).flatMap(({ parent, children }) => [
+            { id: parent.id, label: parent.name, icon: parent.icon, color: parent.color },
+            ...children.map((c) => ({ id: c.id, label: `  ${c.name}`, subtitle: `In ${parent.name}`, icon: c.icon, color: c.color })),
+          ])}
           selectedId={categoryId}
           onSelect={onSelect}
           allowNone={allowNone}

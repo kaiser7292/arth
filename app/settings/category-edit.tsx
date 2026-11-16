@@ -4,15 +4,18 @@ import { View, ScrollView, Pressable, TextInput, FlatList, Switch, useWindowDime
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Input, ScreenContainer, Sheet, Text } from "@/components/ui";
+import { Button, Input, ScreenContainer, SelectSheet, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import {
   getCategoryById,
+  getCategories,
   createCategory,
   updateCategory,
+  setCategoryParent,
+  type Category,
 } from "@/services/category";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -180,7 +183,7 @@ export default function CategoryEditScreen() {
   const alert = useAlert();
   const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, parentId: parentParam } = useLocalSearchParams<{ id?: string; parentId?: string }>();
   const isEditing = !!id;
   const scrollRef = useRef<ScrollView>(null);
 
@@ -193,6 +196,30 @@ export default function CategoryEditScreen() {
   const [customHex, setCustomHex] = useState("");
   const [showIconDrawer, setShowIconDrawer] = useState(false);
   const [showColorDrawer, setShowColorDrawer] = useState(false);
+  // Sub-categories (095): which top-level category this sits under, if any.
+  const [parentId, setParentId] = useState<string | null>(parentParam ?? null);
+  const [originalParentId, setOriginalParentId] = useState<string | null>(null);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [showParentSheet, setShowParentSheet] = useState(false);
+  const styleTouched = useRef(false);
+
+  useEffect(() => {
+    getCategories(DEFAULT_USER_ID).then(setAllCategories).catch(() => {});
+  }, []);
+  // A category with sub-categories of its own can't become one (one level only).
+  const hasChildren = !!id && allCategories.some((c) => c.parent_id === id);
+  const parentOptions = allCategories.filter((c) => !c.parent_id && c.id !== id);
+  const parentName = parentId ? allCategories.find((c) => c.id === parentId)?.name ?? null : null;
+  // A new sub-category starts with its parent's look.
+  useEffect(() => {
+    if (isEditing || styleTouched.current || !parentId) return;
+    const p = allCategories.find((c) => c.id === parentId);
+    if (p) {
+      setIcon(p.icon);
+      setColor(p.color);
+      setIsUnavoidable(p.is_unavoidable === 1);
+    }
+  }, [parentId, allCategories, isEditing]);
 
   useEffect(() => {
     const sub = Keyboard.addListener("keyboardDidShow", () => {
@@ -209,6 +236,8 @@ export default function CategoryEditScreen() {
           setIcon(cat.icon);
           setColor(cat.color);
           setIsUnavoidable(cat.is_unavoidable === 1);
+          setParentId(cat.parent_id ?? null);
+          setOriginalParentId(cat.parent_id ?? null);
         }
       });
     }
@@ -229,6 +258,7 @@ export default function CategoryEditScreen() {
           color,
           is_unavoidable: isUnavoidable ? 1 : 0,
         });
+        if (parentId !== originalParentId) await setCategoryParent(id, parentId);
       } else {
         await createCategory({
           user_id: DEFAULT_USER_ID,
@@ -236,6 +266,7 @@ export default function CategoryEditScreen() {
           icon,
           color,
           is_unavoidable: isUnavoidable ? 1 : 0,
+          parent_id: parentId,
         });
       }
       router.back();
@@ -249,7 +280,7 @@ export default function CategoryEditScreen() {
 
   const renderIconItem = useCallback(({ item: iconName }: { item: string }) => (
     <Pressable
-      onPress={() => { setIcon(iconName); setShowIconDrawer(false); }}
+      onPress={() => { styleTouched.current = true; setIcon(iconName); setShowIconDrawer(false); }}
       className={`w-12 h-12 rounded-lg items-center justify-center m-1 ${
         icon === iconName
           ? "border-2"
@@ -279,6 +310,37 @@ export default function CategoryEditScreen() {
             placeholder="e.g., Food, Transport"
             maxLength={50}
             containerClassName="mb-6"
+          />
+
+          {/* Sits under: makes this a sub-category (one level only) */}
+          <Text className="text-label font-semibold text-muted-foreground mb-1.5">Sits under</Text>
+          <Pressable
+            onPress={() => setShowParentSheet(true)}
+            disabled={hasChildren}
+            className="flex-row items-center px-4 py-3 rounded-control border border-border bg-card"
+            style={{ opacity: hasChildren ? 0.6 : 1 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Sits under: ${parentName ?? "nothing, it's a main category"}`}
+          >
+            <Ionicons name="git-merge-outline" size={18} color={theme.mutedForeground} />
+            <Text className="flex-1 ml-3 text-body text-foreground">{parentName ?? "Nothing - a main category"}</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
+          </Pressable>
+          <Text className="text-label text-muted-foreground mt-1 ml-1 mb-6">
+            {hasChildren
+              ? "This has sub-categories, so it stays a main category."
+              : parentName
+                ? `A sub-category of ${parentName}. Its spending counts toward ${parentName}'s budget.`
+                : "Pick a category to make this a sub-category of it, like Food › Groceries."}
+          </Text>
+          <SelectSheet<string>
+            visible={showParentSheet}
+            title="Sits under"
+            options={[{ value: "__none", label: "Nothing - a main category" }, ...parentOptions.map((c) => ({ value: c.id, label: c.name }))]}
+            value={parentId ?? "__none"}
+            onChange={(v) => setParentId(v === "__none" ? null : v)}
+            onClose={() => setShowParentSheet(false)}
+            searchable={parentOptions.length > 8}
           />
 
           {/* Icon picker — tap to open drawer */}
@@ -382,7 +444,7 @@ export default function CategoryEditScreen() {
             {COLOR_OPTIONS.map((c) => (
               <Pressable
                 key={c}
-                onPress={() => { setColor(c); setShowCustomColor(false); setShowColorDrawer(false); }}
+                onPress={() => { styleTouched.current = true; setColor(c); setShowCustomColor(false); setShowColorDrawer(false); }}
                 className={`w-12 h-12 rounded-full m-1.5 items-center justify-center ${
                   color === c && !showCustomColor ? "border-2 border-foreground" : ""
                 }`}
@@ -406,7 +468,7 @@ export default function CategoryEditScreen() {
                 onChangeText={(t) => {
                   const hex = t.startsWith("#") ? t : "#" + t;
                   setCustomHex(hex);
-                  if (/^#[0-9A-Fa-f]{6}$/.test(hex)) setColor(hex);
+                  if (/^#[0-9A-Fa-f]{6}$/.test(hex)) { styleTouched.current = true; setColor(hex); }
                 }}
                 placeholder="#FF5733"
                 placeholderTextColor={colors.tabIconDefault}

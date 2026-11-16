@@ -939,6 +939,7 @@ export default function CatchUpScreen() {
         categories={categories}
         selectedId={cardExpense ? categoryFor(cardExpense) : null}
         onSelect={onPickCategory}
+        merchantName={cardExpense?.merchant_name}
         onClose={() => setPicker(null)}
       />
 

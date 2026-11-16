@@ -40,6 +40,7 @@ import { SplitCard } from "@/components/expense/SplitCard";
 import { SplitEditSheet } from "@/components/expense/SplitEditSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
 import { ActionRow, Button, Chip, FieldRow, Input, LoadingState, ScreenContainer, SectionTitle, Sheet, Text, useToast, type ActionRowItem } from "@/components/ui";
+import { categoryPath } from "@/utils/category-tree";
 import { MoreActionsSheet, type MoreActionGroup } from "@/components/expense/MoreActionsSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
@@ -422,6 +423,9 @@ export default function ExpenseDetailScreen() {
     : expense
     ? categories.find((c) => c.id === expense.category_id)
     : null;
+  // "Food › Groceries" for a sub-category (095). Credits have a type, not a category.
+  const realCategory = expense && expense.nature !== "credit" ? categories.find((c) => c.id === expense.category_id) : undefined;
+  const expenseCategoryLabel = realCategory ? categoryPath(realCategory, new Map(categories.map((c) => [c.id, c]))) : null;
   const expensePaymentMode = expense
     ? paymentModes.find((p) => p.id === expense.payment_mode_id)
     : null;
@@ -2414,7 +2418,7 @@ export default function ExpenseDetailScreen() {
                   accessibilityLabel={`${expense.nature === "credit" ? "Type" : "Category"}: ${expenseCategory?.name ?? "not set"}. Edit`}
                 >
                   {expenseCategory ? (
-                    <Chip variant="category" icon={expenseCategory.icon as keyof typeof Ionicons.glyphMap} color={expenseCategory.color} label={expenseCategory.name} />
+                    <Chip variant="category" icon={expenseCategory.icon as keyof typeof Ionicons.glyphMap} color={expenseCategory.color} label={expenseCategoryLabel ?? expenseCategory.name} />
                   ) : expense.nature === "credit" ? (
                     <Text className="text-body text-muted-foreground">Not set</Text>
                   ) : (

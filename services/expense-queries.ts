@@ -1,3 +1,4 @@
+import { rolledUpCategorySql } from "@/services/category-rollup";
 import { parseAmountQuery } from "@/utils/amount-search";
 import { getDatabase } from "@/database";
 import type { Expense, ExpenseFilters, CategoryActual, MonthlyTotal } from "./expense-types";
@@ -94,19 +95,22 @@ export async function getExpensesByIds(ids: string[]): Promise<Expense[]> {
  * no account, no tags, no merchant. Combined with real ids it widens the match (OR), like picking
  * one more option.
  */
+/** `category_id` is the category or one of its sub-categories. Takes the category id twice. */
+const IN_CATEGORY_SQL = "(category_id = ? OR category_id IN (SELECT id FROM categories WHERE parent_id = ?))";
+
 function buildFilterConditions(userId: string, filters: ExpenseFilters): { conditions: string[]; params: (string | number)[] } {
   const nature = filters.nature ?? "realized";
   const conditions: string[] = ["user_id = ?", "deleted_at IS NULL"];
   const params: (string | number)[] = [userId];
 
-  /** `col IN (ids)`, OR-ed with `none` when NOT_SET was picked. */
-  const inOrNone = (values: string[] | undefined, inSql: (placeholders: string) => string, none: string) => {
+  /** `col IN (ids)`, OR-ed with `none` when NOT_SET was picked. `uses`: how often inSql uses the ids. */
+  const inOrNone = (values: string[] | undefined, inSql: (placeholders: string) => string, none: string, uses = 1) => {
     if (!values || values.length === 0) return;
     const real = values.filter((v) => v !== NOT_SET);
     const parts: string[] = [];
     if (real.length > 0) {
       parts.push(inSql(real.map(() => "?").join(",")));
-      params.push(...real);
+      for (let i = 0; i < uses; i++) params.push(...real);
     }
     if (real.length !== values.length) parts.push(none);
     conditions.push(parts.length === 1 ? parts[0] : `(${parts.join(" OR ")})`);
@@ -135,7 +139,13 @@ function buildFilterConditions(userId: string, filters: ExpenseFilters): { condi
     conditions.push("date <= ?");
     params.push(filters.endDate);
   }
-  inOrNone(filters.categoryIds, (ph) => `category_id IN (${ph})`, "category_id IS NULL");
+  // A category includes its sub-categories (095): filtering on Food shows Food › Groceries too.
+  inOrNone(
+    filters.categoryIds,
+    (ph) => `(category_id IN (${ph}) OR category_id IN (SELECT id FROM categories WHERE parent_id IN (${ph})))`,
+    "category_id IS NULL",
+    2,
+  );
   inOrNone(filters.creditKinds, (ph) => `COALESCE(credit_kind, 'other') IN (${ph})`, "credit_kind IS NULL");
   inOrNone(filters.paymentModeIds, (ph) => `payment_mode_id IN (${ph})`, "payment_mode_id IS NULL");
   inOrNone(filters.accountIds, (ph) => `account_id IN (${ph})`, "account_id IS NULL");
@@ -485,10 +495,11 @@ export async function getExpenseTotalsByCategory(
 ): Promise<CategoryActual[]> {
   const db = getDatabase();
   return db.getAllAsync<CategoryActual>(
-    `SELECT category_id, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
+    // Sub-categories count toward their parent (095), the way budgets are set.
+    `SELECT ${rolledUpCategorySql("expenses.category_id")} as category_id, SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ? AND category_id IS NOT NULL
      ${NOT_INVESTMENT_LINKED}
-     GROUP BY category_id;`,
+     GROUP BY ${rolledUpCategorySql("expenses.category_id")};`,
     userId,
     startDate,
     endDate,
@@ -508,12 +519,12 @@ export async function getExpenseIdsByCategory(
   const db = getDatabase();
   const rows = await db.getAllAsync<{ id: string }>(
     `SELECT id FROM expenses
-     WHERE user_id = ? AND category_id = ? AND status = 'approved'
+     WHERE user_id = ? AND ${IN_CATEGORY_SQL} AND status = 'approved'
        AND nature = 'realized' AND deleted_at IS NULL AND ${NOT_RECLASSIFIED}
        AND date >= ? AND date <= ?
      ${NOT_INVESTMENT_LINKED}
      ORDER BY date DESC;`,
-    userId, categoryId, startDate, endDate,
+    userId, categoryId, categoryId, startDate, endDate,
   );
   return rows.map((r) => r.id);
 }
@@ -588,11 +599,12 @@ export async function getCategoryMonthlyTrend(
     `SELECT strftime('%Y-%m', date) as month, SUM(${effectiveAmountSql("expenses")}) as total
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
-       AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND category_id = ? AND date >= ? AND date <= ?
+       AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND ${IN_CATEGORY_SQL} AND date >= ? AND date <= ?
        ${NOT_INVESTMENT_LINKED}
      GROUP BY strftime('%Y-%m', date)
      ORDER BY month;`,
     userId,
+    categoryId,
     categoryId,
     startDate,
     endDate,

@@ -1060,7 +1060,9 @@ export default function ExpensesScreen() {
       if (!target) return;
       await bulkSetCategory([target.id], categoryId);
       const name = categoryMap.get(categoryId)?.name;
-      if (name) toast(`Added to ${name}`);
+      toast(name ? `Added to ${name}` : "Category added");
+      // A sub-category made in the picker isn't in the list yet.
+      if (!name) getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => {});
       loadExpenses(true);
     },
     [categoryFor, categoryMap, toast, loadExpenses],
@@ -1477,6 +1479,8 @@ export default function ExpensesScreen() {
         selectedId={null}
         onSelect={pickCategoryInPlace}
         onClose={() => setCategoryFor(null)}
+        merchantName={categoryFor?.merchant_name}
+        allowCreate
       />
 
       <TransactionFilterSheet
