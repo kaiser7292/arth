@@ -25,7 +25,10 @@ import type { FinancialAccount } from "@/services/financial-account";
 import { createTransfer } from "@/services/account-transfer";
 import { getComputedBalances, computeUnseededBalance } from "@/services/account-balance";
 import {
+  addFDTerm,
+  computeFDInterest,
   currentFDValue,
+  fdTermBetween,
   generateFDSchedule,
   type CompoundingFreq,
   type InterestMethod,
@@ -41,6 +44,19 @@ import { todayIso } from "@/utils/date";
 export type InvestmentInstrument = "equity" | "mutual_fund" | "gold" | "fd" | "bond" | "epf" | "nps" | "ppf" | "crypto" | "other";
 export type InvestmentValuation = "market" | "contract" | "contribution";
 export type InvestmentProductStatus = "active" | "matured" | "closed";
+/**
+ * What an FD does at maturity (migration 094, docs/FD_IMPROVEMENTS_PROPOSAL.md point 4):
+ *   none               - pays principal + interest out to the funding account and closes
+ *   principal          - pays the interest out and renews the principal for the same term
+ *   principal_interest - renews the whole maturity amount for the same term
+ */
+export type FDRenewalMode = "none" | "principal" | "principal_interest";
+
+export const RENEWAL_MODE_LABELS: Record<FDRenewalMode, string> = {
+  none: "No auto-renew",
+  principal: "Renew principal only",
+  principal_interest: "Renew principal + interest",
+};
 
 /** Shared display label per instrument — used by the Investments list, the unified Home card, and the balance sheet. */
 export const INSTRUMENT_LABELS: Record<InvestmentInstrument, string> = {
@@ -78,6 +94,8 @@ export interface InvestmentProduct {
   linked_contribution_id: string | null;
   /** v3.6 — user-corrected maturity amount, overriding the computed value when the bank's actual payout (TDS/rounding) differs. */
   maturity_amount_override: number | null;
+  /** v4.49 — see FDRenewalMode. */
+  renewal_mode: FDRenewalMode;
 }
 
 export interface InvestmentScheduleRow {
@@ -105,6 +123,9 @@ export interface CreateFDInput {
   start_date: string;
   maturity_date: string;
   source_account_id: string;
+  renewal_mode?: FDRenewalMode;
+  /** The bank's maturity figure when it differs from Arth's (same as setFDMaturityOverride). */
+  maturity_amount_override?: number | null;
 }
 
 // ─── Create ───────────────────────────────────────────────
@@ -114,6 +135,8 @@ interface FDDetails {
   interest_method?: InterestMethod;
   compounding_freq?: CompoundingFreq;
   maturity_date?: string;
+  renewal_mode?: FDRenewalMode;
+  maturity_amount_override?: number | null;
 }
 
 /**
@@ -139,8 +162,9 @@ async function insertFDProductAndSchedule(
       id, financial_account_id, instrument, valuation,
       principal, interest_rate_pa, interest_method, compounding_freq,
       start_date, maturity_date, payout_mode, source_account_id,
-      auto_credit_on_maturity, status, created_at, updated_at
-    ) VALUES (?, ?, 'fd', 'contract', ?, ?, ?, ?, ?, ?, 'cumulative', ?, 1, 'active', ?, ?);`,
+      auto_credit_on_maturity, status, created_at, updated_at,
+      renewal_mode, maturity_amount_override
+    ) VALUES (?, ?, 'fd', 'contract', ?, ?, ?, ?, ?, ?, 'cumulative', ?, 1, 'active', ?, ?, ?, ?);`,
     productId,
     financialAccountId,
     principal,
@@ -152,6 +176,8 @@ async function insertFDProductAndSchedule(
     sourceAccountId,
     now,
     now,
+    details.renewal_mode ?? "none",
+    details.maturity_amount_override ?? null,
   );
 
   if (details.interest_rate_pa != null && details.maturity_date != null) {
@@ -196,6 +222,9 @@ export async function createFDAccount(input: CreateFDInput): Promise<string> {
   if (input.interest_method === "compound" && !input.compounding_freq) {
     throw new Error("Compounding frequency is required for compound interest");
   }
+  if (input.maturity_amount_override != null && !(input.maturity_amount_override > 0)) {
+    throw new Error("Corrected maturity amount must be a positive number");
+  }
 
   const financialAccountId = await createManualAccount({
     userId: input.user_id,
@@ -228,6 +257,8 @@ export async function createFDAccount(input: CreateFDInput): Promise<string> {
     interest_method: input.interest_method,
     compounding_freq: input.compounding_freq,
     maturity_date: input.maturity_date,
+    renewal_mode: input.renewal_mode,
+    maturity_amount_override: input.maturity_amount_override,
   });
 
   bumpDataVersion();
@@ -246,6 +277,7 @@ export interface CreateFDShellInput {
   interest_method?: InterestMethod;
   compounding_freq?: CompoundingFreq;
   maturity_date?: string;
+  renewal_mode?: FDRenewalMode;
 }
 
 /**
@@ -295,6 +327,7 @@ export async function createFDAccountShell(input: CreateFDShellInput): Promise<s
     interest_method: input.interest_method,
     compounding_freq: input.compounding_freq,
     maturity_date: input.maturity_date,
+    renewal_mode: input.renewal_mode,
   });
 
   bumpDataVersion();
@@ -313,6 +346,7 @@ export async function completeFDDetails(
     interest_method: InterestMethod;
     compounding_freq?: CompoundingFreq;
     maturity_date: string;
+    renewal_mode?: FDRenewalMode;
   },
 ): Promise<void> {
   const db = getDatabase();
@@ -343,12 +377,14 @@ export async function completeFDDetails(
 
   await db.runAsync(
     `UPDATE investment_products
-     SET interest_rate_pa = ?, interest_method = ?, compounding_freq = ?, maturity_date = ?, updated_at = datetime('now')
+     SET interest_rate_pa = ?, interest_method = ?, compounding_freq = ?, maturity_date = ?, renewal_mode = ?,
+         updated_at = datetime('now')
      WHERE id = ?;`,
     details.interest_rate_pa,
     details.interest_method,
     details.compounding_freq ?? null,
     details.maturity_date,
+    details.renewal_mode ?? product.renewal_mode ?? "none",
     product.id,
   );
 
@@ -385,18 +421,38 @@ export function isFDIncomplete(product: InvestmentProduct): boolean {
 }
 
 /**
- * True when an FD's schedule can still be safely edited — i.e. no schedule
- * entry has been materialised yet (money hasn't actually moved). Once any
- * entry is materialised, changing rate/maturity would desync the FD account's
- * real transfer history from a freshly regenerated schedule.
+ * True when an FD's schedule can still be safely edited — i.e. the current
+ * term's maturity hasn't been materialised yet (money hasn't actually moved).
+ * Once it has, changing rate/maturity would desync the FD account's real
+ * transfer history from a freshly regenerated schedule. A renewed FD's earlier
+ * terms are materialised too, but they end on the current start date, so they
+ * don't lock the new term.
  */
 export async function isFDEditable(productId: string): Promise<boolean> {
   const db = getDatabase();
   const materialised = await db.getFirstAsync<{ id: string }>(
-    "SELECT id FROM investment_schedule_entries WHERE product_id = ? AND status = 'materialised' LIMIT 1;",
+    `SELECT se.id FROM investment_schedule_entries se
+       JOIN investment_products ip ON ip.id = se.product_id
+      WHERE se.product_id = ? AND se.status = 'materialised'
+        AND (ip.start_date IS NULL OR se.event_date > ip.start_date)
+      LIMIT 1;`,
     productId,
   );
   return !materialised;
+}
+
+/** When the FD was last renewed (its current start date), or null if it never was. */
+export async function getFDRenewedOn(productId: string): Promise<string | null> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ start_date: string }>(
+    `SELECT ip.start_date FROM investment_products ip
+      WHERE ip.id = ? AND ip.status = 'active' AND EXISTS (
+        SELECT 1 FROM investment_schedule_entries se
+         WHERE se.product_id = ip.id AND se.kind = 'maturity' AND se.status = 'materialised'
+           AND se.event_date = ip.start_date);`,
+    productId,
+  );
+  return row?.start_date ?? null;
 }
 
 /**
@@ -413,6 +469,7 @@ export async function updateFDDetails(
     interest_method: InterestMethod;
     compounding_freq?: CompoundingFreq;
     maturity_date: string;
+    renewal_mode?: FDRenewalMode;
   },
 ): Promise<void> {
   const db = getDatabase();
@@ -438,18 +495,26 @@ export async function updateFDDetails(
 
   await db.runAsync(
     `UPDATE investment_products
-     SET interest_rate_pa = ?, interest_method = ?, compounding_freq = ?, maturity_date = ?, updated_at = datetime('now')
+     SET interest_rate_pa = ?, interest_method = ?, compounding_freq = ?, maturity_date = ?, renewal_mode = ?,
+         updated_at = datetime('now')
      WHERE id = ?;`,
     details.interest_rate_pa,
     details.interest_method,
     details.compounding_freq ?? null,
     details.maturity_date,
+    details.renewal_mode ?? product.renewal_mode ?? "none",
     product.id,
   );
 
-  // Drop the previous (never-materialised) schedule and regenerate it —
-  // safe because isFDEditable already confirmed nothing has materialised.
-  await db.runAsync("DELETE FROM investment_schedule_entries WHERE product_id = ?;", product.id);
+  // Drop the current term's (never-materialised) schedule and regenerate it —
+  // safe because isFDEditable already confirmed it hasn't materialised. A
+  // renewed FD's earlier, materialised terms stay as history.
+  await db.runAsync("DELETE FROM investment_schedule_entries WHERE product_id = ? AND status != 'materialised';", product.id);
+  const lastEvent = await db.getFirstAsync<{ n: number | null }>(
+    "SELECT MAX(event_num) AS n FROM investment_schedule_entries WHERE product_id = ?;",
+    product.id,
+  );
+  const eventOffset = lastEvent?.n ?? 0;
 
   const schedule = generateFDSchedule({
     principal: product.principal,
@@ -467,7 +532,7 @@ export async function updateFDDetails(
       ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled');`,
       entry.id,
       product.id,
-      entry.event_num,
+      entry.event_num + eventOffset,
       entry.event_date,
       entry.kind,
       entry.principal_component,
@@ -980,6 +1045,232 @@ export async function getInvestmentSummary(
 
 // ─── Maturity materialisation ─────────────────────────────
 
+// ─── Keeping figures current, and renewals ─────────────────
+
+/**
+ * Brings each upcoming FD's stored interest in line with the current maths
+ * (services/investment-engine.ts). Arth used a days / 365.25 formula before
+ * 4.49, which left most FDs a few rupees off the bank's figure; this fixes
+ * those, and any restored from an older backup. Only touches a schedule entry
+ * that is still the FD's own computed figure: not yet linked to a credit, on
+ * the product's maturity date, and on an FD with no manual correction (the
+ * user's own figure always wins). Idempotent. Returns how many changed.
+ */
+export async function refreshFDScheduleFigures(userId: string): Promise<number> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{
+    schedule_id: string;
+    interest_component: number | null;
+    principal: number;
+    interest_rate_pa: number;
+    interest_method: InterestMethod;
+    compounding_freq: CompoundingFreq | null;
+    start_date: string;
+    maturity_date: string;
+  }>(
+    `SELECT se.id AS schedule_id, se.interest_component, ip.principal, ip.interest_rate_pa,
+            ip.interest_method, ip.compounding_freq, ip.start_date, ip.maturity_date
+       FROM investment_schedule_entries se
+       JOIN investment_products ip ON ip.id = se.product_id
+       JOIN financial_accounts fa ON fa.id = ip.financial_account_id
+      WHERE fa.user_id = ? AND ip.valuation = 'contract' AND ip.status = 'active'
+        AND ip.maturity_amount_override IS NULL
+        AND ip.principal IS NOT NULL AND ip.interest_rate_pa IS NOT NULL AND ip.interest_method IS NOT NULL
+        AND ip.start_date IS NOT NULL AND ip.maturity_date IS NOT NULL
+        AND se.kind = 'maturity' AND se.status = 'scheduled' AND se.linked_expense_id IS NULL
+        AND se.event_date = ip.maturity_date;`,
+    userId,
+  );
+  let changed = 0;
+  for (const r of rows) {
+    const interest = computeFDInterest({
+      principal: r.principal,
+      interest_rate_pa: r.interest_rate_pa,
+      start_date: r.start_date,
+      maturity_date: r.maturity_date,
+      interest_method: r.interest_method,
+      compounding_freq: r.compounding_freq ?? undefined,
+    });
+    if (r.interest_component != null && Math.abs(r.interest_component - interest) < 0.005) continue;
+    await db.runAsync(`UPDATE investment_schedule_entries SET interest_component = ? WHERE id = ?;`, interest, r.schedule_id);
+    changed++;
+  }
+  if (changed > 0) bumpDataVersion();
+  return changed;
+}
+
+interface RenewalRow {
+  schedule_id: string;
+  event_num: number;
+  event_date: string;
+  principal_component: number | null;
+  interest_component: number | null;
+  product_id: string;
+  financial_account_id: string;
+  source_account_id: string | null;
+  renewal_mode: FDRenewalMode;
+  maturity_amount_override: number | null;
+  start_date: string;
+  interest_rate_pa: number;
+  interest_method: InterestMethod;
+  compounding_freq: CompoundingFreq | null;
+  bank_name: string;
+}
+
+/**
+ * Renews every auto-renewing FD whose maturity date has passed
+ * (docs/FD_IMPROVEMENTS_PROPOSAL.md point 4):
+ *   - 'principal': the interest is queued as a credit on the funding account
+ *     for review (or the bank's own interest credit from SMS is used, if it's
+ *     already there, net of TDS allowed); the principal stays in the FD.
+ *   - 'principal_interest': nothing reaches the bank account; the interest is
+ *     queued as a credit on the FD account itself, so its balance grows to the
+ *     maturity amount, which becomes the new principal.
+ * Either way the finished term's entry is materialised, the FD is re-dated for
+ * the same term from the old maturity date, at the same rate (banks renew at
+ * their rate on the day, which Arth can't know; getFDRenewedOn lets the UI ask
+ * the user to check it), and a manual maturity correction is cleared since it
+ * belonged to the old term. Catches up several terms if the app wasn't opened.
+ * Idempotent. Returns how many terms it renewed.
+ */
+export async function renewMaturedFDs(userId: string): Promise<number> {
+  const db = getDatabase();
+  const today = todayIso();
+  let renewed = 0;
+  // One term per FD per pass; more passes catch up FDs that renewed more than once while the app was closed.
+  for (let pass = 0; pass < 50; pass++) {
+    const rows = await db.getAllAsync<RenewalRow>(
+      `SELECT se.id AS schedule_id, se.event_num, se.event_date, se.principal_component, se.interest_component,
+              ip.id AS product_id, ip.financial_account_id, ip.source_account_id, ip.renewal_mode,
+              ip.maturity_amount_override, ip.start_date, ip.interest_rate_pa, ip.interest_method,
+              ip.compounding_freq, fa.bank_name
+         FROM investment_schedule_entries se
+         JOIN investment_products ip ON ip.id = se.product_id
+         JOIN financial_accounts fa ON fa.id = ip.financial_account_id
+        WHERE fa.user_id = ? AND fa.is_active = 1 AND fa.closed_at IS NULL
+          AND ip.valuation = 'contract' AND ip.status = 'active'
+          AND ip.renewal_mode IN ('principal', 'principal_interest')
+          AND ip.interest_rate_pa IS NOT NULL AND ip.interest_method IS NOT NULL AND ip.start_date IS NOT NULL
+          AND se.kind = 'maturity' AND se.status = 'scheduled' AND se.linked_expense_id IS NULL
+          AND se.event_date <= ? AND se.event_date > ip.start_date;`,
+      userId,
+      today,
+    );
+    if (rows.length === 0) break;
+    let progressed = 0;
+    for (const row of rows) {
+      try {
+        if (await renewOneTerm(userId, row)) {
+          renewed++;
+          progressed++;
+        }
+      } catch (e) {
+        logger.warn(`Failed to renew FD ${row.financial_account_id} (non-fatal):`, e);
+      }
+    }
+    if (progressed === 0) break;
+  }
+  if (renewed > 0) bumpDataVersion();
+  return renewed;
+}
+
+async function renewOneTerm(userId: string, row: RenewalRow): Promise<boolean> {
+  const db = getDatabase();
+  const term = fdTermBetween(row.start_date, row.event_date);
+  if (term.years === 0 && term.months === 0 && term.days === 0) return false;
+
+  const principal = row.principal_component ?? 0;
+  const maturity = row.maturity_amount_override ?? principal + (row.interest_component ?? 0);
+  const interest = Math.max(Math.round((maturity - principal) * 100) / 100, 0);
+  const newStart = row.event_date;
+  const newMaturity = addFDTerm(newStart, term);
+  const newPrincipal =
+    row.renewal_mode === "principal_interest" ? Math.round((principal + interest) * 100) / 100 : principal;
+
+  let creditId: string | null = null;
+  if (interest > 0) {
+    const creditAccount = row.renewal_mode === "principal_interest" ? row.financial_account_id : row.source_account_id;
+    if (row.renewal_mode === "principal" && creditAccount) {
+      // The bank's own interest credit may already have been read from SMS - use it instead of a second one.
+      const t = Math.max(interest * 0.005, 1);
+      const existing = await db.getFirstAsync<{ id: string }>(
+        `SELECT e.id FROM expenses e
+          WHERE e.user_id = ? AND e.account_id = ? AND e.nature = 'credit'
+            AND e.status IN ('pending_review', 'approved') AND e.deleted_at IS NULL
+            AND e.amount >= ? AND e.amount <= ?
+            AND e.date >= date(?, '-3 day') AND e.date <= date(?, '+10 day')
+            AND NOT EXISTS (SELECT 1 FROM investment_schedule_entries x WHERE x.linked_expense_id = e.id)
+          ORDER BY ABS(e.amount - ?) ASC, ABS(julianday(e.date) - julianday(?)) ASC
+          LIMIT 1;`,
+        userId,
+        creditAccount,
+        interest * MIN_NET_INTEREST_SHARE - t,
+        interest + t,
+        newStart,
+        newStart,
+        interest,
+        newStart,
+      );
+      creditId = existing?.id ?? null;
+    }
+    if (!creditId && creditAccount) {
+      creditId = generateUUID();
+      await db.runAsync(
+        `INSERT INTO expenses (id, user_id, amount, currency, description, account_id, date, nature, source, status, created_at)
+         VALUES (?, ?, ?, 'INR', ?, ?, ?, 'credit', 'manual', 'pending_review', ?);`,
+        creditId,
+        userId,
+        interest,
+        `${row.bank_name} FD interest (renewed)`,
+        creditAccount,
+        newStart,
+        new Date().toISOString(),
+      );
+    } else if (!creditAccount) {
+      logger.warn(`FD ${row.financial_account_id} renewed without a funding account - its interest wasn't recorded`);
+    }
+  }
+
+  await db.runAsync(
+    `UPDATE investment_schedule_entries SET status = 'materialised', linked_expense_id = ? WHERE id = ?;`,
+    creditId,
+    row.schedule_id,
+  );
+  await db.runAsync(
+    `UPDATE investment_products
+        SET principal = ?, start_date = ?, maturity_date = ?, maturity_amount_override = NULL, updated_at = datetime('now')
+      WHERE id = ?;`,
+    newPrincipal,
+    newStart,
+    newMaturity,
+    row.product_id,
+  );
+  const schedule = generateFDSchedule({
+    principal: newPrincipal,
+    interest_rate_pa: row.interest_rate_pa,
+    start_date: newStart,
+    maturity_date: newMaturity,
+    interest_method: row.interest_method,
+    compounding_freq: row.compounding_freq ?? undefined,
+  });
+  for (const entry of schedule) {
+    await db.runAsync(
+      `INSERT INTO investment_schedule_entries (
+        id, product_id, event_num, event_date, kind,
+        principal_component, interest_component, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled');`,
+      entry.id,
+      row.product_id,
+      row.event_num + entry.event_num,
+      entry.event_date,
+      entry.kind,
+      entry.principal_component,
+      entry.interest_component,
+    );
+  }
+  return true;
+}
+
 /**
  * Idempotent on-app-open catch-up pass (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
  * section 8). For every 'scheduled' entry with event_date <= today, queues
@@ -997,9 +1288,17 @@ export async function getInvestmentSummary(
 export async function materialiseMaturedInvestments(userId: string): Promise<number> {
   const db = getDatabase();
   const today = todayIso();
+  // Upcoming FDs' figures follow the current maths (unless corrected by hand).
+  try {
+    await refreshFDScheduleFigures(userId);
+  } catch (e) {
+    logger.warn("refreshFDScheduleFigures failed (non-fatal):", e);
+  }
+  // Auto-renewing FDs roll over instead of paying out.
+  let materialised = await renewMaturedFDs(userId);
   // Match real payout credits first (single, or principal + interest, from the bank's SMS) and
   // close FDs whose payout is already approved. Entries it links are skipped below.
-  let materialised = await settleMaturedFDs(userId);
+  materialised += await settleMaturedFDs(userId);
 
   const due = await db.getAllAsync<{
     schedule_id: string;
@@ -1022,7 +1321,8 @@ export async function materialiseMaturedInvestments(userId: string): Promise<num
      JOIN investment_products ip ON ip.id = se.product_id
      JOIN financial_accounts fa ON fa.id = ip.financial_account_id
      WHERE fa.user_id = ? AND fa.is_active = 1
-       AND se.status = 'scheduled' AND se.linked_expense_id IS NULL AND se.event_date <= ?;`,
+       AND se.status = 'scheduled' AND se.linked_expense_id IS NULL AND se.event_date <= ?
+       AND ip.renewal_mode = 'none';`,
     userId,
     today,
   );

@@ -842,6 +842,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "investment_bucket_id",
     "linked_contribution_id",
     "maturity_amount_override",
+    "renewal_mode",
   ] as const,
 
   investment_schedule_entries: [

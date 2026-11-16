@@ -2,10 +2,17 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ScrollView, FlatList } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Input, Sheet, Text } from "@/components/ui";
-import { CalendarModal } from "@/components/ui/CalendarModal";
+import { BankPicker } from "@/components/account/BankPicker";
+import { FDTermInput } from "@/components/account/FDTermInput";
+import { FDRenewalPicker } from "@/components/account/FDRenewalPicker";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
-import { createFDAccountShell, linkFDToBucket, setFDMaturityOverride } from "@/services/investment-accounts";
+import {
+  createFDAccountShell,
+  linkFDToBucket,
+  setFDMaturityOverride,
+  type FDRenewalMode,
+} from "@/services/investment-accounts";
 import { reclassifyExpenseAsTransfer } from "@/services/account-transfer";
 import { computeFDMaturityValue, type CompoundingFreq, type InterestMethod } from "@/services/investment-engine";
 import { getBucketsByFY, type InvestmentBucket } from "@/services/yearly-plan";
@@ -68,7 +75,7 @@ export function MarkAsFDSheet({
   const [interestMethod, setInterestMethod] = useState<InterestMethod>("compound");
   const [compoundingFreq, setCompoundingFreq] = useState<CompoundingFreq>("quarterly");
   const [maturityDate, setMaturityDate] = useState("");
-  const [showMaturityPicker, setShowMaturityPicker] = useState(false);
+  const [renewalMode, setRenewalMode] = useState<FDRenewalMode>("none");
   const [maturityOverride, setMaturityOverride] = useState("");
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
   const [bucketId, setBucketId] = useState<string | null>(null);
@@ -84,6 +91,7 @@ export function MarkAsFDSheet({
       setCompoundingFreq("quarterly");
       setMaturityDate("");
       setMaturityOverride("");
+      setRenewalMode("none");
       setBucketId(null);
     }
   }, [visible, suggestedBankName]);
@@ -154,6 +162,7 @@ export function MarkAsFDSheet({
         interest_method: hasRateInput ? interestMethod : undefined,
         compounding_freq: hasRateInput && interestMethod === "compound" ? compoundingFreq : undefined,
         maturity_date: hasRateInput ? maturityDate : undefined,
+        renewal_mode: renewalMode,
       });
       await reclassifyExpenseAsTransfer(expenseId, financialAccountId, expenseUpdatedAt);
       if (overrideValue != null) {
@@ -170,7 +179,7 @@ export function MarkAsFDSheet({
     }
   }, [
     bankName, depositName, accountIdentifier, hasRateInput, interestRate, maturityDate, date, interestMethod, compoundingFreq,
-    maturityOverride, bucketId, amount, sourceAccountId, expenseId, expenseUpdatedAt, alert, onDone,
+    maturityOverride, renewalMode, bucketId, amount, sourceAccountId, expenseId, expenseUpdatedAt, alert, onDone,
   ]);
 
   const title = useMemo(() => `${formatAmount(amount)} on ${formatDate(date)}`, [amount, date]);
@@ -190,7 +199,7 @@ export function MarkAsFDSheet({
 
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
         <View className="px-5">
-          <Input label="Bank name" value={bankName} onChangeText={setBankName} placeholder="e.g. HDFC Bank" containerClassName="mb-3" />
+          <BankPicker value={bankName} onChange={setBankName} className="mb-3" />
           <Input
             label="Deposit name"
             value={depositName}
@@ -277,18 +286,8 @@ export function MarkAsFDSheet({
                 </>
               )}
 
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                Matures
-              </Text>
-              <Pressable
-                onPress={() => setShowMaturityPicker(true)}
-                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3 mb-3"
-              >
-                <Text className="text-sm" style={{ color: maturityDate ? colors.text : colors.textSecondary }}>
-                  {maturityDate ? formatDate(maturityDate) : "Select maturity date"}
-                </Text>
-                <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
-              </Pressable>
+              <FDTermInput startDate={date} value={maturityDate} onChange={setMaturityDate} className="mb-3" />
+              <FDRenewalPicker value={renewalMode} onChange={setRenewalMode} className="mb-3" />
 
               {computedMaturity != null && (
                 <View className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
@@ -377,16 +376,6 @@ export function MarkAsFDSheet({
         </Pressable>
       </View>
 
-      <CalendarModal
-        visible={showMaturityPicker}
-        onClose={() => setShowMaturityPicker(false)}
-        value={maturityDate || date}
-        onChange={(d) => {
-          setMaturityDate(d);
-          setShowMaturityPicker(false);
-        }}
-        maximumDate={null}
-      />
     </Sheet>
   );
 }

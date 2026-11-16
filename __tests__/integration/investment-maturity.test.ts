@@ -48,7 +48,9 @@ function seed(
     );
     CREATE TABLE investment_products (
       id TEXT PRIMARY KEY, financial_account_id TEXT, source_account_id TEXT, status TEXT,
-      updated_at TEXT, maturity_amount_override REAL, investment_bucket_id TEXT
+      updated_at TEXT, maturity_amount_override REAL, investment_bucket_id TEXT,
+      valuation TEXT DEFAULT 'contract', principal REAL, interest_rate_pa REAL, interest_method TEXT,
+      compounding_freq TEXT, start_date TEXT, maturity_date TEXT, renewal_mode TEXT NOT NULL DEFAULT 'none'
     );
     CREATE TABLE investment_schedule_entries (
       id TEXT PRIMARY KEY, product_id TEXT, event_num INTEGER, event_date TEXT, kind TEXT,
@@ -71,7 +73,8 @@ function seed(
     INSERT INTO financial_accounts (id, user_id, bank_name, account_type) VALUES ('savings-fa', 'u1', 'HDFC', 'savings');
   `);
   mockSqlite
-    .prepare(`INSERT INTO investment_products VALUES ('prod-1', 'fd-fa', ?, 'active', NULL, ?, NULL);`)
+    .prepare(`INSERT INTO investment_products (id, financial_account_id, source_account_id, status, updated_at, maturity_amount_override, investment_bucket_id)
+      VALUES ('prod-1', 'fd-fa', ?, 'active', NULL, ?, NULL);`)
     .run(source, override);
   mockSqlite
     .prepare(

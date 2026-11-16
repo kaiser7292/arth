@@ -43,7 +43,8 @@ function seed() {
       id TEXT PRIMARY KEY, financial_account_id TEXT, instrument TEXT, valuation TEXT,
       principal REAL, interest_rate_pa REAL, interest_method TEXT, compounding_freq TEXT,
       start_date TEXT, maturity_date TEXT, payout_mode TEXT, source_account_id TEXT,
-      auto_credit_on_maturity INTEGER, status TEXT, created_at TEXT, updated_at TEXT
+      auto_credit_on_maturity INTEGER, status TEXT, created_at TEXT, updated_at TEXT,
+      maturity_amount_override REAL, renewal_mode TEXT NOT NULL DEFAULT 'none'
     );
     CREATE TABLE investment_schedule_entries (
       id TEXT PRIMARY KEY, product_id TEXT, event_num INTEGER, event_date TEXT, kind TEXT,

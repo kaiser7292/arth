@@ -11,21 +11,27 @@ import { logger } from "@/utils/logger";
 import { createManualAccount, addOrUpdateSnapshot } from "@/services/financial-account";
 import type { AccountType } from "@/services/financial-account";
 import { createInvestmentProductForAccount } from "@/services/investment-accounts";
+import { FDForm } from "@/components/account/FDForm";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import type { AlertButton } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
 
-const TYPE_OPTIONS: AccountType[] = [
+/** A fixed deposit isn't an AccountType of its own (it's an 'investment' account), but it's picked here like one. */
+type AddType = AccountType | "fd";
+
+const TYPE_OPTIONS: AddType[] = [
   "savings",
   "credit_card",
   "loan",
   "wallet",
   "demat",
   "pension",
+  "fd",
 ];
 
-const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
+const ACCOUNT_TYPE_LABELS: Record<AddType, string> = {
+  fd: "Fixed deposit",
   savings: "Savings",
   credit_card: "Credit Card",
   loan: "Loan",
@@ -55,8 +61,10 @@ export default function AccountAddScreen() {
   // Arriving from the /investments add-instrument picker preselects the
   // matching chip below (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 5) —
   // this screen still shows every type so a misrouted tap isn't a dead end.
-  const [accountType, setAccountType] = useState<AccountType>(
-    presetType === "demat" || presetType === "pension" || presetType === "credit_card" ? presetType : "savings",
+  const [accountType, setAccountType] = useState<AddType>(
+    presetType === "demat" || presetType === "pension" || presetType === "credit_card" || presetType === "fd"
+      ? presetType
+      : "savings",
   );
 
   // Bank account fields (savings, credit_card, loan)
@@ -77,8 +85,11 @@ export default function AccountAddScreen() {
 
   const isDemat = accountType === "demat";
   const isSimple = accountType === "wallet";
+  const isFD = accountType === "fd";
+  const isPensionType = accountType === "pension";
 
   const handleSave = async () => {
+    if (isFD) return; // the FD form below has its own Save
     if (isDemat) {
       if (!dematName.trim()) {
         alert("Error", "Account name is required.");
@@ -88,7 +99,7 @@ export default function AccountAddScreen() {
       // No mandatory fields — balance defaults to 0
     } else {
       if (!bankName.trim()) {
-        alert("Error", "Bank name is required.");
+        alert("Error", isPensionType ? "Account name is required." : "Bank name is required.");
         return;
       }
       if (!identifier.trim()) {
@@ -141,7 +152,7 @@ export default function AccountAddScreen() {
         const newId = await createManualAccount({
           userId: DEFAULT_USER_ID,
           bankName: bankName.trim(),
-          accountType: isPension ? "investment" : accountType,
+          accountType: isPension ? "investment" : (accountType as AccountType),
           accountIdentifier: identifier.trim(),
           accountLabel: label.trim() || undefined,
         });
@@ -240,29 +251,21 @@ export default function AccountAddScreen() {
                 </Text>
               </Pressable>
             ))}
-            {/* A deposit has its own form (rate, tenure, maturity), the same one Investments opens. */}
-            <Pressable
-              onPress={() => router.push("/investments/add-fd")}
-              className="px-4 py-3 rounded-lg mr-2 mb-2 border bg-card border-transparent"
-              accessibilityRole="button"
-            >
-              <Text className="text-sm text-muted-foreground">Fixed deposit</Text>
-            </Pressable>
           </View>
 
           {/* ── Bank Detail Fields (savings, credit_card, loan) ── */}
-          {!isDemat && !isSimple && (
+          {!isDemat && !isSimple && !isFD && (
             <>
               <Input
-                label="Bank Name"
+                label={isPensionType ? "Account Name" : "Bank Name"}
                 value={bankName}
                 onChangeText={setBankName}
-                placeholder="e.g., HDFC Bank, ICICI Bank, SBI"
+                placeholder={isPensionType ? "e.g., EPFO, NPS" : "e.g., HDFC Bank, ICICI Bank, SBI"}
                 maxLength={100}
                 containerClassName="mb-4"
               />
               <Input
-                label="Last 4 Digits"
+                label={isPensionType ? "Last 4 Digits of UAN / PRAN" : "Last 4 Digits"}
                 value={identifier}
                 onChangeText={setIdentifier}
                 placeholder="e.g., 3001"
@@ -356,11 +359,16 @@ export default function AccountAddScreen() {
             </>
           )}
 
-          <Button
-            title="Add account"
-            onPress={handleSave}
-            loading={loading}
-          />
+          {/* ── Fixed deposit: the same form Investments → Add FD shows ── */}
+          {isFD && <FDForm onSaved={() => router.back()} initialBankName={presetBank} />}
+
+          {!isFD && (
+            <Button
+              title="Add account"
+              onPress={handleSave}
+              loading={loading}
+            />
+          )}
         </View>
       </ScrollView>
     </ScreenContainer>

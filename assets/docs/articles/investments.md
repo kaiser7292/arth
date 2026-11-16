@@ -18,6 +18,10 @@ phrasings:
   - FD still showing after maturity
   - Rate and maturity not set
   - Undo fixed deposit
+  - FD auto renewal
+  - Renew FD principal and interest
+  - FD term in days
+  - How does Arth calculate FD interest?
   - Add a pension account
   - Add EPF NPS PPF
   - Add a demat account
@@ -76,26 +80,43 @@ When you book an FD, your bank usually sends a debit SMS from your savings accou
 
 1. Open the debit (Transactions tab → tap it).
 2. Tap **Mark as fixed deposit**.
-3. Amount, date and funding account are already filled in. Add the **bank name**, the **FD account / receipt number**, and a **name** for the deposit so you can tell FDs apart.
-4. Optionally add the **interest rate** and **maturity date** now - or leave them blank and fill them in later.
+3. Amount, date and funding account are already filled in. Pick the **bank** (or **Other** to type one), add the **FD account / receipt number**, and a **name** for the deposit so you can tell FDs apart.
+4. Optionally add the **interest rate** and **maturity date** (or the term) now - or leave them blank and fill them in later. Choose what happens **at maturity** too.
 5. Save. The debit becomes the transfer that funded the FD - it no longer counts as spending.
 
 If you skip the rate and maturity, the FD shows **Rate & maturity not set** on the Investments screen, and its detail screen offers **Add interest rate & maturity date**.
 
 ### From the Investments screen
 
-1. Investments screen → **+** → **Fixed Deposit**.
-2. Fill in bank name, FD account / receipt number, principal, interest rate, start and maturity dates, and **Simple** or **Compound** interest (Monthly / Quarterly / Annually).
-3. Pick **Funded from / pays back to** - the savings account the money came from and will return to.
-4. Tap **Save fixed deposit**.
+1. Investments screen → **+** → **Fixed Deposit**, or Settings → Accounts → **Add account** → **Fixed deposit** (the form opens on the same page).
+2. Pick the **bank** - the banks you already have accounts with are listed, or tap **Other** to type a name. Add the FD account / receipt number, principal, interest rate, and **Simple** or **Compound** interest (Monthly / Quarterly / Annually).
+3. Set the start date and when it **matures**: tap **Date** to pick the maturity date, or **Term** to type it as years / months / days (for example 0 / 0 / 400 for a 400-day FD). Arth shows the other one underneath.
+4. Pick **Funded from / pays back to** - the savings account the money came from and will return to.
+5. Choose what happens **at maturity**: **No auto-renew**, **Renew principal only**, or **Renew principal + interest**.
+6. Tap **Save fixed deposit**.
 
-Arth shows a live preview of the maturity amount as you type. If your bank quotes a different figure, you can enter a **maturity amount override**.
+Arth shows the maturity amount and interest as you type. If your FD receipt shows a different figure, tap **Bank's figure differs? Correct it** and enter the receipt's maturity amount or interest.
+
+### How Arth works out the interest
+
+The same way Indian banks do: deposits under 6 months earn simple interest. Longer ones compound once every completed quarter from the start date, and the days left over after the last full quarter earn simple interest. The year counts as 365 days. Interest is rounded to the rupee. A small difference can still remain if your bank counts 366 days in a leap year or deducts TDS - correct the figure if so.
 
 You can also link the FD to a yearly-plan **investment bucket** - pick it under **Count towards investment bucket** when you add the FD, or later from the FD's details. The deposit counts towards the bucket, and a withdrawal is recorded in the bucket when the FD matures.
 
 > An FD account / receipt number is required. It's how Arth tells apart several FDs at the same bank. Letters are allowed.
 
 ## When an FD matures
+
+What happens depends on the **at maturity** choice.
+
+### Renewing FDs
+
+- **Renew principal only** - the interest is queued as a credit on the funding account for you to review (or your bank's own interest SMS is used, even net of TDS). The principal stays in the FD, which starts again on the maturity date for the same term.
+- **Renew principal + interest** - nothing comes to your bank account. The interest is added inside the FD (as a credit to review), and the whole maturity amount is deposited again for the same term.
+
+Banks renew at their rate on the day, which Arth can't know, so a renewed FD keeps the old rate. Its edit screen says it was renewed; enter the new rate there if it changed. If you close a renewed FD at the bank instead, mark the payout credit with **Close FD**, as for any FD. You can change the at-maturity choice in the FD's edit screen until it matures.
+
+### No auto-renew
 
 Arth doesn't move money on its own. At maturity:
 

@@ -2084,3 +2084,25 @@ export async function getAccountTypeDoubts(accountIds: string[]): Promise<Map<st
   }
   return out;
 }
+
+/**
+ * Banks the user already has accounts with — savings, cards, loans and FDs
+ * (not wallets or brokers) — most-used first, for the FD form's bank picker
+ * (docs/FD_IMPROVEMENTS_PROPOSAL.md point 5).
+ */
+export async function getUserBankNames(userId: string): Promise<string[]> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{ bank_name: string }>(
+    `SELECT TRIM(fa.bank_name) AS bank_name, COUNT(*) AS n
+       FROM financial_accounts fa
+      WHERE fa.user_id = ? AND fa.is_active = 1
+        AND TRIM(COALESCE(fa.bank_name, '')) != ''
+        AND (fa.account_type IN ('savings', 'bank', 'credit_card', 'loan')
+             OR (fa.account_type = 'investment' AND fa.id IN (
+               SELECT financial_account_id FROM investment_products WHERE valuation = 'contract')))
+      GROUP BY LOWER(TRIM(fa.bank_name))
+      ORDER BY n DESC, bank_name ASC;`,
+    userId,
+  );
+  return rows.map((r) => r.bank_name);
+}

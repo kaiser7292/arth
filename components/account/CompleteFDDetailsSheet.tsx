@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ScrollView, FlatList } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Input, Sheet, Text } from "@/components/ui";
-import { CalendarModal } from "@/components/ui/CalendarModal";
+import { FDTermInput } from "@/components/account/FDTermInput";
+import { FDRenewalPicker } from "@/components/account/FDRenewalPicker";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import {
@@ -11,6 +12,8 @@ import {
   setFDMaturityOverride,
   linkFDToBucket,
   unlinkFDFromBucket,
+  getFDRenewedOn,
+  type FDRenewalMode,
   type InvestmentProduct,
 } from "@/services/investment-accounts";
 import { computeFDMaturityValue, type CompoundingFreq, type InterestMethod } from "@/services/investment-engine";
@@ -66,7 +69,8 @@ export function CompleteFDDetailsSheet({
   const [interestMethod, setInterestMethod] = useState<InterestMethod>("compound");
   const [compoundingFreq, setCompoundingFreq] = useState<CompoundingFreq>("quarterly");
   const [maturityDate, setMaturityDate] = useState("");
-  const [showMaturityPicker, setShowMaturityPicker] = useState(false);
+  const [renewalMode, setRenewalMode] = useState<FDRenewalMode>("none");
+  const [renewedOn, setRenewedOn] = useState<string | null>(null);
   const [maturityOverride, setMaturityOverride] = useState("");
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
   const [bucketId, setBucketId] = useState<string | null>(null);
@@ -78,6 +82,10 @@ export function CompleteFDDetailsSheet({
     setInterestMethod(product.interest_method ?? "compound");
     setCompoundingFreq(product.compounding_freq ?? "quarterly");
     setMaturityDate(product.maturity_date ?? "");
+    setRenewalMode(product.renewal_mode ?? "none");
+    getFDRenewedOn(product.id)
+      .then(setRenewedOn)
+      .catch(() => setRenewedOn(null));
     setMaturityOverride(product.maturity_amount_override != null ? String(product.maturity_amount_override) : "");
     setBucketId(product.investment_bucket_id);
   }, [visible, product]);
@@ -157,6 +165,7 @@ export function CompleteFDDetailsSheet({
           interest_method: interestMethod,
           compounding_freq: interestMethod === "compound" ? compoundingFreq : undefined,
           maturity_date: maturityDate,
+          renewal_mode: renewalMode,
         };
         if (isFirstTime) {
           await completeFDDetails(product.financial_account_id, details);
@@ -183,7 +192,7 @@ export function CompleteFDDetailsSheet({
       setSaving(false);
     }
   }, [
-    editable, isFirstTime, interestRate, maturityDate, interestMethod, compoundingFreq, maturityOverride,
+    editable, isFirstTime, interestRate, maturityDate, interestMethod, compoundingFreq, maturityOverride, renewalMode,
     bucketId, product, alert, onDone,
   ]);
 
@@ -203,6 +212,13 @@ export function CompleteFDDetailsSheet({
 
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
         <View className="px-5">
+          {renewedOn && editable && (
+            <View className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+              <Text className="text-sm" style={{ color: colors.text }}>
+                Renewed on {formatDate(renewedOn)} at the old rate. If the bank renewed it at a different rate, enter the new one below.
+              </Text>
+            </View>
+          )}
           <Input
             label="Interest rate (% per year)"
             value={interestRate}
@@ -267,19 +283,27 @@ export function CompleteFDDetailsSheet({
             </>
           )}
 
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Matures
-          </Text>
-          <Pressable
-            onPress={() => editable && setShowMaturityPicker(true)}
-            className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3 mb-3"
-            style={{ opacity: editable ? 1 : 0.6 }}
-          >
-            <Text className="text-sm" style={{ color: maturityDate ? colors.text : colors.textSecondary }}>
-              {maturityDate ? formatDate(maturityDate) : "Select maturity date"}
-            </Text>
-            <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
-          </Pressable>
+          {editable && product.start_date ? (
+            <>
+              <FDTermInput startDate={product.start_date} value={maturityDate} onChange={setMaturityDate} className="mb-3" />
+              <FDRenewalPicker value={renewalMode} onChange={setRenewalMode} className="mb-3" />
+            </>
+          ) : (
+            <>
+              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                Matures
+              </Text>
+              <View
+                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3 mb-3"
+                style={{ opacity: 0.6 }}
+              >
+                <Text className="text-sm" style={{ color: maturityDate ? colors.text : colors.textSecondary }}>
+                  {maturityDate ? formatDate(maturityDate) : "No maturity date"}
+                </Text>
+                <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+              </View>
+            </>
+          )}
 
           {computedMaturity != null && (
             <View className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
@@ -374,16 +398,6 @@ export function CompleteFDDetailsSheet({
         </Pressable>
       </View>
 
-      <CalendarModal
-        visible={showMaturityPicker}
-        onClose={() => setShowMaturityPicker(false)}
-        value={maturityDate || product.start_date || ""}
-        onChange={(d) => {
-          setMaturityDate(d);
-          setShowMaturityPicker(false);
-        }}
-        maximumDate={null}
-      />
     </Sheet>
   );
 }
