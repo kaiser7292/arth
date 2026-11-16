@@ -21,9 +21,8 @@ import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
+import { ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, moneyTone, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage, ToolbarChip } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
@@ -159,7 +158,6 @@ export default function ExpensesScreen() {
     (t) => (t.key !== "committed" || isPartOn("tx_committed")) && (t.key !== "transfers" || isPartOn("tx_transfers")),
   );
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const toast = useToast();
 
@@ -967,19 +965,21 @@ export default function ExpensesScreen() {
             }
             // manual transfers with no linked expense: all info is in the row, no drilldown
           }}
-          className="flex-row items-center px-4 py-3 border-b border-border"
+          className="flex-row items-start px-4 py-3 border-b border-border"
         >
-          <View className="flex-1">
-            <Text className="text-sm font-medium" style={{ color: colors.text }}>
+          <View className="w-10 h-10 rounded-control items-center justify-center mr-3" style={{ backgroundColor: moneyTone(theme, "moved").bg }}>
+            <Ionicons name="swap-horizontal" size={20} color={moneyTone(theme, "moved").fg} />
+          </View>
+          <View className="flex-1 mr-3">
+            <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
               {item.description || "Transfer"}
             </Text>
-            <Text className="text-xs text-muted-foreground">
+            <Text className="text-meta text-muted-foreground mt-1" numberOfLines={1}>
               {accountName} → {toAccountName}
             </Text>
-            <Text className="text-label text-faint-foreground">{item.date}</Text>
           </View>
           <View className="items-end">
-            <Text className="text-sm font-bold" style={{ color: theme.primary }}>
+            <Text className="text-body font-bold" style={{ color: moneyTone(theme, "moved").fg }}>
               {formatAmount(item.amount)}
             </Text>
             <Pressable
@@ -1002,14 +1002,16 @@ export default function ExpensesScreen() {
               }}
               className="mt-1"
               hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Delete transfer"
             >
-              <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
+              <Ionicons name="trash-outline" size={16} color={theme.mutedForeground} />
             </Pressable>
           </View>
         </Pressable>
       );
     },
-    [accountMap, colors, alert, loadExpenses, router],
+    [accountMap, theme, alert, loadExpenses, router],
   );
 
   // Group expenses by date for display. Each entry is either a date header
@@ -1380,7 +1382,7 @@ export default function ExpensesScreen() {
         <Text className="text-meta font-semibold text-foreground">{DATE_PRESET_LABELS[datePreset]}</Text>
         <Ionicons name="chevron-down" size={14} color={theme.foreground} />
       </Pressable>
-      <Text className="text-xs text-muted-foreground flex-shrink" numberOfLines={1}>{rangeLabel}</Text>
+      <Text className="text-meta text-muted-foreground flex-shrink" numberOfLines={1}>{rangeLabel}</Text>
     </View>
   );
 
@@ -1417,14 +1419,14 @@ export default function ExpensesScreen() {
               onPress={applyNLSearch}
               accessibilityLabel="Apply smart search"
               accessibilityRole="button"
-              className="ml-2 px-2 py-1 rounded-md"
+              className="ml-2 px-2.5 py-1 rounded-pill"
               style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-xs font-semibold text-primary-foreground">Apply</Text>
+              <Text className="text-label font-semibold text-primary-foreground">Apply</Text>
             </Pressable>
           ) : isSpeechRecognitionAvailable ? (
             <Pressable onPress={startVoiceSearch} accessibilityLabel="Voice search" accessibilityRole="button" className="ml-2 p-1">
-              <Ionicons name="mic-outline" size={18} color={colors.textSecondary} />
+              <Ionicons name="mic-outline" size={18} color={theme.mutedForeground} />
             </Pressable>
           ) : null,
         }}
@@ -1453,18 +1455,18 @@ export default function ExpensesScreen() {
             value={saveViewName}
             onChangeText={setSaveViewName}
             placeholder="View name..."
-            placeholderTextColor={colors.tabIconDefault}
+            placeholderTextColor={theme.mutedForeground}
             autoFocus
             maxLength={30}
             onSubmitEditing={confirmSaveView}
             returnKeyType="done"
-            className="flex-1 text-sm text-foreground bg-card rounded-lg px-3 py-2 mr-2"
+            className="flex-1 text-body text-foreground bg-card border border-border rounded-control px-3 py-2.5 mr-2"
           />
-          <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: theme.primary }}>
-            <Text className="text-xs font-medium text-primary-foreground">Save</Text>
+          <Pressable onPress={confirmSaveView} className="px-4 py-2.5 rounded-pill" style={{ backgroundColor: theme.primary }} accessibilityRole="button">
+            <Text className="text-meta font-semibold text-primary-foreground">Save</Text>
           </Pressable>
-          <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2">
-            <Ionicons name="close" size={18} color={colors.textSecondary} />
+          <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2" hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel saving view">
+            <Ionicons name="close" size={18} color={theme.mutedForeground} />
           </Pressable>
         </View>
       )}
@@ -1560,16 +1562,16 @@ export default function ExpensesScreen() {
                   ListHeaderComponent={
                     transfers.length > 0 ? (
                       <>
-                      <View className="mx-4 my-2 p-4 rounded-xl bg-card">
+                      <View className="mx-4 my-2 p-4 rounded-card bg-card">
                         <View className="flex-row items-center justify-between">
-                          <Text className="text-sm font-medium text-muted-foreground">
+                          <Text className="text-meta font-medium text-muted-foreground">
                             Total transfers
                           </Text>
-                          <Text className="text-lg font-bold" style={{ color: TRANSFER_COLOR }}>
+                          <Text className="text-heading font-bold" style={{ color: TRANSFER_COLOR }}>
                             {formatAmount(transfers.reduce((sum, t) => sum + t.amount, 0))}
                           </Text>
                         </View>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
+                        <Text className="text-meta text-muted-foreground mt-0.5">
                           {transfers.length} {transfers.length === 1 ? "transfer" : "transfers"}
                         </Text>
                       </View>
@@ -1762,16 +1764,16 @@ export default function ExpensesScreen() {
       {bulkPickerType === "date" && (
         <View className="absolute left-0 right-0 bottom-0 top-0 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.4)", zIndex: 100 }}>
           <Pressable className="flex-1" onPress={() => setBulkPickerType(null)} />
-          <View className="rounded-t-2xl px-4 pt-4 pb-8" style={{ backgroundColor: colors.background }}>
-            <Text className="text-sm font-semibold text-foreground mb-3">Set date</Text>
+          <View className="rounded-t-sheet px-4 pt-4 pb-8" style={{ backgroundColor: theme.card }}>
+            <Text className="text-heading font-bold text-foreground mb-3">Set date</Text>
             <DateInput
               label=""
               value=""
               onChange={(date) => { if (date) handleBulkApply("date", date); }}
               maximumDate={null}
             />
-            <Pressable onPress={() => setBulkPickerType(null)} className="mt-3">
-              <Text className="text-xs text-center" style={{ color: theme.primary }}>Cancel</Text>
+            <Pressable onPress={() => setBulkPickerType(null)} className="mt-3 py-2" accessibilityRole="button">
+              <Text className="text-body font-semibold text-center" style={{ color: theme.primary }}>Cancel</Text>
             </Pressable>
           </View>
         </View>

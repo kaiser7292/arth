@@ -79,7 +79,7 @@ export function SelectSheet<T extends string>({
 
       {withSearch && (
         <View
-          className="flex-row items-center rounded-xl border mx-5 mb-2 px-3"
+          className="flex-row items-center rounded-control border mx-5 mb-2 px-3"
           style={{
             borderColor: theme.alpha("foreground", 0.15),
             minHeight: 42,
@@ -91,7 +91,7 @@ export function SelectSheet<T extends string>({
             onChangeText={setQuery}
             placeholder="Search"
             placeholderTextColor={theme.mutedForeground}
-            className="flex-1 text-sm text-foreground ml-2 py-2"
+            className="flex-1 text-body text-foreground ml-2 py-2"
             autoCorrect={false}
             accessibilityLabel={`Search ${title}`}
           />
@@ -114,7 +114,7 @@ export function SelectSheet<T extends string>({
       {/* Scrolls once the list is taller than the sheet; shrinks to fit when it isn't. */}
       <ScrollView style={{ flexShrink: 1 }} keyboardShouldPersistTaps="handled">
         {shown.length === 0 && (
-          <Text className="text-sm text-muted-foreground px-5 py-4">
+          <Text className="text-meta text-muted-foreground px-5 py-4">
             Nothing matches &quot;{query.trim()}&quot;.
           </Text>
         )}

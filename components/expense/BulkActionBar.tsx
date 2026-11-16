@@ -1,7 +1,6 @@
 import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -28,7 +27,6 @@ export function BulkActionBar({
   onChangeDate,
   onCancel,
 }: BulkActionBarProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -44,15 +42,15 @@ export function BulkActionBar({
   return (
     <View
       className="absolute left-0 right-0 bottom-0 border-t border-border"
-      style={{ backgroundColor: colors.background, paddingBottom: Math.max(insets.bottom, 8) }}
+      style={{ backgroundColor: theme.card, paddingBottom: Math.max(insets.bottom, 8) }}
     >
       {/* Header row */}
       <View className="flex-row items-center justify-between px-4 pt-3 pb-2">
-        <Text className="text-xs font-semibold text-foreground">
+        <Text className="text-body font-semibold text-foreground">
           {selectedCount} selected
         </Text>
-        <Pressable onPress={onCancel}>
-          <Text className="text-xs font-medium" style={{ color: theme.primary }}>Cancel</Text>
+        <Pressable onPress={onCancel} hitSlop={8} accessibilityRole="button">
+          <Text className="text-body font-semibold" style={{ color: theme.primary }}>Cancel</Text>
         </Pressable>
       </View>
 
@@ -63,9 +61,12 @@ export function BulkActionBar({
             key={action.label}
             onPress={action.onPress}
             className="items-center px-2 py-1.5"
+            style={{ minHeight: 48 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Change ${action.label.toLowerCase()}`}
           >
-            <Ionicons name={action.icon} size={18} color={theme.primary} />
-            <Text className="text-label mt-1 text-muted-foreground">
+            <Ionicons name={action.icon} size={20} color={theme.primary} />
+            <Text className="text-label font-semibold mt-1 text-foreground">
               {action.label}
             </Text>
           </Pressable>

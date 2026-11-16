@@ -1,7 +1,6 @@
 import { Children, useCallback, useEffect, useRef, useState } from "react";
 import { Text } from "./Text";
 import { Animated, Pressable, ScrollView, View } from "react-native";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTheme } from "@/hooks/use-theme";
 
 export interface SwipePagerPage {
@@ -26,7 +25,6 @@ interface SwipePagerProps {
 
 export function SwipePager({ pages, activeIndex, onIndexChange, children, trailing, tabWidth: tabWidthProp }: SwipePagerProps) {
   const tw = tabWidthProp ?? 80;
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const contentRef = useRef<ScrollView>(null);
   const tabStripRef = useRef<ScrollView>(null);
@@ -113,7 +111,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
   return (
     <View style={{ flex: 1 }}>
       {/* Tab strip */}
-      <View style={{ display: pages.length > 1 ? "flex" : "none", flexDirection: "row", alignItems: "center", borderBottomWidth: 0.5, borderBottomColor: colors.border, backgroundColor: colors.background }}>
+      <View style={{ display: pages.length > 1 ? "flex" : "none", flexDirection: "row", alignItems: "center", borderBottomWidth: 1, borderBottomColor: theme.border, backgroundColor: theme.background }}>
         <ScrollView
           ref={tabStripRef}
           horizontal
@@ -140,16 +138,13 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
                   return next;
                 });
               }}
-              style={{ minWidth: tw, height: 40, alignItems: "center", justifyContent: "center", paddingHorizontal: 14 }}
+              style={{ minWidth: tw, height: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 14 }}
               hitSlop={8}
             >
               <Text
                 numberOfLines={1}
-                style={{
-                  fontSize: 13,
-                  fontWeight: activeIndex === index ? "600" : "400",
-                  color: activeIndex === index ? theme.primary : colors.textSecondary,
-                }}
+                className={`text-body ${activeIndex === index ? "font-semibold" : "font-medium"}`}
+                style={{ color: activeIndex === index ? theme.foreground : theme.mutedForeground }}
               >
                 {page.label}
               </Text>
@@ -162,7 +157,7 @@ export function SwipePager({ pages, activeIndex, onIndexChange, children, traili
               position: "absolute",
               bottom: 0,
               left: 0,
-              height: 2,
+              height: 3,
               width: 1,
               opacity: measured ? 1 : 0,
               backgroundColor: theme.primary,

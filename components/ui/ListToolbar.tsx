@@ -4,6 +4,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/hooks/use-theme";
 import { SelectSheet, type SelectOption } from "./SelectSheet";
 import { Text } from "./Text";
+import { Chip } from "./Chip";
+import { COMPONENTS } from "@/constants/design-tokens";
 
 export interface ToolbarChip {
   key: string;
@@ -57,10 +59,10 @@ function ToolButton({ icon, activeIcon, label, active, onPress, count }: {
   return (
     <Pressable
       onPress={onPress}
-      className="items-center justify-center rounded-xl border"
+      className="items-center justify-center rounded-control border"
       style={{
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         borderColor: active ? theme.primary : theme.alpha("foreground", 0.15),
         backgroundColor: active ? theme.alpha("primary", 0.1) : "transparent",
       }}
@@ -70,22 +72,22 @@ function ToolButton({ icon, activeIcon, label, active, onPress, count }: {
       <Ionicons name={active ? (activeIcon ?? icon) : icon} size={18} color={active ? theme.primary : theme.mutedForeground} />
       {count != null && count > 0 ? (
         <View
-          className="absolute items-center justify-center rounded-full"
+          className="absolute items-center justify-center rounded-pill"
           style={{
             top: -6,
             right: -6,
             minWidth: 20,
             height: 20,
-            paddingHorizontal: 5,
+            paddingHorizontal: 4,
             backgroundColor: theme.primary,
             borderWidth: 2,
             borderColor: theme.background,
           }}
         >
-          <Text style={{ fontSize: 10, fontWeight: "700", color: theme.primaryForeground }}>{count}</Text>
+          <Text className="text-label font-bold" style={{ color: theme.primaryForeground, lineHeight: 14 }}>{count}</Text>
         </View>
       ) : active && (
-        <View className="absolute rounded-full" style={{ top: 5, right: 5, width: 6, height: 6, backgroundColor: theme.primary }} />
+        <View className="absolute rounded-pill" style={{ top: 5, right: 5, width: 6, height: 6, backgroundColor: theme.primary }} />
       )}
     </Pressable>
   );
@@ -129,16 +131,16 @@ export function ListToolbar<S extends string = string, G extends string = string
       <View className="flex-row items-center" style={{ gap: 6 }}>
         {search ? (
           <View
-            className="flex-1 flex-row items-center rounded-xl border px-3"
-            style={{ height: 40, minWidth: 0, borderColor: theme.alpha("foreground", 0.15) }}
+            className={`flex-1 ${COMPONENTS.search.base}`}
+            style={{ height: COMPONENTS.search.minHeightLg, minWidth: 0 }}
           >
-            <Ionicons name="search-outline" size={16} color={theme.mutedForeground} />
+            <Ionicons name="search-outline" size={18} color={theme.mutedForeground} />
             <TextInput
               value={search.value}
               onChangeText={search.onChangeText}
               placeholder={search.placeholder ?? "Search"}
               placeholderTextColor={theme.mutedForeground}
-              className="flex-1 text-sm text-foreground ml-2"
+              className={`${COMPONENTS.search.input} ${COMPONENTS.search.inputSizeLg}`}
               style={{ paddingVertical: 0 }}
               maxLength={100}
               numberOfLines={1}
@@ -153,7 +155,7 @@ export function ListToolbar<S extends string = string, G extends string = string
                 accessibilityRole="button"
                 accessibilityLabel="Clear search"
               >
-                <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
+                <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
               </Pressable>
             )}
             {search.accessory}
@@ -177,28 +179,20 @@ export function ListToolbar<S extends string = string, G extends string = string
       </View>
 
       {(all.length > 0 || action) && (
-        <View className="flex-row flex-wrap items-center pt-2">
+        <View className="flex-row flex-wrap items-center pt-2.5">
           {all.map((chip) => (
-            <Pressable
-              key={chip.key}
-              onPress={chip.onRemove}
-              hitSlop={4}
-              className="flex-row items-center mr-3 mb-1"
-              accessibilityRole="button"
-              accessibilityLabel={`Remove ${chip.label}`}
-            >
-              <Text className="text-xs text-muted-foreground">{chip.label}</Text>
-              <Ionicons name="close" size={12} color={theme.mutedForeground} style={{ marginLeft: 2 }} />
-            </Pressable>
+            <View key={chip.key} className="mr-2 mb-2">
+              <Chip variant="removable" label={chip.label} onPress={chip.onRemove} />
+            </View>
           ))}
           {all.length > 0 && (
-            <Pressable onPress={clearAll} hitSlop={8} className="mr-3 mb-1" accessibilityRole="button">
-              <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Clear all</Text>
+            <Pressable onPress={clearAll} hitSlop={8} className="mr-3 mb-2 justify-center" style={{ minHeight: 36 }} accessibilityRole="button">
+              <Text className="text-meta font-semibold" style={{ color: theme.primary }}>Clear all</Text>
             </Pressable>
           )}
           {action && (
-            <Pressable onPress={action.onPress} hitSlop={8} className="mb-1" accessibilityRole="button">
-              <Text className="text-xs font-semibold" style={{ color: theme.primary }}>{action.label}</Text>
+            <Pressable onPress={action.onPress} hitSlop={8} className="mb-2 justify-center" style={{ minHeight: 36 }} accessibilityRole="button">
+              <Text className="text-meta font-semibold" style={{ color: theme.primary }}>{action.label}</Text>
             </Pressable>
           )}
         </View>
@@ -231,7 +225,7 @@ export function ListToolbar<S extends string = string, G extends string = string
 /** At the end of a list that hit the most we load at once. */
 export function ListCapNote({ limit }: { limit: number }) {
   return (
-    <Text className="text-xs text-muted-foreground text-center px-6 py-4">
+    <Text className="text-meta text-muted-foreground text-center px-6 py-4">
       Showing the first {limit.toLocaleString("en-IN")}. Narrow the dates or filters to see the rest.
     </Text>
   );
@@ -243,10 +237,10 @@ export function LoadFailed({ onRetry }: { onRetry: () => void }) {
   return (
     <View className="items-center px-8 py-12">
       <Ionicons name="alert-circle-outline" size={40} color={theme.mutedForeground} />
-      <Text className="text-base font-medium text-foreground mt-3">Couldn&apos;t load this</Text>
-      <Text className="text-sm text-muted-foreground text-center mt-1">Your data is safe. This is a problem showing it.</Text>
+      <Text className="text-body font-semibold text-foreground mt-3">Couldn&apos;t load this</Text>
+      <Text className="text-meta text-muted-foreground text-center mt-1">Your data is safe. This is a problem showing it.</Text>
       <Pressable onPress={onRetry} hitSlop={8} className="mt-3" accessibilityRole="button">
-        <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Try again</Text>
+        <Text className="text-body font-semibold" style={{ color: theme.primary }}>Try again</Text>
       </Pressable>
     </View>
   );
@@ -256,14 +250,14 @@ export function LoadFailed({ onRetry }: { onRetry: () => void }) {
 export function LoadFailedBanner({ onRetry }: { onRetry?: () => void }) {
   const theme = useTheme();
   return (
-    <View className="flex-row items-center mx-4 mt-3 mb-1 px-3 py-2.5 rounded-lg" style={{ backgroundColor: theme.alpha("warning", 0.12) }} accessibilityRole="alert">
+    <View className="flex-row items-center mx-4 mt-3 mb-1 px-3 py-2.5 rounded-control" style={{ backgroundColor: theme.alpha("warning", 0.12) }} accessibilityRole="alert">
       <Ionicons name="alert-circle-outline" size={16} color={theme.warning} />
-      <Text className="flex-1 text-xs text-foreground ml-2">
+      <Text className="flex-1 text-meta text-foreground ml-2">
         Couldn&apos;t load everything here, so this may be incomplete. Your data is safe.
       </Text>
       {onRetry && (
         <Pressable onPress={onRetry} hitSlop={8} className="ml-3" accessibilityRole="button">
-          <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Try again</Text>
+          <Text className="text-meta font-semibold" style={{ color: theme.primary }}>Try again</Text>
         </Pressable>
       )}
     </View>
