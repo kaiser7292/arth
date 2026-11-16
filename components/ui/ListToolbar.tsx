@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, TextInput, View, type TextInputProps } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useTheme } from "@/hooks/use-theme";
+import { FilterPillRow, type FilterPill } from "./FilterPillRow";
 import { SelectSheet, type SelectOption } from "./SelectSheet";
 import { Text } from "./Text";
 
@@ -37,6 +38,10 @@ export interface ListToolbarProps<S extends string = string, G extends string = 
   /** What's on, each with its own ×. A changed sort and group are added to these. */
   chips?: ToolbarChip[];
   onClearAll?: () => void;
+  /** A sideways-scrolling row of quick filters under the search box. Pills say what's on themselves. */
+  pills?: FilterPill[];
+  /** Offer "Clear all" even with no chips, e.g. when only pills are on. */
+  clearable?: boolean;
   /** One more action at the end of the status line, such as "Save view". */
   action?: { label: string; onPress: () => void };
   /** False when the list's container already has side padding. */
@@ -85,6 +90,8 @@ export function ListToolbar<S extends string = string, G extends string = string
   chips = [],
   onClearAll,
   action,
+  pills,
+  clearable = false,
   inset = true,
 }: ListToolbarProps<S, G>) {
   const theme = useTheme();
@@ -150,7 +157,14 @@ export function ListToolbar<S extends string = string, G extends string = string
         {group && <ToolButton icon="layers-outline" label="Group by" active={groupOn} onPress={() => setSheet("group")} />}
       </View>
 
-      {(all.length > 0 || action) && (
+      {pills && pills.length > 0 && (
+        // Edge to edge, so pills scroll under the screen's side padding instead of being cut at it.
+        <View style={{ marginHorizontal: inset ? -16 : 0, marginTop: 2 }}>
+          <FilterPillRow pills={pills} inset={inset} />
+        </View>
+      )}
+
+      {(all.length > 0 || action || clearable) && (
         <View className="flex-row flex-wrap items-center pt-2">
           {all.map((chip) => (
             <Pressable
@@ -165,7 +179,7 @@ export function ListToolbar<S extends string = string, G extends string = string
               <Ionicons name="close" size={12} color={theme.mutedForeground} style={{ marginLeft: 2 }} />
             </Pressable>
           ))}
-          {all.length > 0 && (
+          {(all.length > 0 || clearable) && (
             <Pressable onPress={clearAll} hitSlop={8} className="mr-3 mb-1" accessibilityRole="button">
               <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Clear all</Text>
             </Pressable>
