@@ -1,8 +1,8 @@
 # Transactions design system — plan
 
-Status (2026-11-16): **steps 1-15 built** on branch `claude/txn-design-system-488495`, approved by
-the owner ("Yes, start building"). Step 16, sub-categories, waits for the owner's OK on the
-database change. See "What was built" at the end for where it differs from the plan.
+Status (2026-11-16): **all 16 steps built** on branch `claude/txn-design-system-488495`. The owner
+approved the plan ("Yes, start building") and then the database change ("Yes, add sub-categories").
+See "What was built" at the end for where it differs from the plan.
 
 Sources: the "Arth filters" canvas (icon rail, section title plus hint, Cancel + Apply) and the
 follow-up study (code audit, design-system parts, light-theme mockups of the list, filter sheet,
@@ -405,3 +405,12 @@ Differences:
 - **Not touched**: `app/loans/[id].tsx` and `app/simulator/[id]/entry.tsx` (they only reuse a shared
   part; their own styling passes colours down to children and is a separate clean-up).
 - **Approve / categorise undo toasts** were not added; approve and reject behave as before.
+
+Sub-categories (step 16), differences from section 6:
+
+- Deleting or hiding a main category always moves its sub-categories up (no "delete them too"
+  question); that keeps every transaction visible and needs no new dialog.
+- Expenses on a deleted sub-category keep pointing at it, as they do for any deleted category.
+- A sub-category can't have its own budget yet (as planned); budget screens list main categories.
+- "+ New" in the picker is on the Transactions tab only; other screens look categories up by name
+  and wouldn't find a new one until they reload.

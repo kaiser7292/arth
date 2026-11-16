@@ -28,6 +28,7 @@ beforeEach(() => {
       reclassified_as_transfer INTEGER, refund_of_expense_id TEXT, applied_rule_id TEXT, applied_rule_ids TEXT, money_event TEXT
     );
     CREATE TABLE expense_tags (expense_id TEXT, tag_id TEXT);
+    CREATE TABLE categories (id TEXT PRIMARY KEY, parent_id TEXT, is_active INTEGER DEFAULT 1);
     CREATE TABLE expense_loan_links (expense_id TEXT);
     CREATE TABLE expense_investment_links (expense_id TEXT);
     INSERT INTO expenses (id, user_id, amount, category_id, status, nature, date, refund_of_expense_id, split_original_amount, deleted_at)

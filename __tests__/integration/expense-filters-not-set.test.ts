@@ -31,6 +31,7 @@ beforeEach(() => {
       reclassified_as_transfer INTEGER, refund_of_expense_id TEXT, applied_rule_id TEXT, applied_rule_ids TEXT
     );
     CREATE TABLE expense_tags (expense_id TEXT, tag_id TEXT);
+    CREATE TABLE categories (id TEXT PRIMARY KEY, parent_id TEXT, is_active INTEGER DEFAULT 1);
     INSERT INTO expenses (id, user_id, amount, merchant_name, category_id, payment_mode_id, account_id, is_right_spend, status, nature, date)
     VALUES
       ('full', 'u', 100, 'Swiggy', 'food', 'upi', 'hdfc', 1, 'approved', 'realized', '2026-10-01'),
