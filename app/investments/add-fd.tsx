@@ -13,7 +13,10 @@ export default function AddFDScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
       >
-        <FDForm onSaved={() => router.back()} />
+        {/* Saved: land on Investments, where the new FD shows. back() went to the "Add an
+            investment" chooser this was opened from. dismissTo pops back if Investments is already
+            in the stack, and opens it if not. */}
+        <FDForm onSaved={() => router.dismissTo("/investments")} />
       </ScrollView>
     </ScreenContainer>
   );
