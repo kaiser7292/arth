@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ScrollView, FlatList } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -5,7 +6,6 @@ import { Input, Sheet, Text } from "@/components/ui";
 import { BankPicker } from "@/components/account/BankPicker";
 import { FDTermInput } from "@/components/account/FDTermInput";
 import { FDRenewalPicker } from "@/components/account/FDRenewalPicker";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import {
   createFDAccountShell,
@@ -64,7 +64,6 @@ export function MarkAsFDSheet({
   onDone,
   onClose,
 }: MarkAsFDSheetProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const alert = useAlert();
 
@@ -189,10 +188,10 @@ export function MarkAsFDSheet({
   return (
     <Sheet visible={visible} onClose={handleClose}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Mark as fixed deposit
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           {title} becomes the deposit into a new FD account.
         </Text>
       </View>
@@ -207,7 +206,7 @@ export function MarkAsFDSheet({
             placeholder={`${bankName.trim() || "Bank"} FD — e.g. "Tax saver FD"`}
             containerClassName="mb-3"
           />
-          <Text className="text-xs -mt-2 mb-3" style={{ color: colors.textSecondary }}>
+          <Text className="text-label -mt-2 mb-3" style={{ color: theme.mutedForeground }}>
             Helps tell this deposit apart if you add more FDs from the same account.
           </Text>
           <Input
@@ -220,7 +219,7 @@ export function MarkAsFDSheet({
             containerClassName="mb-3"
           />
 
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             Interest rate & maturity (optional — add later if you don't know yet)
           </Text>
           <Input
@@ -234,7 +233,7 @@ export function MarkAsFDSheet({
 
           {hasRateInput && (
             <>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Interest type
               </Text>
               <View className="flex-row gap-2 mb-3">
@@ -244,13 +243,13 @@ export function MarkAsFDSheet({
                     <Pressable
                       key={opt.value}
                       onPress={() => setInterestMethod(opt.value)}
-                      className="flex-1 py-2.5 rounded-xl items-center border"
+                      className="flex-1 py-2.5 rounded-control items-center border"
                       style={{
-                        backgroundColor: active ? theme.primary + "20" : colors.surface,
-                        borderColor: active ? theme.primary : colors.border,
+                        backgroundColor: active ? tint(theme.primary, 0.13) : theme.card,
+                        borderColor: active ? theme.primary : theme.border,
                       }}
                     >
-                      <Text className="text-sm font-semibold" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                      <Text className="text-body font-semibold" style={{ color: active ? theme.primary : theme.mutedForeground }}>
                         {opt.label}
                       </Text>
                     </Pressable>
@@ -260,7 +259,7 @@ export function MarkAsFDSheet({
 
               {interestMethod === "compound" && (
                 <>
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                     Compounding frequency
                   </Text>
                   <View className="flex-row gap-2 mb-3">
@@ -270,13 +269,13 @@ export function MarkAsFDSheet({
                         <Pressable
                           key={opt.value}
                           onPress={() => setCompoundingFreq(opt.value)}
-                          className="flex-1 py-2.5 rounded-xl items-center border"
+                          className="flex-1 py-2.5 rounded-control items-center border"
                           style={{
-                            backgroundColor: active ? theme.primary + "20" : colors.surface,
-                            borderColor: active ? theme.primary : colors.border,
+                            backgroundColor: active ? tint(theme.primary, 0.13) : theme.card,
+                            borderColor: active ? theme.primary : theme.border,
                           }}
                         >
-                          <Text className="text-sm font-semibold" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                          <Text className="text-body font-semibold" style={{ color: active ? theme.primary : theme.mutedForeground }}>
                             {opt.label}
                           </Text>
                         </Pressable>
@@ -290,12 +289,12 @@ export function MarkAsFDSheet({
               <FDRenewalPicker value={renewalMode} onChange={setRenewalMode} className="mb-3" />
 
               {computedMaturity != null && (
-                <View className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+                <View className="rounded-control px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
                   <View className="flex-row justify-between">
-                    <Text className="text-xs" style={{ color: colors.textSecondary }}>Computed maturity amount</Text>
-                    <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(computedMaturity)}</Text>
+                    <Text className="text-label" style={{ color: theme.mutedForeground }}>Computed maturity amount</Text>
+                    <Text className="text-body font-bold" style={{ color: theme.foreground }}>{formatAmount(computedMaturity)}</Text>
                   </View>
-                  <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label mt-1" style={{ color: theme.mutedForeground }}>
                     Interest: {formatAmount(computedMaturity - amount)}
                   </Text>
                   <Input
@@ -314,16 +313,16 @@ export function MarkAsFDSheet({
 
           {buckets.length > 0 && (
             <View className="mt-1 mb-3">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Link to investment bucket (optional)
               </Text>
               <Pressable
                 onPress={() => setBucketId(null)}
-                className="flex-row items-center py-2 px-2 rounded-md"
-                style={{ backgroundColor: bucketId === null ? theme.primary + "1A" : "transparent" }}
+                className="flex-row items-center py-2 px-2 rounded-control"
+                style={{ backgroundColor: bucketId === null ? tint(theme.primary, 0.1) : "transparent" }}
               >
-                <Ionicons name="close-circle-outline" size={16} color={bucketId === null ? theme.primary : colors.textSecondary} />
-                <Text className="flex-1 ml-2 text-sm" style={{ color: colors.text, fontWeight: bucketId === null ? "600" : "400" }}>
+                <Ionicons name="close-circle-outline" size={16} color={bucketId === null ? theme.primary : theme.mutedForeground} />
+                <Text className="flex-1 ml-2 text-meta" style={{ color: theme.foreground, fontWeight: bucketId === null ? "600" : "400" }}>
                   Don't link
                 </Text>
                 {bucketId === null && <Ionicons name="checkmark" size={16} color={theme.primary} />}
@@ -337,14 +336,14 @@ export function MarkAsFDSheet({
                   return (
                     <Pressable
                       onPress={() => setBucketId(item.id)}
-                      className="flex-row items-center py-2 px-2 rounded-md"
-                      style={{ backgroundColor: active ? theme.primary + "1A" : "transparent" }}
+                      className="flex-row items-center py-2 px-2 rounded-control"
+                      style={{ backgroundColor: active ? tint(theme.primary, 0.1) : "transparent" }}
                     >
-                      <Ionicons name="bookmark-outline" size={16} color={active ? theme.primary : colors.textSecondary} />
-                      <Text className="flex-1 ml-2 text-sm" style={{ color: colors.text, fontWeight: active ? "600" : "400" }} numberOfLines={1}>
+                      <Ionicons name="bookmark-outline" size={16} color={active ? theme.primary : theme.mutedForeground} />
+                      <Text className="flex-1 ml-2 text-meta" style={{ color: theme.foreground, fontWeight: active ? "600" : "400" }} numberOfLines={1}>
                         {item.name}
                       </Text>
-                      <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label" style={{ color: theme.mutedForeground }}>
                         {formatAmount(item.current_contributed)} / {formatAmount(item.annual_target)}
                       </Text>
                     </Pressable>
@@ -360,19 +359,19 @@ export function MarkAsFDSheet({
         <Pressable
           onPress={handleClose}
           accessibilityRole="button"
-          className="flex-1 py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="flex-1 py-3 rounded-control items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>Cancel</Text>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>Cancel</Text>
         </Pressable>
         <Pressable
           onPress={handleSave}
           disabled={saving}
           accessibilityRole="button"
-          className="flex-1 py-3 rounded-xl items-center"
+          className="flex-1 py-3 rounded-control items-center"
           style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
         >
-          <Text className="text-sm font-semibold text-primary-foreground">{saving ? "Saving…" : "Create FD"}</Text>
+          <Text className="text-body font-semibold text-primary-foreground">{saving ? "Saving…" : "Create FD"}</Text>
         </Pressable>
       </View>
 

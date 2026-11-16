@@ -1,9 +1,9 @@
+import { tint } from "@/constants/brand";
 import { useState, useEffect, useCallback } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable,  FlatList } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { getCurrentFY } from "@/utils/fiscal-year";
 import { getFYStartMonth } from "@/services/settings";
@@ -44,7 +44,6 @@ export function DematTransferTargetSheet({
   onConfirm,
   onClose,
 }: DematTransferTargetSheetProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [target, setTarget] = useState<DematTarget>("fund");
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
@@ -94,10 +93,10 @@ export function DematTransferTargetSheet({
 
       {/* Header */}
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Going into {dematAccountLabel}
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           {formatAmount(amount)} on {date}
         </Text>
       </View>
@@ -107,8 +106,8 @@ export function DematTransferTargetSheet({
           when active; matches the DS while giving each tile a clear "seat". */}
       <View className="px-5 pt-1 pb-3">
         <Text
-          className="text-xs font-semibold uppercase tracking-wider mb-2"
-          style={{ color: colors.textSecondary }}
+          className="text-label font-semibold uppercase tracking-wider mb-2"
+          style={{ color: theme.mutedForeground }}
         >
           This money is
         </Text>
@@ -133,32 +132,32 @@ export function DematTransferTargetSheet({
               onPress={() => setTarget(opt.key)}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
-              className="flex-row items-center py-3.5 px-4 rounded-xl mb-2.5"
+              className="flex-row items-center py-3.5 px-4 rounded-control mb-2.5"
               style={{
                 backgroundColor: active
-                  ? theme.primary + "26"
-                  : colors.surface === colors.background
+                  ? tint(theme.primary, 0.15)
+                  : theme.card === theme.background
                     ? undefined
-                    : colors.surface,
+                    : theme.card,
                 borderWidth: active ? 2 : 1,
                 borderColor: active
                   ? theme.primary
-                  : colors.border,
+                  : theme.border,
               }}
             >
               <Ionicons
                 name={opt.icon}
                 size={22}
-                color={active ? theme.primary : colors.textSecondary}
+                color={active ? theme.primary : theme.mutedForeground}
               />
               <View className="flex-1 ml-3">
                 <Text
-                  className="text-sm font-semibold"
-                  style={{ color: colors.text }}
+                  className="text-body font-semibold"
+                  style={{ color: theme.foreground }}
                 >
                   {opt.label}
                 </Text>
-                <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                   {opt.sub}
                 </Text>
               </View>
@@ -179,8 +178,8 @@ export function DematTransferTargetSheet({
       {buckets.length > 0 && (
         <View className="px-5 pt-1 pb-3">
           <Text
-            className="text-xs font-semibold uppercase tracking-wider mb-2"
-            style={{ color: colors.textSecondary }}
+            className="text-label font-semibold uppercase tracking-wider mb-2"
+            style={{ color: theme.mutedForeground }}
           >
             Link to investment bucket (optional)
           </Text>
@@ -190,21 +189,21 @@ export function DematTransferTargetSheet({
             onPress={() => setBucketId(null)}
             accessibilityRole="button"
             accessibilityState={{ selected: bucketId === null }}
-            className="flex-row items-center py-2 px-2 rounded-md"
+            className="flex-row items-center py-2 px-2 rounded-control"
             style={{
               backgroundColor:
-                bucketId === null ? theme.primary + "1A" : "transparent",
+                bucketId === null ? tint(theme.primary, 0.1) : "transparent",
             }}
           >
             <Ionicons
               name="close-circle-outline"
               size={16}
-              color={bucketId === null ? theme.primary : colors.textSecondary}
+              color={bucketId === null ? theme.primary : theme.mutedForeground}
             />
             <Text
-              className="flex-1 ml-2 text-sm"
+              className="flex-1 ml-2 text-meta"
               style={{
-                color: colors.text,
+                color: theme.foreground,
                 fontWeight: bucketId === null ? "600" : "400",
               }}
             >
@@ -234,29 +233,29 @@ export function DematTransferTargetSheet({
                   onPress={() => setBucketId(item.id)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  className="flex-row items-center py-2 px-2 rounded-md"
+                  className="flex-row items-center py-2 px-2 rounded-control"
                   style={{
                     backgroundColor: active
-                      ? theme.primary + "1A"
+                      ? tint(theme.primary, 0.1)
                       : "transparent",
                   }}
                 >
                   <Ionicons
                     name="bookmark-outline"
                     size={16}
-                    color={active ? theme.primary : colors.textSecondary}
+                    color={active ? theme.primary : theme.mutedForeground}
                   />
                   <Text
-                    className="flex-1 ml-2 text-sm"
+                    className="flex-1 ml-2 text-meta"
                     style={{
-                      color: colors.text,
+                      color: theme.foreground,
                       fontWeight: active ? "600" : "400",
                     }}
                     numberOfLines={1}
                   >
                     {item.name}
                   </Text>
-                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label" style={{ color: theme.mutedForeground }}>
                     {formatAmount(item.current_contributed)} / {formatAmount(item.annual_target)}
                   </Text>
                 </Pressable>
@@ -278,10 +277,10 @@ export function DematTransferTargetSheet({
           accessibilityRole="button"
           accessibilityLabel="Skip for now"
           accessibilityHint="The transfer is saved but fund/portfolio is not set. You can categorize it later."
-          className="flex-1 py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="flex-1 py-3 rounded-control items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
             Skip for now
           </Text>
         </Pressable>
@@ -289,17 +288,17 @@ export function DematTransferTargetSheet({
           onPress={handleConfirm}
           accessibilityRole="button"
           accessibilityLabel="Apply"
-          className="flex-1 py-3 rounded-xl items-center"
+          className="flex-1 py-3 rounded-control items-center"
           style={{ backgroundColor: theme.primary }}
         >
-          <Text className="text-sm font-semibold text-primary-foreground">Apply</Text>
+          <Text className="text-body font-semibold text-primary-foreground">Apply</Text>
         </Pressable>
       </View>
 
       {/* Sub-hint under actions — tells the user Skip isn't destructive. */}
       <Text
         className="text-label text-center mt-2 px-5"
-        style={{ color: colors.textSecondary }}
+        style={{ color: theme.mutedForeground }}
       >
         Skip leaves the transfer uncategorized - you can edit it later.
       </Text>

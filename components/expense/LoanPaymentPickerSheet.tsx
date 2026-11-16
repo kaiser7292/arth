@@ -361,7 +361,7 @@ export function LoanPaymentPickerSheet({
               <Ionicons name="chevron-back" size={20} color={colors.text} />
             </Pressable>
           )}
-          <Text className="text-base font-bold flex-1" style={{ color: colors.text }}>
+          <Text className="text-body font-bold flex-1" style={{ color: colors.text }}>
             {step === "loan"
               ? "Mark as loan payment"
               : step === "emi_installment"
@@ -373,7 +373,7 @@ export function LoanPaymentPickerSheet({
                   : "Payment details"}
           </Text>
         </View>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: colors.textSecondary }}>
           {formatAmount(expenseAmount)} on {formatDate(expenseDate)}
         </Text>
       </View>
@@ -392,7 +392,7 @@ export function LoanPaymentPickerSheet({
       >
         {loading && (
           <View className="px-5 py-8 items-center">
-            <Text className="text-sm" style={{ color: colors.textSecondary }}>
+            <Text className="text-meta" style={{ color: colors.textSecondary }}>
               Loading…
             </Text>
           </View>
@@ -405,7 +405,7 @@ export function LoanPaymentPickerSheet({
               <View className="px-5 py-8 items-center">
                 <Ionicons name="cash-outline" size={40} color={colors.textSecondary} />
                 <Text
-                  className="text-sm mt-3 text-center"
+                  className="text-meta mt-3 text-center"
                   style={{ color: colors.textSecondary }}
                 >
                   No active loans yet. Add one from Goals → Loans.
@@ -416,7 +416,7 @@ export function LoanPaymentPickerSheet({
                 <Pressable
                   key={l.id}
                   onPress={() => handlePickLoan(l)}
-                  className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                  className="flex-row items-center py-3 px-4 rounded-control mb-2"
                   style={{
                     backgroundColor: colors.surface,
                     borderWidth: 1,
@@ -437,13 +437,13 @@ export function LoanPaymentPickerSheet({
                   </View>
                   <View className="flex-1">
                     <Text
-                      className="text-sm font-semibold"
+                      className="text-body font-semibold"
                       style={{ color: colors.text }}
                     >
                       {l.bank_name} · {l.loan_type}
                     </Text>
                     <Text
-                      className="text-xs mt-0.5"
+                      className="text-label mt-0.5"
                       style={{ color: colors.textSecondary }}
                     >
                       EMI {formatAmount(l.emi_amount)} · {l.tenure_months}mo @ {l.interest_rate_pa}%
@@ -462,14 +462,14 @@ export function LoanPaymentPickerSheet({
             {eligibleInstallments.length === 0 ? (
               <>
                 <Text
-                  className="text-sm mb-3"
+                  className="text-meta mb-3"
                   style={{ color: colors.textSecondary }}
                 >
                   No scheduled installments near this date. You can record this as a prepayment instead.
                 </Text>
                 <Pressable
                   onPress={() => handlePickKind("prepayment")}
-                  className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                  className="flex-row items-center py-3 px-4 rounded-control mb-2"
                   style={{
                     backgroundColor: theme.alpha("primary", 0.08),
                     borderWidth: 1,
@@ -482,7 +482,7 @@ export function LoanPaymentPickerSheet({
                     color={theme.primary}
                   />
                   <Text
-                    className="text-sm font-semibold ml-3 flex-1"
+                    className="text-body font-semibold ml-3 flex-1"
                     style={{ color: theme.primary }}
                   >
                     Record as prepayment
@@ -494,7 +494,7 @@ export function LoanPaymentPickerSheet({
               <>
                 <Pressable
                   onPress={() => handlePickKind("prepayment")}
-                  className="flex-row items-center py-3 px-4 rounded-xl mb-3"
+                  className="flex-row items-center py-3 px-4 rounded-control mb-3"
                   style={{
                     backgroundColor: theme.alpha("primary", 0.05),
                     borderWidth: 1,
@@ -508,13 +508,13 @@ export function LoanPaymentPickerSheet({
                   />
                   <View className="flex-1 ml-3">
                     <Text
-                      className="text-sm font-semibold"
+                      className="text-body font-semibold"
                       style={{ color: colors.text }}
                     >
                       This is a prepayment, not an EMI
                     </Text>
                     <Text
-                      className="text-xs mt-0.5"
+                      className="text-label mt-0.5"
                       style={{ color: colors.textSecondary }}
                     >
                       Over-and-above the schedule
@@ -524,7 +524,7 @@ export function LoanPaymentPickerSheet({
                 </Pressable>
 
                 <Text
-                  className="text-xs font-semibold uppercase tracking-wider mb-2"
+                  className="text-label font-semibold uppercase tracking-wider mb-2"
                   style={{ color: colors.textSecondary }}
                 >
                   Scheduled installments
@@ -533,7 +533,7 @@ export function LoanPaymentPickerSheet({
                   <Pressable
                     key={s.id}
                     onPress={() => handlePickInstallment(s.id)}
-                    className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                    className="flex-row items-center py-3 px-4 rounded-control mb-2"
                     style={{
                       backgroundColor: colors.surface,
                       borderWidth: 1,
@@ -542,13 +542,13 @@ export function LoanPaymentPickerSheet({
                   >
                     <View className="flex-1">
                       <Text
-                        className="text-sm font-semibold"
+                        className="text-body font-semibold"
                         style={{ color: colors.text }}
                       >
                         #{s.installment_num} · Due {formatDate(s.due_date)}
                       </Text>
                       <Text
-                        className="text-xs mt-0.5"
+                        className="text-label mt-0.5"
                         style={{ color: colors.textSecondary }}
                       >
                         EMI {formatAmount(s.emi_amount)}
@@ -571,7 +571,7 @@ export function LoanPaymentPickerSheet({
         {step === "prepayment_strategy" && !loading && (
           <>
             <Text
-              className="text-sm mb-3"
+              className="text-meta mb-3"
               style={{ color: colors.textSecondary }}
             >
               How should we apply this prepayment of {formatAmount(expenseAmount)}?
@@ -604,7 +604,7 @@ export function LoanPaymentPickerSheet({
         {step === "prepayment_details" && !loading && (
           <>
             <Text
-              className="text-sm mb-3"
+              className="text-meta mb-3"
               style={{ color: colors.textSecondary }}
             >
               Review this prepayment of {formatAmount(expenseAmount)} before saving.
@@ -612,7 +612,7 @@ export function LoanPaymentPickerSheet({
 
             {/* Kind toggle */}
             <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
+              className="text-label font-semibold uppercase tracking-wider mb-2"
               style={{ color: colors.textSecondary }}
             >
               Type
@@ -638,7 +638,7 @@ export function LoanPaymentPickerSheet({
                 computed from the loan's configured charge rate + GST. */}
             {impact && (
               <View
-                className="p-3 rounded-xl mb-3"
+                className="p-3 rounded-control mb-3"
                 style={{
                   backgroundColor: colors.surface,
                   borderWidth: 1,
@@ -646,7 +646,7 @@ export function LoanPaymentPickerSheet({
                 }}
               >
                 <Text
-                  className="text-xs font-semibold uppercase tracking-wider mb-2"
+                  className="text-label font-semibold uppercase tracking-wider mb-2"
                   style={{ color: colors.textSecondary }}
                 >
                   Preview
@@ -728,7 +728,7 @@ export function LoanPaymentPickerSheet({
                     color={colors.textSecondary}
                   />
                   <Text
-                    className="text-xs ml-1"
+                    className="text-label ml-1"
                     style={{ color: colors.textSecondary }}
                   >
                     Override charges (optional)
@@ -736,7 +736,7 @@ export function LoanPaymentPickerSheet({
                 </Pressable>
                 {overrideExpanded && (
                   <View
-                    className="p-3 rounded-xl"
+                    className="p-3 rounded-control"
                     style={{
                       backgroundColor: colors.surface,
                       borderWidth: 1,
@@ -772,7 +772,7 @@ export function LoanPaymentPickerSheet({
               </View>
             )}
             <Text
-              className="text-xs mb-4"
+              className="text-label mb-4"
               style={{ color: colors.textSecondary }}
             >
               Charges are auto-computed from your loan's configured rates.
@@ -784,10 +784,10 @@ export function LoanPaymentPickerSheet({
               onPress={handleSubmitPrepaymentDetails}
               accessibilityRole="button"
               accessibilityLabel="Save prepayment"
-              className="py-3 rounded-xl items-center mb-2"
+              className="py-3 rounded-control items-center mb-2"
               style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-sm font-bold" style={{ color: "#FFFFFF" }}>
+              <Text className="text-body font-bold" style={{ color: "#FFFFFF" }}>
                 Save prepayment
               </Text>
             </Pressable>
@@ -800,7 +800,7 @@ export function LoanPaymentPickerSheet({
           onPress={handleClose}
           accessibilityRole="button"
           accessibilityLabel="Cancel"
-          className="py-3 rounded-xl items-center"
+          className="py-3 rounded-control items-center"
           style={{
             backgroundColor: colors.surface,
             borderWidth: 1,
@@ -808,7 +808,7 @@ export function LoanPaymentPickerSheet({
           }}
         >
           <Text
-            className="text-sm font-semibold"
+            className="text-body font-semibold"
             style={{ color: colors.textSecondary }}
           >
             Cancel
@@ -839,11 +839,11 @@ function PreviewRow({
 }) {
   return (
     <View className="flex-row items-center justify-between py-1">
-      <Text className="text-xs" style={{ color: colors.textSecondary }}>
+      <Text className="text-label" style={{ color: colors.textSecondary }}>
         {label}
       </Text>
       <Text
-        className={`text-sm ${bold ? "font-bold" : "font-medium"}`}
+        className={`text-body ${bold ? "font-bold" : "font-medium"}`}
         style={{ color: color ?? colors.text }}
       >
         {value}
@@ -893,7 +893,7 @@ function KindChip({
       }
     >
       <Text
-        className="text-xs"
+        className="text-label"
         style={
           selected
             ? { color: theme.primary, fontWeight: "600" }
@@ -937,7 +937,7 @@ function StrategyTile({
       style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
     >
       <View
-        className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+        className="flex-row items-center py-3 px-4 rounded-control mb-2"
         style={{
           backgroundColor: colors.surface,
           borderWidth: 1,
@@ -952,7 +952,7 @@ function StrategyTile({
         </View>
         <View className="flex-1">
           <View className="flex-row items-center">
-            <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+            <Text className="text-body font-semibold" style={{ color: colors.text }}>
               {label}
             </Text>
             {recommended && (
@@ -969,7 +969,7 @@ function StrategyTile({
               </View>
             )}
           </View>
-          <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+          <Text className="text-label mt-0.5" style={{ color: colors.textSecondary }}>
             {sublabel}
           </Text>
         </View>

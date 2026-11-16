@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { LoadingState, SearchField, Sheet, Text } from "@/components/ui";
 import { View, Pressable, SectionList } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { findReminderLinkCandidates } from "@/services/recurring-rules";
 import type { Expense } from "@/services/expense";
 import { formatAmount } from "@/utils/format";
@@ -42,7 +41,6 @@ export function LinkExpenseSheet({
   onLogNew,
   onClose,
 }: LinkExpenseSheetProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [best, setBest] = useState<Expense[]>([]);
   const [others, setOthers] = useState<Expense[]>([]);
@@ -90,10 +88,10 @@ export function LinkExpenseSheet({
   return (
     <Sheet visible={visible} onClose={close}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Link to an expense
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={2}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }} numberOfLines={2}>
           {ruleDescription}
         </Text>
       </View>
@@ -109,14 +107,14 @@ export function LinkExpenseSheet({
           <LoadingState rows={3} />
         ) : sections.length === 0 ? (
           <View className="px-3 py-6">
-            <Text className="text-sm text-center" style={{ color: colors.textSecondary }}>
+            <Text className="text-meta text-center" style={{ color: theme.mutedForeground }}>
               {query.trim()
                 ? "Nothing matches that."
                 : range
                   ? `Nothing spent between ${formatDateForDisplay(range.from)} and ${formatDateForDisplay(range.to)}.`
                   : "Nothing spent around the due date."}
             </Text>
-            <Text className="text-xs text-center mt-1" style={{ color: colors.textSecondary }}>
+            <Text className="text-label text-center mt-1" style={{ color: theme.mutedForeground }}>
               Log a new expense to fulfill this reminder.
             </Text>
           </View>
@@ -128,7 +126,7 @@ export function LinkExpenseSheet({
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             renderSectionHeader={({ section }) => (
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3 pt-3 pb-1">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-3 pt-3 pb-1">
                 {section.title}
               </Text>
             )}
@@ -137,20 +135,20 @@ export function LinkExpenseSheet({
                 onPress={() => onPickExisting(item.id)}
                 accessibilityRole="button"
                 accessibilityLabel={`Link to ${item.merchant_name ?? "expense"} ${formatAmount(item.amount)}`}
-                className="flex-row items-center px-3 py-2.5 rounded-lg"
+                className="flex-row items-center px-3 py-2.5 rounded-control"
               >
                 <View className="flex-1">
-                  <Text className="text-sm font-medium" style={{ color: colors.text }} numberOfLines={1}>
+                  <Text className="text-body font-medium" style={{ color: theme.foreground }} numberOfLines={1}>
                     {item.merchant_name ?? item.description ?? "Expense"}
                   </Text>
-                  <Text className="text-xs" style={{ color: colors.textSecondary }} numberOfLines={1}>
+                  <Text className="text-label" style={{ color: theme.mutedForeground }} numberOfLines={1}>
                     {formatDateForDisplay(item.date.slice(0, 10))}
                     {item.merchant_name && item.description && item.description !== item.merchant_name
                       ? ` · ${item.description}`
                       : ""}
                   </Text>
                 </View>
-                <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                   {formatAmount(item.amount)}
                 </Text>
               </Pressable>
@@ -164,19 +162,19 @@ export function LinkExpenseSheet({
           onPress={onLogNew}
           accessibilityRole="button"
           accessibilityLabel="Log new expense"
-          className="py-3 rounded-xl items-center flex-row justify-center"
+          className="py-3 rounded-control items-center flex-row justify-center"
           style={{ backgroundColor: theme.primary }}
         >
           <Ionicons name="add-outline" size={18} color="#fff" />
-          <Text className="text-sm font-semibold text-primary-foreground ml-1">Log new expense</Text>
+          <Text className="text-body font-semibold text-primary-foreground ml-1">Log new expense</Text>
         </Pressable>
         <Pressable
           onPress={close}
           accessibilityRole="button"
           accessibilityLabel="Cancel"
-          className="py-3 mt-2 rounded-xl items-center"
+          className="py-3 mt-2 rounded-control items-center"
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
             Cancel
           </Text>
         </Pressable>

@@ -3,7 +3,6 @@ import { Pressable, ScrollView, TextInput, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, FormulaTextInput, Sheet, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTheme } from "@/hooks/use-theme";
 import { createPerson, getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
 import { draftShares, emptyDraft, type DraftMode, type SplitDraft } from "@/services/split-draft";
@@ -24,7 +23,6 @@ interface Props {
 /** One sheet for every split: who paid, how it's divided, with whom. Opens filled in with the current split. */
 export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave, onRemove, onePersonOnly }: Props) {
   const theme = useTheme();
-  const { colors } = useColorScheme();
   const [draft, setDraft] = useState<SplitDraft>(initial ?? emptyDraft());
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [picking, setPicking] = useState(false);
@@ -93,9 +91,9 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
     <Sheet visible={visible} onClose={onClose}>
       <View className="px-5 pt-1">
         <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-lg font-bold text-foreground">{picking ? "With whom?" : `Split ${formatAmount(totalAmount)}`}</Text>
+          <Text className="text-heading font-bold text-foreground">{picking ? "With whom?" : `Split ${formatAmount(totalAmount)}`}</Text>
           <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel="Close">
-            <Ionicons name="close" size={22} color={colors.textSecondary} />
+            <Ionicons name="close" size={22} color={theme.mutedForeground} />
           </Pressable>
         </View>
 
@@ -104,15 +102,15 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
             <View className="pb-2">
               {choosable.map((p) => (
                 <Pressable key={p.id} onPress={() => addPerson(p.id)} className="flex-row items-center py-3 border-b border-border" accessibilityRole="button">
-                  <Text className="text-sm text-foreground flex-1" numberOfLines={1}>{p.name}</Text>
+                  <Text className="text-meta text-foreground flex-1" numberOfLines={1}>{p.name}</Text>
                   <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
                 </Pressable>
               ))}
               <View className="flex-row items-center mt-3" style={{ gap: 8 }}>
                 <TextInput
-                  className="flex-1 border border-border rounded-xl px-4 py-3 text-foreground"
+                  className="flex-1 border border-border rounded-control px-4 py-3 text-foreground"
                   placeholder="New person's name"
-                  placeholderTextColor={colors.tabIconDefault}
+                  placeholderTextColor={theme.faintForeground}
                   value={newName}
                   onChangeText={setNewName}
                   maxLength={40}
@@ -121,7 +119,7 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
               </View>
               {draft.people.length > 0 && (
                 <Pressable onPress={() => setPicking(false)} className="items-center py-3" accessibilityRole="button">
-                  <Text className="text-sm font-medium text-muted-foreground">Back</Text>
+                  <Text className="text-body font-medium text-muted-foreground">Back</Text>
                 </Pressable>
               )}
             </View>
@@ -148,8 +146,8 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
 
               <Label>Shares</Label>
               <View className="flex-row items-center justify-between py-2 border-b border-border">
-                <Text className="text-sm text-foreground">You</Text>
-                <Text className="text-sm font-semibold text-foreground">{formatAmount(me)}</Text>
+                <Text className="text-meta text-foreground">You</Text>
+                <Text className="text-body font-semibold text-foreground">{formatAmount(me)}</Text>
               </View>
               {draft.people.map((p, i) => (
                 <View key={p.personId} className="py-2 border-b border-border">
@@ -157,41 +155,41 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
                     <Pressable onPress={() => removePerson(p.personId)} hitSlop={8} className="mr-2" accessibilityRole="button" accessibilityLabel={`Remove ${nameOf(p.personId)}`}>
                       <Ionicons name="close-circle-outline" size={18} color={theme.mutedForeground} />
                     </Pressable>
-                    <Text className="text-sm text-foreground flex-1 mr-2" numberOfLines={1}>{nameOf(p.personId)}</Text>
+                    <Text className="text-meta text-foreground flex-1 mr-2" numberOfLines={1}>{nameOf(p.personId)}</Text>
                     {draft.mode === "percent" ? (
                       <View className="flex-row items-center">
                         <TextInput
-                          className="w-14 border border-border rounded-lg px-2 py-1.5 text-sm text-foreground text-right"
+                          className="w-14 border border-border rounded-control px-2 py-1.5 text-meta text-foreground text-right"
                           keyboardType="number-pad"
                           maxLength={3}
                           placeholder="0"
-                          placeholderTextColor={colors.tabIconDefault}
+                          placeholderTextColor={theme.faintForeground}
                           value={p.value}
                           onChangeText={(v) => setValue(i, { value: v.replace(/[^0-9]/g, "") })}
                           accessibilityLabel={`${nameOf(p.personId)}'s percentage`}
                         />
-                        <Text className="text-sm text-muted-foreground ml-1 mr-2">%</Text>
-                        <Text className="text-sm font-semibold text-foreground">{formatAmount(shares[i] ?? 0)}</Text>
+                        <Text className="text-meta text-muted-foreground ml-1 mr-2">%</Text>
+                        <Text className="text-body font-semibold text-foreground">{formatAmount(shares[i] ?? 0)}</Text>
                       </View>
                     ) : draft.mode === "amount" ? (
                       <FormulaTextInput
-                        className="w-28 border border-border rounded-lg px-2 py-1.5 text-sm text-foreground text-right"
+                        className="w-28 border border-border rounded-control px-2 py-1.5 text-meta text-foreground text-right"
                         keyboardType="decimal-pad"
                         placeholder="0"
-                        placeholderTextColor={colors.tabIconDefault}
+                        placeholderTextColor={theme.faintForeground}
                         value={p.value}
                         onChangeText={(v: string) => setValue(i, { value: v })}
                         accessibilityLabel={`${nameOf(p.personId)}'s amount`}
                       />
                     ) : (
-                      <Text className="text-sm font-semibold text-foreground">{formatAmount(shares[i] ?? 0)}</Text>
+                      <Text className="text-body font-semibold text-foreground">{formatAmount(shares[i] ?? 0)}</Text>
                     )}
                   </View>
                   {draft.people.length > 1 && (
                     <TextInput
-                      className="text-xs text-foreground mt-1.5 ml-6 py-1"
+                      className="text-label text-foreground mt-1.5 ml-6 py-1"
                       placeholder="What for? (optional)"
-                      placeholderTextColor={colors.tabIconDefault}
+                      placeholderTextColor={theme.faintForeground}
                       value={p.description}
                       onChangeText={(v) => setValue(i, { description: v })}
                     />
@@ -201,10 +199,10 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
               {canAddMore || draft.people.length === 0 ? (
                 <Pressable onPress={() => setPicking(true)} className="flex-row items-center py-3" accessibilityRole="button">
                   <Ionicons name="add" size={16} color={theme.primary} />
-                  <Text className="text-sm font-medium ml-1" style={{ color: theme.primary }}>Add person</Text>
+                  <Text className="text-body font-medium ml-1" style={{ color: theme.primary }}>Add person</Text>
                 </Pressable>
               ) : null}
-              {error && draft.people.length > 0 ? <Text className="text-xs mt-1" style={{ color: theme.danger }}>{error}</Text> : null}
+              {error && draft.people.length > 0 ? <Text className="text-label mt-1" style={{ color: theme.danger }}>{error}</Text> : null}
             </View>
           )}
         </ScrollView>
@@ -213,7 +211,7 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
           <View className="flex-row items-center mt-3" style={{ gap: 12 }}>
             {onRemove && (
               <Pressable onPress={onRemove} hitSlop={8} accessibilityRole="button">
-                <Text className="text-sm font-medium" style={{ color: theme.danger }}>Remove split</Text>
+                <Text className="text-body font-medium" style={{ color: theme.danger }}>Remove split</Text>
               </Pressable>
             )}
             <Button title="Save" className="flex-1" onPress={() => void save()} disabled={!!error} loading={saving} />
@@ -225,7 +223,7 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
 }
 
 function Label({ children }: { children: string }) {
-  return <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{children}</Text>;
+  return <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">{children}</Text>;
 }
 
 function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
@@ -238,7 +236,7 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
       accessibilityRole="radio"
       accessibilityState={{ checked: on }}
     >
-      <Text className="text-sm" style={{ color: on ? theme.primary : theme.mutedForeground }}>{label}</Text>
+      <Text className="text-meta" style={{ color: on ? theme.primary : theme.mutedForeground }}>{label}</Text>
     </Pressable>
   );
 }

@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pop } from "@/components/motion/Pop";
 import { FlatList, Pressable, View } from "react-native";
@@ -17,7 +18,7 @@ export function CategoryPickerSheet({ visible, categories, selectedId, onSelect,
   const theme = useTheme();
   return (
     <Sheet visible={visible} onClose={onClose} maxHeightPct={70}>
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 pb-2">
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-4 pb-2">
         Choose category
       </Text>
       <FlatList
@@ -36,11 +37,11 @@ export function CategoryPickerSheet({ visible, categories, selectedId, onSelect,
             >
               <View
                 className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: cat.color + "14" }}
+                style={{ backgroundColor: tint(cat.color, 0.08) }}
               >
                 <Ionicons name={cat.icon as keyof typeof Ionicons.glyphMap} size={16} color={cat.color} />
               </View>
-              <Text className="text-sm font-medium text-foreground flex-1">{cat.name}</Text>
+              <Text className="text-body font-medium text-foreground flex-1">{cat.name}</Text>
               {selected && <Pop><Ionicons name="checkmark" size={18} color={theme.primary} /></Pop>}
             </Pressable>
           );

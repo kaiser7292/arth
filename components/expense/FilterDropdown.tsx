@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable, TextInput, ScrollView } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useTheme } from "@/hooks/use-theme";
 
@@ -33,7 +32,6 @@ export function FilterDropdown({
   autoOpen = false,
   onDismiss,
 }: FilterDropdownProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [open, setOpen] = useState(autoOpen);
   const [search, setSearch] = useState("");
@@ -68,51 +66,51 @@ export function FilterDropdown({
     <>
       <Pressable
         onPress={() => { setOpen(true); setSearch(""); }}
-        className="flex-row items-center justify-between py-3 px-3 rounded-lg bg-card mb-1.5"
+        className="flex-row items-center justify-between py-3 px-3 rounded-control bg-card mb-1.5"
       >
-        <Text className="text-sm font-medium text-foreground">
+        <Text className="text-body font-medium text-foreground">
           {label}
         </Text>
         <View className="flex-row items-center">
           <Text
-            className="text-sm mr-1.5"
-            style={{ color: selectedCount > 0 ? theme.primary : colors.textSecondary }}
+            className="text-meta mr-1.5"
+            style={{ color: selectedCount > 0 ? theme.primary : theme.mutedForeground }}
             numberOfLines={1}
           >
             {summaryText}
           </Text>
-          <Ionicons name="chevron-down" size={14} color={colors.textSecondary} />
+          <Ionicons name="chevron-down" size={14} color={theme.mutedForeground} />
         </View>
       </Pressable>
 
       <Sheet visible={open} onClose={() => { setOpen(false); onDismiss?.(); }} maxHeightPct={70}>
             {/* Header */}
             <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
-              <Text className="text-sm font-semibold text-foreground">
+              <Text className="text-body font-semibold text-foreground">
                 {label}
               </Text>
               <View className="flex-row items-center">
                 {selectedCount > 0 && (
                   <Pressable onPress={() => onSelectionChange([])} className="mr-4">
-                    <Text className="text-xs" style={{ color: theme.primary }}>Clear</Text>
+                    <Text className="text-label" style={{ color: theme.primary }}>Clear</Text>
                   </Pressable>
                 )}
                 <Pressable onPress={() => { setOpen(false); onDismiss?.(); }}>
-                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>Done</Text>
+                  <Text className="text-label font-medium" style={{ color: theme.primary }}>Done</Text>
                 </Pressable>
               </View>
             </View>
 
             {/* Search */}
             {searchable && options.length > 6 && (
-              <View className="mx-4 mb-2 flex-row items-center rounded-lg bg-card px-3 py-2">
-                <Ionicons name="search" size={14} color={colors.textSecondary} />
+              <View className="mx-4 mb-2 flex-row items-center rounded-control bg-card px-3 py-2">
+                <Ionicons name="search" size={14} color={theme.mutedForeground} />
                 <TextInput
                   value={search}
                   onChangeText={setSearch}
                   placeholder={`Search ${label.toLowerCase()}...`}
-                  placeholderTextColor={colors.tabIconDefault}
-                  className="flex-1 ml-2 text-xs text-foreground"
+                  placeholderTextColor={theme.faintForeground}
+                  className="flex-1 ml-2 text-label text-foreground"
                   autoFocus={false}
                 />
               </View>
@@ -133,7 +131,7 @@ export function FilterDropdown({
                       style={{
                         backgroundColor: isSelected ? theme.primary : "transparent",
                         borderWidth: isSelected ? 0 : 1.5,
-                        borderColor: isSelected ? theme.primary : colors.border,
+                        borderColor: isSelected ? theme.primary : theme.border,
                       }}
                     >
                       {isSelected && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
@@ -141,14 +139,14 @@ export function FilterDropdown({
                     {option.color && (
                       <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: option.color }} />
                     )}
-                    <Text className="text-sm text-foreground flex-1">
+                    <Text className="text-meta text-foreground flex-1">
                       {option.label}
                     </Text>
                   </Pressable>
                 );
               })}
               {filtered.length === 0 && (
-                <Text className="text-xs text-faint-foreground text-center py-4">No matches</Text>
+                <Text className="text-label text-faint-foreground text-center py-4">No matches</Text>
               )}
             </ScrollView>
       </Sheet>

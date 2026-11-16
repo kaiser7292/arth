@@ -67,7 +67,7 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function Sw
         // The edge of the next card, just below this one - Catch Up reads as a stack.
         <View
           pointerEvents="none"
-          className="rounded-2xl border border-border"
+          className="rounded-card border border-border"
           style={{ position: "absolute", top: 14, bottom: -10, left: 14, right: 14, backgroundColor: theme.card, opacity: 0.7 }}
         />
       )}
@@ -179,7 +179,7 @@ const SwipeCard = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function SwipeCard
             style={{ backgroundColor: theme.alpha("success", 0.15) }}
           >
             <Ionicons name="checkmark" size={14} color={theme.success} />
-            <Text className="text-xs font-semibold ml-1" style={{ color: theme.success }}>
+            <Text className="text-label font-semibold ml-1" style={{ color: theme.success }}>
               {rightLabel}
             </Text>
           </View>
@@ -190,7 +190,7 @@ const SwipeCard = forwardRef<SwipeDeckHandle, SwipeDeckProps>(function SwipeCard
             style={{ backgroundColor: theme.alpha("mutedForeground", 0.15) }}
           >
             <Ionicons name="arrow-back" size={14} color={theme.mutedForeground} />
-            <Text className="text-xs font-semibold ml-1" style={{ color: theme.mutedForeground }}>
+            <Text className="text-label font-semibold ml-1" style={{ color: theme.mutedForeground }}>
               {leftLabel}
             </Text>
           </View>

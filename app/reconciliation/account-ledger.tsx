@@ -5,7 +5,8 @@ import { useListTools } from "@/hooks/use-list-tools";
 import { transactionDayLabel } from "@/utils/day-label";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, DateInput, FABMenu, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Badge, Button, Card, DateInput, FABMenu, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, SectionTitle, Sheet, Text } from "@/components/ui";
+import { defaultEntryDate } from "@/utils/ledger-dates";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
@@ -553,9 +554,6 @@ const loadData = useCallback(async () => {
     setCreditDescription(entry.description);
     setCreditDate(entry.date);
     setShowAddCredit(true);
-    // Scroll to top so the edit form is immediately visible, not hidden below
-    // the transactions list.
-    setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, []);
 
   const handleCancelCreditForm = useCallback(() => {
@@ -858,93 +856,74 @@ const loadData = useCallback(async () => {
           {/* Inline forms render above the transactions list so edit/add
               actions are visible without scrolling past the full ledger. */}
 
-          {/* Credit form (inline, for add or edit) */}
-          {showAddCredit && (
-            <Card className="mx-4 mt-4">
-              <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                {editingCreditId ? "Edit Credit" : "Add Manual Credit"}
-              </Text>
+          {/* Credit form (add or edit), in a sheet so it never pushes the ledger down */}
+          <Sheet visible={showAddCredit} onClose={handleCancelCreditForm}>
+            <View className="px-5 pb-4">
+              <SectionTitle
+                icon="arrow-down-outline"
+                title={editingCreditId ? "Edit credit" : "Add a credit"}
+                hint="Money into this account"
+                className="mb-4"
+              />
               <Input
-                placeholder="Amount"
+                label="Amount"
+                placeholder="0"
                 formula
                 value={creditAmount}
                 onChangeText={setCreditAmount}
                 containerClassName="mb-3"
               />
-              <TextInput
-                className="border border-border rounded-control px-3 py-2.5 mb-3 text-meta text-foreground"
-                placeholder="Description (e.g. Salary, UPI received)"
-                placeholderTextColor={theme.mutedForeground}
+              <Input
+                label="Note"
+                placeholder="e.g. Salary, UPI received"
                 maxLength={200}
                 value={creditDescription}
                 onChangeText={setCreditDescription}
+                containerClassName="mb-3"
               />
               <DateInput
                 label="Date"
                 value={creditDate || todayIso()}
                 onChange={setCreditDate}
-                containerClassName="mb-3"
+                containerClassName="mb-4"
               />
-              <View className="flex-row">
-                <Pressable
-                  onPress={handleCancelCreditForm}
-                  className="flex-1 py-2.5 rounded-control items-center mr-2 border border-border"
-                >
-                  <Text className="text-meta font-semibold text-muted-foreground">Cancel</Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleSaveCreditForm}
-                  className="flex-1 py-2.5 rounded-control items-center"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  <Text className="text-meta font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add credit"}</Text>
-                </Pressable>
+              <View className="flex-row" style={{ gap: 10 }}>
+                <Button title="Cancel" variant="outline" onPress={handleCancelCreditForm} />
+                <Button title={editingCreditId ? "Save" : "Add credit"} onPress={handleSaveCreditForm} className="flex-1" />
               </View>
-            </Card>
-          )}
+            </View>
+          </Sheet>
 
-          {/* Adjust Available inline form */}
-          {showAdjust && (
-            <Card className="mx-4 mt-4 mb-2">
-              <Text className="text-meta font-semibold text-foreground mb-1">
-                Adjust available balance
-              </Text>
-              <Text className="text-label text-muted-foreground mb-3">
-                Current closing: {formatAmount(closing)}. Enter the actual available and we'll add a single adjustment entry dated today.
-              </Text>
-              <Text className="text-label font-medium text-muted-foreground mb-1">Actual available</Text>
+          {/* Adjust balance, in a sheet */}
+          <Sheet visible={showAdjust} onClose={() => { setShowAdjust(false); setAdjustActual(""); }}>
+            <View className="px-5 pb-4">
+              <SectionTitle
+                icon="swap-vertical-outline"
+                title="Adjust available balance"
+                hint={`Now ${formatAmount(closing)}. One adjustment entry, dated today.`}
+                className="mb-4"
+              />
               <Input
+                label="Actual available"
                 value={adjustActual}
                 onChangeText={setAdjustActual}
                 placeholder="e.g. 1,55,000"
                 formula
                 containerClassName="mb-3"
               />
-              <Text className="text-label font-medium text-muted-foreground mb-1">Reason (optional)</Text>
-              <TextInput
+              <Input
+                label="Reason (optional)"
                 value={adjustDescription}
                 onChangeText={setAdjustDescription}
                 placeholder="e.g. Prepayment, untracked spend"
-                placeholderTextColor={theme.mutedForeground}
-                className="border rounded-control px-3 py-2.5 mb-3 text-meta text-foreground"
-                style={{ borderColor: theme.border }}
+                containerClassName="mb-4"
               />
-              <View className="flex-row">
-                <Button
-                  title="Cancel"
-                  onPress={() => { setShowAdjust(false); setAdjustActual(""); }}
-                  variant="outline"
-                  className="flex-1 mr-2 py-2.5"
-                />
-                <Button
-                  title="Confirm"
-                  onPress={handleSaveAdjustment}
-                  variant="primary"
-                  className="flex-1 py-2.5"
-                />
+              <View className="flex-row" style={{ gap: 10 }}>
+                <Button title="Cancel" variant="outline" onPress={() => { setShowAdjust(false); setAdjustActual(""); }} />
+                <Button title="Confirm" onPress={handleSaveAdjustment} className="flex-1" />
               </View>
-            </Card>
-          )}
+            </View>
+          </Sheet>
 
           {/* Filter banner — shown when opened with filterMode=transfers */}
           {filterMode === "transfers" && (
@@ -1258,7 +1237,7 @@ const loadData = useCallback(async () => {
                 params: {
                   type: "credit",
                   prefillAccountId: accountId,
-                  prefillDate: today >= startDate && today <= endDate ? today : startDate,
+                  prefillDate: defaultEntryDate(today, startDate, endDate),
                 },
               });
             },
@@ -1275,7 +1254,7 @@ const loadData = useCallback(async () => {
                 params: {
                   type: "transfer",
                   prefillAccountId: accountId,
-                  prefillDate: today >= startDate && today <= endDate ? today : startDate,
+                  prefillDate: defaultEntryDate(today, startDate, endDate),
                 },
               });
             },
@@ -1286,7 +1265,6 @@ const loadData = useCallback(async () => {
             color: theme.warning,
             onPress: () => {
               setShowAdjust(true);
-              setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
             },
           },
         ] satisfies FABMenuItem[]}
