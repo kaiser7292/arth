@@ -63,6 +63,7 @@ import type { Tag } from "@/services/tags";
 import { formatAmount } from "@/utils/expense-validation";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { FilterDropdown } from "@/components/expense/FilterDropdown";
+import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { TransactionFilterSheet, draftTotal, type TxFilterDraft } from "@/components/expense/TransactionFilterSheet";
 import { DrawerBody, DrawerEmpty, DrawerEnd, DrawerLoading, MonthDrawerHeader, type DrawerMode } from "@/components/expense/MonthDrawer";
 import { buildDrawerRows, monthBounds, orderMonths, summarizeByMonth, type DrawerRow, type MonthSummary } from "@/utils/month-drawers";
@@ -1048,6 +1049,23 @@ export default function ExpensesScreen() {
     return rows;
   }, [expenses, grouping.groupBy, grouping.rows, rowAmount]);
 
+  // "+ Add category" on an untagged row: pick one in place, no trip to the detail page.
+  const [categoryFor, setCategoryFor] = useState<Expense | null>(null);
+  const pickCategoryInPlace = useCallback(
+    async (categoryId: string) => {
+      const target = categoryFor;
+      setCategoryFor(null);
+      if (!target) return;
+      await bulkSetCategory([target.id], categoryId);
+      const name = categoryMap.get(categoryId)?.name;
+      if (name) toast(`Added to ${name}`);
+      loadExpenses(true);
+    },
+    [categoryFor, categoryMap, toast, loadExpenses],
+  );
+  // Under a day heading the row doesn't repeat the date.
+  const hideRowDates = grouping.groupBy === "date" && (sortBy === "date_desc" || sortBy === "date_asc");
+
   const renderExpenseItem = useCallback(
     ({ item }: { item: DateGroupRow }) => {
       if (item._type === "header") {
@@ -1074,39 +1092,21 @@ export default function ExpensesScreen() {
       }
       const expense = item.expense;
       return (
-        <View className="flex-row items-center">
-          {bulkMode && (
-            <Pressable
-              onPress={() => handleItemPress(expense.id)}
-              className="pl-4 pr-1 py-3"
-            >
-              <View
-                className="w-5 h-5 rounded items-center justify-center"
-                style={{
-                  backgroundColor: selectedExpenseIds.has(expense.id) ? theme.primary : "transparent",
-                  borderWidth: selectedExpenseIds.has(expense.id) ? 0 : 1.5,
-                  borderColor: selectedExpenseIds.has(expense.id) ? theme.primary : colors.border,
-                }}
-              >
-                {selectedExpenseIds.has(expense.id) && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
-              </View>
-            </Pressable>
-          )}
-          <View className="flex-1">
-            <ExpenseListRow
-              item={expense}
-              categoryMap={categoryMap}
-              paymentModeMap={paymentModeMap}
-              accountMap={accountMap}
-              refundedMap={refundedMap}
-              onPress={handleItemPress}
-              onLongPress={handleLongPress}
-            />
-          </View>
-        </View>
+        <ExpenseListRow
+          item={expense}
+          categoryMap={categoryMap}
+          paymentModeMap={paymentModeMap}
+          accountMap={accountMap}
+          refundedMap={refundedMap}
+          onPress={handleItemPress}
+          onLongPress={handleLongPress}
+          selected={bulkMode && selectedExpenseIds.has(expense.id)}
+          hideDate={hideRowDates}
+          onAddCategory={bulkMode ? undefined : setCategoryFor}
+        />
       );
     },
-    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, colors],
+    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, hideRowDates],
   );
 
   // ── Month drawers ──
@@ -1468,6 +1468,14 @@ export default function ExpensesScreen() {
           </Pressable>
         </View>
       )}
+
+      <CategoryPickerSheet
+        visible={categoryFor != null}
+        categories={categories}
+        selectedId={null}
+        onSelect={pickCategoryInPlace}
+        onClose={() => setCategoryFor(null)}
+      />
 
       <TransactionFilterSheet
         visible={filterSheet.open}

@@ -2,16 +2,18 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { Text } from "@/components/ui";
+import { MoneyChip, Text } from "@/components/ui";
+import { RADIUS } from "@/constants/design-tokens";
 import { useTheme } from "@/hooks/use-theme";
 import { formatMonthLabel } from "@/utils/date";
-import { formatAmount } from "@/utils/format";
 import type { MonthSummary } from "@/utils/month-drawers";
 
 /** Which totals a month's header shows: in and out on All, one figure on the other tabs. */
 export type DrawerMode = "all" | "spend" | "credit" | "transfer";
 
 const CARD_MX = 16;
+/** The card corner, as a number for the style objects that split it top and bottom. */
+const R = parseInt(RADIUS.card, 10);
 
 /** The rotating arrow on a month's header. */
 function Chevron({ open, color }: { open: boolean; color: string }) {
@@ -24,34 +26,6 @@ function Chevron({ open, color }: { open: boolean; color: string }) {
     <Animated.View style={style}>
       <Ionicons name="chevron-down" size={18} color={color} />
     </Animated.View>
-  );
-}
-
-function AmountChip({ tone, icon, rotate, value, label }: {
-  tone: "success" | "danger" | "primary";
-  icon: keyof typeof Ionicons.glyphMap;
-  rotate?: number;
-  value: number;
-  label: string;
-}) {
-  const theme = useTheme();
-  const text = formatAmount(value);
-  return (
-    <View
-      className="flex-row items-center rounded-full pl-1.5 pr-2.5"
-      style={{ height: 26, backgroundColor: theme.alpha(tone, 0.12) }}
-      accessibilityLabel={`${label} ${text}`}
-    >
-      <Ionicons
-        name={icon}
-        size={13}
-        color={theme[tone]}
-        style={rotate ? { transform: [{ rotate: `${rotate}deg` }] } : undefined}
-      />
-      <Text className="text-xs font-bold ml-0.5" style={{ color: theme[tone], fontVariant: ["tabular-nums"] }}>
-        {text}
-      </Text>
-    </View>
   );
 }
 
@@ -84,10 +58,10 @@ export function MonthDrawerHeader({
           paddingRight: 14,
           paddingVertical: 12,
           gap: 10,
-          borderTopLeftRadius: 16,
-          borderTopRightRadius: 16,
-          borderBottomLeftRadius: open ? 0 : 16,
-          borderBottomRightRadius: open ? 0 : 16,
+          borderTopLeftRadius: R,
+          borderTopRightRadius: R,
+          borderBottomLeftRadius: open ? 0 : R,
+          borderBottomRightRadius: open ? 0 : R,
         }}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
@@ -96,18 +70,13 @@ export function MonthDrawerHeader({
       >
         <View className="flex-1" style={{ minWidth: 0 }}>
           <Text className="text-body font-bold text-foreground">{label}</Text>
-          <Text className="text-xs text-muted-foreground mt-0.5">{count}</Text>
+          <Text className="text-meta text-muted-foreground mt-0.5">{count}</Text>
         </View>
         <View className="flex-row flex-wrap justify-end" style={{ gap: 6, flexShrink: 1 }}>
-          {(mode === "all" || mode === "credit") && (
-            <AmountChip tone="success" icon="arrow-down" rotate={45} value={summary.received} label="Money in" />
-          )}
-          {(mode === "all" || mode === "spend") && (
-            <AmountChip tone="danger" icon="arrow-up" rotate={45} value={summary.spent} label="Money out" />
-          )}
-          {mode === "transfer" && (
-            <AmountChip tone="primary" icon="swap-horizontal" value={summary.received + summary.spent} label="Moved" />
-          )}
+          {(mode === "all" || mode === "credit") && <MoneyChip tone="in" amount={summary.received} label="money in" />}
+          {/* Spending is the normal case: ink, not red. */}
+          {(mode === "all" || mode === "spend") && <MoneyChip tone="out" amount={summary.spent} label="money out" />}
+          {mode === "transfer" && <MoneyChip tone="moved" amount={summary.received + summary.spent} label="moved" />}
         </View>
         <Chevron open={open} color={theme.mutedForeground} />
       </Pressable>
@@ -129,7 +98,7 @@ export function DrawerEnd() {
   return (
     <View
       className="bg-card border-x border-b border-border"
-      style={{ marginHorizontal: CARD_MX, height: 8, borderBottomLeftRadius: 16, borderBottomRightRadius: 16 }}
+      style={{ marginHorizontal: CARD_MX, height: 8, borderBottomLeftRadius: R, borderBottomRightRadius: R }}
     />
   );
 }

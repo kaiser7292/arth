@@ -17,6 +17,12 @@ interface ExpenseListRowProps {
   rightElement?: React.ReactNode;
   /** Per-expense annotation for split/hisaab adjustments (drill-down screens). */
   splitNote?: string | null;
+  /** Grouped by day: the heading already says the date. */
+  hideDate?: boolean;
+  /** Ticked in bulk select. */
+  selected?: boolean;
+  /** Untagged rows: pick a category in place. */
+  onAddCategory?: (expense: Expense) => void;
 }
 
 function ExpenseListRowInner({
@@ -29,6 +35,9 @@ function ExpenseListRowInner({
   onLongPress,
   rightElement,
   splitNote,
+  hideDate,
+  selected,
+  onAddCategory,
 }: ExpenseListRowProps) {
   const category = item.category_id ? categoryMap.get(item.category_id) ?? null : null;
   const paymentMode = item.payment_mode_id ? paymentModeMap.get(item.payment_mode_id) ?? null : null;
@@ -49,6 +58,9 @@ function ExpenseListRowInner({
       onLongPress={handleLongPress}
       rightElement={rightElement}
       splitNote={splitNote}
+      hideDate={hideDate}
+      selected={selected}
+      onAddCategory={onAddCategory}
     />
   );
 }
