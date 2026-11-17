@@ -169,12 +169,34 @@ Licences, iPhone messages, SMS disclosure.
 
 ## Exact duplicates removed
 
-(Filled in as screens are built.)
+- Goals tab: the setup dots in the old FY strip (they repeated the setup card under them). "Month X of 12" moved into the Financial health hint.
+- Bucket detail: the round + button (the "+ Contribution" chip, and the "Add contribution" row when there is no history yet, open the same form).
+- Net worth: the separate "Net worth · Today" card (the trend card shows the same figure); it still shows when there is no history yet.
+- Hisaab ledger: the round + button (the new Lent action opens the same form).
 
 ## Questions for the owner
 
-(Filled in as screens are built. Anything listed here is kept as it is until answered.)
+Anything listed here is kept as it is until answered.
+
+1. **Goals tab, FY picker.** The board shows an "FY 2026–27 ▾" button. Today the Goals tab always shows the current year (the FY and its months are in the header). Add a year picker to the tab, or keep it on the current year?
+2. **Net worth chart, All / Liquid cash / Investments / Debt.** The board and the note show this switch on the chart. The app has a period switch there instead (This FY / 1Y / 3Y / All), not a by-type one. Keep the periods, add the type switch as well, or swap?
+3. **Settle sheet, "I paid Ravi".** The board has a Ravi paid me / I paid Ravi switch. The app records every settlement as money received (into the chosen account). Is "I paid them" a new behaviour to build, or should the sheet keep one direction?
+4. **Goals tab, risk coverage and year in review.** Not on the board; both kept (Track and Analyse lists). Confirm that's where they belong.
+5. **Bucket detail Edit.** "Edit" opens the bucket's form on the buckets list; after saving you land on the list, not back on the detail. Fine, or should it come back to the detail?
 
 ## Progress
 
-(Filled in as groups land.)
+Each commit passed `npm run typecheck` and `npx jest` (2,938 tests). Not checked on a device.
+
+| Group | Status | Commits |
+|---|---|---|
+| 1. Goals | Done: Goals tab, Yearly plan, Milestones (+ form), Loan detail, Add loan, Buckets (+ form), Bucket detail, Net worth, Income calculator; drill-ins and loan sub-screens restyled | 19ee715, a71e2aa, d487774, 12694eb, 324df07, f9526a9 |
+| 2. Hisaab | Done: People (+ form), Person ledger, Settle | e81d846 |
+| 3. Budget | Not started | |
+| 4. Account ledger + settings | Not started | |
+| 5. Insights, Vault, Simulator, Investments | Not started | |
+| 6. Add / edit transaction | Not started | |
+| 7. Settings | Not started | |
+| 8. Restyle only | Not started | |
+
+Shared parts added on the way: `components/ui/LinkRow.tsx` (LinkRow, StatTile, GroupLabel, HeaderPill, Statement, UnderlineTabs), `components/ui/FormParts.tsx` (FormGroup, FoldGroup, FormFooter), Input `prefix` / `suffix`, FAB `label`. `scripts/codemod-revamp-tokens.js` does the mechanical token move (text and corner classes, hex alpha, legacy colours); multi-line template strings need a hand fix.
