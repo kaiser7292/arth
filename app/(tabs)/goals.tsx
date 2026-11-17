@@ -1,11 +1,10 @@
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
-import { Card, ContextualHeader, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, Chip, ContextualHeader, LoadingState, ProgressBar, ScreenContainer, SectionTitle, Text } from "@/components/ui";
+import { GroupLabel, LinkRow } from "@/components/ui/LinkRow";
 import { AnimatedNumber, Appear, PressableScale } from "@/components/motion";
-import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import { getNetWorthHistory } from "@/services/net-worth-history";
@@ -28,8 +27,11 @@ import { useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
+import { tint } from "@/constants/brand";
 import { todayIso } from "@/utils/local-date";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 // Consume preload once at module level (single-use, clears the cache slot)
 const preloaded = consumeGoalsPreload();
@@ -37,7 +39,6 @@ const preloaded = consumeGoalsPreload();
 export default function GoalsScreen() {
   useCustomisation();
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const startMonth = getFYStartMonth();
   const currentFY = getCurrentFY(startMonth);
@@ -170,36 +171,27 @@ export default function GoalsScreen() {
   const milestoneProgressPct =
     milestoneTotalTarget > 0 ? Math.min(100, (milestoneTotalSaved / milestoneTotalTarget) * 100) : 0;
 
-  const accentColor = theme.primary;
-  const accentBg = theme.primary + "14";
+  const investColor = theme.data.transfer;
+  const milestoneColor = theme.data.series[3];
 
-  // Grade pill colours (computed only when cockpit data is available)
-  const gradeColorVal = hasCockpit && cockpitData
-    ? (cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
-        ? theme.success
+  // Grade chip tone (only when cockpit data is available)
+  const gradeTone: "success" | "primary" | "warning" | "danger" | "neutral" =
+    hasCockpit && cockpitData && !cockpitData.healthProvisional
+      ? cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
+        ? "success"
         : cockpitData.healthGrade === "B"
-          ? accentColor
+          ? "primary"
           : cockpitData.healthGrade === "C"
-            ? theme.warning
-            : theme.danger)
-    : colors.textSecondary;
-  const gradeBgVal = hasCockpit && cockpitData
-    ? (cockpitData.healthGrade === "A+" || cockpitData.healthGrade === "A"
-        ? theme.alpha("success", 0.08)
-        : cockpitData.healthGrade === "B"
-          ? accentColor + "14"
-          : cockpitData.healthGrade === "C"
-            ? theme.alpha("warning", 0.08)
-            : theme.alpha("danger", 0.08))
-    : colors.border;
+            ? "warning"
+            : "danger"
+      : "neutral";
 
   // FY end label for on-track signal (e.g. "Mar 2026")
   const fyEndLabel = (() => {
-    const short = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     const startIdx = startMonth - 1;
     const endIdx = (startIdx + 11) % 12;
     const endYear = endIdx < startIdx ? currentFY + 1 : currentFY;
-    return `${short[endIdx]} ${endYear}`;
+    return `${SHORT_MONTHS[endIdx]} ${endYear}`;
   })();
 
   if (!setupChecked) {
@@ -220,13 +212,35 @@ export default function GoalsScreen() {
     return `${fullMonths[startMonthIdx]} ${startYear} – ${fullMonths[endMonthIdx]} ${endYear}`;
   })();
 
+  // "Apr – Nov · 8 of 12 months": the stretch of the FY so far.
+  const fiscalMonth = cockpitData?.fiscalMonth ?? 0;
+  const soFar =
+    fiscalMonth > 0
+      ? `${SHORT_MONTHS[startMonth - 1]} – ${SHORT_MONTHS[(startMonth - 1 + fiscalMonth - 1) % 12]} · ${fiscalMonth} of 12 months`
+      : `${fyLabel}`;
+
+  const savings = cockpitData?.savings;
+  const headroom = cockpitData?.waterfall.breathingRoomMonthly ?? 0;
+  const advisory = cockpitData && cockpitData.advisories.length > 0 ? cockpitData.advisories[0] : null;
+
+  const yoySub =
+    yoyTile && (yoyTile.spentPct != null || yoyTile.savedPts != null)
+      ? [
+          yoyTile.spentPct != null ? `Spending ${yoyTile.spentPct <= 0 ? "down" : "up"} ${Math.abs(yoyTile.spentPct)}%` : null,
+          yoyTile.savedPts != null && yoyTile.savedPts !== 0
+            ? `saving ${yoyTile.savedPts > 0 ? "up" : "down"} ${Math.abs(yoyTile.savedPts)} pts`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(" · ") + " vs this time last year"
+      : "Two financial years, side by side";
+
+  const readyFY = getReadyReviewFY();
+
   return (
     <ScreenContainer>
       {loadFailed && <LoadFailedBanner onRetry={loadGoals} />}
-      <ContextualHeader
-        title="Goals"
-        subtitle={`${fyLabel} · ${fyRange}`}
-      />
+      <ContextualHeader title="Goals" subtitle={`${fyLabel} · ${fyRange}`} />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -242,500 +256,369 @@ export default function GoalsScreen() {
           />
         }
       >
-        <View className="px-4 pt-3">
-
-          {/* ── FY Header strip ── */}
-          <View className="mb-4">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-xs text-muted-foreground">
-                {fyLabel} · Month {cockpitData?.fiscalMonth ?? "—"} of 12
-              </Text>
-              {!setupComplete && (
-                <View className="flex-row items-center gap-1.5">
-                  {setupSteps.map((s, i) => (
-                    <View
-                      key={i}
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: s.done ? theme.success : colors.border }}
-                    />
-                  ))}
-                </View>
-              )}
-            </View>
-            {cockpitData && (
-              <ProgressBar value={((cockpitData.fiscalMonth / 12) * 100) / 100} color={accentColor} height={4} animated={false} />
-            )}
-          </View>
-
-          {/* ── Setup strip (new users) ── */}
+        <View className="px-4 pt-3" style={{ gap: 20 }}>
+          {/* ── Setup steps (new users) ── */}
           {!setupComplete && (
-            <Card className="mb-4">
-              <Text className="text-xs text-muted-foreground mb-3">
-                Complete these steps to unlock your {fyLabel} plan.
-              </Text>
+            <Card>
+              <SectionTitle
+                icon="list-outline"
+                title="Set up your plan"
+                hint={`${setupSteps.filter((s) => s.done).length} of 3 done · unlocks your ${fyLabel} plan`}
+                className="mb-2"
+              />
               {setupSteps.map((step, idx) => (
                 <Pressable
-                  key={idx}
+                  key={step.label}
                   onPress={() => router.push({ pathname: step.route, params: { fy: String(currentFY) } })}
-                  className={`flex-row items-center py-2.5${idx < setupSteps.length - 1 ? " border-b border-border" : ""}`}
+                  className={`flex-row items-center py-3 ${idx > 0 ? "border-t border-border" : ""}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${step.label}${step.done ? ", done" : ""}`}
                 >
                   <Ionicons
                     name={step.done ? "checkmark-circle" : "ellipse-outline"}
-                    size={18}
-                    color={step.done ? theme.success : colors.textSecondary}
+                    size={20}
+                    color={step.done ? theme.success : theme.faintForeground}
                     style={{ marginRight: 10 }}
                   />
                   <Text
-                    className={`flex-1 text-sm ${step.done ? "line-through text-muted-foreground" : "text-foreground font-medium"}`}
+                    className={`flex-1 text-body ${step.done ? "line-through text-muted-foreground" : "text-foreground font-semibold"}`}
+                    numberOfLines={1}
                   >
                     {step.label}
                   </Text>
-                  {!step.done && <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />}
+                  {!step.done && <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} />}
                 </Pressable>
               ))}
             </Card>
           )}
 
-          {/* ── Financial Health card ── */}
-          {hasCockpit && cockpitData && (
+          {/* ── Financial health ── */}
+          {hasCockpit && cockpitData && savings && (
             <Appear index={0}>
-            <PressableScale
-              onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
-              className="mb-4"
-              accessibilityRole="button"
-              accessibilityLabel="Financial health, open yearly plan"
-            >
-              <Card>
-                {/* Header: label + tappable grade pill + chevron */}
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
-                      Financial Health
+              <PressableScale
+                onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
+                accessibilityRole="button"
+                accessibilityLabel="Financial health, open yearly plan"
+              >
+                <Card>
+                  <SectionTitle
+                    icon="pulse-outline"
+                    active
+                    title="Financial health"
+                    hint={soFar}
+                    right={
+                      <Chip
+                        variant="status"
+                        tone={gradeTone}
+                        icon="information-circle-outline"
+                        label={cockpitData.healthProvisional ? "Early days" : `Grade ${cockpitData.healthGrade}`}
+                        accessibilityLabel="Health grade, how it's worked out"
+                        onPress={() =>
+                          router.push({
+                            pathname: "/goals/health-grade",
+                            params: {
+                              grade: cockpitData.healthGrade,
+                              score: String(Math.round(cockpitData.healthScore)),
+                              factorsJson: JSON.stringify(cockpitData.healthFactors),
+                              provisional: cockpitData.healthProvisional ? "1" : "0",
+                            },
+                          })
+                        }
+                      />
+                    }
+                  />
+
+                  <View className="flex-row items-end justify-between mt-3.5">
+                    <View>
+                      <Text className="text-meta text-muted-foreground">Savings rate</Text>
+                      <Text className="text-hero font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                        {savings.actualRatePct.toFixed(0)}%
+                      </Text>
+                    </View>
+                    <View className="items-end">
+                      <Text className="text-meta text-muted-foreground">Saved this FY</Text>
+                      <AnimatedNumber value={savings.totalSaved} className="text-heading font-bold text-foreground" />
+                    </View>
+                  </View>
+
+                  {/* Bar and "of target" only when a target is set (Financial Health rule) */}
+                  {savings.targetSavings > 0 && (
+                    <View className="mt-3.5" style={{ gap: 6 }}>
+                      <ProgressBar
+                        value={Math.min(1, savings.totalSaved / savings.targetSavings)}
+                        color={savings.isOnTrack ? theme.primary : theme.warning}
+                        height={8}
+                        delay={250}
+                      />
+                      {savings.targetRatePct > 0 && (
+                        <Text className="text-meta text-muted-foreground">
+                          {Math.round(Math.min(100, (savings.totalSaved / savings.targetSavings) * 100))}% of your{" "}
+                          {savings.targetRatePct.toFixed(0)}% target
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
+                  {savings.targetRatePct > 0 && cockpitData.monthsElapsed > 0 && (
+                    <View className="flex-row items-center mt-2" style={{ gap: 6 }}>
+                      <Ionicons
+                        name={savings.isOnTrack ? "checkmark-circle" : "warning-outline"}
+                        size={14}
+                        color={savings.isOnTrack ? theme.success : theme.warning}
+                      />
+                      <Text
+                        className="text-meta font-medium flex-1"
+                        style={{ color: savings.isOnTrack ? theme.success : theme.warning }}
+                        numberOfLines={2}
+                      >
+                        {savings.isOnTrack
+                          ? `On track · projected ${savings.projectedYearEndRate.toFixed(0)}% by ${fyEndLabel}`
+                          : `${formatAmount(savings.courseCorrectionPerMonth)} a month to reach ${savings.targetRatePct.toFixed(0)}% by ${fyEndLabel}`}
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Monthly headroom, as a line under the figures */}
+                  <View className="flex-row items-center justify-between border-t border-border mt-3.5 pt-3">
+                    <Text className="text-meta text-muted-foreground">Monthly headroom</Text>
+                    <Text
+                      className="text-meta font-semibold"
+                      style={{
+                        color: headroom < 0 ? theme.danger : headroom === 0 ? theme.warning : theme.foreground,
+                        fontVariant: ["tabular-nums"],
+                      }}
+                      numberOfLines={1}
+                    >
+                      {formatAmount(headroom)}{" "}
+                      {headroom < 0 ? "· commitments exceed income" : headroom === 0 ? "· all income committed" : "after commitments"}
                     </Text>
+                  </View>
+
+                  {/* Advisory strip (only when there is one) */}
+                  {advisory && (
                     <Pressable
                       onPress={() =>
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         router.push({
-                          pathname: "/goals/health-grade" as any,
+                          pathname: "/goals/advisory-detail",
                           params: {
-                            grade: cockpitData.healthGrade,
-                            score: String(Math.round(cockpitData.healthScore)),
-                            factorsJson: JSON.stringify(cockpitData.healthFactors),
-                            provisional: cockpitData.healthProvisional ? "1" : "0",
+                            advisoryJson: JSON.stringify(advisory),
+                            cockpitJson: JSON.stringify(cockpitData),
                           },
                         })
                       }
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      className="flex-row items-center rounded-control px-3 py-2.5 mt-3"
+                      style={{ backgroundColor: theme.alpha("warning", 0.08), gap: 10, minHeight: 48 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={advisory.title}
                     >
-                      <View
-                        className="flex-row items-center gap-1 px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: gradeBgVal }}
-                      >
-                        <Text className="text-label font-bold" style={{ color: gradeColorVal }}>
-                          {cockpitData.healthProvisional ? "Early days" : `Grade ${cockpitData.healthGrade}`}
-                        </Text>
-                        <Ionicons name="information-circle-outline" size={10} color={gradeColorVal} />
-                      </View>
-                    </Pressable>
-                  </View>
-                  <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-                </View>
-
-                {/* Metrics: Savings Rate | Monthly Headroom */}
-                <View className="flex-row gap-4 mb-3">
-                  <View className="flex-1">
-                    <Text className="text-xs text-muted-foreground mb-0.5">Savings Rate</Text>
-                    <Text className="text-xl font-bold text-foreground">
-                      {cockpitData.savings.actualRatePct.toFixed(1)}%
-                    </Text>
-                    {cockpitData.savings.targetRatePct > 0 && (
-                      <Text className="text-xs text-muted-foreground">
-                        of {cockpitData.savings.targetRatePct.toFixed(0)}% target
-                      </Text>
-                    )}
-                  </View>
-                  {(() => {
-                    const hRoom = cockpitData.waterfall.breathingRoomMonthly;
-                    const hNeg  = hRoom < 0;
-                    const hZero = hRoom === 0;
-                    const hColor = hNeg
-                      ? theme.danger
-                      : hZero
-                        ? theme.warning
-                        : undefined;
-                    return (
+                      <Ionicons name="alert-circle-outline" size={18} color={theme.warning} />
                       <View className="flex-1">
-                        <Text className="text-xs text-muted-foreground mb-0.5">
-                          Monthly Headroom
+                        <Text className="text-meta font-semibold text-foreground" numberOfLines={1}>
+                          {advisory.title}
                         </Text>
-                        <AnimatedNumber
-                          value={hRoom}
-                          className="text-xl font-bold text-foreground"
-                          style={hColor ? { color: hColor } : undefined}
-                        />
-                        <Text
-                          className="text-xs text-muted-foreground"
-                          style={hColor ? { color: hColor } : undefined}
-                        >
-                          {hNeg ? "commitments exceed income" : hZero ? "all income committed" : "after commitments"}
+                        <Text className="text-label text-muted-foreground" numberOfLines={2}>
+                          {advisory.message}
                         </Text>
                       </View>
-                    );
-                  })()}
-                </View>
-
-                {/* Savings progress bar */}
-                {cockpitData.savings.targetSavings > 0 && (
-                  <ProgressBar value={(Math.min(100, (cockpitData.savings.totalSaved / cockpitData.savings.targetSavings) * 100)) / 100} color={cockpitData.savings.isOnTrack
-                          ? theme.success
-                          : theme.warning} height={6} delay={250} />
-                )}
-
-                {/* On-track signal */}
-                {cockpitData.savings.targetRatePct > 0 && cockpitData.monthsElapsed > 0 && (
-                  <View className="flex-row items-center gap-1.5">
-                    <Ionicons
-                      name={cockpitData.savings.isOnTrack ? "checkmark-circle" : "warning-outline"}
-                      size={11}
-                      color={
-                        cockpitData.savings.isOnTrack
-                          ? theme.success
-                          : theme.warning
-                      }
-                    />
-                    <Text
-                      className="text-label font-medium"
-                      style={{
-                        color: cockpitData.savings.isOnTrack
-                          ? theme.success
-                          : theme.warning,
-                      }}
-                    >
-                      {cockpitData.savings.isOnTrack
-                        ? `On track · projected ${cockpitData.savings.projectedYearEndRate.toFixed(0)}% by ${fyEndLabel}`
-                        : `${formatAmount(cockpitData.savings.courseCorrectionPerMonth)}/mo to reach ${cockpitData.savings.targetRatePct.toFixed(0)}% by ${fyEndLabel}`
-                      }
-                    </Text>
-                  </View>
-                )}
-              </Card>
-            </PressableScale>
+                      <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
+                    </Pressable>
+                  )}
+                </Card>
+              </PressableScale>
             </Appear>
-          )}
-
-          {/* ── Advisory strip ── */}
-          {cockpitData && cockpitData.advisories.length > 0 && (
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: "/goals/advisory-detail",
-                  params: {
-                    advisoryJson: JSON.stringify(cockpitData.advisories[0]),
-                    cockpitJson: JSON.stringify(cockpitData),
-                  },
-                })
-              }
-              className="mb-4"
-            >
-              <View
-                className="flex-row items-center p-3 rounded-xl"
-                style={{ backgroundColor: theme.alpha("warning", 0.08) }}
-              >
-                <Ionicons name="alert-circle-outline" size={18} color={theme.warning} />
-                <View className="flex-1 ml-2.5">
-                  <Text
-                    className="text-sm font-medium"
-                    style={{ color: theme.warning }}
-                    numberOfLines={1}
-                  >
-                    {cockpitData.advisories[0].title}
-                  </Text>
-                  <Text
-                    className="text-xs"
-                    style={{ color: theme.warning, opacity: 0.8 }}
-                    numberOfLines={2}
-                  >
-                    {cockpitData.advisories[0].message}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={theme.warning} />
-              </View>
-            </Pressable>
           )}
 
           {/* ── No cockpit but setup done ── */}
           {!hasCockpit && setupComplete && (
-            <Card className="mb-4">
+            <Card>
               <View className="items-center py-6">
-                <Ionicons name="analytics-outline" size={48} color={colorScheme === "dark" ? theme.faintForeground : theme.mutedForeground} />
-                <Text className="text-base font-medium text-foreground mt-3">
-                  Building your cockpit...
-                </Text>
-                <Text className="text-sm text-muted-foreground text-center mt-1">
+                <Ionicons name="analytics-outline" size={48} color={theme.faintForeground} />
+                <Text className="text-body font-semibold text-foreground mt-3">Building your cockpit...</Text>
+                <Text className="text-meta text-muted-foreground text-center mt-1">
                   Add expenses and contributions to see your financial story.
                 </Text>
               </View>
             </Card>
           )}
 
-          {/* ── PLAN section: Investment + Life Milestones ── */}
-          <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
-            Plan
-          </Text>
+          {/* ── PLAN: Investment buckets + Life milestones ── */}
           <Appear index={1}>
-          <View className="flex-row gap-3 mb-4">
-            {/* Investment */}
-            <PressableScale
-              className="flex-1"
-              fill
-              onPress={() => router.push({ pathname: "/goals/investment-buckets", params: { fy: String(currentFY) } })}
-              accessibilityRole="button"
-              accessibilityLabel="Investment buckets"
-            >
-              <Card className="flex-1">
-                <View className="flex-row items-center gap-2 mb-3">
-                  <View
-                    className="w-8 h-8 rounded-full items-center justify-center shrink-0"
-                    style={{ backgroundColor: accentBg }}
-                  >
-                    <Ionicons name="pie-chart-outline" size={16} color={accentColor} />
-                  </View>
-                  <Text className="text-xs font-semibold text-muted-foreground flex-1" numberOfLines={1}>
-                    Investment
-                  </Text>
-                </View>
-                {fyBuckets.length > 0 ? (
-                  <>
-                    <AnimatedNumber value={bucketContributed} className="text-base font-bold text-foreground" />
-                    <Text className="text-xs text-muted-foreground mb-2" numberOfLines={1}>
-                      of {formatAmount(bucketTotalTarget)} · {fyBuckets.length} buckets
-                    </Text>
-                    <ProgressBar value={bucketProgressPct / 100} color={accentColor} height={4} delay={300} />
-                  </>
-                ) : (
-                  <Text className="text-sm text-muted-foreground">
-                    None added
-                  </Text>
-                )}
-              </Card>
-            </PressableScale>
-
-            {/* Life Milestones */}
-            <PressableScale
-              className="flex-1"
-              fill
-              onPress={() => router.push("/goals/milestones")}
-              accessibilityRole="button"
-              accessibilityLabel="Life milestones"
-            >
-              <Card className="flex-1">
-                <View className="flex-row items-center gap-2 mb-3">
-                  <View
-                    className="w-8 h-8 rounded-full items-center justify-center shrink-0"
-                    style={{ backgroundColor: "#14B8A614" }}
-                  >
-                    <Ionicons name="flag-outline" size={16} color="#14B8A6" />
-                  </View>
-                  <Text className="text-xs font-semibold text-muted-foreground flex-1" numberOfLines={1}>
-                    Life Milestones
-                  </Text>
-                </View>
-                {fyMilestones.length > 0 ? (
-                  <>
-                    <AnimatedNumber value={milestoneTotalSaved} className="text-base font-bold text-foreground" />
-                    <Text className="text-xs text-muted-foreground mb-2" numberOfLines={1}>
-                      of {formatAmount(milestoneTotalTarget)} · {fyMilestones.length} goals
-                    </Text>
-                    <ProgressBar value={milestoneProgressPct / 100} color="#14B8A6" height={4} delay={360} />
-                  </>
-                ) : (
-                  <Text className="text-sm text-muted-foreground">
-                    None added
-                  </Text>
-                )}
-              </Card>
-            </PressableScale>
-          </View>
+            <GroupLabel>Plan</GroupLabel>
+            <View className="flex-row" style={{ gap: 10 }}>
+              <PlanTile
+                icon="pie-chart-outline"
+                color={investColor}
+                title="Investments"
+                sub={hasFYBuckets ? `${fyBuckets.length} ${fyBuckets.length === 1 ? "bucket" : "buckets"}` : "None added"}
+                done={hasFYBuckets ? formatCompact(bucketContributed) : null}
+                target={bucketTotalTarget > 0 ? formatCompact(bucketTotalTarget) : null}
+                pct={bucketTotalTarget > 0 ? bucketProgressPct : null}
+                onPress={() => router.push({ pathname: "/goals/investment-buckets", params: { fy: String(currentFY) } })}
+              />
+              <PlanTile
+                icon="flag-outline"
+                color={milestoneColor}
+                title="Milestones"
+                sub={
+                  nextMilestone
+                    ? `Next: ${nextMilestone.name} · ${fmtMonth(nextMilestone.target_date)}`
+                    : hasMilestones
+                      ? `${fyMilestones.length} ${fyMilestones.length === 1 ? "goal" : "goals"}`
+                      : "None added"
+                }
+                done={hasMilestones ? formatCompact(milestoneTotalSaved) : null}
+                target={milestoneTotalTarget > 0 ? formatCompact(milestoneTotalTarget) : null}
+                pct={milestoneTotalTarget > 0 ? milestoneProgressPct : null}
+                onPress={() => router.push("/goals/milestones")}
+              />
+            </View>
           </Appear>
 
-          {/* ── TRACK section: Loans + Net Worth ── */}
-          <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
-            Track
-          </Text>
+          {/* ── TRACK: Loans, risk coverage, balance sheet ── */}
           <Appear index={2}>
-          <Card className="mb-4">
-            {isPartOn("loans") && (
-            <Pressable
-              onPress={() => router.push("/goals/loans")}
-              className="flex-row items-center py-3 border-b border-border"
-            >
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: "#F5945C14" }}
-              >
-                <Ionicons name="cash-outline" size={18} color="#F5945C" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">
-                  Loans & Debt
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {activeLoansCount > 0
-                    ? `${activeLoansCount} active · ${formatAmount(totalMonthlyEMI)}/mo EMI`
-                    : "No active loans"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-            )}
-
-            <Pressable
-              onPress={() => router.push("/goals/risk-coverage")}
-              className="flex-row items-center py-3 border-b border-border"
-            >
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: "#8B5CF614" }}
-              >
-                <Ionicons name="shield-checkmark-outline" size={18} color={TRANSFER_COLOR} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">
-                  Risk Coverage
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {insuranceCount > 0
-                    ? `${insuranceCount} active ${insuranceCount === 1 ? "policy" : "policies"}${insuranceAdequacy ? ` · ${insuranceAdequacy.gaps.length > 0 ? `${insuranceAdequacy.gaps.length} gap${insuranceAdequacy.gaps.length > 1 ? "s" : ""}` : "All covered"}` : ""}`
-                    : "Track your insurance policies"}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-
-            <Pressable
-              onPress={() => router.push("/goals/balance-sheet")}
-              className="flex-row items-center py-3"
-            >
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: "#14B8A614" }}
-              >
-                <Ionicons name="scale-outline" size={18} color="#14B8A6" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">
-                  Net Worth
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {netWorth != null
-                    ? formatAmount(netWorth)
-                    : "Assets, liabilities & net worth"}
-                  {netWorth != null && netWorthFYChange != null && netWorthFYChange !== 0 && (
-                    <Text
-                      className="text-xs font-medium"
-                      style={{ color: netWorthFYChange > 0 ? theme.success : theme.danger }}
-                    >
-                      {"  "}{netWorthFYChange > 0 ? "▲" : "▼"} {formatCompact(Math.abs(netWorthFYChange))} this FY
-                    </Text>
-                  )}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </Pressable>
-          </Card>
-          </Appear>
-
-          {/* ── ANALYSE section ── */}
-          <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
-            Analyse
-          </Text>
-          <Appear index={3}>
-          <View className="mb-4" style={{ gap: 8 }}>
-            <AnalyseTile
-              icon="git-compare-outline"
-              color={theme.warning}
-              title="Year over Year"
-              onPress={() => router.push("/goals/yoy-comparison")}
-            >
-              {yoyTile && (yoyTile.spentPct != null || yoyTile.savedPts != null) ? (
-                <Text className="text-xs text-muted-foreground">
-                  {yoyTile.spentPct != null && (
-                    <Text className="text-xs font-semibold" style={{ color: yoyTile.spentPct <= 0 ? theme.success : theme.danger }}>
-                      Spending {yoyTile.spentPct <= 0 ? "▼" : "▲"} {Math.abs(yoyTile.spentPct)}%
-                    </Text>
-                  )}
-                  {yoyTile.spentPct != null && yoyTile.savedPts != null && yoyTile.savedPts !== 0 ? " · " : ""}
-                  {yoyTile.savedPts != null && yoyTile.savedPts !== 0
-                    ? `saving ${yoyTile.savedPts > 0 ? "▲" : "▼"} ${Math.abs(yoyTile.savedPts)} pts`
-                    : ""}
-                  {" vs this time last year"}
-                </Text>
-              ) : (
-                <Text className="text-xs text-muted-foreground">Any two financial years, side by side</Text>
+            <GroupLabel>Track</GroupLabel>
+            <View className="rounded-card bg-card border border-border overflow-hidden">
+              {isPartOn("loans") && (
+                <LinkRow
+                  divider={false}
+                  icon="business-outline"
+                  color={theme.data.series[1]}
+                  title="Loans & debt"
+                  sub={
+                    activeLoansCount > 0
+                      ? `${activeLoansCount} ${activeLoansCount === 1 ? "loan" : "loans"} · ${formatAmount(totalMonthlyEMI)} a month`
+                      : "No active loans"
+                  }
+                  onPress={() => router.push("/goals/loans")}
+                />
               )}
-            </AnalyseTile>
-            {isPartOn("insights") && (
-            <AnalyseTile
-              icon="sparkles-outline"
-              color={theme.primary}
-              title="Year in Review"
-              onPress={() => router.push({ pathname: "/insights/year-review", params: { fy: String(getReadyReviewFY() ?? currentFY) } })}
-            >
-              <Text className="text-xs text-muted-foreground">
-                {getReadyReviewFY() != null
-                  ? `${getFYLabel(getReadyReviewFY()!, startMonth)} is ready to swipe through`
-                  : `${fyLabel} so far, as a story`}
-              </Text>
-            </AnalyseTile>
-            )}
-            <AnalyseTile
-              icon="calculator-outline"
-              color={theme.success}
-              title="Income Calculator"
-              onPress={() => router.push("/goals/salary-calculator")}
-            >
-              <Text className="text-xs text-muted-foreground">
-                {takeHome > 0 ? `Take-home ${formatAmount(takeHome)} a month` : "CTC, tax and capital gains"}
-              </Text>
-            </AnalyseTile>
-          </View>
+              <LinkRow
+                divider={isPartOn("loans")}
+                icon="shield-checkmark-outline"
+                color={theme.data.transfer}
+                title="Risk coverage"
+                sub={
+                  insuranceCount > 0
+                    ? `${insuranceCount} active ${insuranceCount === 1 ? "policy" : "policies"}${
+                        insuranceAdequacy
+                          ? ` · ${
+                              insuranceAdequacy.gaps.length > 0
+                                ? `${insuranceAdequacy.gaps.length} ${insuranceAdequacy.gaps.length > 1 ? "gaps" : "gap"}`
+                                : "all covered"
+                            }`
+                          : ""
+                      }`
+                    : "Track your insurance policies"
+                }
+                onPress={() => router.push("/goals/risk-coverage")}
+              />
+              <LinkRow
+                icon="scale-outline"
+                color={theme.success}
+                title="Balance sheet"
+                sub={
+                  netWorthFYChange != null && netWorthFYChange !== 0 && netWorth != null
+                    ? `Net worth · ${netWorthFYChange > 0 ? "up" : "down"} ${formatCompact(Math.abs(netWorthFYChange))} this FY`
+                    : "Net worth"
+                }
+                value={netWorth != null ? formatCompact(netWorth) : null}
+                onPress={() => router.push("/goals/balance-sheet")}
+              />
+            </View>
           </Appear>
 
+          {/* ── ANALYSE ── */}
+          <Appear index={3}>
+            <GroupLabel>Analyse</GroupLabel>
+            <View className="rounded-card bg-card border border-border overflow-hidden">
+              <LinkRow
+                divider={false}
+                icon="calendar-outline"
+                title="Yearly plan"
+                sub="Income, outflow and surplus"
+                onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
+              />
+              <LinkRow
+                icon="bar-chart-outline"
+                title="Year over year"
+                sub={yoySub}
+                onPress={() => router.push("/goals/yoy-comparison")}
+              />
+              {isPartOn("insights") && (
+                <LinkRow
+                  icon="sparkles-outline"
+                  title="Year in review"
+                  sub={readyFY != null ? `${getFYLabel(readyFY, startMonth)} is ready to swipe through` : `${fyLabel} so far, as a story`}
+                  onPress={() =>
+                    router.push({ pathname: "/insights/year-review", params: { fy: String(readyFY ?? currentFY) } })
+                  }
+                />
+              )}
+              <LinkRow
+                icon="calculator-outline"
+                title="Income calculator"
+                sub={takeHome > 0 ? `Take-home ${formatAmount(takeHome)} a month` : "Salary, tax and in-hand pay"}
+                onPress={() => router.push("/goals/salary-calculator")}
+              />
+            </View>
+          </Appear>
         </View>
       </ScrollView>
     </ScreenContainer>
   );
 }
 
-/** One row of the Analyse section: an icon tile, a title and a live line underneath. */
-function AnalyseTile({
+/** "2027-03-15" -> "Mar 2027". */
+function fmtMonth(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const [y, m] = iso.split("-");
+  const i = Number(m) - 1;
+  return i >= 0 && i < 12 ? `${SHORT_MONTHS[i]} ${y}` : iso;
+}
+
+/** One of the two Plan cards: icon, title, a live line, "₹6.8L of ₹12L" and a bar when there's a target. */
+function PlanTile({
   icon,
   color,
   title,
+  sub,
+  done,
+  target,
+  pct,
   onPress,
-  children,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
   title: string;
+  sub: string;
+  done: string | null;
+  target: string | null;
+  pct: number | null;
   onPress: () => void;
-  children: React.ReactNode;
 }) {
-  const { colors } = useColorScheme();
   return (
-    <PressableScale onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>
-      <Card>
-        <View className="flex-row items-center">
-          <View className="w-10 h-10 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: color + "1A" }}>
-            <Ionicons name={icon} size={19} color={color} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-sm font-semibold text-foreground">{title}</Text>
-            {children}
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+    <PressableScale className="flex-1" fill onPress={onPress} accessibilityRole="button" accessibilityLabel={title}>
+      <View className="flex-1 rounded-card bg-card border border-border p-3.5" style={{ gap: 10 }}>
+        <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: tint(color, 0.1) }}>
+          <Ionicons name={icon} size={17} color={color} />
         </View>
-      </Card>
+        <View>
+          <Text className="text-body font-bold text-foreground" numberOfLines={1}>
+            {title}
+          </Text>
+          <Text className="text-meta text-muted-foreground" numberOfLines={1}>
+            {sub}
+          </Text>
+        </View>
+        {done != null && (
+          <Text className="text-meta font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }} numberOfLines={1}>
+            {done}
+            {target != null && <Text className="text-meta text-muted-foreground"> of {target}</Text>}
+          </Text>
+        )}
+        {pct != null && <ProgressBar value={pct / 100} color={color} height={6} animated={false} />}
+      </View>
     </PressableScale>
   );
 }
+

@@ -119,7 +119,7 @@ export default function YoYComparisonScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <Ionicons name="alert-circle-outline" size={32} color={theme.danger} />
-          <Text className="text-base font-semibold text-foreground mt-3 text-center">Couldn't compare the years</Text>
+          <Text className="text-body font-semibold text-foreground mt-3 text-center">Couldn't compare the years</Text>
           <View className="mt-4 w-40">
             <Button title="Try again" onPress={() => void load()} />
           </View>
@@ -138,7 +138,7 @@ export default function YoYComparisonScreen() {
         {/* Which two years */}
         <View className="flex-row items-center flex-wrap px-4 pt-3" style={{ gap: 8 }}>
           <YearPill label={inProgress ? `${fyLabel(fy)} so far` : fyLabel(fy)} onPress={() => setFyPicker(true)} />
-          <Text className="text-xs text-muted-foreground">vs</Text>
+          <Text className="text-label text-muted-foreground">vs</Text>
           <YearPill label={data.partial ? `${fyLabel(baseFy)}, same months` : fyLabel(baseFy)} onPress={() => setBasePicker(true)} />
         </View>
         {inProgress && (
@@ -157,21 +157,21 @@ export default function YoYComparisonScreen() {
 
         {nothing ? (
           <Card className="mx-4 mt-3">
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-meta text-muted-foreground">
               No spending or money in recorded for these years yet. Pick other years, or come back once there's some history.
             </Text>
           </Card>
         ) : (
           <>
             <Card className="mx-4 mt-3">
-              <Text className="text-base font-semibold text-foreground leading-6">{data.summary}</Text>
+              <Text className="text-body font-semibold text-foreground leading-6">{data.summary}</Text>
             </Card>
 
             <View className="flex-row flex-wrap px-4 mt-2" style={{ gap: 8 }}>
               {tiles.map((t) => (
-                <View key={t.label} className="bg-card rounded-xl border border-border px-3 py-2.5" style={{ width: "48.5%" }}>
-                  <Text className="text-xs text-muted-foreground">{t.label}</Text>
-                  <Text className="text-lg font-bold text-foreground mt-0.5">{t.value}</Text>
+                <View key={t.label} className="bg-card rounded-card border border-border px-3 py-2.5" style={{ width: "48.5%" }}>
+                  <Text className="text-label text-muted-foreground">{t.label}</Text>
+                  <Text className="text-heading font-bold text-foreground mt-0.5">{t.value}</Text>
                   <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
                     {t.change ? (
                       <Text
@@ -189,7 +189,7 @@ export default function YoYComparisonScreen() {
             </View>
 
             <Card className="mx-4 mt-3">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Spending through the year
               </Text>
               <YoYCumulativeChart
@@ -203,7 +203,7 @@ export default function YoYComparisonScreen() {
 
             {data.movers.length > 0 && (
               <Card className="mx-4 mt-3">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Biggest movers</Text>
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Biggest movers</Text>
                 {data.movers.map((m, i) => {
                   const up = m.curr > m.prev;
                   const diff = Math.abs(m.curr - m.prev);
@@ -224,14 +224,14 @@ export default function YoYComparisonScreen() {
                       accessibilityRole={m.expenseIds.length > 0 ? "button" : undefined}
                     >
                       <View className="flex-1">
-                        <Text className="text-sm text-foreground" numberOfLines={1}>{m.name}</Text>
+                        <Text className="text-meta text-foreground" numberOfLines={1}>{m.name}</Text>
                         <Text className="text-label text-muted-foreground">
                           {formatAmount(m.prev)} → {formatAmount(m.curr)}
                         </Text>
                       </View>
-                      <Text className="text-sm font-semibold" style={{ color: up ? theme.danger : theme.success }}>
+                      <Text className="text-body font-semibold" style={{ color: up ? theme.danger : theme.success }}>
                         {up ? "▲" : "▼"} {m.changePct != null ? `${Math.abs(Math.round(m.changePct))}%` : "new"}
-                        <Text className="text-xs text-muted-foreground"> {up ? "+" : "−"}{formatCompact(diff)}</Text>
+                        <Text className="text-label text-muted-foreground"> {up ? "+" : "−"}{formatCompact(diff)}</Text>
                       </Text>
                       {m.expenseIds.length > 0 && <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />}
                     </Pressable>
@@ -277,12 +277,12 @@ function YearPill({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center rounded-lg border px-3 py-1.5 bg-card"
+      className="flex-row items-center rounded-control border px-3 py-1.5 bg-card"
       style={{ borderColor: theme.border }}
       accessibilityRole="button"
       accessibilityLabel={`${label}, change year`}
     >
-      <Text className="text-xs font-medium text-foreground">{label}</Text>
+      <Text className="text-label font-medium text-foreground">{label}</Text>
       <Ionicons name="chevron-down" size={12} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
     </Pressable>
   );

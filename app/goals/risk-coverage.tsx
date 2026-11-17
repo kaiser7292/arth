@@ -117,11 +117,11 @@ export default function RiskCoverageScreen() {
             <Card>
               <View className="flex-row items-center justify-between mb-3">
                 <View>
-                  <Text className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">
+                  <Text className="text-label text-muted-foreground uppercase tracking-wider mb-0.5">
                     Coverage Score
                   </Text>
                   <Text
-                    className="text-2xl font-bold"
+                    className="text-title font-bold"
                     style={{
                       color:
                         adequacy.coveredCount >= adequacy.totalRelevant
@@ -135,10 +135,10 @@ export default function RiskCoverageScreen() {
                   </Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-label text-muted-foreground">
                     Total annual premium
                   </Text>
-                  <Text className="text-sm font-semibold text-foreground">
+                  <Text className="text-body font-semibold text-foreground">
                     {formatAmount(totalPremium)}
                   </Text>
                 </View>
@@ -171,7 +171,7 @@ export default function RiskCoverageScreen() {
                   {adequacy.gaps.map((g) => (
                     <View key={g} className="flex-row items-start gap-1.5 mb-1">
                       <Ionicons name="alert-circle" size={13} color={theme.warning} style={{ marginTop: 1 }} />
-                      <Text className="text-xs text-muted-foreground flex-1">
+                      <Text className="text-label text-muted-foreground flex-1">
                         {g}
                       </Text>
                     </View>
@@ -185,11 +185,11 @@ export default function RiskCoverageScreen() {
         {/* Policy list grouped by type */}
         {policies.length === 0 ? (
           <View className="items-center justify-center py-16 px-8">
-            <Ionicons name="shield-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-sm text-muted-foreground text-center mt-3">
+            <Ionicons name="shield-outline" size={48} color={theme.mutedForeground} />
+            <Text className="text-meta text-muted-foreground text-center mt-3">
               No insurance policies added yet
             </Text>
-            <Text className="text-xs text-muted-foreground text-center mt-1 opacity-60">
+            <Text className="text-label text-muted-foreground text-center mt-1 opacity-60">
               Track your policies to get better retirement and health assessments
             </Text>
           </View>
@@ -203,11 +203,11 @@ export default function RiskCoverageScreen() {
               return (
                 <View key={type} className="px-4 mb-3">
                   <View className="flex-row items-center gap-2 mb-1.5">
-                    <Ionicons name={meta.icon} size={14} color={colors.textSecondary} />
-                    <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1">
+                    <Ionicons name={meta.icon} size={14} color={theme.mutedForeground} />
+                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider flex-1">
                       {meta.label}
                     </Text>
-                    <Text className="text-xs text-muted-foreground">
+                    <Text className="text-label text-muted-foreground">
                       {formatAmount(groupSum)} cover
                     </Text>
                   </View>
@@ -221,10 +221,10 @@ export default function RiskCoverageScreen() {
                         }`}
                       >
                         <View className="flex-1">
-                          <Text className="text-sm font-medium text-foreground">
+                          <Text className="text-body font-medium text-foreground">
                             {p.provider_name}
                           </Text>
-                          <Text className="text-xs text-muted-foreground mt-0.5">
+                          <Text className="text-label text-muted-foreground mt-0.5">
                             {formatAmount(p.sum_insured)} cover
                             {p.annual_premium > 0 ? ` · ${formatAmount(p.annual_premium)}/yr` : ""}
                             {p.expiry_date ? ` · Exp ${formatShortDate(p.expiry_date)}` : ""}
@@ -233,10 +233,10 @@ export default function RiskCoverageScreen() {
                         <View className="flex-row items-center gap-1.5">
                           {!p.is_active && (
                             <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.alpha("danger", 0.08) }}>
-                              <Text className="text-xs" style={{ color: theme.danger }}>Lapsed</Text>
+                              <Text className="text-label" style={{ color: theme.danger }}>Lapsed</Text>
                             </View>
                           )}
-                          <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+                          <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
                         </View>
                       </Pressable>
                     ))}
@@ -270,7 +270,7 @@ function Badge({ label, ok }: { label: string; ok: boolean }) {
       className="px-2.5 py-1 rounded-full"
       style={{ backgroundColor: ok ? theme.alpha("success", 0.08) : theme.alpha("danger", 0.08) }}
     >
-      <Text className="text-xs font-medium" style={{ color: ok ? theme.success : theme.danger }}>
+      <Text className="text-label font-medium" style={{ color: ok ? theme.success : theme.danger }}>
         {label}
       </Text>
     </View>

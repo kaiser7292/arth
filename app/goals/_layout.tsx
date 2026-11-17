@@ -10,11 +10,11 @@ export default function GoalsLayout() {
     >
       <Stack.Screen
         name="yearly-plan"
-        options={{ title: "Yearly Financial Plan" }}
+        options={{ title: "Yearly plan" }}
       />
       <Stack.Screen
         name="investment-buckets"
-        options={{ title: "Investment Buckets" }}
+        options={{ title: "Investment buckets" }}
       />
       <Stack.Screen
         name="loans"
@@ -22,39 +22,39 @@ export default function GoalsLayout() {
       />
       <Stack.Screen
         name="investment-detail"
-        options={{ title: "Investment Detail" }}
+        options={{ title: "Investment bucket" }}
       />
       <Stack.Screen
         name="milestones"
-        options={{ title: "Life Milestones" }}
+        options={{ title: "Life milestones" }}
       />
       <Stack.Screen
         name="milestone-detail"
-        options={{ title: "Milestone Detail" }}
+        options={{ title: "Milestone" }}
       />
       <Stack.Screen
         name="yoy-comparison"
-        options={{ title: "Year-over-Year" }}
+        options={{ title: "Year over year" }}
       />
       <Stack.Screen
         name="balance-sheet"
-        options={{ title: "Net Worth" }}
+        options={{ title: "Net worth" }}
       />
       <Stack.Screen
         name="salary-calculator"
-        options={{ title: "Income Calculator" }}
+        options={{ title: "Income calculator" }}
       />
       <Stack.Screen
         name="capital-gains-reference"
-        options={{ title: "Capital Gains Reference" }}
+        options={{ title: "Capital gains reference" }}
       />
       <Stack.Screen
         name="health-grade"
-        options={{ title: "Financial Health" }}
+        options={{ title: "Financial health" }}
       />
       <Stack.Screen
         name="risk-coverage"
-        options={{ title: "Risk Coverage" }}
+        options={{ title: "Risk coverage" }}
       />
     </Stack>
   );

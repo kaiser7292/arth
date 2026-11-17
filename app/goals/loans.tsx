@@ -179,7 +179,7 @@ export default function LoansListScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 80, paddingTop: 12 }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textSecondary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.mutedForeground} />
         }
       >
         {loans.length === 0 && (
@@ -189,12 +189,12 @@ export default function LoansListScreen() {
                 className="w-14 h-14 rounded-full items-center justify-center mb-3"
                 style={{ backgroundColor: theme.alpha("primary", 0.08) }}
               >
-                <Ionicons name="cash-outline" size={28} color={colors.blue} />
+                <Ionicons name="cash-outline" size={28} color={theme.data.series[3]} />
               </View>
-              <Text className="text-base font-semibold text-foreground mb-1">
+              <Text className="text-body font-semibold text-foreground mb-1">
                 No loans yet
               </Text>
-              <Text className="text-sm text-muted-foreground text-center px-6">
+              <Text className="text-meta text-muted-foreground text-center px-6">
                 Add a loan to track amortization, outstanding principal, and plan prepayments.
               </Text>
             </View>
@@ -203,7 +203,7 @@ export default function LoansListScreen() {
 
         {activeLoans.length > 0 && (
           <>
-            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Active
             </Text>
             {activeLoans.map((loan) => (
@@ -222,11 +222,11 @@ export default function LoansListScreen() {
               onPress={() => setClosedLoansExpanded(e => !e)}
               className="flex-row items-center mt-4 mb-2"
             >
-              <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1">
+              <Ionicons name="archive-outline" size={14} color={theme.mutedForeground} style={{ marginRight: 6 }} />
+              <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider flex-1">
                 {closedLoans.length} settled / closed {closedLoans.length === 1 ? "loan" : "loans"}
               </Text>
-              <Ionicons name={closedLoansExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
+              <Ionicons name={closedLoansExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={theme.mutedForeground} />
             </Pressable>
             {closedLoansExpanded && closedLoans.map((loan) => (
               <LoanCard
@@ -269,24 +269,24 @@ function LoanCard({
             className="w-10 h-10 rounded-full items-center justify-center mr-3"
             style={{ backgroundColor: theme.alpha("primary", 0.08) }}
           >
-            <Ionicons name="cash-outline" size={20} color={colors.blue} />
+            <Ionicons name="cash-outline" size={20} color={theme.data.series[3]} />
           </View>
           <View className="flex-1">
-            <Text className="text-base font-bold text-foreground">
+            <Text className="text-body font-bold text-foreground">
               {loan.bank_name} · {LOAN_TYPE_LABEL[loan.loan_type] ?? loan.loan_type}
             </Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {loan.tenure_months}mo @ {loan.interest_rate_pa}% · EMI {formatAmount(Math.round(loan.current_emi))}
             </Text>
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Text className="text-xs text-muted-foreground">
+            <Text className="text-label text-muted-foreground">
               Outstanding
             </Text>
             {loan.currency === "INR" ? (
-              <AnimatedNumber value={loan.outstanding} className="text-sm font-bold text-danger" />
+              <AnimatedNumber value={loan.outstanding} className="text-body font-bold text-foreground" />
             ) : (
-              <Text className="text-sm font-bold text-danger">
+              <Text className="text-body font-bold text-foreground">
                 {`${loan.currency} ${loan.outstanding.toLocaleString()}`}
               </Text>
             )}
@@ -294,7 +294,7 @@ function LoanCard({
         </View>
         {/* Repaid so far - fills when the card appears. */}
         <ProgressBar value={progress / 100} color={theme.primary} height={4} delay={200} className="mt-1" />
-        <Text className="text-xs text-faint-foreground mt-1">
+        <Text className="text-label text-faint-foreground mt-1">
           {progress.toFixed(0)}% paid{loan.remaining_months != null ? ` · ${loan.remaining_months > 0 ? `${loan.remaining_months}mo remaining` : "Fully paid"}` : ""} · Disbursed {formatDate(loan.disbursement_date)}
         </Text>
       </Card>
