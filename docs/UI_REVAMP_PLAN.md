@@ -179,9 +179,9 @@ Licences, iPhone messages, SMS disclosure.
 
 Anything listed here is kept as it is until answered.
 
-1. **Goals tab, FY picker.** The board shows an "FY 2026–27 ▾" button. Today the Goals tab always shows the current year (the FY and its months are in the header). Add a year picker to the tab, or keep it on the current year?
-2. **Net worth chart, All / Liquid cash / Investments / Debt.** The board and the note show this switch on the chart. The app has a period switch there instead (This FY / 1Y / 3Y / All), not a by-type one. Keep the periods, add the type switch as well, or swap?
-3. **Settle sheet, "I paid Ravi".** The board has a Ravi paid me / I paid Ravi switch. The app records every settlement as money received (into the chosen account). Is "I paid them" a new behaviour to build, or should the sheet keep one direction?
+1. ~~Goals tab, FY picker~~ Answered: add it. Done in bdbc0f3.
+2. ~~Net worth type switch~~ Answered: add it beside the periods. Done in bdbc0f3.
+3. ~~Settle "I paid them"~~ Answered: build it. Done in bdbc0f3: recorded as a "You paid" entry, no account picker. **Follow-up question:** when you paid them from one of your accounts, should Arth also record the money leaving that account (and as what: a transfer out, or an expense that does not count as spending)? Today it relies on the bank message or your own entry.
 4. **Goals tab, risk coverage and year in review.** Not on the board; both kept (Track and Analyse lists). Confirm that's where they belong.
 6. **Budget summary fold.** The Budget summary card could be folded shut from its own header before; it is now always open (it can still be hidden from the apps button). OK?
 7. **Budget drill-down, "By sub-category".** The board shows a by-sub-category split on a category's page. That breakdown doesn't exist yet; it's new work (sum the month by sub-category). Build it?
@@ -196,7 +196,7 @@ Each commit passed `npm run typecheck` and `npx jest` (2,938 tests). Not checked
 | 1. Goals | Done: Goals tab, Yearly plan, Milestones (+ form), Loan detail, Add loan, Buckets (+ form), Bucket detail, Net worth, Income calculator; drill-ins and loan sub-screens restyled | 19ee715, a71e2aa, d487774, 12694eb, 324df07, f9526a9 |
 | 2. Hisaab | Done: People (+ form), Person ledger, Settle | e81d846 |
 | 3. Budget | Done: Overview (hero, tiles, More numbers fold, categories), drill-down Edit budget pill; Spending split and Summary restyled | 7f42110 |
-| 4. Account ledger + settings | Partly: ledger statement header + name/gear → Account settings, Open ledger on Account settings (fb87863). Still to do: the Account settings board layout (per-type fields) and the Accounts list board (sort / group, banners, Ignored) | fb87863 |
+| 4. Account ledger + settings | Done: ledger statement + name/gear link, Open ledger, Accounts list, Account settings sections | fb87863, 29dd4eb |
 | 5. Insights, Vault, Simulator, Investments | Not started | |
 | 6. Add / edit transaction | Not started | |
 | 7. Settings | Not started | |
