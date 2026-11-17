@@ -197,9 +197,9 @@ Each commit passed `npm run typecheck` and `npx jest` (2,938 tests). Not checked
 | 2. Hisaab | Done: People (+ form), Person ledger, Settle | e81d846 |
 | 3. Budget | Done: Overview (hero, tiles, More numbers fold, categories), drill-down Edit budget pill; Spending split and Summary restyled | 7f42110 |
 | 4. Account ledger + settings | Done: ledger statement + name/gear link, Open ledger, Accounts list, Account settings sections | fb87863, 29dd4eb |
-| 5. Insights, Vault, Simulator, Investments | Not started | |
+| 5. Insights, Vault, Simulator, Investments | Tokens done on every file, labelled add buttons. Investments already had every listed control (checked). Insights index, Vault and Simulator layouts not yet compared control-by-control with their boards | 943d5a4, 6c6359a |
 | 6. Add / edit transaction | Not started | |
-| 7. Settings | Not started | |
-| 8. Restyle only | Not started | |
+| 7. Settings | Tokens done on every screen (9a2d8bb); 55 guarded. Board layouts not started: Settings home (search, Needs a look), Categories Reorder mode, Merchants bulk bar, Recycle bin toolbar, templates flow, and the rest | 9a2d8bb |
+| 8. Restyle only | Tokens done (same commit as 7). Still off-token, to hand-fix: ai-lab, ai-suggestions, angel / kite / zebpay credential screens, sms-templates new / tag / unrecognised, clean-up, payment-mode-edit, account-detail (Stack header size), Settings home | 9a2d8bb |
 
 Shared parts added on the way: `components/ui/LinkRow.tsx` (LinkRow, StatTile, GroupLabel, HeaderPill, Statement, UnderlineTabs), `components/ui/FormParts.tsx` (FormGroup, FoldGroup, FormFooter), Input `prefix` / `suffix`, FAB `label`. `scripts/codemod-revamp-tokens.js` does the mechanical token move (text and corner classes, hex alpha, legacy colours); multi-line template strings need a hand fix.
