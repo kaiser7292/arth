@@ -1,0 +1,8 @@
+{
+  "name": "arth-nano",
+  "version": "1.0.0",
+  "description": "On-device Gemini Nano (ML Kit GenAI Prompt API through Android AICore). Android only; nothing leaves the phone.",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "private": true
+}

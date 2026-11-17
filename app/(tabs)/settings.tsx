@@ -2,7 +2,8 @@ import { formatDisplayDate } from "@/utils/date";
 import { getStartDate } from "@/services/start-date";
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
-import { Card, ContextualHeader, ScreenContainer, Text } from "@/components/ui";
+import { Card, ContextualHeader, ScreenContainer, Text, useToast } from "@/components/ui";
+import { isAiLabUnlocked, setAiLabUnlocked, TAPS_TO_UNLOCK } from "@/services/ai/ai-lab";
 import { PressableScale } from "@/components/motion";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -18,7 +19,7 @@ import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 import { PRIVACY_POLICY_URL, TERMS_URL } from "@/components/sms/SmsDisclosure";
 import { isDemoBuild, seedDemoData } from "@/services/demo-data";
@@ -79,10 +80,35 @@ export default function SettingsScreen() {
   const [messagesLine, setMessagesLine] = useState("Scan, templates, your name, duplicates");
   const [backupLine, setBackupLine] = useState("Backups, recycle bin, import, clean up");
   const [startDate, setStartDateLine] = useState<string | null>(getStartDate);
+  const toast = useToast();
+  // Tap Version 7 times to show the On-device AI lab, like Android's developer options.
+  const [aiLab, setAiLab] = useState(isAiLabUnlocked);
+  const versionTaps = useRef({ count: 0, at: 0 });
+  const tapVersion = () => {
+    if (Platform.OS !== "android") return;
+    if (aiLab) {
+      toast("The On-device AI lab is already showing");
+      return;
+    }
+    const now = Date.now();
+    const t = versionTaps.current;
+    t.count = now - t.at > 2000 ? 1 : t.count + 1;
+    t.at = now;
+    const left = TAPS_TO_UNLOCK - t.count;
+    if (left <= 0) {
+      t.count = 0;
+      setAiLabUnlocked(true);
+      setAiLab(true);
+      toast("On-device AI lab is now showing in About");
+    } else if (left <= 3) {
+      toast(`${left} more tap${left === 1 ? "" : "s"} to show the AI lab`);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       setStartDateLine(getStartDate());
+      setAiLab(isAiLabUnlocked());
       const manual = getLastBackupAt();
       const auto = getLastScheduledBackupAt();
       const last = !manual ? auto : !auto ? manual : manual > auto ? manual : auto;
@@ -246,6 +272,14 @@ export default function SettingsScreen() {
               subtitle="Libraries and models Arth is built with"
               onPress={() => router.push("/settings/licenses")}
             />
+            {aiLab && Platform.OS === "android" && (
+              <SettingsRow
+                icon="flask-outline"
+                label="On-device AI lab"
+                subtitle="Test Gemini Nano on your bank messages"
+                onPress={() => router.push("/settings/ai-lab")}
+              />
+            )}
             <View className="flex-row items-center justify-between py-2 border-b border-border">
               <Text className="text-sm" style={{ color: colors.textSecondary }}>App Name</Text>
               <View className="flex-row items-center" style={{ gap: 4 }}>
@@ -254,7 +288,11 @@ export default function SettingsScreen() {
               </View>
             </View>
             <AppUpdateRow />
-            <View className="flex-row items-center justify-between py-2">
+            <Pressable
+              onPress={tapVersion}
+              accessibilityLabel="Version"
+              className="flex-row items-center justify-between py-2"
+            >
               <Text className="text-sm" style={{ color: colors.textSecondary }}>Version</Text>
               <Text className="text-sm font-medium" style={{ color: colors.text }}>
                 {(() => {
@@ -263,7 +301,7 @@ export default function SettingsScreen() {
                   return sha ? `${v} - ${sha}` : v;
                 })()}
               </Text>
-            </View>
+            </Pressable>
           </Card>
         </View>
       </ScrollView>
