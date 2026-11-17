@@ -118,6 +118,40 @@ export function MonthDrawerHeader({
   );
 }
 
+/**
+ * A drawer for any other grouping (a day, a year, a category, a merchant, an account, a payment
+ * mode): its name, how many transactions, and the same money chips as a month.
+ */
+export function GroupDrawerHeader({
+  summary,
+  title,
+  open,
+  mode,
+  onToggle,
+}: {
+  summary: MonthSummary;
+  title: string;
+  open: boolean;
+  mode: DrawerMode;
+  onToggle: () => void;
+}) {
+  const count = `${summary.count} ${summary.count === 1 ? "transaction" : "transactions"}`;
+  return (
+    <DrawerHeader
+      title={title}
+      subtitle={count}
+      open={open}
+      onToggle={onToggle}
+      right={
+        <>
+          {(mode === "all" || mode === "credit") && summary.received > 0 && <MoneyChip tone="in" amount={summary.received} label="money in" />}
+          {(mode === "all" || mode === "spend") && summary.spent > 0 && <MoneyChip tone="out" amount={summary.spent} label="money out" />}
+        </>
+      }
+    />
+  );
+}
+
 /** A row inside an open month: the card's sides continue around it. */
 export function DrawerBody({ children }: { children: React.ReactNode }) {
   return (

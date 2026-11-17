@@ -5,7 +5,7 @@ import { useExpenseGrouping } from "@/hooks/use-expense-grouping";
 import { useGroupBy } from "@/hooks/use-group-by";
 import { setGroupByPreference } from "@/services/group-by-preference";
 import { formatMonthLabel } from "@/utils/date";
-import { signedAmount, signedNet, type ExpenseGroupBy } from "@/utils/expense-grouping";
+import { labelOf, signedAmount, signedNet, type ExpenseGroupBy } from "@/utils/expense-grouping";
 import { groupRows, NO_GROUP } from "@/utils/group-rows";
 import { LIST_ROW_LIMIT } from "@/utils/list-tools";
 import { restoreExpense } from "@/services/expense-crud";
@@ -34,6 +34,7 @@ import {
   countFilteredExpenses,
   getFilteredExpenseSummary,
   getFilteredMonthTotals,
+  getFilteredGroupTotals,
   getPendingExpenseCount,
   getPreviousPeriodTotal,
   deleteExpense,
@@ -45,7 +46,7 @@ import {
   deleteTransfer,
 } from "@/services/account-transfer";
 import type { AccountTransfer } from "@/services/account-transfer";
-import type { FilteredSummary } from "@/services/expense";
+import type { DrawerGroupBy, FilteredSummary } from "@/services/expense";
 import { FilterSummaryCard } from "@/components/expense/FilterSummaryCard";
 import { getAllCategories, getCategories } from "@/services/category";
 import { getPaymentModes } from "@/services/payment-mode";
@@ -64,7 +65,7 @@ import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { FilterDropdown } from "@/components/expense/FilterDropdown";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { TransactionFilterSheet, draftTotal, type TxFilterDraft } from "@/components/expense/TransactionFilterSheet";
-import { DrawerBody, DrawerEmpty, DrawerEnd, DrawerLoading, MonthDrawerHeader, type DrawerMode } from "@/components/expense/MonthDrawer";
+import { DrawerBody, DrawerEmpty, DrawerEnd, DrawerLoading, GroupDrawerHeader, MonthDrawerHeader, type DrawerMode } from "@/components/expense/MonthDrawer";
 import { buildDrawerRows, monthBounds, orderMonths, summarizeByMonth, type DrawerRow, type MonthSummary } from "@/utils/month-drawers";
 import { formatDateForDisplay } from "@/utils/expense-validation";
 import { BulkActionBar } from "@/components/expense/BulkActionBar";
@@ -97,8 +98,8 @@ const PAGE_SIZE = 50;
 const DEFAULT_PRESET: DatePreset = "last_12_months";
 // Groups only add up with every row in them, so a list grouped by anything but date isn't paged.
 const ALL_ROWS = LIST_ROW_LIMIT;
-const SPEND_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "category", "merchant", "account", "payment_mode", "person"];
-const CREDIT_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "category", "merchant", "account", "person"];
+const SPEND_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "year", "category", "merchant", "account", "payment_mode", "person"];
+const CREDIT_GROUPS: readonly ExpenseGroupBy[] = ["date", "month", "year", "category", "merchant", "account", "person"];
 type TransferGroupBy = "date" | "month" | "from" | "to";
 const TRANSFER_GROUPS: readonly TransferGroupBy[] = ["date", "month", "from", "to"];
 const TRANSFER_GROUP_OPTIONS: { value: TransferGroupBy; label: string }[] = [
@@ -117,6 +118,79 @@ const NATURE_TABS: SwipePagerPage[] = [
   { key: "credit", label: "Credits" },
   { key: "transfers", label: "Transfers" },
 ];
+
+/** Groupings that show as drawers: every one but None and Person (people come from another table). */
+const DRAWER_GROUPS: ReadonlySet<ExpenseGroupBy> = new Set(["date", "month", "year", "category", "merchant", "account", "payment_mode"]);
+const isDateDrawer = (by: ExpenseGroupBy) => by === "date" || by === "month" || by === "year";
+
+/**
+ * A row's drawer, matching the SQL in getFilteredGroupTotals: a credit's "category" is its type, a
+ * sub-category sits in its parent's drawer, and no value is NOT_SET.
+ */
+function drawerKeyOf(e: Expense, by: ExpenseGroupBy, categoryMap: ReadonlyMap<string, Category>): string {
+  switch (by) {
+    case "date":
+      return e.date?.slice(0, 10) ?? NOT_SET;
+    case "month":
+      return e.date?.slice(0, 7) ?? NOT_SET;
+    case "year":
+      return e.date?.slice(0, 4) ?? NOT_SET;
+    case "category": {
+      if (e.nature === "credit") return `type:${e.credit_kind ?? "other"}`;
+      if (!e.category_id) return NOT_SET;
+      const parent = categoryMap.get(e.category_id)?.parent_id;
+      return parent && categoryMap.get(parent)?.is_active === 1 ? parent : e.category_id;
+    }
+    case "merchant":
+      return e.merchant_name?.trim() || NOT_SET;
+    case "account":
+      return e.account_id ?? NOT_SET;
+    case "payment_mode":
+      return e.payment_mode_id ?? NOT_SET;
+    default:
+      return NOT_SET;
+  }
+}
+
+/** The list's filters narrowed to one drawer, to load just its rows. */
+function filtersForDrawer<F extends { startDate?: string; endDate?: string; categoryIds?: string[]; creditKinds?: string[]; merchantNames?: string[]; accountIds?: string[]; paymentModeIds?: string[] }>(
+  filters: F,
+  by: ExpenseGroupBy,
+  key: string,
+): F {
+  const clamp = (start: string, end: string) => ({
+    startDate: filters.startDate && filters.startDate > start ? filters.startDate : start,
+    endDate: filters.endDate && filters.endDate < end ? filters.endDate : end,
+  });
+  switch (by) {
+    case "date":
+      return { ...filters, startDate: key, endDate: key };
+    case "month": {
+      const b = monthBounds(key, filters.startDate, filters.endDate);
+      return { ...filters, startDate: b.start, endDate: b.end };
+    }
+    case "year":
+      return { ...filters, ...clamp(`${key}-01-01`, `${key}-12-31`) };
+    case "category":
+      return key.startsWith("type:")
+        ? { ...filters, creditKinds: [key.slice(5)], categoryIds: undefined }
+        : { ...filters, categoryIds: [key], creditKinds: undefined };
+    case "merchant":
+      return { ...filters, merchantNames: [key] };
+    case "account":
+      return { ...filters, accountIds: [key] };
+    case "payment_mode":
+      return { ...filters, paymentModeIds: [key] };
+    default:
+      return filters;
+  }
+}
+
+/** Date drawers in date order; the others biggest first. */
+function orderDrawers(totals: ReadonlyMap<string, MonthSummary>, by: ExpenseGroupBy, oldestFirst: boolean): MonthSummary[] {
+  if (isDateDrawer(by)) return orderMonths(totals, oldestFirst);
+  return [...totals.values()].filter((m) => m.count > 0).sort((a, b) => b.spent + b.received - (a.spent + a.received));
+}
 
 /** The query a set of filters runs. One place, so the list and the sheet's count can't disagree. */
 function filtersFromDraft(
@@ -303,7 +377,10 @@ export default function ExpensesScreen() {
   });
   // Date (and month) order shows month drawers, each loading its own rows; any other grouping
   // needs every row at once to add its groups up.
-  const drawerMode = filterNature !== "transfers" && (grouping.groupBy === "date" || grouping.groupBy === "month");
+  // Drawers follow the grouping: a day, month or year each, or one per category, merchant, account
+  // or payment mode. Each drawer loads its own rows; only Person still needs every row at once.
+  const drawerMode = filterNature !== "transfers" && DRAWER_GROUPS.has(grouping.groupBy);
+  const drawerBy = grouping.groupBy;
   const loadEverything = !drawerMode && grouping.groupBy !== "date";
   const [transferGroupBy, setTransferGroupBy] = useGroupBy<TransferGroupBy>("transactions_transfers", TRANSFER_GROUPS, "date");
 
@@ -341,26 +418,32 @@ export default function ExpensesScreen() {
     minAmount,
     maxAmount,
     drawerMode,
+    drawerMode ? drawerBy : "",
     filterNature,
     summaryGroupBy,
     sortBy,
     loadEverything,
   ].join("|");
 
+  // The loader is stable (useCallback with no grouping deps), so it reads these from refs.
+  const drawerByRef = useRef(drawerBy);
+  drawerByRef.current = drawerBy;
+  const categoryMapRef = useRef(categoryMap);
+  categoryMapRef.current = categoryMap;
+
   /** The filters the drawers were last loaded with: a change clears them, a data change doesn't. */
   const drawerSigRef = useRef<string | null>(null);
   /** The filters of the last full load; opening a month later loads it with the same ones. */
   const lastFiltersRef = useRef<Parameters<typeof getExpensesPaginated>[1] | null>(null);
 
-  /** One month's rows, into `expenses` in place of whatever that month had. */
+  /** One drawer's rows, into `expenses` in place of whatever that drawer had. */
   const loadMonth = useCallback(async (month: string, filters: Parameters<typeof getExpensesPaginated>[1], gen: number) => {
     try {
-      const bounds = monthBounds(month, filters?.startDate, filters?.endDate);
-      const rows = await getExpensesPaginated(DEFAULT_USER_ID, { ...filters, startDate: bounds.start, endDate: bounds.end }, ALL_ROWS, 0);
+      const rows = await getExpensesPaginated(DEFAULT_USER_ID, filtersForDrawer(filters ?? {}, drawerByRef.current, month), ALL_ROWS, 0);
       const ids = rows.map((e) => e.id);
       const [tagMap, refundMap] = await Promise.all([getTagsForExpenses(ids), sumRefundsByExpenseIds(ids)]);
       if (gen !== loadGen.current) return;
-      setExpenses((prev) => [...prev.filter((e) => e.date?.slice(0, 7) !== month), ...rows]);
+      setExpenses((prev) => [...prev.filter((e) => drawerKeyOf(e, drawerByRef.current, categoryMapRef.current) !== month), ...rows]);
       setExpenseTagMap((prev) => ({ ...prev, ...tagMap }));
       setRefundedMap((prev) => {
         const next = new Map(prev);
@@ -372,7 +455,7 @@ export default function ExpensesScreen() {
       if (gen !== loadGen.current) return;
       // Shows as empty rather than spinning for ever; closing and opening it tries again.
       setLoadedMonths((prev) => new Set(prev).add(month));
-      toast("Couldn't load that month. Close and open it to try again.", { tone: "danger" });
+      toast("Couldn't load that group. Close and open it to try again.", { tone: "danger" });
     }
   }, [toast]);
 
@@ -463,7 +546,7 @@ export default function ExpensesScreen() {
           const [summaryResult, prevTotal, months] = await Promise.all([
             getFilteredExpenseSummary(DEFAULT_USER_ID, filters, summaryGroupBy),
             getPreviousPeriodTotal(DEFAULT_USER_ID, filters),
-            getFilteredMonthTotals(DEFAULT_USER_ID, filters),
+            getFilteredGroupTotals(DEFAULT_USER_ID, filters, drawerBy as DrawerGroupBy),
           ]);
           if (gen !== loadGen.current) return;
           setSummary(summaryResult);
@@ -471,8 +554,8 @@ export default function ExpensesScreen() {
           setMonthTotals(months);
           setTransfers([]);
           setHasMore(false);
-          // Months that were open stay open; with none of them left, the newest one opens.
-          const ordered = orderMonths(months, sortBy === "date_asc");
+          // Drawers that were open stay open; with none of them left, the first one opens.
+          const ordered = orderDrawers(months, drawerBy, sortBy === "date_asc");
           const kept = ordered.filter((m) => openMonthsRef.current.has(m.month)).map((m) => m.month);
           const open = new Set(kept.length > 0 ? kept : ordered.slice(0, 1).map((m) => m.month));
           setOpenMonths(open);
@@ -1068,7 +1151,9 @@ export default function ExpensesScreen() {
     [categoryFor, categoryMap, toast, loadExpenses],
   );
   // Under a day heading the row doesn't repeat the date.
-  const hideRowDates = grouping.groupBy === "date" && (sortBy === "date_desc" || sortBy === "date_asc");
+  const hideRowDates =
+    drawerMode &&
+    (grouping.groupBy === "date" || ((grouping.groupBy === "month" || grouping.groupBy === "year") && (sortBy === "date_desc" || sortBy === "date_asc")));
 
   const renderExpenseItem = useCallback(
     ({ item }: { item: DateGroupRow }) => {
@@ -1117,28 +1202,28 @@ export default function ExpensesScreen() {
   const expensesByMonth = useMemo(() => {
     const map = new Map<string, Expense[]>();
     for (const e of expenses) {
-      const m = e.date?.slice(0, 7) ?? "";
+      const m = drawerKeyOf(e, drawerBy, categoryMap);
       const list = map.get(m);
       if (list) list.push(e);
       else map.set(m, [e]);
     }
     return map;
-  }, [expenses]);
+  }, [expenses, drawerBy, categoryMap]);
   const dateSorted = sortBy === "date_desc" || sortBy === "date_asc";
   const drawerRows = useMemo<DrawerRow<Expense>[]>(
     () =>
       drawerMode
         ? buildDrawerRows<Expense>({
-            months: orderMonths(monthTotals, sortBy === "date_asc"),
+            months: orderDrawers(monthTotals, drawerBy, sortBy === "date_asc"),
             open: openMonths,
             rowsOf: (m) => (loadedMonths.has(m) ? expensesByMonth.get(m) ?? [] : undefined),
             dateOf: (e) => e.date ?? "",
             amountOf: rowAmount,
-            // Day headings in date order; "Group by month" is just the months.
-            dayHeadings: dateSorted && grouping.groupBy === "date",
+            // Month and year drawers get a heading per day when the list is in date order.
+            dayHeadings: dateSorted && (drawerBy === "month" || drawerBy === "year"),
           })
         : [],
-    [drawerMode, monthTotals, sortBy, openMonths, loadedMonths, expensesByMonth, rowAmount, dateSorted, grouping.groupBy],
+    [drawerMode, monthTotals, sortBy, openMonths, loadedMonths, expensesByMonth, rowAmount, dateSorted, drawerBy],
   );
   const transferDrawerMode = filterNature === "transfers" && (transferGroupBy === "date" || transferGroupBy === "month");
   const transferDrawerRows = useMemo<DrawerRow<AccountTransfer>[]>(() => {
@@ -1163,7 +1248,17 @@ export default function ExpensesScreen() {
     <T,>(row: DrawerRow<T>, renderItem: (item: T) => React.ReactElement | null) => {
       switch (row.kind) {
         case "month":
-          return <MonthDrawerHeader summary={row.summary} open={row.open} mode={drawerKind} onToggle={() => toggleMonth(row.month)} />;
+          return filterNature === "transfers" || drawerBy === "month" ? (
+            <MonthDrawerHeader summary={row.summary} open={row.open} mode={drawerKind} onToggle={() => toggleMonth(row.month)} />
+          ) : (
+            <GroupDrawerHeader
+              summary={row.summary}
+              title={labelOf(row.month, drawerBy, { categoryMap, accountMap, paymentModeMap })}
+              open={row.open}
+              mode={drawerKind}
+              onToggle={() => toggleMonth(row.month)}
+            />
+          );
         case "day":
           return (
             <DrawerBody>
@@ -1185,7 +1280,7 @@ export default function ExpensesScreen() {
           return <DrawerEnd />;
       }
     },
-    [drawerKind, toggleMonth],
+    [drawerKind, toggleMonth, filterNature, drawerBy, categoryMap, accountMap, paymentModeMap],
   );
 
   const chooseSort = (v: ExpenseSortBy) => {
