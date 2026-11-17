@@ -118,6 +118,8 @@ export default function LedgerScreen() {
 
   // Settlement form state
   const [settleAmount, setSettleAmount] = useState("");
+  /** Which way the money went: they paid you (a settlement), or you paid them (owner, Nov 2026). */
+  const [settleDirection, setSettleDirection] = useState<"received" | "paid">("received");
   const [settleDescription, setSettleDescription] = useState("");
   const [settleDate, setSettleDate] = useState(
     todayIso(),
@@ -244,13 +246,23 @@ export default function LedgerScreen() {
       return;
     }
 
-    await recordSettlement(
-      personId!,
-      amount,
-      settleDate,
-      settleDescription.trim() || undefined,
-      settleAccountId ?? undefined,
-    );
+    if (settleDirection === "paid") {
+      await createEntry({
+        hisaab_person_id: personId!,
+        amount,
+        description: settleDescription.trim() || `Paid back ${person?.name ?? personName ?? ""}`.trim(),
+        date: settleDate,
+        type: "debit",
+      });
+    } else {
+      await recordSettlement(
+        personId!,
+        amount,
+        settleDate,
+        settleDescription.trim() || undefined,
+        settleAccountId ?? undefined,
+      );
+    }
 
     setSettleAmount("");
     setSettleDescription("");
@@ -421,6 +433,14 @@ export default function LedgerScreen() {
                     : `${balance > 0 ? `${firstName} owes you` : `You owe ${firstName}`} ${formatAmount(full)}`
                 }
               >
+                <Segmented<"received" | "paid">
+                  options={[
+                    { value: "received", label: `${firstName} paid me` },
+                    { value: "paid", label: `I paid ${firstName}` },
+                  ]}
+                  value={settleDirection}
+                  onChange={setSettleDirection}
+                />
                 <Input
                   label="Amount"
                   prefix="₹"
@@ -440,6 +460,12 @@ export default function LedgerScreen() {
                     />
                   </View>
                 )}
+                {settleDirection === "paid" ? (
+                  <Text className="text-meta text-muted-foreground">
+                    Recorded in this ledger as money you paid {firstName}. If it went from one of your accounts, it shows on that
+                    account when the bank message (or your own entry) is there.
+                  </Text>
+                ) : (
                 <View>
                   <Text className="text-label font-semibold text-muted-foreground mb-1.5">Received in (optional)</Text>
                   <Pressable
@@ -473,6 +499,7 @@ export default function LedgerScreen() {
                     <Text className="text-label text-muted-foreground mt-1.5">Shows as money in on that account&apos;s ledger.</Text>
                   )}
                 </View>
+                )}
                 <View className="flex-row" style={{ gap: 10 }}>
                   <DateInput label="Date" value={settleDate} onChange={setSettleDate} containerClassName="flex-1" />
                   <Input
@@ -562,7 +589,15 @@ export default function LedgerScreen() {
   const actions: ActionRowItem[] = [
     { key: "lent", label: "Lent", icon: "arrow-up-outline", onPress: () => startEntry("debit") },
     { key: "borrowed", label: "Borrowed", icon: "arrow-down-outline", onPress: () => startEntry("credit") },
-    { key: "settle", label: "Settle", icon: "checkmark-outline", onPress: () => setViewMode("settle") },
+    {
+      key: "settle",
+      label: "Settle",
+      icon: "checkmark-outline",
+      onPress: () => {
+        setSettleDirection(balance < 0 ? "paid" : "received");
+        setViewMode("settle");
+      },
+    },
     { key: "more", label: "More", icon: "ellipsis-horizontal", onPress: openMore },
   ];
 
