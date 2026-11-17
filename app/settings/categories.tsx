@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 
 import { View, FlatList, Pressable } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter, useFocusEffect, Stack } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { EmptyState, FAB, ListSeparator, ScreenContainer, Text } from "@/components/ui";
@@ -20,6 +20,7 @@ import { countMerchantRulesForCategory } from "@/services/merchant-categories";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { HeaderPill } from "@/components/ui/LinkRow";
 
 export default function CategoriesScreen() {
   const theme = useTheme();
@@ -113,6 +114,9 @@ export default function CategoriesScreen() {
     [loadCategories, confirmMerchantRules],
   );
 
+  /** Reorder mode: the up / down arrows show, the other row actions hide. */
+  const [reordering, setReordering] = useState(false);
+
   const handleMoveUp = useCallback(
     async (current: Category) => {
       const above = siblingOf(current, -1);
@@ -182,6 +186,7 @@ export default function CategoriesScreen() {
   );
 
   const renderItem = ({ item }: { item: Category }) => {
+    const editing = !reordering;
     const isChild = !!item.parent_id && categories.some((c) => c.id === item.parent_id);
     const subCount = categories.filter((c) => c.parent_id === item.id).length;
     const canUp = !!siblingOf(item, -1);
@@ -231,7 +236,7 @@ export default function CategoriesScreen() {
       </View>
 
       {/* Add a sub-category under a main category */}
-      {!isChild && item.is_active === 1 && (
+      {editing && !isChild && item.is_active === 1 && (
         <Pressable
           onPress={() => router.push({ pathname: "/settings/category-edit", params: { parentId: item.id } })}
           className="p-2"
@@ -243,38 +248,41 @@ export default function CategoriesScreen() {
         </Pressable>
       )}
 
-      {/* Reorder buttons */}
-      <View className="flex-row mr-2">
+      {/* Reorder buttons: only in Reorder mode, so they don't crowd every row */}
+      {reordering && (
+      <View className="flex-row mr-1" style={{ gap: 4 }}>
         <Pressable
           onPress={() => handleMoveUp(item)}
           disabled={!canUp}
-          className="p-1"
+          className="w-10 h-10 rounded-control border border-border items-center justify-center"
           accessibilityRole="button"
           accessibilityLabel={`Move ${item.name} up`}
         >
           <Ionicons
             name="chevron-up"
-            size={16}
+            size={22}
             color={!canUp ? theme.faintForeground : theme.mutedForeground}
           />
         </Pressable>
         <Pressable
           onPress={() => handleMoveDown(item)}
           disabled={!canDown}
-          className="p-1"
+          className="w-10 h-10 rounded-control border border-border items-center justify-center"
           accessibilityRole="button"
           accessibilityLabel={`Move ${item.name} down`}
         >
           <Ionicons
             name="chevron-down"
-            size={16}
+            size={22}
             color={!canDown ? theme.faintForeground : theme.mutedForeground}
           />
         </Pressable>
       </View>
+      )}
 
       {/* Active/Inactive toggle */}
-      <Pressable onPress={() => handleToggleActive(item)} className="p-2">
+      {editing && (
+      <Pressable onPress={() => handleToggleActive(item)} className="p-2" accessibilityRole="switch" accessibilityState={{ checked: item.is_active === 1 }} accessibilityLabel={`${item.name} active`}>
         <Ionicons
           name={item.is_active === 1 ? "eye-outline" : "eye-off-outline"}
           size={18}
@@ -282,16 +290,32 @@ export default function CategoriesScreen() {
         />
       </Pressable>
 
+      )}
+
       {/* Delete button */}
-      <Pressable onPress={() => handleDelete(item)} className="p-2">
+      {editing && (
+      <Pressable onPress={() => handleDelete(item)} className="p-2" accessibilityRole="button" accessibilityLabel={`Delete ${item.name}`}>
         <Ionicons name="trash-outline" size={18} color={theme.danger} />
       </Pressable>
+      )}
     </Pressable>
     );
   };
 
   return (
     <ScreenContainer padTop={false}>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <HeaderPill
+              label={reordering ? "Done" : "Reorder"}
+              icon={reordering ? "checkmark" : "swap-vertical"}
+              onPress={() => setReordering((r) => !r)}
+              accessibilityLabel={reordering ? "Done reordering" : "Reorder categories"}
+            />
+          ),
+        }}
+      />
       {loadFailed && <LoadFailedBanner onRetry={loadCategories} />}
       <FlatList
         ListHeaderComponent={
@@ -325,7 +349,7 @@ export default function CategoriesScreen() {
           />
         }
       />
-      <FAB icon="add" onPress={() => router.push("/settings/category-edit")} />
+      {!reordering && <FAB icon="add" label="Category" onPress={() => router.push("/settings/category-edit")} />}
     </ScreenContainer>
   );
 }
