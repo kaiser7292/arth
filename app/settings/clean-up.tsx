@@ -17,6 +17,7 @@ import { formatDisplayDate as formatDateLabel } from "@/utils/date";
 export default function CleanUpScreen() {
   const alert = useAlert();
   const { colors } = useColorScheme();
+  const theme = useTheme();
   const uiTheme = useTheme();
   const [cleaning, setCleaning] = useState(false);
   const [cleanupScope, setCleanupScope] = useState<CleanupScope | null>(null);
@@ -221,12 +222,12 @@ export default function CleanUpScreen() {
                         className={`flex-row items-center justify-between rounded-control px-3 py-2.5 mb-1.5 border ${checked ? "border-danger/30 bg-danger/3" : "border-border"}`}
                       >
                         <View className="flex-row items-center flex-1">
-                          <Ionicons name={checked ? "checkbox" : "square-outline"} size={20} color={checked ? uiTheme.danger : colors.textSecondary} />
-                          <Ionicons name={item.icon} size={16} color={colors.textSecondary} style={{ marginLeft: 8 }} />
+                          <Ionicons name={checked ? "checkbox" : "square-outline"} size={20} color={checked ? uiTheme.danger : theme.mutedForeground} />
+                          <Ionicons name={item.icon} size={16} color={theme.mutedForeground} style={{ marginLeft: 8 }} />
                           <Text className="text-meta text-foreground ml-2">{item.label}</Text>
                         </View>
                         {loadingPreview ? (
-                          <ActivityIndicator size="small" color={colors.textSecondary} />
+                          <ActivityIndicator size="small" color={theme.mutedForeground} />
                         ) : (
                           <Text className={`text-label font-medium ${count > 0 ? "text-danger" : "text-faint-foreground"}`}>{count}</Text>
                         )}

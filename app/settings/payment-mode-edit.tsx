@@ -104,7 +104,7 @@ export default function PaymentModeEditScreen() {
               <Pressable
                 key={t}
                 onPress={() => setType(t)}
-                className={`px-4 py-3 rounded-lg mr-2 mb-2 border ${
+                className={`px-4 py-3 rounded-control mr-2 mb-2 border ${
                   type === t
                     ? ""
                     : "bg-card border-transparent"
@@ -115,7 +115,7 @@ export default function PaymentModeEditScreen() {
                 } : undefined}
               >
                 <Text
-                  className={`text-sm ${
+                  className={`text-meta ${
                     type === t
                       ? "font-medium"
                       : "text-muted-foreground"

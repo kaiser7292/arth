@@ -1155,7 +1155,7 @@ export default function AccountDetailScreen() {
                       color={isLinked ? theme.data.series[3] : theme.faintForeground}
                     />
                     <Text
-                      className={`text-sm ml-3 ${
+                      className={`text-meta ml-3 ${
                         isLinked
                           ? "text-foreground font-medium"
                           : "text-muted-foreground"

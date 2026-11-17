@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FONT_SIZE } from "@/constants/type-sizes";
 
 import { View, TextInput, ScrollView, Pressable, ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
@@ -728,7 +729,7 @@ export default function TagSmsTemplateScreen() {
           <Text
             style={{
               color: FIELD_COLORS[activeField].text,
-              fontSize: 13,
+              fontSize: FONT_SIZE.meta,
               fontWeight: "600",
               flex: 1,
             }}
@@ -771,7 +772,7 @@ export default function TagSmsTemplateScreen() {
                   justifyContent: "center",
                 }}
               >
-                <Text style={{ color: "#FFFFFF", fontSize: 11, fontWeight: "700" }}>{n}</Text>
+                <Text style={{ color: "#FFFFFF", fontSize: FONT_SIZE.label, fontWeight: "700" }}>{n}</Text>
               </View>
               {i < 2 && (
                 <View
@@ -799,7 +800,7 @@ export default function TagSmsTemplateScreen() {
               style={{ backgroundColor: tint(accentColor, 0.09) }}
             >
               <Ionicons name="sparkles-outline" size={14} color={accentColor} />
-              <Text style={{ color: accentColor, fontSize: 12, fontWeight: "600", marginLeft: 4 }}>
+              <Text style={{ color: accentColor, fontSize: FONT_SIZE.label, fontWeight: "600", marginLeft: 4 }}>
                 Guess it for me
               </Text>
             </Pressable>
@@ -1231,7 +1232,7 @@ export default function TagSmsTemplateScreen() {
                       padding: 12,
                       color: theme.foreground,
                       fontFamily: "monospace",
-                      fontSize: 12,
+                      fontSize: FONT_SIZE.label,
                       backgroundColor: theme.background,
                     }}
                   />
@@ -1284,7 +1285,7 @@ export default function TagSmsTemplateScreen() {
               borderColor: theme.border,
               borderRadius: 8,
               padding: 10,
-              fontSize: 13,
+              fontSize: FONT_SIZE.meta,
               color: theme.foreground,
               backgroundColor: theme.background,
               textAlignVertical: "top",

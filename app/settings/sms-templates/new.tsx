@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTheme } from "@/hooks/use-theme";
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { View, TextInput, ScrollView, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -43,6 +45,7 @@ export default function PasteSmsScreen() {
     senderAddress?: string;
   }>();
   const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const existingDraft = getDraft();
   const hasStaleDraft =
@@ -114,7 +117,7 @@ export default function PasteSmsScreen() {
         {hasStaleDraft && (
           <Card className="mb-3">
             <View className="flex-row items-start">
-              <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+              <Ionicons name="time-outline" size={18} color={theme.mutedForeground} />
               <View className="flex-1 ml-2">
                 <Text className="text-body font-semibold text-foreground">
                   Resume unfinished template?
@@ -126,7 +129,7 @@ export default function PasteSmsScreen() {
                   <Pressable
                     onPress={() => router.push("/settings/sms-templates/tag")}
                     className="flex-1 items-center py-2 rounded-control"
-                    style={{ backgroundColor: colors.tint }}
+                    style={{ backgroundColor: theme.primary }}
                   >
                     <Text className="text-label font-semibold" style={{ color: "#FFFFFF" }}>
                       Continue
@@ -135,9 +138,9 @@ export default function PasteSmsScreen() {
                   <Pressable
                     onPress={handleDiscard}
                     className="flex-1 items-center py-2 rounded-control"
-                    style={{ borderWidth: 1, borderColor: colors.border }}
+                    style={{ borderWidth: 1, borderColor: theme.border }}
                   >
-                    <Text className="text-label font-semibold" style={{ color: colors.text }}>
+                    <Text className="text-label font-semibold" style={{ color: theme.foreground }}>
                       Discard
                     </Text>
                   </Pressable>
@@ -159,17 +162,17 @@ export default function PasteSmsScreen() {
             value={body}
             onChangeText={setBody}
             placeholder="Paste the SMS here…"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             style={{
               minHeight: 160,
               maxHeight: 260,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: theme.border,
               borderRadius: 8,
               padding: 12,
-              fontSize: 14,
-              color: colors.text,
-              backgroundColor: colors.background,
+              fontSize: FONT_SIZE.body,
+              color: theme.foreground,
+              backgroundColor: theme.background,
               textAlignVertical: "top",
             }}
           />

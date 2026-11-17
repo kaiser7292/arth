@@ -81,6 +81,7 @@ export default function AiLabScreen() {
   const router = useRouter();
   const toast = useToast();
   const { colors } = useColorScheme();
+  const theme = useTheme();
   const [status, setStatus] = useState<NanoStatus | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [downloaded, setDownloaded] = useState<number | null>(null);
@@ -200,7 +201,7 @@ export default function AiLabScreen() {
             value={sender}
             onChangeText={setSender}
             placeholder="Sender, e.g. AX-HDFCBK"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             autoCapitalize="characters"
             className={inputClass}
           />
@@ -208,7 +209,7 @@ export default function AiLabScreen() {
             value={body}
             onChangeText={setBody}
             placeholder="Paste a bank message"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             multiline
             className={`${inputClass} mt-2`}
             style={{ minHeight: 90, textAlignVertical: "top" }}

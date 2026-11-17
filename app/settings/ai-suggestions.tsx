@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { Pressable, ScrollView, View } from "react-native";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -237,7 +238,7 @@ export default function AiSuggestionsScreen() {
                 <Ionicons name="checkmark-circle" size={48} color={theme.success} />
                 {Object.keys(done.applied).length > 0 ? (
                   <>
-                    <Text style={{ fontSize: 44, fontWeight: "800", color: theme.primary, marginTop: 8 }}>
+                    <Text style={{ fontSize: FONT_SIZE.hero, fontWeight: "800", color: theme.primary, marginTop: 8 }}>
                       {Object.values(done.applied).reduce((n, v) => n + (v ?? 0), 0)}
                     </Text>
                     <Text className="text-heading font-medium text-foreground">changes made</Text>

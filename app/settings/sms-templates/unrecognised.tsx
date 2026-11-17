@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { View, FlatList, Pressable, ActivityIndicator, TextInput } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -152,7 +153,7 @@ export default function UnrecognisedSmsScreen() {
                 flex: 1,
                 paddingVertical: 8,
                 paddingHorizontal: 8,
-                fontSize: 14,
+                fontSize: FONT_SIZE.body,
                 color: theme.foreground,
               }}
             />

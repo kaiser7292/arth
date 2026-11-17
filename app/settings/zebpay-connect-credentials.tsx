@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { ActivityIndicator, ScrollView, TextInput, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -96,7 +97,7 @@ export default function ZebpayConnectCredentialsScreen() {
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 14,
+    fontSize: FONT_SIZE.body,
     fontFamily: 'Inter',
   } as const;
 

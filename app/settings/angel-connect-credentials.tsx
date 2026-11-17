@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { ActivityIndicator, ScrollView, TextInput, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -32,6 +33,7 @@ function CredentialField({
   secure?: boolean;
   colors: ReturnType<typeof useColorScheme>['colors'];
 }) {
+  const theme = useTheme();
   return (
     <View className="mb-4">
       <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2">
@@ -41,19 +43,19 @@ function CredentialField({
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor={colors.textSecondary}
+        placeholderTextColor={theme.mutedForeground}
         autoCapitalize="none"
         autoCorrect={false}
         secureTextEntry={secure}
         style={{
-          color: colors.text,
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
+          color: theme.foreground,
+          backgroundColor: theme.card,
+          borderColor: theme.border,
           borderWidth: 1,
           borderRadius: 8,
           paddingHorizontal: 12,
           paddingVertical: 10,
-          fontSize: 14,
+          fontSize: FONT_SIZE.body,
           fontFamily: 'Inter',
         }}
       />
@@ -222,7 +224,7 @@ export default function AngelConnectCredentialsScreen() {
               <Pressable
                 onPress={() => router.back()}
                 className="flex-1 rounded-control p-3.5 items-center justify-center border border-border"
-                style={{ backgroundColor: colors.surface }}
+                style={{ backgroundColor: theme.card }}
               >
                 <Text className="text-body font-semibold text-foreground">Cancel</Text>
               </Pressable>
