@@ -16,6 +16,7 @@ import {
 } from "@/services/simulator";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 /**
  * v16.0.5 — per-scenario hisaab inclusion sheet.
@@ -240,10 +241,10 @@ export function HisaabInclusionSheet({
   return (
     <Sheet visible={visible} onClose={handleClose}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Include hisaab
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           Add what people owe you (or what you owe them) to the starting balance for this scenario.
         </Text>
       </View>
@@ -252,11 +253,11 @@ export function HisaabInclusionSheet({
         <LoadingState rows={3} />
       ) : rows.length === 0 ? (
         <View className="items-center py-8 px-6">
-          <Ionicons name="people-outline" size={28} color={colors.textSecondary} />
-          <Text className="text-sm font-semibold text-center mt-3" style={{ color: colors.text }}>
+          <Ionicons name="people-outline" size={28} color={theme.mutedForeground} />
+          <Text className="text-body font-semibold text-center mt-3" style={{ color: theme.foreground }}>
             No hisaab balances to include
           </Text>
-          <Text className="text-xs text-center mt-1" style={{ color: colors.textSecondary }}>
+          <Text className="text-label text-center mt-1" style={{ color: theme.mutedForeground }}>
             Add hisaab entries from the Hisaab tab to track people who owe you money or whom you owe.
           </Text>
         </View>
@@ -268,23 +269,23 @@ export function HisaabInclusionSheet({
         >
           {/* Running totals — only if anything's included */}
           {(totalAvailable > 0 || totalOwed > 0) && (
-            <View className="mx-5 mb-3 py-2.5 px-3 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+            <View className="mx-5 mb-3 py-2.5 px-3 rounded-control" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
               {totalAvailable > 0 && (
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label" style={{ color: theme.mutedForeground }}>
                     Added to money available
                   </Text>
-                  <Text className="text-sm font-bold" style={{ color: theme.success }}>
+                  <Text className="text-body font-bold" style={{ color: theme.success }}>
                     +{formatAmount(totalAvailable)}
                   </Text>
                 </View>
               )}
               {totalOwed > 0 && (
                 <View className="flex-row items-center justify-between mt-1">
-                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label" style={{ color: theme.mutedForeground }}>
                     Added to money owed
                   </Text>
-                  <Text className="text-sm font-bold" style={{ color: theme.danger }}>
+                  <Text className="text-body font-bold" style={{ color: theme.danger }}>
                     {formatAmount(totalOwed)}
                   </Text>
                 </View>
@@ -301,11 +302,11 @@ export function HisaabInclusionSheet({
             return (
               <View
                 key={r.personId}
-                className="mx-5 mb-2 p-3 rounded-xl"
+                className="mx-5 mb-2 p-3 rounded-card"
                 style={{
                   borderWidth: 1,
-                  borderColor: r.included ? sideColor + "55" : colors.border,
-                  backgroundColor: r.included ? sideColor + "0A" : "transparent",
+                  borderColor: r.included ? tint(sideColor, 0.33) : theme.border,
+                  backgroundColor: r.included ? tint(sideColor, 0.04) : "transparent",
                 }}
               >
                 <Pressable
@@ -320,16 +321,16 @@ export function HisaabInclusionSheet({
                     style={{
                       backgroundColor: r.included ? sideColor : "transparent",
                       borderWidth: 1.5,
-                      borderColor: r.included ? sideColor : colors.border,
+                      borderColor: r.included ? sideColor : theme.border,
                     }}
                   >
                     {r.included && <Ionicons name="checkmark" size={14} color="#fff" />}
                   </View>
                   <View className="flex-1 ml-3">
-                    <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
+                    <Text className="text-body font-semibold" style={{ color: theme.foreground }} numberOfLines={1}>
                       {r.personName}
                     </Text>
-                    <Text className="text-xs mt-0.5" style={{ color: sideColor }}>
+                    <Text className="text-label mt-0.5" style={{ color: sideColor }}>
                       {balanceLabel}
                     </Text>
                   </View>
@@ -338,42 +339,42 @@ export function HisaabInclusionSheet({
                 {r.included && (
                   <View className="mt-3 flex-row items-center gap-2">
                     <View className="flex-1">
-                      <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: theme.mutedForeground }}>
                         Percent
                       </Text>
                       <View
-                        className="flex-row items-center border rounded-lg px-2.5 py-2"
-                        style={{ borderColor: colors.border }}
+                        className="flex-row items-center border rounded-control px-2.5 py-2"
+                        style={{ borderColor: theme.border }}
                       >
                         <TextInput
                           value={r.pct}
                           onChangeText={(v) => handlePctChange(idx, v)}
                           keyboardType="numeric"
-                          className="flex-1 text-sm"
-                          style={{ color: colors.text }}
+                          className="flex-1 text-meta"
+                          style={{ color: theme.foreground }}
                           placeholder="0"
-                          placeholderTextColor={colors.textSecondary}
+                          placeholderTextColor={theme.mutedForeground}
                         />
-                        <Text className="text-sm" style={{ color: colors.textSecondary }}>%</Text>
+                        <Text className="text-meta" style={{ color: theme.mutedForeground }}>%</Text>
                       </View>
                     </View>
                     <View className="flex-1">
-                      <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: theme.mutedForeground }}>
                         Amount (₹)
                       </Text>
                       <View
-                        className="flex-row items-center border rounded-lg px-2.5 py-2"
-                        style={{ borderColor: colors.border }}
+                        className="flex-row items-center border rounded-control px-2.5 py-2"
+                        style={{ borderColor: theme.border }}
                       >
-                        <Text className="text-sm mr-1" style={{ color: colors.textSecondary }}>₹</Text>
+                        <Text className="text-meta mr-1" style={{ color: theme.mutedForeground }}>₹</Text>
                         <FormulaTextInput
                           value={r.amt}
                           onChangeText={(v) => handleAmtChange(idx, v)}
                           keyboardType="numeric"
-                          className="flex-1 text-sm"
-                          style={{ color: colors.text }}
+                          className="flex-1 text-meta"
+                          style={{ color: theme.foreground }}
                           placeholder="0"
-                          placeholderTextColor={colors.textSecondary}
+                          placeholderTextColor={theme.mutedForeground}
                         />
                       </View>
                     </View>
@@ -388,24 +389,24 @@ export function HisaabInclusionSheet({
       <View className="flex-row px-5 pt-3 gap-3">
         <Pressable
           onPress={handleClose}
-          className="flex-1 py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="flex-1 py-3 rounded-card items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
           accessibilityRole="button"
           accessibilityLabel="Cancel"
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
             Cancel
           </Text>
         </Pressable>
         <Pressable
           onPress={handleSave}
           disabled={saving || loading}
-          className="flex-1 py-3 rounded-xl items-center"
+          className="flex-1 py-3 rounded-card items-center"
           style={{ backgroundColor: theme.primary, opacity: saving || loading ? 0.5 : 1 }}
           accessibilityRole="button"
           accessibilityLabel="Save hisaab inclusion"
         >
-          <Text className="text-sm font-semibold text-primary-foreground">
+          <Text className="text-body font-semibold text-primary-foreground">
             {saving ? "Saving…" : "Save"}
           </Text>
         </Pressable>

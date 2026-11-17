@@ -49,12 +49,12 @@ export function PeriodBar({
               className="px-4 py-2 rounded-full border"
               style={{
                 backgroundColor: selected ? theme.primary : "transparent",
-                borderColor: selected ? theme.primary : colors.border,
+                borderColor: selected ? theme.primary : theme.border,
               }}
               accessibilityRole="radio"
               accessibilityState={{ checked: selected }}
             >
-              <Text className="text-sm font-semibold" style={{ color: selected ? "#fff" : colors.textSecondary }}>
+              <Text className="text-body font-semibold" style={{ color: selected ? "#fff" : theme.mutedForeground }}>
                 {insightPeriodLabel(p, fyStartMonth)}
               </Text>
             </Pressable>
@@ -64,27 +64,27 @@ export function PeriodBar({
 
       {period === "custom" && (
         <View className="flex-row items-center px-4 pb-2 gap-2">
-          <Text className="text-xs text-muted-foreground">From</Text>
+          <Text className="text-label text-muted-foreground">From</Text>
           <Pressable
             onPress={() => setPicking("start")}
-            className="flex-row items-center px-3 py-1.5 rounded-lg border"
-            style={{ borderColor: colors.border }}
+            className="flex-row items-center px-3 py-1.5 rounded-control border"
+            style={{ borderColor: theme.border }}
             accessibilityRole="button"
             accessibilityLabel={`From ${monthLabel(customStart)}`}
           >
-            <Text className="text-sm font-medium text-foreground mr-1">{monthLabel(customStart)}</Text>
-            <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
+            <Text className="text-body font-medium text-foreground mr-1">{monthLabel(customStart)}</Text>
+            <Ionicons name="chevron-down" size={13} color={theme.mutedForeground} />
           </Pressable>
-          <Text className="text-xs text-muted-foreground">to</Text>
+          <Text className="text-label text-muted-foreground">to</Text>
           <Pressable
             onPress={() => setPicking("end")}
-            className="flex-row items-center px-3 py-1.5 rounded-lg border"
-            style={{ borderColor: colors.border }}
+            className="flex-row items-center px-3 py-1.5 rounded-control border"
+            style={{ borderColor: theme.border }}
             accessibilityRole="button"
             accessibilityLabel={`To ${monthLabel(customEnd)}`}
           >
-            <Text className="text-sm font-medium text-foreground mr-1">{monthLabel(customEnd)}</Text>
-            <Ionicons name="chevron-down" size={13} color={colors.textSecondary} />
+            <Text className="text-body font-medium text-foreground mr-1">{monthLabel(customEnd)}</Text>
+            <Ionicons name="chevron-down" size={13} color={theme.mutedForeground} />
           </Pressable>
         </View>
       )}
@@ -134,7 +134,7 @@ function MiniMonthPicker({
 
   return (
     <View className="px-4 pt-5 pb-4">
-      <Text className="text-base font-bold text-foreground mb-4">{label}</Text>
+      <Text className="text-body font-bold text-foreground mb-4">{label}</Text>
 
       <View className="flex-row items-center justify-between mb-4">
         <Pressable
@@ -145,9 +145,9 @@ function MiniMonthPicker({
           accessibilityRole="button"
           accessibilityLabel="Previous year"
         >
-          <Ionicons name="chevron-back" size={22} color={colors.textSecondary} />
+          <Ionicons name="chevron-back" size={22} color={theme.mutedForeground} />
         </Pressable>
-        <Text className="text-lg font-bold text-foreground">{pickerYear}</Text>
+        <Text className="text-heading font-bold text-foreground">{pickerYear}</Text>
         <Pressable
           onPress={() => setPickerYear((v) => v + 1)}
           disabled={maxYear !== undefined && pickerYear >= maxYear}
@@ -156,7 +156,7 @@ function MiniMonthPicker({
           accessibilityRole="button"
           accessibilityLabel="Next year"
         >
-          <Ionicons name="chevron-forward" size={22} color={colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={22} color={theme.mutedForeground} />
         </Pressable>
       </View>
 
@@ -178,12 +178,12 @@ function MiniMonthPicker({
               accessibilityLabel={`${name} ${pickerYear}`}
             >
               <View
-                className={`w-16 py-2 rounded-xl items-center ${isSelected ? "" : isCurrent ? "border" : ""}`}
+                className={`w-16 py-2 rounded-card items-center ${isSelected ? "" : isCurrent ? "border" : ""}`}
                 style={isSelected ? { backgroundColor: theme.primary } : isCurrent ? { borderColor: theme.primary } : undefined}
               >
                 <Text
-                  className="text-sm font-semibold"
-                  style={{ color: isSelected ? "#fff" : isCurrent ? theme.primary : colors.text }}
+                  className="text-body font-semibold"
+                  style={{ color: isSelected ? "#fff" : isCurrent ? theme.primary : theme.foreground }}
                 >
                   {name}
                 </Text>
@@ -193,8 +193,8 @@ function MiniMonthPicker({
         })}
       </View>
 
-      <Pressable onPress={onCancel} className="py-3 rounded-xl bg-background items-center" accessibilityRole="button">
-        <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
+      <Pressable onPress={onCancel} className="py-3 rounded-card bg-background items-center" accessibilityRole="button">
+        <Text className="text-body font-semibold text-muted-foreground">Cancel</Text>
       </Pressable>
     </View>
   );

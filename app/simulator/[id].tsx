@@ -50,6 +50,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 function prettyDate(ymd: string): string {
   if (!ymd) return "";
@@ -478,7 +479,7 @@ export default function ScenarioDetailScreen() {
             accessibilityLabel="Change horizon date"
           >
             <Ionicons name="calendar-outline" size={14} color={theme.primary} />
-            <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
+            <Text className="text-label font-semibold ml-1.5" style={{ color: theme.primary }}>
               Until {prettyDate(scenario.horizon_date)}
             </Text>
           </Pressable>
@@ -488,12 +489,12 @@ export default function ScenarioDetailScreen() {
             className="p-2"
             accessibilityLabel="Scenario menu"
           >
-            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textSecondary} />
+            <Ionicons name="ellipsis-horizontal" size={20} color={theme.mutedForeground} />
           </Pressable>
         </View>
 
         {/* Hero / overview — v16.0.5 redesign. Hierarchy:
-              1. Projected balance hero (text-3xl, dominant)
+              1. Projected balance hero (hero size, dominant)
               2. Supporting line — today → horizon + delta pill
               3. Collapsible "Starting balance · Today" drawer
               4. Per-account current → projected breakdown
@@ -502,7 +503,7 @@ export default function ScenarioDetailScreen() {
           <View className="flex-row items-center justify-between">
             <Text
               className="text-label font-semibold uppercase tracking-wider"
-              style={{ color: colors.textSecondary }}
+              style={{ color: theme.mutedForeground }}
             >
               Projected balance · {prettyDate(scenario.horizon_date)}
             </Text>
@@ -521,12 +522,12 @@ export default function ScenarioDetailScreen() {
 
           {/* Hero number */}
           <View className="flex-row items-end mt-2" style={{ opacity: recomputing ? 0.55 : 1 }}>
-            <Text className="text-3xl font-bold" style={{ color: colors.text }}>
+            <Text className="text-display font-bold" style={{ color: theme.foreground }}>
               {formatAmount(adjustedNetEnd)}
             </Text>
             <View
               className="ml-3 mb-1.5 flex-row items-center px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: deltaColor + "14" }}
+              style={{ backgroundColor: tint(deltaColor, 0.08) }}
             >
               <Ionicons name={delta >= 0 ? "arrow-up" : "arrow-down"} size={10} color={deltaColor} />
               <Text className="text-label font-semibold ml-1" style={{ color: deltaColor }}>
@@ -535,7 +536,7 @@ export default function ScenarioDetailScreen() {
               </Text>
             </View>
           </View>
-          <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+          <Text className="text-label mt-1" style={{ color: theme.mutedForeground }}>
             {entries.upcoming.length === 0
               ? "No planned entries yet - same as starting balance."
               : `Starts at ${formatAmount(adjustedNetStart)} today, after ${entries.upcoming.length} planned ${entries.upcoming.length === 1 ? "entry" : "entries"}.`}
@@ -559,22 +560,22 @@ export default function ScenarioDetailScreen() {
                 const topSavingsAccount = savingsAccounts.length > 0 ? savingsAccounts[0] : null;
                 
                 return (
-                  <View key={`${warning.accountId}-${warning.kind}`} className="mb-2 p-3 rounded-lg" style={{ backgroundColor: theme.danger + "10" }}>
+                  <View key={`${warning.accountId}-${warning.kind}`} className="mb-2 p-3 rounded-control" style={{ backgroundColor: tint(theme.danger, 0.06) }}>
                     <View className="flex-row items-start mb-1">
                       <Ionicons name="alert-circle" size={14} color={theme.danger} />
-                      <Text className="ml-2 text-xs font-semibold flex-1" style={{ color: theme.danger }}>
+                      <Text className="ml-2 text-label font-semibold flex-1" style={{ color: theme.danger }}>
                         {warning.accountLabel}
                       </Text>
                     </View>
-                    <Text className="text-label mb-1" style={{ color: colors.textSecondary }}>
+                    <Text className="text-label mb-1" style={{ color: theme.mutedForeground }}>
                       {isOverdraft && `Account overdrawn by ${formatAmount(Math.abs(warning.amount))} on ${prettyDate(warning.firstTriggerDate)}`}
                       {isMinBreach && `Below minimum balance by ${formatAmount(Math.abs(warning.amount))} on ${prettyDate(warning.firstTriggerDate)}`}
                       {isCCOverLimit && `Credit card over limit by ${formatAmount(warning.amount)} on ${prettyDate(warning.firstTriggerDate)}`}
                     </Text>
                     {isOverdraft && topSavingsAccount && (
                       <View className="mt-1 pt-1 border-t border-border">
-                        <Text className="text-label" style={{ color: colors.textSecondary }}>
-                          Recommendation: Transfer from <Text className="font-semibold" style={{ color: colors.text }}>{topSavingsAccount.label}</Text>
+                        <Text className="text-label" style={{ color: theme.mutedForeground }}>
+                          Recommendation: Transfer from <Text className="font-semibold" style={{ color: theme.foreground }}>{topSavingsAccount.label}</Text>
                         </Text>
                       </View>
                     )}
@@ -599,13 +600,13 @@ export default function ScenarioDetailScreen() {
               <Ionicons
                 name={expandStarting ? "chevron-down" : "chevron-forward"}
                 size={14}
-                color={colors.textSecondary}
+                color={theme.mutedForeground}
               />
-              <Text className="ml-1 text-label font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              <Text className="ml-1 text-label font-semibold uppercase tracking-wider" style={{ color: theme.mutedForeground }}>
                 Starting balance · Today
               </Text>
             </View>
-            <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+            <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
               {formatAmount(adjustedNetStart)}
             </Text>
           </Pressable>
@@ -632,7 +633,7 @@ export default function ScenarioDetailScreen() {
             return (
               <View
                 className="mt-1 pl-3"
-                style={{ borderLeftWidth: 2, borderLeftColor: colors.border, opacity: recomputing ? 0.55 : 1 }}
+                style={{ borderLeftWidth: 2, borderLeftColor: theme.border, opacity: recomputing ? 0.55 : 1 }}
               >
                 {/* Money available — bank + wallet + overpaid CCs + hisaab (positive) */}
                 {(haveAccounts.length > 0 || hisaabHaveRows.length > 0) && (
@@ -644,7 +645,7 @@ export default function ScenarioDetailScreen() {
                       >
                         Money available
                       </Text>
-                      <Text className="text-xs font-bold" style={{ color: theme.success }}>
+                      <Text className="text-label font-bold" style={{ color: theme.success }}>
                         {formatAmount(haveTotal)}
                       </Text>
                     </View>
@@ -664,14 +665,14 @@ export default function ScenarioDetailScreen() {
                       return (
                         <View key={a.id} className="flex-row items-center justify-between py-1">
                           <View className="flex-1 mr-2">
-                            <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
+                            <Text className="text-meta" style={{ color: theme.foreground }} numberOfLines={1}>
                               {a.label}
                             </Text>
-                            <Text className="text-label" style={{ color: colors.textSecondary }}>
+                            <Text className="text-label" style={{ color: theme.mutedForeground }}>
                               {sublabel}
                             </Text>
                           </View>
-                          <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                          <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                             {formatAmount(shownAmount)}
                           </Text>
                         </View>
@@ -682,14 +683,14 @@ export default function ScenarioDetailScreen() {
                       return (
                         <View key={h.person_id} className="flex-row items-center justify-between py-1">
                           <View className="flex-1 mr-2">
-                            <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
+                            <Text className="text-meta" style={{ color: theme.foreground }} numberOfLines={1}>
                               {person?.name ?? "Hisaab person"}
                             </Text>
-                            <Text className="text-label" style={{ color: colors.textSecondary }}>
+                            <Text className="text-label" style={{ color: theme.mutedForeground }}>
                               Hisaab · they owe you
                             </Text>
                           </View>
-                          <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                          <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                             {formatAmount(h.amount)}
                           </Text>
                         </View>
@@ -718,21 +719,21 @@ export default function ScenarioDetailScreen() {
                       >
                         Money owed
                       </Text>
-                      <Text className="text-xs font-bold" style={{ color: theme.danger }}>
+                      <Text className="text-label font-bold" style={{ color: theme.danger }}>
                         {formatAmount(oweTotal)}
                       </Text>
                     </View>
                     {oweAccounts.map((a) => (
                       <View key={a.id} className="flex-row items-center justify-between py-1">
                         <View className="flex-1 mr-2">
-                          <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
+                          <Text className="text-meta" style={{ color: theme.foreground }} numberOfLines={1}>
                             {a.label}
                           </Text>
-                          <Text className="text-label" style={{ color: colors.textSecondary }}>
+                          <Text className="text-label" style={{ color: theme.mutedForeground }}>
                             Credit card · utilized
                           </Text>
                         </View>
-                        <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
+                        <Text className="text-body font-semibold" style={{ color: theme.danger }}>
                           {formatAmount(a.balance)}
                         </Text>
                       </View>
@@ -742,14 +743,14 @@ export default function ScenarioDetailScreen() {
                       return (
                         <View key={h.person_id} className="flex-row items-center justify-between py-1">
                           <View className="flex-1 mr-2">
-                            <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
+                            <Text className="text-meta" style={{ color: theme.foreground }} numberOfLines={1}>
                               {person?.name ?? "Hisaab person"}
                             </Text>
-                            <Text className="text-label" style={{ color: colors.textSecondary }}>
+                            <Text className="text-label" style={{ color: theme.mutedForeground }}>
                               Hisaab · you owe
                             </Text>
                           </View>
-                          <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
+                          <Text className="text-body font-semibold" style={{ color: theme.danger }}>
                             {formatAmount(h.amount)}
                           </Text>
                         </View>
@@ -767,7 +768,7 @@ export default function ScenarioDetailScreen() {
                 >
                   <View className="flex-row items-center flex-1">
                     <Ionicons name="people-outline" size={14} color={theme.primary} />
-                    <Text className="ml-1.5 text-xs font-semibold" style={{ color: theme.primary }}>
+                    <Text className="ml-1.5 text-label font-semibold" style={{ color: theme.primary }}>
                       {hisaabIncluded.length > 0
                         ? `Hisaab included · ${hisaabIncluded.length} ${hisaabIncluded.length === 1 ? "person" : "people"}`
                         : "Include hisaab balances"}
@@ -778,14 +779,14 @@ export default function ScenarioDetailScreen() {
 
                 {/* Net reconciliation */}
                 <View className="mt-2 pt-2 border-t border-border flex-row items-center justify-between">
-                  <Text className="text-xs font-semibold" style={{ color: colors.text }}>
+                  <Text className="text-label font-semibold" style={{ color: theme.foreground }}>
                     Net starting balance
                   </Text>
-                  <Text className="text-sm font-bold" style={{ color: colors.text }}>
+                  <Text className="text-body font-bold" style={{ color: theme.foreground }}>
                     {formatAmount(adjustedNetStart)}
                   </Text>
                 </View>
-                <Text className="text-label mt-2" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-2" style={{ color: theme.mutedForeground }}>
                   Net = money available − money owed. Demat, pension, and loans are out of scope.
                 </Text>
               </View>
@@ -808,13 +809,13 @@ export default function ScenarioDetailScreen() {
               <Ionicons
                 name={expandProjected ? "chevron-down" : "chevron-forward"}
                 size={14}
-                color={colors.textSecondary}
+                color={theme.mutedForeground}
               />
-              <Text className="ml-1 text-label font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+              <Text className="ml-1 text-label font-semibold uppercase tracking-wider" style={{ color: theme.mutedForeground }}>
                 Remaining balance · {prettyDate(scenario.horizon_date)}
               </Text>
             </View>
-            <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+            <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
               {formatAmount(adjustedNetEnd)}
             </Text>
           </Pressable>
@@ -834,21 +835,21 @@ export default function ScenarioDetailScreen() {
               const accountDelta = endVal - startVal;
               const isGood = a.type === "credit_card" ? accountDelta < 0 : accountDelta >= 0;
               const rowDeltaColor = accountDelta === 0
-                ? colors.textSecondary
+                ? theme.mutedForeground
                 : isGood
                   ? theme.success
                   : theme.danger;
               const zebra = idx % 2 === 1
-                ? { backgroundColor: colors.border + "33" }
+                ? { backgroundColor: tint(theme.border, 0.2) }
                 : undefined;
               return (
                 <View
                   key={a.id}
-                  className="flex-row items-center py-2 px-2 -mx-2 rounded-md"
+                  className="flex-row items-center py-2 px-2 -mx-2 rounded-control"
                   style={{ opacity: recomputing ? 0.55 : 1, ...zebra }}
                 >
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
+                    <Text className="text-body font-semibold" style={{ color: theme.foreground }} numberOfLines={1}>
                       {a.label}
                     </Text>
                     <Text className="text-label mt-0.5" style={{ color: rowDeltaColor }}>
@@ -856,7 +857,7 @@ export default function ScenarioDetailScreen() {
                     </Text>
                   </View>
                   <View className="items-end">
-                    <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                    <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                       {formatAmount(endVal)}
                     </Text>
                   </View>
@@ -867,7 +868,7 @@ export default function ScenarioDetailScreen() {
             return (
               <View
                 className="mt-1 pl-3"
-                style={{ borderLeftWidth: 2, borderLeftColor: colors.border, opacity: recomputing ? 0.55 : 1 }}
+                style={{ borderLeftWidth: 2, borderLeftColor: theme.border, opacity: recomputing ? 0.55 : 1 }}
               >
                 {availRows.length > 0 && (
                   <View className="mt-1 mb-2">
@@ -878,7 +879,7 @@ export default function ScenarioDetailScreen() {
                       >
                         Money available
                       </Text>
-                      <Text className="text-xs font-bold" style={{ color: theme.success }}>
+                      <Text className="text-label font-bold" style={{ color: theme.success }}>
                         {formatAmount(availRows.reduce((s, a) => {
                           const endVal = simulation.endBalances[a.id] ?? a.balance;
                           return s + (a.type === "credit_card" ? -endVal : endVal);
@@ -899,7 +900,7 @@ export default function ScenarioDetailScreen() {
                       >
                         Money owed · Credit cards
                       </Text>
-                      <Text className="text-xs font-bold" style={{ color: theme.danger }}>
+                      <Text className="text-label font-bold" style={{ color: theme.danger }}>
                         {formatAmount(owedRows.reduce((s, a) => s + (simulation.endBalances[a.id] ?? a.balance), 0))}
                       </Text>
                     </View>
@@ -918,13 +919,13 @@ export default function ScenarioDetailScreen() {
             <View className="flex-row items-center mb-2">
               <Ionicons name="alert-circle-outline" size={18} color={theme.warning} />
               <Text
-                className="ml-2 text-sm font-semibold"
-                style={{ color: colors.text }}
+                className="ml-2 text-body font-semibold"
+                style={{ color: theme.foreground }}
               >
                 {entries.stale.length} planned {entries.stale.length === 1 ? "entry" : "entries"} may have passed
               </Text>
             </View>
-            <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+            <Text className="text-label mb-3" style={{ color: theme.mutedForeground }}>
               These were planned for dates that have already gone by. Pick what
               happened for each one.
             </Text>
@@ -937,21 +938,21 @@ export default function ScenarioDetailScreen() {
                 accessibilityLabel={`Resolve stale entry ${e.description ?? e.merchant_name ?? "entry"}`}
               >
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
+                  <Text className="text-body font-semibold" style={{ color: theme.foreground }} numberOfLines={1}>
                     {e.description || e.merchant_name || (e.category_id && categoryNameMap[e.category_id]) || "Planned entry"}
                   </Text>
-                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                     Was due {prettyDate(e.date)}
                   </Text>
                 </View>
                 <Text
-                  className="text-sm font-bold mx-2"
+                  className="text-body font-bold mx-2"
                   style={{ color: e.direction === "out" ? theme.danger : theme.success }}
                 >
                   {e.direction === "out" ? "−" : "+"}
                   {formatAmount(e.amount)}
                 </Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
               </Pressable>
             ))}
           </Card>
@@ -1008,8 +1009,8 @@ export default function ScenarioDetailScreen() {
           return (
             <View className="mt-5">
               <Text
-                className="mx-4 text-xs font-bold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
+                className="mx-4 text-label font-bold uppercase tracking-wider mb-2"
+                style={{ color: theme.mutedForeground }}
               >
                 Key moments
               </Text>
@@ -1018,12 +1019,12 @@ export default function ScenarioDetailScreen() {
                   <View
                     key={m.accountId}
                     className="flex-row items-center py-2.5"
-                    style={i > 0 ? { borderTopWidth: 1, borderTopColor: colors.border } : undefined}
+                    style={i > 0 ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined}
                   >
                     <View
                       className="w-7 h-7 rounded-full items-center justify-center mr-2.5"
                       style={{
-                        backgroundColor: m.kind === "highest_utilized" ? theme.danger + "14" : theme.warning + "14",
+                        backgroundColor: m.kind === "highest_utilized" ? tint(theme.danger, 0.08) : tint(theme.warning, 0.08),
                       }}
                     >
                       <Ionicons
@@ -1033,21 +1034,21 @@ export default function ScenarioDetailScreen() {
                       />
                     </View>
                     <View className="flex-1 mr-2">
-                      <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
+                      <Text className="text-body font-semibold" style={{ color: theme.foreground }} numberOfLines={1}>
                         {m.label}
                       </Text>
                       <View
                         className="mt-1 px-1.5 py-0.5 rounded self-start"
-                        style={{ backgroundColor: colors.border }}
+                        style={{ backgroundColor: theme.border }}
                       >
-                        <Text className="text-label font-semibold" style={{ color: colors.textSecondary }}>
+                        <Text className="text-label font-semibold" style={{ color: theme.mutedForeground }}>
                           {m.kind === "highest_utilized" ? "Fullest" : "Lowest"} · {prettyDate(m.date)}
                         </Text>
                       </View>
                     </View>
                     <Text
-                      className="text-xl font-bold"
-                      style={{ color: m.kind === "highest_utilized" ? theme.danger : colors.text }}
+                      className="text-title font-bold"
+                      style={{ color: m.kind === "highest_utilized" ? theme.danger : theme.foreground }}
                     >
                       {m.kind === "highest_utilized" ? "−" : ""}
                       {formatAmount(m.amount)}
@@ -1067,8 +1068,8 @@ export default function ScenarioDetailScreen() {
           <>
             <View className="mx-4 mt-5 mb-1 flex-row items-center">
               <Text
-                className="text-xs font-bold uppercase tracking-wider"
-                style={{ color: colors.textSecondary }}
+                className="text-label font-bold uppercase tracking-wider"
+                style={{ color: theme.mutedForeground }}
               >
                 Planned entries
               </Text>
@@ -1080,10 +1081,10 @@ export default function ScenarioDetailScreen() {
               >
                 <Ionicons name="calendar-outline" size={26} color={theme.primary} />
               </View>
-              <Text className="text-sm font-semibold text-center" style={{ color: colors.text }}>
+              <Text className="text-body font-semibold text-center" style={{ color: theme.foreground }}>
                 Nothing planned yet
               </Text>
-              <Text className="text-xs text-center mt-1.5 leading-4" style={{ color: colors.textSecondary }}>
+              <Text className="text-label text-center mt-1.5 leading-4" style={{ color: theme.mutedForeground }}>
                 Tap the + button to add outgoings or incomings you expect before
                 {" "}
                 {prettyDate(scenario.horizon_date)}.
@@ -1102,22 +1103,22 @@ export default function ScenarioDetailScreen() {
                   accessibilityLabel={expandOutgoing ? "Hide outgoing entries" : "Show outgoing entries"}
                 >
                   <View className="flex-row items-center">
-                    <Ionicons name={expandOutgoing ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} />
+                    <Ionicons name={expandOutgoing ? "chevron-down" : "chevron-forward"} size={14} color={theme.mutedForeground} />
                     <View
                       className="w-6 h-6 rounded-full items-center justify-center ml-2"
-                      style={{ backgroundColor: theme.danger + "14" }}
+                      style={{ backgroundColor: tint(theme.danger, 0.08) }}
                     >
                       <Ionicons name="arrow-up" size={12} color={theme.danger} />
                     </View>
                     <Text
-                      className="ml-2 text-xs font-bold uppercase tracking-wider"
-                      style={{ color: colors.textSecondary }}
+                      className="ml-2 text-label font-bold uppercase tracking-wider"
+                      style={{ color: theme.mutedForeground }}
                     >
                       Outgoing
                     </Text>
-                    <Badge label={outgoingEntries.length} color={colors.textSecondary} className="ml-2" />
+                    <Badge label={outgoingEntries.length} color={theme.mutedForeground} className="ml-2" />
                   </View>
-                  <Text className="text-xs font-bold" style={{ color: theme.danger }}>
+                  <Text className="text-label font-bold" style={{ color: theme.danger }}>
                     −{formatAmount(outgoingTotal)}
                   </Text>
                 </Pressable>
@@ -1141,22 +1142,22 @@ export default function ScenarioDetailScreen() {
                   accessibilityLabel={expandIncoming ? "Hide incoming entries" : "Show incoming entries"}
                 >
                   <View className="flex-row items-center">
-                    <Ionicons name={expandIncoming ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} />
+                    <Ionicons name={expandIncoming ? "chevron-down" : "chevron-forward"} size={14} color={theme.mutedForeground} />
                     <View
                       className="w-6 h-6 rounded-full items-center justify-center ml-2"
-                      style={{ backgroundColor: theme.success + "14" }}
+                      style={{ backgroundColor: tint(theme.success, 0.08) }}
                     >
                       <Ionicons name="arrow-down" size={12} color={theme.success} />
                     </View>
                     <Text
-                      className="ml-2 text-xs font-bold uppercase tracking-wider"
-                      style={{ color: colors.textSecondary }}
+                      className="ml-2 text-label font-bold uppercase tracking-wider"
+                      style={{ color: theme.mutedForeground }}
                     >
                       Incoming
                     </Text>
-                    <Badge label={incomingEntries.length} color={colors.textSecondary} className="ml-2" />
+                    <Badge label={incomingEntries.length} color={theme.mutedForeground} className="ml-2" />
                   </View>
-                  <Text className="text-xs font-bold" style={{ color: theme.success }}>
+                  <Text className="text-label font-bold" style={{ color: theme.success }}>
                     +{formatAmount(incomingTotal)}
                   </Text>
                 </Pressable>
@@ -1184,10 +1185,10 @@ export default function ScenarioDetailScreen() {
                 accessibilityLabel={expandFulfilled ? "Hide entries that already happened" : "Show entries that already happened"}
               >
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-xs font-semibold uppercase tracking-wider" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label font-semibold uppercase tracking-wider" style={{ color: theme.mutedForeground }}>
                     Already happened · {entries.fulfilled.length}
                   </Text>
-                  <Chevron open={expandFulfilled} size={14} color={colors.textSecondary} />
+                  <Chevron open={expandFulfilled} size={14} color={theme.mutedForeground} />
                 </View>
                 {fulfilledSummary && (["out", "in"] as const).map((direction) => {
                   const totals = direction === "out" ? fulfilledSummary.moneyOut : fulfilledSummary.moneyIn;
@@ -1195,12 +1196,12 @@ export default function ScenarioDetailScreen() {
                   return (
                     <View key={direction} className="mt-2 pt-2 border-t border-border">
                       <View className="flex-row items-center justify-between">
-                        <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                        <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                           {direction === "out" ? "Money out" : "Money in"}
                         </Text>
                         <VarianceTag variance={totals.variance} direction={direction} />
                       </View>
-                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                         Planned {formatAmount(totals.planned)} · Actual {formatAmount(totals.actual)}
                       </Text>
                     </View>
@@ -1231,22 +1232,22 @@ export default function ScenarioDetailScreen() {
                       }
                     }}
                     onLongPress={() => handleEntryLongPress(e)}
-                    className="flex-row items-center mx-4 py-2.5 px-3 rounded-xl mb-1"
+                    className="flex-row items-center mx-4 py-2.5 px-3 rounded-card mb-1"
                     style={{
-                      backgroundColor: colors.surface,
+                      backgroundColor: theme.card,
                       borderWidth: 1,
-                      borderColor: isExpanded ? theme.alpha("primary", 0.33) : colors.border,
+                      borderColor: isExpanded ? theme.alpha("primary", 0.33) : theme.border,
                       opacity: isExpanded ? 1 : 0.75,
                     }}
                     accessibilityRole="button"
                   >
                     <Ionicons name="checkmark-circle" size={16} color={theme.success} />
                     <View className="flex-1 ml-2">
-                      <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
+                      <Text className="text-meta" style={{ color: theme.foreground }} numberOfLines={1}>
                         {e.description || e.merchant_name || (e.category_id && categoryNameMap[e.category_id]) || "Planned entry"}
                       </Text>
                       <View className="flex-row items-center mt-0.5">
-                        <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                        <Text className="text-label" style={{ color: theme.mutedForeground }}>
                           Planned: {formatAmount(e.amount)}
                         </Text>
                         {/* No actual means nothing is linked, which says nothing about the plan. */}
@@ -1258,15 +1259,15 @@ export default function ScenarioDetailScreen() {
                       </View>
                     </View>
                     {actualTotal !== null ? (
-                      <Text className="text-sm font-semibold mr-1" style={{ color: colors.text }}>
+                      <Text className="text-body font-semibold mr-1" style={{ color: theme.foreground }}>
                         {formatAmount(actualTotal)}
                       </Text>
                     ) : (
-                      <Text className="text-sm font-semibold mr-1" style={{ color: colors.text }}>
+                      <Text className="text-body font-semibold mr-1" style={{ color: theme.foreground }}>
                         {formatAmount(e.amount)}
                       </Text>
                     )}
-                    <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={14} color={colors.textSecondary} />
+                    <Ionicons name={isExpanded ? "chevron-down" : "chevron-forward"} size={14} color={theme.mutedForeground} />
                   </Pressable>
 
                   {/* Inline expansion: linked transactions + link more */}
@@ -1276,19 +1277,19 @@ export default function ScenarioDetailScreen() {
                         <Pressable
                           key={f.id}
                           onPress={() => router.push({ pathname: "/expense/[id]", params: { id: f.expense_id } })}
-                          className="flex-row items-center py-2 px-2 rounded-lg mb-1"
-                          style={{ backgroundColor: colors.surface, borderWidth: 0.5, borderColor: colors.border }}
+                          className="flex-row items-center py-2 px-2 rounded-control mb-1"
+                          style={{ backgroundColor: theme.card, borderWidth: 0.5, borderColor: theme.border }}
                         >
-                          <Ionicons name="receipt-outline" size={14} color={colors.textSecondary} />
+                          <Ionicons name="receipt-outline" size={14} color={theme.mutedForeground} />
                           <View className="flex-1 ml-2">
-                            <Text className="text-xs" style={{ color: colors.text }} numberOfLines={1}>
+                            <Text className="text-label" style={{ color: theme.foreground }} numberOfLines={1}>
                               {f.merchant_name || f.description || "Transaction"}
                             </Text>
-                            <Text className="text-label" style={{ color: colors.textSecondary }}>
+                            <Text className="text-label" style={{ color: theme.mutedForeground }}>
                               {prettyDate(f.date)}
                             </Text>
                           </View>
-                          <Text className="text-xs font-semibold" style={{ color: colors.text }}>
+                          <Text className="text-label font-semibold" style={{ color: theme.foreground }}>
                             {formatAmount(f.amount)}
                           </Text>
                           {/*
@@ -1304,22 +1305,22 @@ export default function ScenarioDetailScreen() {
                             accessibilityRole="button"
                             accessibilityLabel={`Unlink ${f.merchant_name || f.description || "this transaction"}`}
                           >
-                            <Ionicons name="close-circle-outline" size={16} color={colors.textSecondary} />
+                            <Ionicons name="close-circle-outline" size={16} color={theme.mutedForeground} />
                           </Pressable>
-                          <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                          <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
                         </Pressable>
                       )) : (
-                        <Text className="text-xs py-2" style={{ color: colors.textSecondary }}>
+                        <Text className="text-label py-2" style={{ color: theme.mutedForeground }}>
                           No transactions linked yet.
                         </Text>
                       )}
                       <Pressable
                         onPress={() => setStaleSheetEntry(e)}
-                        className="flex-row items-center justify-center py-2 mt-1 rounded-lg"
+                        className="flex-row items-center justify-center py-2 mt-1 rounded-control"
                         style={{ borderWidth: 1, borderColor: theme.alpha("primary", 0.27), borderStyle: "dashed" }}
                       >
                         <Ionicons name="add-circle-outline" size={14} color={theme.primary} />
-                        <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
+                        <Text className="text-label font-medium ml-1" style={{ color: theme.primary }}>
                           {details && details.length > 0 ? "Link more transactions" : "Link transactions"}
                         </Text>
                       </Pressable>
@@ -1427,10 +1428,10 @@ function MenuItem({
   const theme = useTheme();
   return (
     <Pressable onPress={onPress} className="flex-row items-center px-5 py-3">
-      <Ionicons name={icon} size={18} color={danger ? theme.danger : colors.textSecondary} />
+      <Ionicons name={icon} size={18} color={danger ? theme.danger : theme.mutedForeground} />
       <Text
-        className="ml-3 text-sm"
-        style={{ color: danger ? theme.danger : colors.text }}
+        className="ml-3 text-meta"
+        style={{ color: danger ? theme.danger : theme.foreground }}
       >
         {label}
       </Text>
@@ -1465,25 +1466,25 @@ function EntryGroup({
   const theme = useTheme();
   if (items.length === 0) return null;
   const groupTotal = total ?? items.reduce((s, e) => s + e.amount, 0);
-  const totalColor = direction === "out" ? theme.danger : direction === "in" ? theme.success : colors.text;
+  const totalColor = direction === "out" ? theme.danger : direction === "in" ? theme.success : theme.foreground;
   const totalPrefix = direction === "out" ? "−" : direction === "in" ? "+" : "";
   return (
     <View className="mt-3">
-      {/* v16.0.5 — stronger header: text-xs bold + count chip. v16.0.8 — added total. */}
+      {/* v16.0.5 — stronger header: label size bold + count chip. v16.0.8 — added total. */}
       <View className="mx-4 mb-1.5 flex-row items-center justify-between">
         <View className="flex-row items-center" style={{ flexShrink: 0 }}>
           <Text
-            className="text-xs font-bold uppercase tracking-wider"
-            style={{ color: colors.textSecondary }}
+            className="text-label font-bold uppercase tracking-wider"
+            style={{ color: theme.mutedForeground }}
             numberOfLines={1}
           >
             {label}
           </Text>
-          <Badge label={items.length} color={colors.textSecondary} className="ml-2" />
+          <Badge label={items.length} color={theme.mutedForeground} className="ml-2" />
         </View>
         {direction && (
           <Text
-            className="text-xs font-bold ml-2"
+            className="text-label font-bold ml-2"
             style={{ color: totalColor, flexShrink: 1 }}
             numberOfLines={1}
           >
@@ -1522,11 +1523,11 @@ function EntryGroup({
             key={e.id}
             onPress={() => onTap(e)}
             onLongPress={() => onLongPress(e)}
-            className="flex-row items-center mx-4 py-2.5 px-3 rounded-xl mb-1"
+            className="flex-row items-center mx-4 py-2.5 px-3 rounded-card mb-1"
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: theme.card,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: theme.border,
             }}
           >
             {/* Direction arrow (+ optional auto-seed source dot above). */}
@@ -1541,7 +1542,7 @@ function EntryGroup({
                 className="w-7 h-7 rounded-full items-center justify-center"
                 style={{
                   backgroundColor:
-                    e.direction === "out" ? theme.danger + "14" : theme.success + "14",
+                    e.direction === "out" ? tint(theme.danger, 0.08) : tint(theme.success, 0.08),
                 }}
               >
                 <Ionicons
@@ -1552,7 +1553,7 @@ function EntryGroup({
               </View>
             </View>
             <View className="flex-1">
-              <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
+              <Text className="text-body font-semibold" style={{ color: theme.foreground }} numberOfLines={1}>
                 {titleOverride ?? e.description ?? e.merchant_name ?? (e.category_id && categoryNames?.[e.category_id]) ?? (e.direction === "out" ? "Outgoing" : "Incoming")}
               </Text>
               {/* Sublabel priority: hisaab → account + date. */}
@@ -1562,17 +1563,17 @@ function EntryGroup({
                     {hisaabLabel}
                   </Text>
                 ) : acctLabel ? (
-                  <Text className="text-label" style={{ color: colors.textSecondary }} numberOfLines={1}>
+                  <Text className="text-label" style={{ color: theme.mutedForeground }} numberOfLines={1}>
                     {acctLabel}
                   </Text>
                 ) : null}
-                <Text className="text-label" style={{ color: colors.textSecondary }}>
+                <Text className="text-label" style={{ color: theme.mutedForeground }}>
                   {(hisaabLabel || acctLabel) ? "  ·  " : ""}{prettyDate(e.date)}
                 </Text>
               </View>
             </View>
             <Text
-              className="text-sm font-semibold ml-2"
+              className="text-body font-semibold ml-2"
               style={{ color: e.direction === "out" ? theme.danger : theme.success }}
             >
               {e.direction === "out" ? "−" : "+"}
@@ -1612,40 +1613,40 @@ function RenameScenarioModal({
         <Pressable
           onPress={(e) => e.stopPropagation()}
           style={{
-            backgroundColor: colors.surface,
+            backgroundColor: theme.card,
             borderRadius: 16,
             padding: 20,
             width: "100%",
             maxWidth: 400,
           }}
         >
-          <Text className="text-base font-bold mb-2" style={{ color: colors.text }}>
+          <Text className="text-body font-bold mb-2" style={{ color: theme.foreground }}>
             Rename scenario
           </Text>
           <TextInput
             value={name}
             onChangeText={setName}
-            className="border border-border rounded-lg px-3 py-2.5 text-sm"
-            style={{ color: colors.text }}
+            className="border border-border rounded-control px-3 py-2.5 text-meta"
+            style={{ color: theme.foreground }}
             autoFocus
           />
           <View className="flex-row mt-3 gap-3">
             <Pressable
               onPress={onClose}
-              className="flex-1 py-2.5 rounded-lg items-center"
-              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+              className="flex-1 py-2.5 rounded-control items-center"
+              style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
             >
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              <Text className="text-meta" style={{ color: theme.mutedForeground }}>
                 Cancel
               </Text>
             </Pressable>
             <Pressable
               onPress={() => onSave(name.trim())}
               disabled={!name.trim()}
-              className="flex-1 py-2.5 rounded-lg items-center"
+              className="flex-1 py-2.5 rounded-control items-center"
               style={{ backgroundColor: theme.primary, opacity: name.trim() ? 1 : 0.5 }}
             >
-              <Text className="text-sm font-semibold text-primary-foreground">Save</Text>
+              <Text className="text-body font-semibold text-primary-foreground">Save</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -1661,9 +1662,9 @@ function VarianceTag({ variance, direction }: { variance: number; direction: "in
   const onPlan = Math.abs(variance) < 0.005;
   const over = variance > 0;
   const good = direction === "in" ? over : !over;
-  const color = onPlan ? colors.textSecondary : good ? theme.success : theme.danger;
+  const color = onPlan ? theme.mutedForeground : good ? theme.success : theme.danger;
   return (
-    <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: color + "1A" }}>
+    <View className="px-1.5 py-0.5 rounded" style={{ backgroundColor: tint(color, 0.1) }}>
       <Text className="text-label font-bold" style={{ color }}>
         {onPlan ? "On plan" : `${formatAmount(Math.abs(variance))} ${over ? "over" : "under"}`}
       </Text>

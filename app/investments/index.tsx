@@ -8,7 +8,7 @@ import { StackedAreaChart, type StackedLayer } from "@/components/charts/Stacked
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { DATA_HEX } from "@/constants/brand";
+import { DATA_HEX, tint } from "@/constants/brand";
 import {
   batchInvestmentProducts,
   getUnifiedInvestmentValues,
@@ -229,7 +229,7 @@ export default function InvestmentsListScreen() {
                 to see that category's accounts; tap an account to open it. */}
             <Appear index={0}>
             <Card className="mx-4 mt-4">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                 {view ? `${GROUP_META[view].label} value` : "Total value"}
               </Text>
               {/* Counts up when the screen opens and glides to a category's value; while dragging along
@@ -237,9 +237,9 @@ export default function InvestmentsListScreen() {
               <View className="flex-row items-center">
                 <View className="flex-1 mr-2">
                   {scrubbing ? (
-                    <Money value={shownValue} className="text-2xl font-bold text-foreground" />
+                    <Money value={shownValue} className="text-title font-bold text-foreground" />
                   ) : (
-                    <AnimatedNumber value={viewTotal} className="text-2xl font-bold text-foreground" />
+                    <AnimatedNumber value={viewTotal} className="text-title font-bold text-foreground" />
                   )}
                 </View>
                 {rows.some((r) => r.group === "market") && (
@@ -250,8 +250,8 @@ export default function InvestmentsListScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Sync investments and see how they moved"
                   >
-                    <Ionicons name="sync-outline" size={14} color={colors.textSecondary} />
-                    <Text className="text-xs text-muted-foreground ml-1">Sync</Text>
+                    <Ionicons name="sync-outline" size={14} color={theme.mutedForeground} />
+                    <Text className="text-label text-muted-foreground ml-1">Sync</Text>
                   </Pressable>
                 )}
                 <Pressable
@@ -261,15 +261,15 @@ export default function InvestmentsListScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="See projections"
                 >
-                  <Ionicons name="analytics-outline" size={14} color={colors.textSecondary} />
-                  <Text className="text-xs text-muted-foreground ml-1">Projections</Text>
+                  <Ionicons name="analytics-outline" size={14} color={theme.mutedForeground} />
+                  <Text className="text-label text-muted-foreground ml-1">Projections</Text>
                 </Pressable>
               </View>
               {change != null && (Math.abs(change) >= 1 || scrubbing) ? (
-                <Text className="text-xs mt-0.5" style={{ color: change >= 0 ? theme.success : theme.danger }}>
+                <Text className="text-label mt-0.5" style={{ color: change >= 0 ? theme.success : theme.danger }}>
                   {change >= 0 ? "+" : "−"}{formatAmount(Math.abs(change))}
                   {changePct != null ? ` (${change >= 0 ? "+" : "−"}${Math.abs(changePct).toFixed(1)}%)` : ""}
-                  <Text className="text-xs text-muted-foreground"> {changePhrase}</Text>
+                  <Text className="text-label text-muted-foreground"> {changePhrase}</Text>
                 </Text>
               ) : null}
               {lastSync && rows.some((r) => r.group === "market") && (() => {
@@ -282,7 +282,7 @@ export default function InvestmentsListScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`${line.text}. Sync investments`}
                   >
-                    <Ionicons name="time-outline" size={12} color={line.behind ? theme.warning : colors.textSecondary} />
+                    <Ionicons name="time-outline" size={12} color={line.behind ? theme.warning : theme.mutedForeground} />
                     <Text
                       className={`text-label ml-1 flex-1 ${line.behind ? "" : "text-faint-foreground"}`}
                       style={line.behind ? { color: theme.warning } : undefined}
@@ -325,8 +325,8 @@ export default function InvestmentsListScreen() {
                   />
                 ) : (
                   <View className="items-center justify-center" style={{ height: 150 }}>
-                    <Ionicons name="analytics-outline" size={28} color={colors.textSecondary} />
-                    <Text className="text-xs text-muted-foreground mt-2">Loading history…</Text>
+                    <Ionicons name="analytics-outline" size={28} color={theme.mutedForeground} />
+                    <Text className="text-label text-muted-foreground mt-2">Loading history…</Text>
                   </View>
                 )}
               </View>
@@ -368,10 +368,10 @@ export default function InvestmentsListScreen() {
             {maturities.length > 0 && (
               <Card className="mx-4 mt-3">
                 <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
                     Upcoming maturities
                   </Text>
-                  <Text className="text-xs font-semibold" style={{ color: theme.success }}>
+                  <Text className="text-label font-semibold" style={{ color: theme.success }}>
                     +{formatAmount(totalUpcomingInterest)} interest
                   </Text>
                 </View>
@@ -380,20 +380,20 @@ export default function InvestmentsListScreen() {
                     key={m.financialAccountId}
                     onPress={() => router.push({ pathname: "/settings/account-detail", params: { accountId: m.financialAccountId } })}
                     className="flex-row items-center py-2"
-                    style={i > 0 ? { borderTopWidth: 1, borderTopColor: colors.border } : undefined}
+                    style={i > 0 ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined}
                   >
                     <View
                       className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: GROUP_META.fd.color + "22" }}
+                      style={{ backgroundColor: tint(GROUP_META.fd.color, 0.13) }}
                     >
                       <Ionicons name={GROUP_META.fd.icon} size={15} color={GROUP_META.fd.color} />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-medium text-foreground" numberOfLines={1}>{m.label}</Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">Matures {formatDate(m.maturityDate)}</Text>
+                      <Text className="text-body font-medium text-foreground" numberOfLines={1}>{m.label}</Text>
+                      <Text className="text-label text-muted-foreground mt-0.5">Matures {formatDate(m.maturityDate)}</Text>
                     </View>
                     <View className="items-end">
-                      <Text className="text-sm font-semibold text-foreground">{formatAmount(m.maturityAmount)}</Text>
+                      <Text className="text-body font-semibold text-foreground">{formatAmount(m.maturityAmount)}</Text>
                       <Text className="text-label" style={{ color: theme.success }}>+{formatAmount(m.interestAmount)}</Text>
                     </View>
                   </Pressable>
@@ -411,10 +411,10 @@ export default function InvestmentsListScreen() {
                 <View key={group}>
                   <View className="mx-4 mt-4 mb-2 flex-row items-center">
                     <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: meta.color }} />
-                    <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground flex-1">
+                    <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground flex-1">
                       {meta.label} · {groupRows.length}
                     </Text>
-                    <Text className="text-xs font-semibold text-muted-foreground">
+                    <Text className="text-label font-semibold text-muted-foreground">
                       {formatAmount(groupTotals[group])}
                     </Text>
                   </View>
@@ -449,19 +449,19 @@ export default function InvestmentsListScreen() {
                           <View className="flex-row items-center">
                             <View
                               className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                              style={{ backgroundColor: meta.color + "22" }}
+                              style={{ backgroundColor: tint(meta.color, 0.13) }}
                             >
                               <Ionicons name={meta.icon} size={18} color={meta.color} />
                             </View>
                             <View className="flex-1">
-                              <Text className="text-sm font-semibold text-foreground">{name}</Text>
-                              <Text className="text-xs text-muted-foreground mt-0.5">
+                              <Text className="text-body font-semibold text-foreground">{name}</Text>
+                              <Text className="text-label text-muted-foreground mt-0.5">
                                 {instrumentLabel}
                                 {valuationLine ? ` · ${valuationLine}` : ""}
                               </Text>
                             </View>
-                            <Text className="text-sm font-bold text-foreground">{formatAmount(row.value)}</Text>
-                            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} style={{ marginLeft: 6 }} />
+                            <Text className="text-body font-bold text-foreground">{formatAmount(row.value)}</Text>
+                            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} style={{ marginLeft: 6 }} />
                           </View>
                         </Card>
                       </PressableScale>
@@ -504,7 +504,7 @@ function LegendRow({
   onPress: () => void;
   hint: string;
 }) {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   return (
     <PressableScale
       onPress={onPress}
@@ -513,17 +513,17 @@ function LegendRow({
       accessibilityLabel={`${label}, ${percent} percent, ${formatAmount(amount)}`}
       accessibilityHint={hint}
     >
-      <View className="w-2.5 h-2.5 rounded-sm mr-2.5" style={{ backgroundColor: color, opacity }} />
+      <View className="w-2.5 h-2.5 rounded-control mr-2.5" style={{ backgroundColor: color, opacity }} />
       <View className="flex-1">
-        <Text className="text-sm text-foreground" numberOfLines={1}>{label}</Text>
+        <Text className="text-meta text-foreground" numberOfLines={1}>{label}</Text>
         {/* Share of the total, filling when the row appears. */}
         <View style={{ opacity }}>
           <ProgressBar value={percent / 100} color={color} height={3} className="mt-1" />
         </View>
       </View>
-      <Text className="text-xs text-muted-foreground w-24 text-right">{formatAmount(amount)}</Text>
-      <Text className="text-sm font-semibold text-foreground w-11 text-right">{percent}%</Text>
-      <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+      <Text className="text-label text-muted-foreground w-24 text-right">{formatAmount(amount)}</Text>
+      <Text className="text-body font-semibold text-foreground w-11 text-right">{percent}%</Text>
+      <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
     </PressableScale>
   );
 }

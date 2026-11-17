@@ -204,7 +204,7 @@ export default function ProjectionsScreen() {
                 accessibilityRole="radio"
                 accessibilityState={{ checked: on }}
               >
-                <Text className="text-xs font-medium" style={{ color: on ? theme.primary : theme.mutedForeground }}>
+                <Text className="text-label font-medium" style={{ color: on ? theme.primary : theme.mutedForeground }}>
                   {y} {y === 1 ? "year" : "years"}
                 </Text>
               </Pressable>
@@ -214,7 +214,7 @@ export default function ProjectionsScreen() {
 
         {shownPoint && (
           <Card className="mb-3">
-            <Text className="text-xs text-muted-foreground">Projected value, in {shownYears} {shownYears === 1 ? "year" : "years"}</Text>
+            <Text className="text-label text-muted-foreground">Projected value, in {shownYears} {shownYears === 1 ? "year" : "years"}</Text>
             <Text className="text-title font-bold text-foreground mt-0.5">{formatAmount(Math.round(shownPoint.value))}</Text>
             <Pressable
               onPress={() => {
@@ -225,21 +225,21 @@ export default function ProjectionsScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Worth ${formatAmount(Math.round(inTodaysMoney(shownPoint.value, shownMonth, plan.inflationPct)))} in today's money at ${plan.inflationPct} percent inflation. Change inflation`}
             >
-              <Text className="text-sm text-foreground">
+              <Text className="text-meta text-foreground">
                 {formatAmount(Math.round(inTodaysMoney(shownPoint.value, shownMonth, plan.inflationPct)))} in today's money
               </Text>
-              <Text className="text-xs ml-1.5" style={{ color: theme.primary }}>at {plan.inflationPct}% inflation</Text>
+              <Text className="text-label ml-1.5" style={{ color: theme.primary }}>at {plan.inflationPct}% inflation</Text>
               <Ionicons name="pencil-outline" size={11} color={theme.primary} style={{ marginLeft: 3 }} />
             </Pressable>
 
             <View className="flex-row justify-between mt-3">
               <View>
                 <Text className="text-label text-muted-foreground">Invested</Text>
-                <Text className="text-sm font-semibold text-foreground">{formatAmount(Math.round(shownPoint.putIn))}</Text>
+                <Text className="text-body font-semibold text-foreground">{formatAmount(Math.round(shownPoint.putIn))}</Text>
               </View>
               <View className="items-end">
                 <Text className="text-label text-muted-foreground">Assumed growth</Text>
-                <Text className="text-sm font-semibold" style={{ color: theme.success }}>{formatAmount(Math.round(shownPoint.value - shownPoint.putIn))}</Text>
+                <Text className="text-body font-semibold" style={{ color: theme.success }}>{formatAmount(Math.round(shownPoint.value - shownPoint.putIn))}</Text>
               </View>
             </View>
 
@@ -272,13 +272,13 @@ export default function ProjectionsScreen() {
         {hasExtra ? (
           <Card className="mb-3">
             <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-sm font-semibold text-foreground">Your extra investment</Text>
+              <Text className="text-body font-semibold text-foreground">Your extra investment</Text>
               <View className="flex-row items-center">
                 <Pressable onPress={clearExtra} hitSlop={8} className="mr-4" accessibilityRole="button" accessibilityLabel="Remove your extra investment">
-                  <Text className="text-xs font-medium text-muted-foreground">Remove</Text>
+                  <Text className="text-label font-medium text-muted-foreground">Remove</Text>
                 </Pressable>
                 <Pressable onPress={() => open(EXTRA, "Invest more", plan.extra)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Edit your extra investment">
-                  <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Edit</Text>
+                  <Text className="text-label font-semibold" style={{ color: theme.primary }}>Edit</Text>
                 </Pressable>
               </View>
             </View>
@@ -296,8 +296,8 @@ export default function ProjectionsScreen() {
             <View className="pt-2 mt-1.5 border-t border-border">
               <ExtraRow label={`You'd put in, over ${shownYears} ${shownYears === 1 ? "year" : "years"}`} value={formatAmount(Math.round(extra[shownMonth]?.putIn ?? 0))} />
               <View className="flex-row justify-between items-center py-0.5">
-                <Text className="text-xs font-semibold text-muted-foreground">Adds to your projected value</Text>
-                <Text className="text-sm font-bold" style={{ color: theme.success }}>+{formatAmount(Math.round(extraAdds))}</Text>
+                <Text className="text-label font-semibold text-muted-foreground">Adds to your projected value</Text>
+                <Text className="text-body font-bold" style={{ color: theme.success }}>+{formatAmount(Math.round(extraAdds))}</Text>
               </View>
             </View>
           </Card>
@@ -309,8 +309,8 @@ export default function ProjectionsScreen() {
                   <Ionicons name="add" size={20} color={theme.primary} />
                 </View>
                 <View className="flex-1 mr-2">
-                  <Text className="text-sm font-semibold text-foreground">Invest more</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">See what a SIP, a step-up or a one-time amount could add</Text>
+                  <Text className="text-body font-semibold text-foreground">Invest more</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5">See what a SIP, a step-up or a one-time amount could add</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
               </View>
@@ -318,7 +318,7 @@ export default function ProjectionsScreen() {
           </Pressable>
         )}
 
-        {lines.length > 0 && <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-1">Each investment</Text>}
+        {lines.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-1">Each investment</Text>}
         {projections.map(({ line, points }) => {
           const a = assumptionFor(line);
           const last = points[shownMonth] ?? points[points.length - 1];
@@ -327,17 +327,17 @@ export default function ProjectionsScreen() {
               <Card className="mb-2">
                 <View className="flex-row items-center">
                   <View className="flex-1 mr-2">
-                    <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>{line.name}</Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>Now {formatAmount(Math.round(line.value))} · {describe(a, true)}</Text>
+                    <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{line.name}</Text>
+                    <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>Now {formatAmount(Math.round(line.value))} · {describe(a, true)}</Text>
                   </View>
-                  <Text className="text-sm font-bold text-foreground">{formatAmount(Math.round(last.value))}</Text>
+                  <Text className="text-body font-bold text-foreground">{formatAmount(Math.round(last.value))}</Text>
                   <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
                 </View>
               </Card>
             </Pressable>
           );
         })}
-        <Text className="text-xs text-muted-foreground mt-2">
+        <Text className="text-label text-muted-foreground mt-2">
           These are your own assumptions worked forward, not a forecast or financial advice. Real returns go up and down, and tax isn't taken off. A 12% return here means exactly 12% a year; many online calculators use 1% a month, which works out to 12.68%, so they show a little more.
         </Text>
       </ScrollView>
@@ -351,11 +351,11 @@ export default function ProjectionsScreen() {
           <Pressable onPress={() => {}} style={{ flexShrink: 1 }}>
             <Card className="shrink">
               <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-                <Text className="text-base font-semibold text-foreground mb-3" numberOfLines={1}>{editing?.name}</Text>
+                <Text className="text-body font-semibold text-foreground mb-3" numberOfLines={1}>{editing?.name}</Text>
                 <Input label="Add each month (SIP)" value={monthlyText} onChangeText={setMonthlyText} keyboardType="numeric" formula placeholder="0" containerClassName="mb-3" />
                 {amountOf(monthlyText) > 0 && (
                   <>
-                    <Text className="text-xs font-semibold text-muted-foreground mb-1">Raise it every year (step-up)</Text>
+                    <Text className="text-label font-semibold text-muted-foreground mb-1">Raise it every year (step-up)</Text>
                     <SegmentedControl
                       className="mb-2"
                       accessibilityLabel="Step-up by"
@@ -375,10 +375,10 @@ export default function ProjectionsScreen() {
                 )}
                 <Input label="Return you want to assume (% a year)" value={returnText} onChangeText={setReturnText} keyboardType="decimal-pad" containerClassName="mb-3" />
 
-                <Text className="text-xs font-semibold text-muted-foreground mb-1">One-time amounts</Text>
+                <Text className="text-label font-semibold text-muted-foreground mb-1">One-time amounts</Text>
                 {lumps.map((l, i) => (
                   <View key={`${l.month}-${i}`} className="flex-row items-center py-1">
-                    <Text className="text-sm text-foreground flex-1">{formatMonthLabel(l.month)}: {formatAmount(l.amount)}</Text>
+                    <Text className="text-meta text-foreground flex-1">{formatMonthLabel(l.month)}: {formatAmount(l.amount)}</Text>
                     <Pressable onPress={() => setLumps((p) => p.filter((_, x) => x !== i))} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove this amount">
                       <Ionicons name="close-circle-outline" size={18} color={theme.mutedForeground} />
                     </Pressable>
@@ -387,17 +387,17 @@ export default function ProjectionsScreen() {
                 <PeriodNavigator mode="month" value={lumpMonth} onChange={setLumpMonth} variant="inline" />
                 <View className="flex-row items-end mt-1 mb-3">
                   <Input label="Amount" value={lumpAmount} onChangeText={setLumpAmount} keyboardType="numeric" formula placeholder="50000" containerClassName="flex-1 mr-2" />
-                  <Pressable onPress={addLump} className="px-4 py-3 rounded-lg border border-border" accessibilityRole="button">
-                    <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Add</Text>
+                  <Pressable onPress={addLump} className="px-4 py-3 rounded-control border border-border" accessibilityRole="button">
+                    <Text className="text-body font-semibold" style={{ color: theme.primary }}>Add</Text>
                   </Pressable>
                 </View>
 
                 <View className="flex-row">
-                  <Pressable onPress={() => setEditing(null)} className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border" accessibilityRole="button">
-                    <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
+                  <Pressable onPress={() => setEditing(null)} className="flex-1 py-2.5 rounded-control items-center mr-2 border border-border" accessibilityRole="button">
+                    <Text className="text-body font-semibold text-muted-foreground">Cancel</Text>
                   </Pressable>
-                  <Pressable onPress={save} className="flex-1 py-2.5 rounded-lg items-center" style={{ backgroundColor: theme.primary }} accessibilityRole="button">
-                    <Text className="text-sm font-semibold text-primary-foreground">Save</Text>
+                  <Pressable onPress={save} className="flex-1 py-2.5 rounded-control items-center" style={{ backgroundColor: theme.primary }} accessibilityRole="button">
+                    <Text className="text-body font-semibold text-primary-foreground">Save</Text>
                   </Pressable>
                 </View>
               </ScrollView>
@@ -414,15 +414,15 @@ export default function ProjectionsScreen() {
         >
           <Pressable onPress={() => {}}>
             <Card>
-              <Text className="text-base font-semibold text-foreground">Inflation</Text>
-              <Text className="text-xs text-muted-foreground mt-1 mb-3">How fast prices rise each year. Today's money shows what a future amount could really buy.</Text>
+              <Text className="text-body font-semibold text-foreground">Inflation</Text>
+              <Text className="text-label text-muted-foreground mt-1 mb-3">How fast prices rise each year. Today's money shows what a future amount could really buy.</Text>
               <Input label="Percent a year" value={inflationText} onChangeText={setInflationText} keyboardType="decimal-pad" containerClassName="mb-3" />
               <View className="flex-row">
-                <Pressable onPress={() => setInflationOpen(false)} className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border" accessibilityRole="button">
-                  <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
+                <Pressable onPress={() => setInflationOpen(false)} className="flex-1 py-2.5 rounded-control items-center mr-2 border border-border" accessibilityRole="button">
+                  <Text className="text-body font-semibold text-muted-foreground">Cancel</Text>
                 </Pressable>
-                <Pressable onPress={saveInflation} className="flex-1 py-2.5 rounded-lg items-center" style={{ backgroundColor: theme.primary }} accessibilityRole="button">
-                  <Text className="text-sm font-semibold text-primary-foreground">Save</Text>
+                <Pressable onPress={saveInflation} className="flex-1 py-2.5 rounded-control items-center" style={{ backgroundColor: theme.primary }} accessibilityRole="button">
+                  <Text className="text-body font-semibold text-primary-foreground">Save</Text>
                 </Pressable>
               </View>
             </Card>
@@ -436,8 +436,8 @@ export default function ProjectionsScreen() {
 function ExtraRow({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row justify-between items-center py-0.5">
-      <Text className="text-xs text-muted-foreground flex-1 mr-3" numberOfLines={1}>{label}</Text>
-      <Text className="text-sm font-semibold text-foreground">{value}</Text>
+      <Text className="text-label text-muted-foreground flex-1 mr-3" numberOfLines={1}>{label}</Text>
+      <Text className="text-body font-semibold text-foreground">{value}</Text>
     </View>
   );
 }

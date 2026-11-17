@@ -71,9 +71,9 @@ function NumberRow({
   return (
     <View className={`flex-row items-center justify-between py-3 ${lastRow ? "" : "border-b border-border"}`}>
       <View className="flex-1 mr-3">
-        <Text className="text-sm text-foreground">{label}</Text>
+        <Text className="text-meta text-foreground">{label}</Text>
         {hint ? (
-          <Text className="text-xs text-muted-foreground mt-0.5 opacity-60">
+          <Text className="text-label text-muted-foreground mt-0.5 opacity-60">
             {hint}
           </Text>
         ) : null}
@@ -93,7 +93,7 @@ function NumberRow({
             }
           }}
           selectTextOnFocus
-          className="text-sm font-semibold text-right"
+          className="text-body font-semibold text-right"
           style={{
             color: colorScheme === "dark" ? "#fff" : "#1a1a1a",
             backgroundColor: colorScheme === "dark" ? "#1E1E1E" : "#F5F5F3",
@@ -106,7 +106,7 @@ function NumberRow({
           }}
         />
         {suffix ? (
-          <Text className="text-xs text-muted-foreground ml-1.5 w-8">
+          <Text className="text-label text-muted-foreground ml-1.5 w-8">
             {suffix}
           </Text>
         ) : null}
@@ -117,10 +117,10 @@ function NumberRow({
 
 function MetricBox({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <View className="flex-1 bg-card rounded-xl p-3 border border-border">
-      <Text className="text-xs text-muted-foreground">{label}</Text>
+    <View className="flex-1 bg-card rounded-card p-3 border border-border">
+      <Text className="text-label text-muted-foreground">{label}</Text>
       <Text
-        className="text-sm font-bold text-foreground"
+        className="text-body font-bold text-foreground"
         style={color ? { color } : undefined}
         numberOfLines={1}
         adjustsFontSizeToFit
@@ -136,7 +136,7 @@ export default function RetirementReportScreen() {
   const alert = useAlert();
   const { colorScheme, colors } = useColorScheme();
   const theme = useTheme();
-  const tint = colors.tint;
+  const tint = theme.primary;
 
   const [inputs, setInputs] = useState<RetirementInputs>(loadSavedInputs);
   const [report, setReport] = useState<RetirementReport | null>(null);
@@ -178,15 +178,15 @@ export default function RetirementReportScreen() {
           contentContainerStyle={{ paddingBottom: 40 }}
         >
           <View className="px-4 pt-4">
-            <Text className="text-base font-bold text-foreground mb-1">
+            <Text className="text-body font-bold text-foreground mb-1">
               Configure your retirement plan
             </Text>
-            <Text className="text-xs text-muted-foreground mb-4">
+            <Text className="text-label text-muted-foreground mb-4">
               Adjust these assumptions to match your situation.
             </Text>
 
             <Card>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                 Personal
               </Text>
               <NumberRow
@@ -215,7 +215,7 @@ export default function RetirementReportScreen() {
 
             <View className="mt-3">
               <Card>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                   Returns & Growth
                 </Text>
                 <NumberRow
@@ -246,7 +246,7 @@ export default function RetirementReportScreen() {
 
             <View className="mt-3">
               <Card>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                   Inflation
                 </Text>
                 <NumberRow
@@ -269,7 +269,7 @@ export default function RetirementReportScreen() {
 
             <View className="mt-3">
               <Card>
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                   Post-Retirement
                 </Text>
                 <NumberRow
@@ -285,11 +285,11 @@ export default function RetirementReportScreen() {
 
             <Pressable
               onPress={generate}
-              className="rounded-xl p-3.5 items-center mt-4"
+              className="rounded-card p-3.5 items-center mt-4"
               style={{ backgroundColor: tint }}
               accessibilityRole="button"
             >
-              <Text className="text-sm font-semibold text-primary-foreground">Generate report</Text>
+              <Text className="text-body font-semibold text-primary-foreground">Generate report</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -309,12 +309,12 @@ export default function RetirementReportScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Ionicons name="alert-circle-outline" size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-medium text-foreground mt-4">
             Could not generate report
           </Text>
           <Pressable onPress={() => setShowSheet(true)} className="mt-4">
-            <Text className="text-sm font-medium" style={{ color: tint }}>Try again</Text>
+            <Text className="text-body font-medium" style={{ color: tint }}>Try again</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -334,11 +334,11 @@ export default function RetirementReportScreen() {
       >
         {/* Timestamp + reconfigure */}
         <View className="px-4 pt-2 pb-1 flex-row justify-between items-center">
-          <Text className="text-xs text-muted-foreground opacity-60">
+          <Text className="text-label text-muted-foreground opacity-60">
             Generated {new Date(report.generatedAt).toLocaleDateString()}
           </Text>
           <Pressable onPress={() => setShowSheet(true)} hitSlop={8}>
-            <Text className="text-xs font-medium" style={{ color: tint }}>Reconfigure</Text>
+            <Text className="text-label font-medium" style={{ color: tint }}>Reconfigure</Text>
           </Pressable>
         </View>
 
@@ -348,28 +348,28 @@ export default function RetirementReportScreen() {
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <View className="flex-row items-center gap-1.5 mb-1">
-                  <Text className="text-xs text-muted-foreground uppercase tracking-wider">
+                  <Text className="text-label text-muted-foreground uppercase tracking-wider">
                     Retirement readiness
                   </Text>
                   <Pressable onPress={() => setShowScoreInfo(true)} hitSlop={10}>
                     <Ionicons name="information-circle-outline" size={14} color={tint} />
                   </Pressable>
                 </View>
-                <Text className="text-3xl font-bold" style={{ color: scoreColor }}>
+                <Text className="text-display font-bold" style={{ color: scoreColor }}>
                   {report.readinessScore}/100
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-1">
+                <Text className="text-label text-muted-foreground mt-1">
                   {report.readinessLabel}
                 </Text>
               </View>
               <View className="items-end">
-                <Text className="text-xs text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   Age {report.currentAge} → Retire at
                 </Text>
-                <Text className="text-2xl font-bold text-foreground">
+                <Text className="text-title font-bold text-foreground">
                   {report.inputs.retirementAge}
                 </Text>
-                <Text className="text-xs text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   {report.yearsToRetirement} yrs to go
                 </Text>
               </View>
@@ -399,7 +399,7 @@ export default function RetirementReportScreen() {
         <View className="px-4 mt-4">
           <SectionHeader title="Your Retirement Target" />
           <Card>
-            <Text className="text-xs text-muted-foreground mb-2 opacity-70">
+            <Text className="text-label text-muted-foreground mb-2 opacity-70">
               Expenses reduced to {report.inputs.postRetirementExpensePct}% post-retirement
             </Text>
             {[
@@ -411,9 +411,9 @@ export default function RetirementReportScreen() {
               { label: "Gap to fill via SIP", value: fmtCompact(report.gapToFill), color: report.gapToFill > 0 ? theme.danger : theme.success },
             ].map((row) => (
               <View key={row.label} className="flex-row justify-between items-center py-2 border-b border-border">
-                <Text className="text-xs text-muted-foreground flex-1 mr-3">{row.label}</Text>
+                <Text className="text-label text-muted-foreground flex-1 mr-3">{row.label}</Text>
                 <Text
-                  className="text-sm font-bold text-foreground"
+                  className="text-body font-bold text-foreground"
                   style={row.color ? { color: row.color } : undefined}
                   numberOfLines={1}
                 >
@@ -429,13 +429,13 @@ export default function RetirementReportScreen() {
           <SectionHeader title="How To Get There" />
           <Card>
             <View className="items-center py-2">
-              <Text className="text-3xl font-bold" style={{ color: theme.success }}>
+              <Text className="text-display font-bold" style={{ color: theme.success }}>
                 {formatAmount(report.requiredMonthlySIP)}/mo
               </Text>
-              <Text className="text-xs text-muted-foreground mt-1">
+              <Text className="text-label text-muted-foreground mt-1">
                 with {report.sipAnnualStepUpPct}% annual step-up for {report.yearsToRetirement} years
               </Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 Projected corpus: {fmtCompact(report.projectedCorpus)}
               </Text>
             </View>
@@ -446,26 +446,26 @@ export default function RetirementReportScreen() {
         {report.corpusMilestones.length > 0 && (
           <View className="px-4 mt-3">
             <Card>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Corpus Growth Roadmap
               </Text>
               <View className="flex-row items-center pb-1.5 mb-1 border-b border-border">
-                <Text className="text-xs font-semibold text-muted-foreground w-10">Year</Text>
-                <Text className="text-xs font-semibold text-muted-foreground w-10">Age</Text>
-                <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">SIP/mo</Text>
-                <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">Corpus</Text>
+                <Text className="text-label font-semibold text-muted-foreground w-10">Year</Text>
+                <Text className="text-label font-semibold text-muted-foreground w-10">Age</Text>
+                <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">SIP/mo</Text>
+                <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">Corpus</Text>
               </View>
               {report.corpusMilestones.map((cm, i) => {
                 const isLast = i === report.corpusMilestones.length - 1;
                 return (
                   <View key={cm.year} className="flex-row items-center py-2 border-b border-border">
-                    <Text className="text-xs text-muted-foreground w-10">{cm.year}</Text>
-                    <Text className="text-xs text-foreground w-10">{cm.age}</Text>
-                    <Text className="text-xs text-muted-foreground flex-1 text-right" numberOfLines={1}>
+                    <Text className="text-label text-muted-foreground w-10">{cm.year}</Text>
+                    <Text className="text-label text-foreground w-10">{cm.age}</Text>
+                    <Text className="text-label text-muted-foreground flex-1 text-right" numberOfLines={1}>
                       {fmtCompact(cm.sipMonthly)}
                     </Text>
                     <Text
-                      className="text-xs font-semibold flex-1 text-right"
+                      className="text-label font-semibold flex-1 text-right"
                       style={{ color: isLast ? theme.success : tint }}
                       numberOfLines={1}
                     >
@@ -484,20 +484,20 @@ export default function RetirementReportScreen() {
 
           {/* Return scenarios */}
           <Card>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Return Scenarios
             </Text>
             {report.scenarios.map((s) => (
               <View key={s.label} className="flex-row justify-between items-center py-2 border-b border-border">
                 <View>
-                  <Text className="text-xs font-semibold text-foreground">{s.label}</Text>
-                  <Text className="text-xs text-muted-foreground">{s.returnPct}% returns</Text>
+                  <Text className="text-label font-semibold text-foreground">{s.label}</Text>
+                  <Text className="text-label text-muted-foreground">{s.returnPct}% returns</Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-sm font-bold" style={{ color: s.isAchievable ? theme.success : theme.danger }} numberOfLines={1}>
+                  <Text className="text-body font-bold" style={{ color: s.isAchievable ? theme.success : theme.danger }} numberOfLines={1}>
                     {fmtCompact(s.projectedCorpus)}
                   </Text>
-                  <Text className="text-xs" style={{ color: s.isAchievable ? theme.success : theme.danger }}>
+                  <Text className="text-label" style={{ color: s.isAchievable ? theme.success : theme.danger }}>
                     {s.isAchievable ? "On track" : "Falls short"}
                   </Text>
                 </View>
@@ -510,28 +510,28 @@ export default function RetirementReportScreen() {
         {report.ageWhatIf.length > 0 && (
           <View className="px-4 mt-3">
             <Card>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 What If You Retire At...
               </Text>
               <View className="flex-row items-center pb-1.5 mb-1 border-b border-border">
-                <Text className="text-xs font-semibold text-muted-foreground w-12">Age</Text>
-                <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">Target</Text>
-                <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">SIP/mo</Text>
-                <Text className="text-xs font-semibold text-muted-foreground w-14 text-right">Ok?</Text>
+                <Text className="text-label font-semibold text-muted-foreground w-12">Age</Text>
+                <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">Target</Text>
+                <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">SIP/mo</Text>
+                <Text className="text-label font-semibold text-muted-foreground w-14 text-right">Ok?</Text>
               </View>
               {report.ageWhatIf.map((w) => (
                 <View key={w.retireAt} className="flex-row items-center py-2 border-b border-border">
-                  <Text className="text-xs font-semibold text-foreground w-12">
+                  <Text className="text-label font-semibold text-foreground w-12">
                     {w.retireAt}
                     {w.retireAt === report.inputs.retirementAge ? " ✓" : ""}
                   </Text>
-                  <Text className="text-xs text-muted-foreground flex-1 text-right" numberOfLines={1}>
+                  <Text className="text-label text-muted-foreground flex-1 text-right" numberOfLines={1}>
                     {fmtCompact(w.targetCorpus)}
                   </Text>
-                  <Text className="text-xs font-semibold flex-1 text-right" style={{ color: tint }} numberOfLines={1}>
+                  <Text className="text-label font-semibold flex-1 text-right" style={{ color: tint }} numberOfLines={1}>
                     {fmtCompact(w.requiredSIP)}
                   </Text>
-                  <Text className="text-xs font-bold w-14 text-right" style={{ color: w.feasible ? theme.success : theme.danger }}>
+                  <Text className="text-label font-bold w-14 text-right" style={{ color: w.feasible ? theme.success : theme.danger }}>
                     {w.feasible ? "Yes" : "No"}
                   </Text>
                 </View>
@@ -544,44 +544,44 @@ export default function RetirementReportScreen() {
         {report.milestones.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="Life Goals Along The Way" />
-            <Text className="text-xs text-muted-foreground mb-2 -mt-1 opacity-70">
+            <Text className="text-label text-muted-foreground mb-2 -mt-1 opacity-70">
               Costs inflated at {report.inputs.inflationPct}% to target year
             </Text>
             {report.milestones.map((m, i) => (
               <View key={i} className="mb-3">
                 <Card>
                   <View className="flex-row items-center justify-between mb-1.5">
-                    <Text className="text-xs font-semibold text-foreground flex-1">{m.name}</Text>
+                    <Text className="text-label font-semibold text-foreground flex-1">{m.name}</Text>
                     <View className="items-end">
-                      <Text className="text-xs text-muted-foreground">
+                      <Text className="text-label text-muted-foreground">
                         {m.yearsAway > 0 ? `${m.yearsAway} yrs away` : "Due now"}
                       </Text>
                     </View>
                   </View>
                   <View className="flex-row gap-3 mb-2">
                     <View className="flex-1">
-                      <Text className="text-xs text-muted-foreground">Today's cost</Text>
-                      <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+                      <Text className="text-label text-muted-foreground">Today's cost</Text>
+                      <Text className="text-label font-semibold text-foreground" numberOfLines={1}>
                         {fmtCompact(m.targetAmount)}
                       </Text>
                     </View>
                     <View className="flex-1">
-                      <Text className="text-xs text-muted-foreground">Inflated cost</Text>
-                      <Text className="text-xs font-semibold" style={{ color: theme.warning }} numberOfLines={1}>
+                      <Text className="text-label text-muted-foreground">Inflated cost</Text>
+                      <Text className="text-label font-semibold" style={{ color: theme.warning }} numberOfLines={1}>
                         {fmtCompact(m.inflatedCost)}
                       </Text>
                     </View>
                   </View>
                   <ProgressBar value={(m.progressPct) / 100} color={m.progressPct >= 50 ? theme.success : theme.warning} height={6} animated={false} className="mb-1.5" />
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-xs text-muted-foreground">
+                    <Text className="text-label text-muted-foreground">
                       {formatAmount(m.currentSaved)} saved · {m.progressPct}%
                     </Text>
-                    <Text className="text-xs font-semibold" style={{ color: tint }} numberOfLines={1}>
+                    <Text className="text-label font-semibold" style={{ color: tint }} numberOfLines={1}>
                       {formatAmount(m.monthlyNeeded)}/mo
                     </Text>
                   </View>
-                  <Text className="text-xs text-muted-foreground mt-1 opacity-70">
+                  <Text className="text-label text-muted-foreground mt-1 opacity-70">
                     {m.impactOnRetirement}
                   </Text>
                 </Card>
@@ -598,44 +598,44 @@ export default function RetirementReportScreen() {
             return (
               <View key={i} className="mb-3">
                 <Card>
-                  <View className="rounded-lg p-3 mb-2" style={{ backgroundColor: phaseColors[i % phaseColors.length] }}>
-                    <Text className="text-sm font-bold text-white">{phase.name}</Text>
-                    <Text className="text-xs text-white opacity-70">{phase.yearRange}</Text>
+                  <View className="rounded-control p-3 mb-2" style={{ backgroundColor: phaseColors[i % phaseColors.length] }}>
+                    <Text className="text-body font-bold text-white">{phase.name}</Text>
+                    <Text className="text-label text-white opacity-70">{phase.yearRange}</Text>
                   </View>
                   <View className="flex-row gap-3 mb-2">
                     <View className="flex-1">
-                      <Text className="text-xs text-muted-foreground">Est. income</Text>
-                      <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+                      <Text className="text-label text-muted-foreground">Est. income</Text>
+                      <Text className="text-label font-semibold text-foreground" numberOfLines={1}>
                         {phase.monthlyIncomeEstimate}/mo
                       </Text>
                     </View>
                     <View className="flex-1">
-                      <Text className="text-xs text-muted-foreground">SIP target</Text>
-                      <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+                      <Text className="text-label text-muted-foreground">SIP target</Text>
+                      <Text className="text-label font-semibold text-foreground" numberOfLines={1}>
                         {phase.sipTarget}/mo
                       </Text>
                     </View>
                   </View>
-                  <View className="rounded-md p-2 mb-2 bg-card">
-                    <Text className="text-xs text-muted-foreground">
+                  <View className="rounded-control p-2 mb-2 bg-card">
+                    <Text className="text-label text-muted-foreground">
                       {phase.allocation}
                     </Text>
                   </View>
                   {phase.goals.length > 0 && (
                     <View className="mb-2">
-                      <Text className="text-xs font-semibold text-muted-foreground mb-1">Goals</Text>
+                      <Text className="text-label font-semibold text-muted-foreground mb-1">Goals</Text>
                       {phase.goals.map((goal, j) => (
                         <View key={j} className="flex-row gap-2 items-start mb-0.5">
-                          <Text className="text-xs" style={{ color: tint }}>•</Text>
-                          <Text className="text-xs text-foreground flex-1">{goal}</Text>
+                          <Text className="text-label" style={{ color: tint }}>•</Text>
+                          <Text className="text-label text-foreground flex-1">{goal}</Text>
                         </View>
                       ))}
                     </View>
                   )}
                   {phase.keyActions.map((action, j) => (
                     <View key={j} className="flex-row gap-2 items-start mb-1">
-                      <Text className="text-xs" style={{ color: tint }}>→</Text>
-                      <Text className="text-xs text-muted-foreground flex-1">{action}</Text>
+                      <Text className="text-label" style={{ color: tint }}>→</Text>
+                      <Text className="text-label text-muted-foreground flex-1">{action}</Text>
                     </View>
                   ))}
                 </Card>
@@ -648,7 +648,7 @@ export default function RetirementReportScreen() {
         {report.drawdownPlan.length > 0 && (
           <View className="px-4 mt-4">
             <SectionHeader title="After Retirement — Drawdown" />
-            <Text className="text-xs text-muted-foreground mb-2 -mt-1 opacity-70">
+            <Text className="text-label text-muted-foreground mb-2 -mt-1 opacity-70">
               Includes {report.inputs.healthcareInflationPct}% healthcare inflation escalation
             </Text>
             {report.drawdownPlan.map((d, di) => (
@@ -656,29 +656,29 @@ export default function RetirementReportScreen() {
                 <Pressable onPress={() => setExpandedDrawdown(expandedDrawdown === di ? null : di)}>
                   <View className="flex-row items-center justify-between">
                     <View className="flex-1">
-                      <Text className="text-xs font-semibold text-foreground">
+                      <Text className="text-label font-semibold text-foreground">
                         {d.withdrawalRate}% withdrawal rate
                       </Text>
-                      <Text className="text-xs text-muted-foreground" numberOfLines={1}>
+                      <Text className="text-label text-muted-foreground" numberOfLines={1}>
                         {fmtCompact(d.monthlyWithdrawal)}/mo · {fmtCompact(d.annualWithdrawal)}/yr
                       </Text>
                     </View>
                     <View className="flex-row items-center gap-2">
                       <View className="items-end">
                         <Text
-                          className="text-sm font-bold"
+                          className="text-body font-bold"
                           style={{ color: d.sustainable ? theme.success : theme.danger }}
                         >
                           {d.corpusLastsYears >= 60 ? "60+" : d.corpusLastsYears} yrs
                         </Text>
-                        <Text className="text-xs" style={{ color: d.sustainable ? theme.success : theme.danger }}>
+                        <Text className="text-label" style={{ color: d.sustainable ? theme.success : theme.danger }}>
                           {d.sustainable ? "Sustainable" : "Runs out"}
                         </Text>
                       </View>
                       <Ionicons
                         name={expandedDrawdown === di ? "chevron-up" : "chevron-down"}
                         size={14}
-                        color={colors.textSecondary}
+                        color={theme.mutedForeground}
                       />
                     </View>
                   </View>
@@ -688,22 +688,22 @@ export default function RetirementReportScreen() {
                   <>
                     <View className="border-t border-border mt-3 pt-2">
                       <View className="flex-row items-center pb-1.5 mb-1 border-b border-border">
-                        <Text className="text-xs font-semibold text-muted-foreground w-8">Age</Text>
-                        <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">Start</Text>
-                        <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">Out</Text>
-                        <Text className="text-xs font-semibold text-muted-foreground flex-1 text-right">End</Text>
+                        <Text className="text-label font-semibold text-muted-foreground w-8">Age</Text>
+                        <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">Start</Text>
+                        <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">Out</Text>
+                        <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">End</Text>
                       </View>
                       {d.yearByYear.slice(0, 15).map((yy) => (
                         <View key={yy.year} className="flex-row items-center py-1 border-b border-border">
-                          <Text className="text-xs text-muted-foreground w-8">{yy.age}</Text>
-                          <Text className="text-xs text-foreground flex-1 text-right" numberOfLines={1}>
+                          <Text className="text-label text-muted-foreground w-8">{yy.age}</Text>
+                          <Text className="text-label text-foreground flex-1 text-right" numberOfLines={1}>
                             {fmtCompact(yy.corpusStart)}
                           </Text>
-                          <Text className="text-xs flex-1 text-right" style={{ color: theme.danger }} numberOfLines={1}>
+                          <Text className="text-label flex-1 text-right" style={{ color: theme.danger }} numberOfLines={1}>
                             {fmtCompact(yy.withdrawal)}
                           </Text>
                           <Text
-                            className="text-xs font-semibold flex-1 text-right"
+                            className="text-label font-semibold flex-1 text-right"
                             style={{ color: yy.corpusEnd > 0 ? theme.success : theme.danger }}
                             numberOfLines={1}
                           >
@@ -712,7 +712,7 @@ export default function RetirementReportScreen() {
                         </View>
                       ))}
                       {d.yearByYear.length > 15 && (
-                        <Text className="text-xs text-muted-foreground text-center mt-2 opacity-60">
+                        <Text className="text-label text-muted-foreground text-center mt-2 opacity-60">
                           +{d.yearByYear.length - 15} more years in PDF
                         </Text>
                       )}
@@ -733,9 +733,9 @@ export default function RetirementReportScreen() {
                 <View className="flex-row items-center justify-between py-2 border-b border-border">
                   <View className="flex-row items-center gap-2">
                     <Ionicons name="shield-checkmark-outline" size={14} color={report.insuranceCoverage.term.isAdequate ? theme.success : theme.warning} />
-                    <Text className="text-xs text-foreground">Term Life</Text>
+                    <Text className="text-label text-foreground">Term Life</Text>
                   </View>
-                  <Text className="text-xs font-medium" style={{ color: report.insuranceCoverage.term.isAdequate ? theme.success : theme.warning }}>
+                  <Text className="text-label font-medium" style={{ color: report.insuranceCoverage.term.isAdequate ? theme.success : theme.warning }}>
                     {fmtCompact(report.insuranceCoverage.term.sumInsured)} ({Math.round(report.insuranceCoverage.term.ratio)}× income)
                   </Text>
                 </View>
@@ -744,9 +744,9 @@ export default function RetirementReportScreen() {
                 <View className="flex-row items-center justify-between py-2 border-b border-border">
                   <View className="flex-row items-center gap-2">
                     <Ionicons name="medkit-outline" size={14} color={report.insuranceCoverage.health.isAdequate ? theme.success : theme.warning} />
-                    <Text className="text-xs text-foreground">Health</Text>
+                    <Text className="text-label text-foreground">Health</Text>
                   </View>
-                  <Text className="text-xs font-medium" style={{ color: report.insuranceCoverage.health.isAdequate ? theme.success : theme.warning }}>
+                  <Text className="text-label font-medium" style={{ color: report.insuranceCoverage.health.isAdequate ? theme.success : theme.warning }}>
                     {fmtCompact(report.insuranceCoverage.health.sumInsured)} ({report.insuranceCoverage.health.familySize} members)
                   </Text>
                 </View>
@@ -755,9 +755,9 @@ export default function RetirementReportScreen() {
                 <View className="flex-row items-center justify-between py-2">
                   <View className="flex-row items-center gap-2">
                     <Ionicons name="car-outline" size={14} color={theme.success} />
-                    <Text className="text-xs text-foreground">Car</Text>
+                    <Text className="text-label text-foreground">Car</Text>
                   </View>
-                  <Text className="text-xs font-medium" style={{ color: theme.success }}>Active</Text>
+                  <Text className="text-label font-medium" style={{ color: theme.success }}>Active</Text>
                 </View>
               )}
             </Card>
@@ -773,19 +773,19 @@ export default function RetirementReportScreen() {
               return (
                 <View
                   key={i}
-                  className="mb-3 rounded-lg p-3 border-l-4"
+                  className="mb-3 rounded-control p-3 border-l-4"
                   style={{
                     borderLeftColor: riskColor,
                     backgroundColor: colorScheme === "dark" ? "#1E1E1E" : "#F8FAFC",
                   }}
                 >
-                  <Text className="text-xs font-semibold uppercase mb-0.5" style={{ color: riskColor }}>
+                  <Text className="text-label font-semibold uppercase mb-0.5" style={{ color: riskColor }}>
                     {risk.severity}
                   </Text>
-                  <Text className="text-xs font-semibold text-foreground mb-0.5">
+                  <Text className="text-label font-semibold text-foreground mb-0.5">
                     {risk.title}
                   </Text>
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-label text-muted-foreground">
                     {risk.description}
                   </Text>
                 </View>
@@ -800,11 +800,11 @@ export default function RetirementReportScreen() {
             {report.actions.map((action) => (
               <View key={action.priority} className="flex-row gap-3 items-start mb-3">
                 <View className="w-6 h-6 rounded-full items-center justify-center" style={{ backgroundColor: tint }}>
-                  <Text className="text-xs font-bold text-primary-foreground">{action.priority}</Text>
+                  <Text className="text-label font-bold text-primary-foreground">{action.priority}</Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs font-semibold text-foreground">{action.title}</Text>
-                  <Text className="text-xs text-muted-foreground">{action.description}</Text>
+                  <Text className="text-label font-semibold text-foreground">{action.title}</Text>
+                  <Text className="text-label text-muted-foreground">{action.description}</Text>
                 </View>
               </View>
             ))}
@@ -813,8 +813,8 @@ export default function RetirementReportScreen() {
 
         {/* ── DISCLAIMER ── */}
         <View className="px-4 mt-4">
-          <View className="rounded-lg p-3" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
-            <Text className="text-xs" style={{ color: theme.warning }}>
+          <View className="rounded-control p-3" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
+            <Text className="text-label" style={{ color: theme.warning }}>
               Projections use {report.inputs.expectedReturnPct}% return, {report.inputs.inflationPct}% inflation, {report.inputs.healthcareInflationPct}% healthcare inflation, {report.inputs.salaryGrowthPct}% salary growth, life expectancy {report.inputs.lifeExpectancy} yrs, post-retirement expenses at {report.inputs.postRetirementExpensePct}% of current, portfolio yield {report.inputs.retirementPortfolioYieldPct}%.
               These are estimates, not financial advice.
             </Text>
@@ -825,13 +825,13 @@ export default function RetirementReportScreen() {
         <View className="px-4 mt-4">
           <Pressable
             onPress={handleExportPDF}
-            className="rounded-xl p-3.5 items-center flex-row justify-center gap-2"
+            className="rounded-card p-3.5 items-center flex-row justify-center gap-2"
             style={{ backgroundColor: theme.primary }}
             disabled={exporting}
             accessibilityRole="button"
           >
             <Ionicons name={exporting ? "hourglass-outline" : "download-outline"} size={18} color="white" />
-            <Text className="text-sm font-semibold text-white">
+            <Text className="text-body font-semibold text-white">
               {exporting ? "Generating PDF..." : "Download PDF"}
             </Text>
           </Pressable>
@@ -892,20 +892,20 @@ export default function RetirementReportScreen() {
         return (
           <Sheet visible={showScoreInfo} onClose={() => setShowScoreInfo(false)}>
             <View className="px-5 pb-4">
-              <Text className="text-base font-bold text-foreground mb-1">
+              <Text className="text-body font-bold text-foreground mb-1">
                 Readiness Score Breakdown
               </Text>
-              <Text className="text-xs text-muted-foreground mb-4">
+              <Text className="text-label text-muted-foreground mb-4">
                 Your score of {report.readinessScore}/100 is computed from four dimensions, each weighted by importance.
               </Text>
 
               {dimensions.map((d) => (
                 <View key={d.label} className="mb-4">
                   <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-xs font-semibold text-foreground">
+                    <Text className="text-label font-semibold text-foreground">
                       {d.label}
                     </Text>
-                    <Text className="text-xs font-bold" style={{ color: d.color }}>
+                    <Text className="text-label font-bold" style={{ color: d.color }}>
                       {d.score}/{d.max}
                     </Text>
                   </View>
@@ -915,7 +915,7 @@ export default function RetirementReportScreen() {
                       style={{ width: `${(d.score / d.max) * 100}%`, backgroundColor: d.color }}
                     />
                   </View>
-                  <Text className="text-xs text-muted-foreground opacity-70">
+                  <Text className="text-label text-muted-foreground opacity-70">
                     {d.detail} · {d.weight}% weight
                   </Text>
                 </View>
@@ -923,7 +923,7 @@ export default function RetirementReportScreen() {
 
               {/* Score bands */}
               <View className="pt-3 border-t border-border">
-                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Score Bands
                 </Text>
                 {[
@@ -934,10 +934,10 @@ export default function RetirementReportScreen() {
                 ].map((b) => (
                   <View key={b.range} className="flex-row items-center gap-2 mb-1.5">
                     <View className="w-2 h-2 rounded-full" style={{ backgroundColor: b.color }} />
-                    <Text className="text-xs text-foreground w-12 font-medium">
+                    <Text className="text-label text-foreground w-12 font-medium">
                       {b.range}
                     </Text>
-                    <Text className="text-xs text-muted-foreground flex-1">
+                    <Text className="text-label text-muted-foreground flex-1">
                       {b.label} — {b.desc}
                     </Text>
                   </View>

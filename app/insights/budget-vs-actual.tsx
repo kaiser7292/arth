@@ -20,6 +20,7 @@ import { getExpenseIdsByCategory } from "@/services/expense";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { tint } from "@/constants/brand";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -190,38 +191,38 @@ export default function BudgetVsActualScreen() {
             <View className="px-4 mb-3">
               <Card>
                 {isCurrentMonth && result && result.totalBudget > 0 && (
-                  <Text className="text-xs text-muted-foreground mb-2">
+                  <Text className="text-label text-muted-foreground mb-2">
                     {`Day ${new Date().getDate()} of ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} — prorated budget`}
                   </Text>
                 )}
                 <View className="flex-row justify-between mb-3">
                   <View className="flex-1">
-                    <Text className="text-xs text-muted-foreground mb-0.5">
+                    <Text className="text-label text-muted-foreground mb-0.5">
                       {isCurrentMonth ? "Expected to date" : "Total Budget"}
                     </Text>
-                    <Text className="text-lg font-bold text-foreground">
+                    <Text className="text-heading font-bold text-foreground">
                       {formatAmount(budgetForSummary)}
                     </Text>
                     {isCurrentMonth && result && result.totalBudget > 0 && (
-                      <Text className="text-xs text-muted-foreground">
+                      <Text className="text-label text-muted-foreground">
                         Full month: {formatAmount(result.totalBudget)}
                       </Text>
                     )}
                   </View>
                   <View className="flex-1 items-center">
-                    <Text className="text-xs text-muted-foreground mb-0.5">
+                    <Text className="text-label text-muted-foreground mb-0.5">
                       Spent
                     </Text>
-                    <Text className="text-lg font-bold text-foreground">
+                    <Text className="text-heading font-bold text-foreground">
                       {formatAmount(result?.totalActual ?? 0)}
                     </Text>
                   </View>
                   <View className="flex-1 items-end">
-                    <Text className="text-xs text-muted-foreground mb-0.5">
+                    <Text className="text-label text-muted-foreground mb-0.5">
                       {isOver ? "Over by" : "Under by"}
                     </Text>
                     <Text
-                      className="text-lg font-bold"
+                      className="text-heading font-bold"
                       style={{ color: isOver ? theme.danger : theme.success }}
                     >
                       {formatAmount(Math.abs(variance))}
@@ -234,7 +235,7 @@ export default function BudgetVsActualScreen() {
                   <View className="mt-1">
                     <View
                       className="h-2 rounded-full overflow-hidden"
-                      style={{ backgroundColor: colors.border }}
+                      style={{ backgroundColor: theme.border }}
                     >
                       <View
                         className="h-full rounded-full"
@@ -244,7 +245,7 @@ export default function BudgetVsActualScreen() {
                         }}
                       />
                     </View>
-                    <Text className="text-xs text-muted-foreground mt-1 text-right">
+                    <Text className="text-label text-muted-foreground mt-1 text-right">
                       {result.totalBudget > 0
                         ? `${Math.round((result.totalActual / budgetForSummary) * 100)}% of ${isCurrentMonth ? "prorated " : ""}budget`
                         : ""}
@@ -258,7 +259,7 @@ export default function BudgetVsActualScreen() {
             {result && result.monthly.length > 1 && (
               <View className="px-4 mb-3">
                 <Card>
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                     Month by Month
                   </Text>
                   {result.monthly.map((mo) => {
@@ -273,7 +274,7 @@ export default function BudgetVsActualScreen() {
                         accessibilityLabel={`${shortMonth(mo.month)}, ${formatAmount(mo.actual)} of ${formatAmount(mo.budget)}. Open My Month`}
                       >
                         <View className="flex-row items-center justify-between mb-1">
-                          <Text className="text-xs font-medium text-muted-foreground w-8">
+                          <Text className="text-label font-medium text-muted-foreground w-8">
                             {shortMonth(mo.month)}
                           </Text>
                           <View className="flex-1 mx-2">
@@ -283,7 +284,7 @@ export default function BudgetVsActualScreen() {
                                 className="h-1.5 rounded-full"
                                 style={{
                                   width: `${Math.round((mo.budget / barMax) * 100)}%`,
-                                  backgroundColor: colors.border,
+                                  backgroundColor: theme.border,
                                   minWidth: mo.budget > 0 ? 4 : 0,
                                 }}
                               />
@@ -302,12 +303,12 @@ export default function BudgetVsActualScreen() {
                           </View>
                           <View className="items-end" style={{ width: 72 }}>
                             <Text
-                              className="text-xs font-semibold"
-                              style={{ color: moOver ? theme.danger : colors.text }}
+                              className="text-label font-semibold"
+                              style={{ color: moOver ? theme.danger : theme.foreground }}
                             >
                               {formatAmount(mo.actual)}
                             </Text>
-                            <Text className="text-xs text-muted-foreground">
+                            <Text className="text-label text-muted-foreground">
                               / {formatAmount(mo.budget)}
                             </Text>
                           </View>
@@ -317,12 +318,12 @@ export default function BudgetVsActualScreen() {
                   })}
                   <View className="flex-row items-center gap-3 mt-1">
                     <View className="flex-row items-center gap-1.5">
-                      <View className="w-4 h-1.5 rounded-full" style={{ backgroundColor: colors.border }} />
-                      <Text className="text-xs text-muted-foreground">Budget</Text>
+                      <View className="w-4 h-1.5 rounded-full" style={{ backgroundColor: theme.border }} />
+                      <Text className="text-label text-muted-foreground">Budget</Text>
                     </View>
                     <View className="flex-row items-center gap-1.5">
                       <View className="w-4 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
-                      <Text className="text-xs text-muted-foreground">Actual</Text>
+                      <Text className="text-label text-muted-foreground">Actual</Text>
                     </View>
                   </View>
                 </Card>
@@ -332,7 +333,7 @@ export default function BudgetVsActualScreen() {
             {/* ── Sort controls ─────────────────────────── */}
             {result && result.rows.length > 1 && (
               <View className="px-4 mb-2 flex-row items-center gap-2">
-                <Text className="text-xs text-muted-foreground">Sort:</Text>
+                <Text className="text-label text-muted-foreground">Sort:</Text>
                 {(Object.keys(SORT_LABELS) as SortOrder[]).map((s) => {
                   const selected = sortOrder === s;
                   return (
@@ -342,12 +343,12 @@ export default function BudgetVsActualScreen() {
                       className="px-2.5 py-1 rounded-full border"
                       style={{
                         backgroundColor: selected ? theme.alpha("primary", 0.1) : "transparent",
-                        borderColor: selected ? theme.primary : colors.border,
+                        borderColor: selected ? theme.primary : theme.border,
                       }}
                     >
                       <Text
-                        className="text-xs font-medium"
-                        style={{ color: selected ? theme.primary : colors.textSecondary }}
+                        className="text-label font-medium"
+                        style={{ color: selected ? theme.primary : theme.mutedForeground }}
                       >
                         {SORT_LABELS[s]}
                       </Text>
@@ -360,7 +361,7 @@ export default function BudgetVsActualScreen() {
             {/* ── Category rows ─────────────────────────── */}
             {result && sortedRows.length > 0 && (
               <View className="px-4 mb-2">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   By Category
                 </Text>
                 {sortedRows.map((row) => (
@@ -373,7 +374,7 @@ export default function BudgetVsActualScreen() {
                   />
                 ))}
                 {idleRows.length > 0 && (
-                  <Text className="text-xs text-muted-foreground mt-1 mb-2">
+                  <Text className="text-label text-muted-foreground mt-1 mb-2">
                     No budget and nothing spent: {idleRows.map((r) => r.categoryName).join(", ")}
                   </Text>
                 )}
@@ -383,7 +384,7 @@ export default function BudgetVsActualScreen() {
             {/* ── Unbudgeted spend ──────────────────────── */}
             {result && result.unbudgetedRows.length > 0 && (
               <View className="px-4 mb-2">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   No Budget Set
                 </Text>
                 {result.unbudgetedRows
@@ -394,7 +395,7 @@ export default function BudgetVsActualScreen() {
                         <View className="flex-row items-center">
                           <View
                             className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                            style={{ backgroundColor: row.categoryColor + "18" }}
+                            style={{ backgroundColor: tint(row.categoryColor, 0.09) }}
                           >
                             <Ionicons
                               name={row.categoryIcon as any}
@@ -402,13 +403,13 @@ export default function BudgetVsActualScreen() {
                               color={row.categoryColor}
                             />
                           </View>
-                          <Text className="flex-1 text-sm font-medium text-foreground">
+                          <Text className="flex-1 text-body font-medium text-foreground">
                             {row.categoryName}
                           </Text>
-                          <Text className="text-sm font-semibold mr-2" style={{ color: theme.danger }}>
+                          <Text className="text-body font-semibold mr-2" style={{ color: theme.danger }}>
                             {formatAmount(row.totalActual)}
                           </Text>
-                          <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+                          <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
                         </View>
                       </Card>
                     </Pressable>
@@ -452,16 +453,16 @@ function CategoryRow({
       <View className="flex-row items-center mb-2">
         <View
           className="w-8 h-8 rounded-full items-center justify-center mr-2.5"
-          style={{ backgroundColor: row.categoryColor + "18" }}
+          style={{ backgroundColor: tint(row.categoryColor, 0.09) }}
         >
           <Ionicons name={row.categoryIcon as any} size={15} color={row.categoryColor} />
         </View>
-        <Text className="flex-1 text-sm font-medium text-foreground" numberOfLines={1}>
+        <Text className="flex-1 text-body font-medium text-foreground" numberOfLines={1}>
           {row.categoryName}
         </Text>
         <Text
-          className="text-xs font-semibold ml-2"
-          style={{ color: isOver ? theme.danger : variance < 0 ? theme.success : colors.textSecondary }}
+          className="text-label font-semibold ml-2"
+          style={{ color: isOver ? theme.danger : variance < 0 ? theme.success : theme.mutedForeground }}
         >
           {noBudget
             ? "no budget"
@@ -471,13 +472,13 @@ function CategoryRow({
             ? `${formatAmount(Math.abs(variance))} left`
             : "on track"}
         </Text>
-        <Ionicons name="chevron-forward" size={13} color={colors.textSecondary} className="ml-1" />
+        <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} className="ml-1" />
       </View>
 
       {/* Progress bar */}
       <View
         className="h-2 rounded-full overflow-hidden mb-1.5"
-        style={{ backgroundColor: colors.border }}
+        style={{ backgroundColor: theme.border }}
       >
         <View
           className="h-full rounded-full"
@@ -487,10 +488,10 @@ function CategoryRow({
 
       {/* Amounts */}
       <View className="flex-row items-center justify-between">
-        <Text className="text-xs text-muted-foreground">
+        <Text className="text-label text-muted-foreground">
           {formatAmount(row.totalActual)} spent
         </Text>
-        <Text className="text-xs text-muted-foreground">
+        <Text className="text-label text-muted-foreground">
           {isCurrentMonth && prorated !== row.totalBudget
             ? `${formatAmount(prorated)} exp. · ${formatAmount(row.totalBudget)} budget`
             : `${formatAmount(row.totalBudget)} budget`}

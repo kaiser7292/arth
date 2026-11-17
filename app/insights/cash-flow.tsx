@@ -108,7 +108,7 @@ export default function CashFlowScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 60 }}>
           <Card className="mb-3">
             <Pressable onPress={drill("left", "What's left")} accessibilityRole="button" accessibilityLabel="What's left, see transactions">
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-label text-muted-foreground">
                 {quietShort ? "So far this month" : short ? "More went out than came in, by" : "Left in this period"}
               </Text>
               <View className="flex-row items-center justify-between">
@@ -116,9 +116,9 @@ export default function CashFlowScreen() {
                 <Ionicons name="chevron-forward" size={15} color={theme.mutedForeground} />
               </View>
               {flow.left > 0 && flow.cameIn > 0 && (
-                <Text className="text-xs text-muted-foreground">{Math.round((flow.left / flow.cameIn) * 100)}% of what came in</Text>
+                <Text className="text-label text-muted-foreground">{Math.round((flow.left / flow.cameIn) * 100)}% of what came in</Text>
               )}
-              {quietShort && <Text className="text-xs text-muted-foreground">Your income for this month hasn't come yet</Text>}
+              {quietShort && <Text className="text-label text-muted-foreground">Your income for this month hasn't come yet</Text>}
             </Pressable>
             <View className="mt-3 pt-1 border-t border-border">
               <Row dot={theme.success} label="Came in" amount={flow.cameIn} bold onPress={drill("in", "Came in")} />
@@ -137,12 +137,12 @@ export default function CashFlowScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`${formatMonthLabel(m.month)}, ${m.left < 0 ? "short by" : "left"} ${formatAmount(Math.abs(m.left))}. Open My Month`}
                 >
-                  <Text className="text-xs text-muted-foreground" style={{ width: 62 }} numberOfLines={1}>{formatMonthLabel(m.month)}</Text>
+                  <Text className="text-label text-muted-foreground" style={{ width: 62 }} numberOfLines={1}>{formatMonthLabel(m.month)}</Text>
                   <View className="flex-1 mx-2" style={{ gap: 3 }}>
                     <View className="rounded-full" style={{ height: 6, minWidth: m.cameIn > 0 ? 3 : 0, width: `${(m.cameIn / biggest) * 100}%`, backgroundColor: theme.success }} />
                     <View className="rounded-full" style={{ height: 6, minWidth: m.wentOut > 0 ? 3 : 0, width: `${(m.wentOut / biggest) * 100}%`, backgroundColor: theme.primary }} />
                   </View>
-                  <Text className="text-xs font-semibold text-right" style={{ width: 76, color: m.left < 0 ? theme.danger : theme.success }} numberOfLines={1}>
+                  <Text className="text-label font-semibold text-right" style={{ width: 76, color: m.left < 0 ? theme.danger : theme.success }} numberOfLines={1}>
                     {m.left < 0 ? "−" : "+"}{formatAmount(Math.abs(m.left))}
                   </Text>
                   <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} style={{ marginLeft: 2 }} />
@@ -159,7 +159,7 @@ export default function CashFlowScreen() {
             {flow.repaid > 0 && <Row label="Repaid to you" amount={flow.repaid} onPress={drill("repaid", "Repaid to you")} />}
             {flow.adjustedIn > 0 && <Row label={BALANCE_ADJUSTMENTS} amount={flow.adjustedIn} onPress={drill("adjustedIn", BALANCE_ADJUSTMENTS)} />}
             {flow.fromInvestments > 0 && <Row label="Back from investments" amount={flow.fromInvestments} onPress={drill("saved", "Investments")} />}
-            {flow.cameIn === 0 && <Text className="text-sm text-muted-foreground">Nothing came in during this period.</Text>}
+            {flow.cameIn === 0 && <Text className="text-meta text-muted-foreground">Nothing came in during this period.</Text>}
           </Card>
 
           {where.length > 0 && (
@@ -180,15 +180,15 @@ export default function CashFlowScreen() {
               {categories.map((c) => (
                 <Pressable key={c.categoryId ?? "none"} onPress={drill("spent", c.name, c.categoryId ?? "none")} className="py-1.5" accessibilityRole="button">
                   <View className="flex-row justify-between mb-1">
-                    <Text className="text-xs text-muted-foreground flex-1 mr-3" numberOfLines={1}>{c.name}</Text>
-                    <Text className="text-xs text-muted-foreground">{formatAmount(c.total)}</Text>
+                    <Text className="text-label text-muted-foreground flex-1 mr-3" numberOfLines={1}>{c.name}</Text>
+                    <Text className="text-label text-muted-foreground">{formatAmount(c.total)}</Text>
                   </View>
                   <ProgressBar value={flow.spent > 0 ? c.total / flow.spent : 0} color={theme.primary} height={5} animated={false} />
                 </Pressable>
               ))}
               {flow.categories.length > TOP_CATEGORIES && (
                 <Pressable onPress={() => setShowAll((v) => !v)} className="pt-1.5" accessibilityRole="button">
-                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                  <Text className="text-label font-medium" style={{ color: theme.primary }}>
                     {showAll ? "Show less" : `See all ${flow.categories.length} categories`}
                   </Text>
                 </Pressable>
@@ -198,8 +198,8 @@ export default function CashFlowScreen() {
 
           {flow.waitingForReview > 0 && (
             <Pressable onPress={() => router.push("/expense/review-queue")} accessibilityRole="button">
-              <Text className="text-xs text-muted-foreground px-1">
-                {flow.waitingForReview} {flow.waitingForReview === 1 ? "transaction is" : "transactions are"} waiting for review and not in these numbers. <Text className="text-xs font-medium" style={{ color: theme.primary }}>Review</Text>
+              <Text className="text-label text-muted-foreground px-1">
+                {flow.waitingForReview} {flow.waitingForReview === 1 ? "transaction is" : "transactions are"} waiting for review and not in these numbers. <Text className="text-label font-medium" style={{ color: theme.primary }}>Review</Text>
               </Text>
             </Pressable>
           )}
@@ -210,7 +210,7 @@ export default function CashFlowScreen() {
 }
 
 function Heading({ children }: { children: string }) {
-  return <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">{children}</Text>;
+  return <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">{children}</Text>;
 }
 
 function Row({
@@ -232,9 +232,9 @@ function Row({
   return (
     <Pressable onPress={onPress} className="flex-row items-center py-2" accessibilityRole="button" accessibilityLabel={`${label}, ${formatAmount(amount)}, see transactions`}>
       {dot && <View className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: dot }} />}
-      <Text className={`text-sm text-foreground flex-1 mr-2 ${bold ? "font-medium" : ""}`} numberOfLines={1}>{label}</Text>
-      {percent != null && <Text className="text-xs text-muted-foreground mr-2">{percent}%</Text>}
-      <Text className="text-sm font-semibold text-foreground">{formatAmount(amount)}</Text>
+      <Text className={`text-body text-foreground flex-1 mr-2 ${bold ? "font-medium" : ""}`} numberOfLines={1}>{label}</Text>
+      {percent != null && <Text className="text-label text-muted-foreground mr-2">{percent}%</Text>}
+      <Text className="text-body font-semibold text-foreground">{formatAmount(amount)}</Text>
       <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
     </Pressable>
   );
