@@ -954,6 +954,31 @@ export async function changeTransactionNature(
 }
 
 /**
+ * A positive balance adjustment ("[Balance Adjustment +] ...") becomes a credit, so it can have a
+ * type (interest, cashback...) like any money in. The balance doesn't move: an approved credit adds
+ * to the account exactly as a positive adjustment did. The caller then saves the credit's fields
+ * (type, reason as its description). Opening-balance adjustments and negative ones are refused.
+ */
+export async function adjustmentToCredit(id: string): Promise<void> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ nature: string; description: string | null }>(
+    "SELECT nature, description FROM expenses WHERE id = ? AND deleted_at IS NULL;",
+    id,
+  );
+  if (!row) throw new Error("Transaction not found");
+  if (row.nature !== "ledger_adjustment") return;
+  if (!/^\[Balance Adjustment\s*\+\]/.test(row.description ?? "")) {
+    throw new Error("Only an adjustment that added money can become a credit.");
+  }
+  await db.runAsync(
+    `UPDATE expenses SET nature = 'credit', category_id = NULL, payment_mode_id = NULL,
+            is_right_spend = NULL, money_event = NULL, updated_at = datetime('now') WHERE id = ?;`,
+    id,
+  );
+  bumpDataVersion();
+}
+
+/**
  * Approve an expense — sets status to 'approved'.
  *
  * For credit rows (nature='credit') without an account link, re-parses the
