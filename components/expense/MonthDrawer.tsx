@@ -99,13 +99,16 @@ export function MonthDrawerHeader({
   onToggle: () => void;
 }) {
   const count = `${summary.count} ${summary.count === 1 ? "transaction" : "transactions"}`;
+  // Only a "YYYY-MM" key is a month; anything else (a stale day or year key) shows as it is
+  // rather than as "NaN undefined NaN".
+  const isMonth = /^\d{4}-\d{2}$/.test(summary.month);
   return (
     <DrawerHeader
-      title={formatMonthLabel(summary.month, "short")}
+      title={isMonth ? formatMonthLabel(summary.month, "short") : summary.month}
       subtitle={count}
       open={open}
       onToggle={onToggle}
-      accessibilityLabel={`${formatMonthLabel(summary.month, "long")}, ${count}`}
+      accessibilityLabel={`${isMonth ? formatMonthLabel(summary.month, "long") : summary.month}, ${count}`}
       right={
         <>
           {(mode === "all" || mode === "credit") && <MoneyChip tone="in" amount={summary.received} label="money in" />}

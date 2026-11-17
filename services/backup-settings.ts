@@ -46,6 +46,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("fiscal_year_start_month", "number"),
   S("budget_category_sort", "string"),
   S("budget_widgets_visible", "string"),
+  S("budget_category_trend_collapsed", "boolean"),
   S("onboarding_completed_version", "string"),
   S("locale_currency", "string"),
   S("locale_number_grouping", "string"),

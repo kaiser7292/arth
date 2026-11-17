@@ -45,6 +45,8 @@ const CATEGORY_SORT_KEY = "budget.category.sortBy";
 const GROUPS: readonly ExpenseGroupBy[] = ["none", "date", "merchant", "account", "payment_mode", "person"];
 const NO_CATEGORIES = new Map<string, { name: string }>();
 
+const TREND_COLLAPSED_KEY = "budget_category_trend_collapsed";
+
 export default function CategoryDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -65,6 +67,13 @@ export default function CategoryDetailScreen() {
   const [breakdown, setBreakdown] = useState<SummaryBreakdown | null>(null);
   const [personMap, setPersonMap] = useState<Map<string, HisaabPerson>>(new Map());
   const [trend, setTrend] = useState<MonthlyTotal[]>([]);
+  // Remembered on this device: folded, the transactions get the room.
+  const [trendCollapsed, setTrendCollapsed] = useState(() => settingsStorage.getBoolean(TREND_COLLAPSED_KEY) ?? false);
+  const toggleTrend = () => {
+    const next = !trendCollapsed;
+    setTrendCollapsed(next);
+    settingsStorage.set(TREND_COLLAPSED_KEY, next);
+  };
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
     () => (settingsStorage.getString(CATEGORY_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
@@ -251,19 +260,33 @@ export default function CategoryDetailScreen() {
         )}
       </Card>
 
-      {/* Monthly trend chart */}
+      {/* Monthly trend chart: folds away to leave room for the transactions and their filters */}
       {trend.some((t) => t.total > 0) && (
         <Card className="mx-4 mt-2 mb-2">
-          <Text className="text-label font-medium text-muted-foreground mb-3">
-            Monthly Trend (Last 6 Months)
-          </Text>
-          <TrendBarChart
-            data={trend}
-            color={category.color}
-            budgetAmount={budgetAmount}
-            selectedMonth={selectedMonth}
-            onBarPress={(month) => setSelectedMonth(month)}
-          />
+          <Pressable
+            onPress={toggleTrend}
+            className="flex-row items-center justify-between"
+            style={{ minHeight: 32 }}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: !trendCollapsed }}
+            accessibilityLabel={trendCollapsed ? "Show the monthly trend" : "Hide the monthly trend"}
+          >
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
+              Monthly trend · last 6 months
+            </Text>
+            <Ionicons name={trendCollapsed ? "chevron-down" : "chevron-up"} size={18} color={theme.mutedForeground} />
+          </Pressable>
+          {!trendCollapsed && (
+            <View className="mt-3">
+              <TrendBarChart
+                data={trend}
+                color={category.color}
+                budgetAmount={budgetAmount}
+                selectedMonth={selectedMonth}
+                onBarPress={(month) => setSelectedMonth(month)}
+              />
+            </View>
+          )}
         </Card>
       )}
 

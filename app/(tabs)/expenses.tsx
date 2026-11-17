@@ -271,6 +271,10 @@ export default function ExpensesScreen() {
   // Month drawers. Totals come from the database for every month in the range; a month's rows
   // load when it's opened, and stay in `expenses` (keyed by their date) until the filters change.
   const [monthTotals, setMonthTotals] = useState<Map<string, MonthSummary>>(new Map());
+  // Which grouping monthTotals were counted for. Right after the grouping changes (Clear all, a new
+  // date range) the old totals are still here: drawn under the new grouping, a year read as a month
+  // showed "NaN undefined NaN". Drawers only draw once these match.
+  const [totalsBy, setTotalsBy] = useState<string>("");
   const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
   const [loadedMonths, setLoadedMonths] = useState<Set<string>>(new Set());
   const openMonthsRef = useRef(openMonths);
@@ -564,6 +568,7 @@ export default function ExpensesScreen() {
           setSummary(summaryResult);
           setPreviousTotal(prevTotal);
           setMonthTotals(months);
+          setTotalsBy(drawerBy);
           setTransfers([]);
           setHasMore(false);
           // Drawers that were open stay open; with none of them left, the first one opens.
@@ -626,7 +631,7 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, datePreset, customStartDate, customEndDate, filterCreditKinds, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything, drawerMode, minAmount, maxAmount, loadMonth],
+    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, datePreset, customStartDate, customEndDate, filterCreditKinds, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything, drawerMode, drawerBy, minAmount, maxAmount, loadMonth],
   );
 
   // Load reference data once (skipped if already seeded from preload)
@@ -663,7 +668,7 @@ export default function ExpensesScreen() {
       loadExpenses(true);
       getPendingExpenseCount(DEFAULT_USER_ID).then(setPendingCount).catch(() => {});
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, filterNature, summaryGroupBy, sortBy, loadEverything, drawerMode, minAmount, maxAmount]),
+    }, [debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, filterNature, summaryGroupBy, sortBy, loadEverything, drawerMode, drawerBy, minAmount, maxAmount]),
   );
 
   const handleDelete = useCallback(
@@ -1231,7 +1236,7 @@ export default function ExpensesScreen() {
   const dateSorted = sortBy === "date_desc" || sortBy === "date_asc";
   const drawerRows = useMemo<DrawerRow<Expense>[]>(
     () =>
-      drawerMode
+      drawerMode && totalsBy === drawerBy
         ? buildDrawerRows<Expense>({
             months: orderDrawers(monthTotals, drawerBy, sortBy === "date_asc"),
             open: openMonths,
@@ -1242,7 +1247,7 @@ export default function ExpensesScreen() {
             dayHeadings: dateSorted && (drawerBy === "month" || drawerBy === "year"),
           })
         : [],
-    [drawerMode, monthTotals, sortBy, openMonths, loadedMonths, expensesByMonth, rowAmount, dateSorted, drawerBy],
+    [drawerMode, totalsBy, monthTotals, sortBy, openMonths, loadedMonths, expensesByMonth, rowAmount, dateSorted, drawerBy],
   );
   const transferDrawerMode = filterNature === "transfers" && (transferGroupBy === "date" || transferGroupBy === "month");
   const transferDrawerRows = useMemo<DrawerRow<AccountTransfer>[]>(() => {
@@ -1346,11 +1351,13 @@ export default function ExpensesScreen() {
           onRemove: () => { setMinAmount(""); setMaxAmount(""); },
         }]
       : []),
-    ...((filterNature === "transfers" ? transferGroupBy : grouping.groupBy) !== "date"
+    // Only a grouping the owner picked is a chip: the one the dates give isn't "on", so Clear all
+    // (and this chip's ✕) hand the grouping back to the dates.
+    ...((filterNature === "transfers" ? transferGroupBy !== "date" : groupPinned)
       ? [{
           key: "group",
           label: `Grouped: ${(filterNature === "transfers" ? TRANSFER_GROUP_OPTIONS : grouping.options).find((o) => o.value === (filterNature === "transfers" ? transferGroupBy : grouping.groupBy))?.label ?? ""}`,
-          onRemove: () => (filterNature === "transfers" ? setTransferGroupBy("date") : grouping.setGroupBy("date")),
+          onRemove: () => (filterNature === "transfers" ? setTransferGroupBy("date") : setGroupPinned(false)),
         }]
       : []),
     ...(filterAvoidability
