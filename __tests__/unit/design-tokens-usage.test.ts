@@ -54,6 +54,15 @@ const FILES = [
   "components/ui/MoneyChip.tsx",
   "components/ui/FieldRow.tsx",
   "components/ui/FilterSheetParts.tsx",
+  // UI revamp (docs/UI_REVAMP_PLAN.md)
+  "components/ui/LinkRow.tsx",
+  "app/(tabs)/goals.tsx",
+  "app/goals/yearly-plan.tsx",
+  "app/goals/health-grade.tsx",
+  "app/goals/risk-coverage.tsx",
+  "app/goals/yoy-comparison.tsx",
+  "app/goals/capital-gains-reference.tsx",
+  "app/goals/loans.tsx",
 ];
 
 const DIRS = ["components/expense", "components/expense/catch-up"];
