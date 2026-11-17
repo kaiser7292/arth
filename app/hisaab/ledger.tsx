@@ -32,6 +32,7 @@ import {
   getPersonBalance,
   getPerson,
   recordSettlement,
+    recordPaidBack,
   enrichEntriesFromExpenses,
   getLinkedAccountIdsForEntries,
   getBalanceAsOfDate,
@@ -247,13 +248,8 @@ export default function LedgerScreen() {
     }
 
     if (settleDirection === "paid") {
-      await createEntry({
-        hisaab_person_id: personId!,
-        amount,
-        description: settleDescription.trim() || `Paid back ${person?.name ?? personName ?? ""}`.trim(),
-        date: settleDate,
-        type: "debit",
-      });
+      // Paying someone back is spending (owner, Nov 2026): an expense, on the account it came from.
+      await recordPaidBack(personId!, amount, settleDate, settleDescription.trim() || undefined, settleAccountId ?? undefined);
     } else {
       await recordSettlement(
         personId!,
@@ -411,8 +407,8 @@ export default function LedgerScreen() {
         })();
       }}
       onClose={() => setShowSettleAccountPicker(false)}
-      title="Received in which account?"
-      filterTypes={["savings"]}
+      title={settleDirection === "paid" ? "Paid from which account?" : "Received in which account?"}
+      filterTypes={settleDirection === "paid" ? ["savings", "credit_card", "wallet"] : ["savings"]}
     />
   );
 
@@ -460,14 +456,10 @@ export default function LedgerScreen() {
                     />
                   </View>
                 )}
-                {settleDirection === "paid" ? (
-                  <Text className="text-meta text-muted-foreground">
-                    Recorded in this ledger as money you paid {firstName}. If it went from one of your accounts, it shows on that
-                    account when the bank message (or your own entry) is there.
-                  </Text>
-                ) : (
                 <View>
-                  <Text className="text-label font-semibold text-muted-foreground mb-1.5">Received in (optional)</Text>
+                  <Text className="text-label font-semibold text-muted-foreground mb-1.5">
+                    {settleDirection === "paid" ? "Paid from (optional)" : "Received in (optional)"}
+                  </Text>
                   <Pressable
                     onPress={() => setShowSettleAccountPicker(true)}
                     className="flex-row items-center rounded-control border bg-card px-3"
@@ -496,10 +488,16 @@ export default function LedgerScreen() {
                     )}
                   </Pressable>
                   {settleAccountId && (
-                    <Text className="text-label text-muted-foreground mt-1.5">Shows as money in on that account&apos;s ledger.</Text>
+                    <Text className="text-label text-muted-foreground mt-1.5">
+                      {settleDirection === "paid"
+                        ? "Shows as money out on that account's ledger."
+                        : "Shows as money in on that account's ledger."}
+                    </Text>
+                  )}
+                  {settleDirection === "paid" && (
+                    <Text className="text-label text-muted-foreground mt-1.5">Counts as spending, like any other payment.</Text>
                   )}
                 </View>
-                )}
                 <View className="flex-row" style={{ gap: 10 }}>
                   <DateInput label="Date" value={settleDate} onChange={setSettleDate} containerClassName="flex-1" />
                   <Input
