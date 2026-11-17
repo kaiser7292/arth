@@ -64,7 +64,7 @@ import {
   type InvestmentProduct,
 } from "@/services/investment-accounts";
 import type { Expense, RecurringFrequency, RecurringRule, SplitConfig } from "@/services/expense";
-import { MAX_PURCHASE_GROUP_LEGS, addLegToExistingGroup, approveExpense, changeTransactionNature, convertToSplitTender, createRecurringRule, deleteExpense, deleteSplitExpense, fulfillReminder, getActiveRecurringRules, getExpenseById, getGroupSiblings, getRecurringRuleForExpense, markForecastAsPaid, markForecastPaidExternally, markRepaymentAsPaid, propagateSharedEdit, realizeForecast, rejectExpense, removeSplit, restoreExpense, splitExistingExpense, stopRecurringRule, suggestReminderForExpense, unfulfillReminder, unlinkFromGroup, updateExpense } from "@/services/expense";
+import { MAX_PURCHASE_GROUP_LEGS, addLegToExistingGroup, adjustmentToCredit, approveExpense, changeTransactionNature, convertToSplitTender, createRecurringRule, deleteExpense, deleteSplitExpense, fulfillReminder, getActiveRecurringRules, getExpenseById, getGroupSiblings, getRecurringRuleForExpense, markForecastAsPaid, markForecastPaidExternally, markRepaymentAsPaid, propagateSharedEdit, realizeForecast, rejectExpense, removeSplit, restoreExpense, splitExistingExpense, stopRecurringRule, suggestReminderForExpense, unfulfillReminder, unlinkFromGroup, updateExpense } from "@/services/expense";
 import {
     getLinkForExpense,
     InvestmentLinkError,
@@ -129,6 +129,17 @@ import { Rows } from "@/components/ui/Rows";
 import { todayIso } from "@/utils/local-date";
 
 
+
+/**
+ * The hidden direction marker on a balance adjustment's description ("[Balance Adjustment +] Found
+ * cash"), split from the reason typed with it. Null for anything else.
+ */
+function adjustmentMarker(description: string | null | undefined): { kind: "Balance" | "Opening"; sign: "+" | "-"; reason: string } | null {
+  const m = (description ?? "").match(/^\[(Balance|Opening) Adjustment\s*([+-])\]\s*(.*)$/);
+  if (!m) return null;
+  const reason = m[3].trim();
+  return { kind: m[1] as "Balance" | "Opening", sign: m[2] as "+" | "-", reason: reason.toLowerCase() === "balance adjustment" ? "" : reason };
+}
 
 export default function ExpenseDetailScreen() {
   const alert = useAlert();
@@ -384,13 +395,16 @@ export default function ExpenseDetailScreen() {
   const [editSalaryMonth, setEditSalaryMonth] = useState<string | null>(null);
 
   function populateForm(exp: Expense) {
-    setEditType(exp.nature === "credit" ? "received" : "spent");
+    // A positive balance adjustment edits as money in, with credit types; saving makes it a credit.
+    const adj = exp.nature === "ledger_adjustment" ? adjustmentMarker(exp.description) : null;
+    setEditType(exp.nature === "credit" || adj?.sign === "+" ? "received" : "spent");
     setEditCreditKind(exp.credit_kind ?? null);
     setEditSalaryMonth(exp.salary_for_month ?? null);
     // For split expenses, show the original total amount (not the post-split budget amount)
     const displayAmount = exp.split_original_amount ?? exp.amount;
     setAmount(String(displayAmount));
-    setDescription(exp.description ?? "");
+    // An adjustment's hidden "[Balance Adjustment +]" marker isn't for typing over: show the reason.
+    setDescription(adj ? adj.reason : exp.description ?? "");
     setMerchantName(exp.merchant_name ?? "");
     setCategoryId(exp.category_id);
     setPaymentModeId(exp.payment_mode_id);
@@ -473,9 +487,18 @@ export default function ExpenseDetailScreen() {
       // Spent ↔ Received on a manual entry: switch the row's type before saving its fields.
       const wasCredit = expense?.nature === "credit";
       const isCreditNow = expense?.nature === "forecast" ? false : editType === "received";
-      if (expense && expense.nature !== "forecast" && wasCredit !== isCreditNow) {
+      const adj = expense?.nature === "ledger_adjustment" ? adjustmentMarker(expense.description) : null;
+      if (adj) {
+        // A positive balance adjustment is saved as a credit with its type; others stay adjustments.
+        if (isCreditNow && adj.sign === "+" && adj.kind === "Balance") await adjustmentToCredit(id);
+      } else if (expense && expense.nature !== "forecast" && wasCredit !== isCreditNow) {
         await changeTransactionNature(id, isCreditNow ? "credit" : "realized", isCreditNow ? editCreditKind : null);
       }
+      // An adjustment that stays one keeps its marker: the balance reads its direction from it.
+      const savedDescription =
+        adj && !(isCreditNow && adj.sign === "+" && adj.kind === "Balance")
+          ? `[${adj.kind} Adjustment ${adj.sign}]${description.trim() ? ` ${description.trim()}` : ""}`
+          : description.trim() || null;
       const isSingleSplit = expense?.split_person_id != null && expense?.split_pct != null;
       const isMultiSplit = multiSplitSummary != null && multiSplitSummary.splits.length > 0;
 
@@ -600,7 +623,7 @@ export default function ExpenseDetailScreen() {
         // Credits have a type instead of a category.
         await updateExpense(id, {
           amount: parsedAmount,
-          description: description.trim() || null,
+          description: savedDescription,
           merchant_name: merchantName.trim() || null,
           account_id: accountId,
           date,
@@ -612,7 +635,7 @@ export default function ExpenseDetailScreen() {
       } else {
         await updateExpense(id, {
           amount: parsedAmount,
-          description: description.trim() || null,
+          description: savedDescription,
           merchant_name: merchantName.trim() || null,
           category_id: categoryId,
           payment_mode_id: paymentModeId,

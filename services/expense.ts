@@ -37,6 +37,7 @@ export {
   linkCreditAsRefund,
   unlinkCreditAsRefund,
   changeTransactionNature,
+  adjustmentToCredit,
 } from "./expense-crud";
 
 export type { DrawerGroupBy, FilteredMonthTotal, FilteredSummary, FilteredSummaryGroup, SummaryBreakdown } from "./expense-queries";
