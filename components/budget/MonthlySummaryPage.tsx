@@ -25,6 +25,7 @@ import { getMonthDateRange, getDaysElapsed, getDaysRemaining, getTotalDaysInMont
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailed } from "@/components/ui/ListToolbar";
+import { tint } from "@/constants/brand";
 
 interface TopCategory {
   category: Category | null;
@@ -136,7 +137,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
     return (
       <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <Ionicons name="bar-chart-outline" size={32} color={theme.faintForeground} />
-        <Text style={{ color: theme.faintForeground, marginTop: 8, fontSize: 14 }}>Loading summary…</Text>
+        <Text className="text-meta" style={{ color: theme.faintForeground, marginTop: 8 }}>Loading summary…</Text>
       </View>
     );
   }
@@ -173,16 +174,16 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
         }
       >
         <Card className="mx-4 mt-3">
-          <Text className="text-xs text-faint-foreground mb-1">Total Spent</Text>
-          <Text className="text-3xl font-bold text-foreground">
+          <Text className="text-label text-faint-foreground mb-1">Total Spent</Text>
+          <Text className="text-display font-bold text-foreground">
             {formatAmount(data.totalSpent)}
           </Text>
           <View className="flex-row items-center mt-2">
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-meta text-muted-foreground">
               {data.transactionCount} transaction{data.transactionCount !== 1 ? "s" : ""}
             </Text>
-            <Text className="text-sm text-faint-foreground mx-2">|</Text>
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-meta text-faint-foreground mx-2">|</Text>
+            <Text className="text-meta text-muted-foreground">
               {formatAmount(data.avgPerDay)}/day avg
             </Text>
           </View>
@@ -202,14 +203,14 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       {/* Budget Compliance */}
       <Card className="mx-4 mt-3">
-        <Text className="text-xs text-faint-foreground mb-2">Budget Compliance</Text>
+        <Text className="text-label text-faint-foreground mb-2">Budget Compliance</Text>
         {data.totalBudget > 0 ? (
           <>
             <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-xl font-bold text-foreground">
+              <Text className="text-title font-bold text-foreground">
                 {Math.round(data.budgetCompliancePct)}% used
               </Text>
-              <Text className="text-sm text-muted-foreground">
+              <Text className="text-meta text-muted-foreground">
                 of {formatAmount(data.totalBudget)}
               </Text>
             </View>
@@ -219,9 +220,9 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                         ? theme.warning
                         : theme.danger} height={12} animated={false} />
             <View className="flex-row justify-between mt-2">
-              <Text className="text-xs text-faint-foreground">{data.daysRemaining} days remaining</Text>
+              <Text className="text-label text-faint-foreground">{data.daysRemaining} days remaining</Text>
               <Text
-                className="text-xs font-medium"
+                className="text-label font-medium"
                 style={{
                   color:
                     data.totalBudget - data.totalSpent >= 0
@@ -236,7 +237,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
             </View>
           </>
         ) : (
-          <Text className="text-sm text-muted-foreground">
+          <Text className="text-meta text-muted-foreground">
             No budget set for this month
           </Text>
         )}
@@ -244,7 +245,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       {/* vs Last Month */}
       <Card className="mx-4 mt-3">
-        <Text className="text-xs text-faint-foreground mb-2">vs Last Month</Text>
+        <Text className="text-label text-faint-foreground mb-2">vs Last Month</Text>
         {data.prevMonthSpent > 0 ? (
           <View className="flex-row items-center">
             <Ionicons
@@ -254,7 +255,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
             />
             <View className="ml-3">
               <Text
-                className="text-lg font-bold"
+                className="text-heading font-bold"
                 style={{
                   color: spendChangeUp ? theme.danger : theme.success,
                 }}
@@ -262,13 +263,13 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                 {spendChangeUp ? "+" : ""}
                 {Math.round(spendChange)}%
               </Text>
-              <Text className="text-xs text-faint-foreground">
+              <Text className="text-label text-faint-foreground">
                 Last month: {formatAmount(data.prevMonthSpent)}
               </Text>
             </View>
           </View>
         ) : (
-          <Text className="text-sm text-muted-foreground">
+          <Text className="text-meta text-muted-foreground">
             No data for previous month
           </Text>
         )}
@@ -288,11 +289,11 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
       >
         <Card className="mx-4 mt-3">
           <View className="flex-row items-center justify-between mb-1">
-            <Text className="text-xs text-faint-foreground">Flexible spend</Text>
+            <Text className="text-label text-faint-foreground">Flexible spend</Text>
             <Ionicons name="chevron-forward" size={14} color={theme.faintForeground} />
           </View>
-          <AnimatedNumber value={data.flexibleSpent} className="text-xl font-bold text-foreground" />
-          <Text className="text-xs text-muted-foreground mt-0.5">
+          <AnimatedNumber value={data.flexibleSpent} className="text-title font-bold text-foreground" />
+          <Text className="text-label text-muted-foreground mt-0.5">
             {data.totalSpent > 0
               ? `${data.flexiblePct}% of this month's spending was discretionary: the part you could cut back on.`
               : "Spending you mark discretionary shows here."}
@@ -306,7 +307,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
             />
           )}
           {data.prevFlexibleSpent > 0 && (
-            <Text className="text-xs text-faint-foreground mt-2">
+            <Text className="text-label text-faint-foreground mt-2">
               {data.flexibleSpent > data.prevFlexibleSpent
                 ? `${formatAmount(data.flexibleSpent - data.prevFlexibleSpent)} more than last month (${formatAmount(data.prevFlexibleSpent)})`
                 : data.flexibleSpent < data.prevFlexibleSpent
@@ -326,10 +327,10 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
               accessibilityRole="button"
             >
               <Ionicons name="help-circle-outline" size={16} color={theme.mutedForeground} />
-              <Text className="text-xs text-muted-foreground flex-1 ml-2">
+              <Text className="text-label text-muted-foreground flex-1 ml-2">
                 {formatAmount(data.unclassifiedSpent)} isn't marked unavoidable or discretionary yet
               </Text>
-              <Text className="text-xs font-semibold text-primary">Classify</Text>
+              <Text className="text-label font-semibold text-primary">Classify</Text>
             </Pressable>
           )}
         </Card>
@@ -337,7 +338,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       {/* Top Categories */}
       <Card className="mx-4 mt-3">
-        <Text className="text-xs text-faint-foreground mb-3">Top Categories</Text>
+        <Text className="text-label text-faint-foreground mb-3">Top Categories</Text>
         {data.topCategories.length > 0 ? (
           data.topCategories.map((tc, idx) => (
             <View key={tc.category?.id ?? `unknown-${idx}`} className="mb-3 last:mb-0">
@@ -346,7 +347,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                   {tc.category && (
                     <View
                       className="w-6 h-6 rounded-full items-center justify-center mr-2"
-                      style={{ backgroundColor: tc.category.color + "14" }}
+                      style={{ backgroundColor: tint(tc.category.color, 0.08) }}
                     >
                       <Ionicons
                         name={tc.category.icon as keyof typeof Ionicons.glyphMap}
@@ -356,13 +357,13 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                     </View>
                   )}
                   <Text
-                    className="text-sm text-foreground flex-1"
+                    className="text-meta text-foreground flex-1"
                     numberOfLines={1}
                   >
                     {tc.category?.name ?? "Unknown"}
                   </Text>
                 </View>
-                <Text className="text-sm font-semibold text-foreground ml-2">
+                <Text className="text-body font-semibold text-foreground ml-2">
                   {formatAmount(tc.total)}
                 </Text>
               </View>
@@ -375,7 +376,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
             </View>
           ))
         ) : (
-          <Text className="text-sm text-muted-foreground">
+          <Text className="text-meta text-muted-foreground">
             No expenses this month
           </Text>
         )}

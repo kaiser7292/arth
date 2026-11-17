@@ -150,8 +150,8 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                   separatorColor={theme.card}
                 />
                 <View className="flex-1 ml-4">
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Spent this month</Text>
-                  <AnimatedNumber value={split.totalSpent} className="text-xl font-bold text-foreground mt-0.5 mb-2" />
+                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Spent this month</Text>
+                  <AnimatedNumber value={split.totalSpent} className="text-title font-bold text-foreground mt-0.5 mb-2" />
                   {visible.map((b) => (
                     <Pressable
                       key={b}
@@ -161,8 +161,8 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                       accessibilityLabel={`${BUCKETS[b].title}: ${formatAmount(split[b].spent)}, ${split[b].pct} percent`}
                     >
                       <View className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: colorOf(b) }} />
-                      <Text className="text-xs text-foreground flex-1" numberOfLines={1}>{BUCKETS[b].title}</Text>
-                      <Text className="text-xs font-semibold text-foreground">{split[b].pct}%</Text>
+                      <Text className="text-label text-foreground flex-1" numberOfLines={1}>{BUCKETS[b].title}</Text>
+                      <Text className="text-label font-semibold text-foreground">{split[b].pct}%</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -176,8 +176,8 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                   accessibilityLabel={`Plus loan EMIs ${formatAmount(Math.max(emis.paid, emis.due))}, always unavoidable. Open loans`}
                 >
                   <Ionicons name="business-outline" size={14} color={theme.mutedForeground} />
-                  <Text className="text-xs text-muted-foreground flex-1 ml-2">Plus loan EMIs, always unavoidable</Text>
-                  <Text className="text-xs font-semibold text-foreground">{formatAmount(Math.max(emis.paid, emis.due))}</Text>
+                  <Text className="text-label text-muted-foreground flex-1 ml-2">Plus loan EMIs, always unavoidable</Text>
+                  <Text className="text-label font-semibold text-foreground">{formatAmount(Math.max(emis.paid, emis.due))}</Text>
                   <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
                 </Pressable>
               )}
@@ -191,28 +191,28 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                 <View className="flex-row">
                   {split.discretionary.budget > 0 && (
                     <View className="flex-1">
-                      <Text className="text-xs text-faint-foreground">
+                      <Text className="text-label text-faint-foreground">
                         {discretionaryLeft >= 0 ? "Discretionary left" : "Discretionary over"}
                       </Text>
                       <Text
-                        className="text-base font-semibold"
+                        className="text-body font-semibold"
                         style={{ color: discretionaryLeft >= 0 ? theme.success : theme.danger }}
                       >
                         {formatAmount(Math.abs(discretionaryLeft))}
                       </Text>
-                      <Text className="text-xs text-faint-foreground">of {formatAmount(split.discretionary.budget)} budget</Text>
+                      <Text className="text-label text-faint-foreground">of {formatAmount(split.discretionary.budget)} budget</Text>
                     </View>
                   )}
                   {split.maxPossibleSavings !== null && (
                     <View className={split.discretionary.budget > 0 ? "flex-1 items-end" : "flex-1"}>
-                      <Text className="text-xs text-faint-foreground">Could save up to</Text>
+                      <Text className="text-label text-faint-foreground">Could save up to</Text>
                       <Text
-                        className="text-base font-semibold"
+                        className="text-body font-semibold"
                         style={{ color: split.maxPossibleSavings >= 0 ? theme.success : theme.danger }}
                       >
                         {formatAmount(split.maxPossibleSavings)}
                       </Text>
-                      <Text className="text-xs text-faint-foreground">
+                      <Text className="text-label text-faint-foreground">
                         {emis && (emis.paid > 0 || emis.due > 0) ? "income minus unavoidable and EMIs" : "income minus unavoidable"}
                       </Text>
                     </View>
@@ -238,7 +238,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                   onToggle={() => setOpen((cur) => (cur === b ? null : b))}
                   onCategory={(categoryId, name) => openTransactions(b, categoryId, name)}
                   onAll={() => openTransactions(b)}
-                  chevronColor={colors.textSecondary}
+                  chevronColor={theme.mutedForeground}
                 />
               </Appear>
             </View>
@@ -246,11 +246,11 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
         </>
       ) : (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 80 }}>
-          <Ionicons name="pie-chart-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Ionicons name="pie-chart-outline" size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-medium text-foreground mt-4">
             No spending data
           </Text>
-          <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
+          <Text className="text-meta text-muted-foreground mt-1 text-center px-8">
             Start adding expenses to see your unavoidable vs discretionary classification
           </Text>
         </View>
@@ -288,12 +288,12 @@ function BucketCard({
             <Ionicons name={meta.icon} size={17} color={color} />
           </View>
           <View className="flex-1">
-            <Text className="text-sm font-semibold text-foreground">{meta.title}</Text>
-            <Text className="text-xs text-faint-foreground" numberOfLines={1}>{meta.subtitle}</Text>
+            <Text className="text-body font-semibold text-foreground">{meta.title}</Text>
+            <Text className="text-label text-faint-foreground" numberOfLines={1}>{meta.subtitle}</Text>
           </View>
           <View className="items-end ml-2">
-            <AnimatedNumber value={detail.spent} className="text-base font-bold text-foreground" />
-            <Text className="text-xs text-faint-foreground">
+            <AnimatedNumber value={detail.spent} className="text-body font-bold text-foreground" />
+            <Text className="text-label text-faint-foreground">
               {detail.pct}% of spend
             </Text>
           </View>
@@ -304,7 +304,7 @@ function BucketCard({
         {detail.budget > 0 && (
           <View className="mt-3">
             <ProgressBar value={detail.spent / detail.budget} color={overBudget ? STATUS_COLORS.error : color} height={6} />
-            <Text className="text-xs text-faint-foreground mt-1">
+            <Text className="text-label text-faint-foreground mt-1">
               {formatAmount(detail.spent)} of {formatAmount(detail.budget)} budget
               {overBudget ? ` · ${formatAmount(detail.spent - detail.budget)} over` : ""}
             </Text>
@@ -325,12 +325,12 @@ function BucketCard({
                 accessibilityRole="button"
               >
                 <View className="flex-row items-center">
-                  <Text className="text-sm text-foreground flex-1" numberOfLines={1}>{cat.name}</Text>
-                  <Text className="text-sm font-medium text-foreground ml-2">
+                  <Text className="text-meta text-foreground flex-1" numberOfLines={1}>{cat.name}</Text>
+                  <Text className="text-body font-medium text-foreground ml-2">
                     {cat.spent > 0 ? formatAmount(cat.spent) : "Nothing yet"}
                   </Text>
                   {cat.budget > 0 && (
-                    <Text className="text-xs text-faint-foreground ml-1">/ {formatAmount(cat.budget)}</Text>
+                    <Text className="text-label text-faint-foreground ml-1">/ {formatAmount(cat.budget)}</Text>
                   )}
                   {cat.spent > 0 && (
                     <Ionicons name="chevron-forward" size={13} color={chevronColor} style={{ marginLeft: 4 }} />
@@ -349,7 +349,7 @@ function BucketCard({
             );
           })}
           <Pressable onPress={onAll} className="flex-row items-center justify-center pt-2 mt-1" accessibilityRole="button">
-            <Text className="text-sm font-semibold" style={{ color }}>
+            <Text className="text-body font-semibold" style={{ color }}>
               {meta.avoidability === "unclassified" ? "Classify these" : "See all transactions"}
             </Text>
             <Ionicons name="arrow-forward" size={14} color={color} style={{ marginLeft: 4 }} />

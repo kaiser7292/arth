@@ -89,6 +89,9 @@ const FILES = [
   "components/goals/SalaryChecks.tsx",
   "components/goals/salary-helpers.tsx",
   "app/hisaab/persons.tsx",
+  "app/(tabs)/budget.tsx",
+  "components/budget/SpendingSplitPage.tsx",
+  "components/budget/MonthlySummaryPage.tsx",
 ];
 
 const DIRS = ["components/expense", "components/expense/catch-up"];
