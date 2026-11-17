@@ -63,6 +63,17 @@ const FILES = [
   "app/goals/yoy-comparison.tsx",
   "app/goals/capital-gains-reference.tsx",
   "app/goals/loans.tsx",
+  "app/goals/milestones.tsx",
+  "app/goals/milestone-detail.tsx",
+  "app/loans/[id].tsx",
+  "app/loans/add.tsx",
+  "app/loans/[id]/prepayment.tsx",
+  "app/loans/[id]/correction.tsx",
+  "components/loans/ForeclosureQuoteSheet.tsx",
+  "components/loans/LinkInstallmentSheet.tsx",
+  "components/ui/FormParts.tsx",
+  "components/ui/FAB.tsx",
+  "components/ui/Input.tsx",
 ];
 
 const DIRS = ["components/expense", "components/expense/catch-up"];

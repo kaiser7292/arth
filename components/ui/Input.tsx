@@ -5,7 +5,6 @@ import { fadeIn } from "@/components/motion/motion";
 
 import { Text } from "./Text";
 import type { KeyboardTypeOptions, TextInputProps } from "react-native";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
@@ -28,6 +27,12 @@ interface InputProps extends TextInputProps {
    * A live preview is shown below. See useFormulaText for what the parent receives.
    */
   formula?: boolean;
+  /**
+   * A one or two character unit drawn inside the box: `prefix` before the value (₹), `suffix` after
+   * it (%, mo). Unit WORDS belong in the label ("Tenure, in months"), not here.
+   */
+  prefix?: string;
+  suffix?: string;
 }
 
 /**
@@ -115,10 +120,11 @@ export function Input({
   onFocus,
   onBlur,
   keyboardType,
+  prefix,
+  suffix,
   ...props
 }: InputProps) {
   const theme = useTheme();
-  const { colors } = useColorScheme();
 
   const { shown, inFormula, hasExpr, result: formulaResult, handleChange, handleFocus, handleBlur } = useFormulaText({
     enabled: formula,
@@ -136,28 +142,48 @@ export function Input({
           {label}
         </Text>
       )}
-      <TextInput
-        value={shown}
-        onChangeText={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        keyboardType={formula ? FORMULA_KEYBOARD : keyboardType}
-        accessibilityLabel={label || props.placeholder}
-        className={`${COMPONENTS.input.base} ${
-          error
-            ? "border-danger"
-            : inFormula
-            ? "border-primary"
-            : "border-border"
-        } ${className}`}
-        placeholderTextColor={colors.tabIconDefault}
-        {...props}
-      />
+      {prefix || suffix ? (
+        <View
+          className={`flex-row items-center rounded-control border bg-card px-3 ${error ? "border-danger" : inFormula ? "border-primary" : "border-border"}`}
+        >
+          {prefix ? <Text className="text-body text-muted-foreground mr-1.5">{prefix}</Text> : null}
+          <TextInput
+            value={shown}
+            onChangeText={handleChange}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            keyboardType={formula ? FORMULA_KEYBOARD : keyboardType}
+            accessibilityLabel={label || props.placeholder}
+            className={`flex-1 py-3 text-body text-foreground ${className}`}
+            placeholderTextColor={theme.faintForeground}
+            {...props}
+          />
+          {suffix ? <Text className="text-body text-muted-foreground ml-1.5">{suffix}</Text> : null}
+        </View>
+      ) : (
+        <TextInput
+          value={shown}
+          onChangeText={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          keyboardType={formula ? FORMULA_KEYBOARD : keyboardType}
+          accessibilityLabel={label || props.placeholder}
+          className={`${COMPONENTS.input.base} ${
+            error
+              ? "border-danger"
+              : inFormula
+              ? "border-primary"
+              : "border-border"
+          } ${className}`}
+          placeholderTextColor={theme.faintForeground}
+          {...props}
+        />
+      )}
       {/* Formula preview */}
       {inFormula && hasExpr && (
         <Text
           className={COMPONENTS.input.hint}
-          style={{ color: formulaValid ? colors.tint : theme.danger }}
+          style={{ color: formulaValid ? theme.primary : theme.danger }}
         >
           {formulaValid
             ? `= ${formatAmount(formulaResult!)}`

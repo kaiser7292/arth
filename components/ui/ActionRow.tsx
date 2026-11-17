@@ -41,7 +41,7 @@ export function ActionRow({ items, className = "" }: { items: ActionRowItem[]; c
             <View className={A.circle} style={{ backgroundColor: bg }}>
               <Ionicons name={it.icon} size={A.icon} color={fg} />
             </View>
-            <Text className={`${A.label} text-center`} numberOfLines={2}>
+            <Text className={`${A.label} text-center`} numberOfLines={1}>
               {it.label}
             </Text>
           </Pressable>

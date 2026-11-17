@@ -10,9 +10,9 @@ export default function LoansLayout() {
     <Stack
       screenOptions={screenOptions}
     >
-      <Stack.Screen name="add" options={{ title: "Add Loan" }} />
-      <Stack.Screen name="[id]" options={{ title: "Loan Details" }} />
-      <Stack.Screen name="[id]/correction" options={{ title: "Manual Correction" }} />
+      <Stack.Screen name="add" options={{ title: "Add loan" }} />
+      <Stack.Screen name="[id]" options={{ title: "Loan" }} />
+      <Stack.Screen name="[id]/correction" options={{ title: "Correct the loan" }} />
       <Stack.Screen name="[id]/prepayment" options={{ title: "Record prepayment" }} />
     </Stack>
     </FeatureGate>

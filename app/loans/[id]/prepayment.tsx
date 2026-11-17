@@ -187,7 +187,7 @@ export default function PrepaymentForm() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center">
-          <Text style={{ color: colors.textSecondary }}>Loading...</Text>
+          <Text style={{ color: theme.mutedForeground }}>Loading...</Text>
         </View>
       </ScreenContainer>
     );
@@ -203,7 +203,7 @@ export default function PrepaymentForm() {
         >
           <View className="px-4 pt-4 pb-8">
             <View className="mb-4">
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              <Text className="text-meta" style={{ color: theme.mutedForeground }}>
                 Part-payment applied against principal. Charges computed from your loan's terms.
               </Text>
             </View>
@@ -220,21 +220,21 @@ export default function PrepaymentForm() {
 
               <Pressable
               onPress={() => setShowDatePicker(true)}
-              className="py-3 px-3 rounded-lg border flex-row items-center"
-              style={{ borderColor: colors.border }}
+              className="py-3 px-3 rounded-control border flex-row items-center"
+              style={{ borderColor: theme.border }}
             >
               <View className="flex-1">
-                <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                <Text className="text-label" style={{ color: theme.mutedForeground }}>
                   Prepayment Date
                 </Text>
                 <Text
-                  className="text-sm mt-1"
-                  style={{ color: prepayDate ? colors.text : colors.textSecondary }}
+                  className="text-meta mt-1"
+                  style={{ color: prepayDate ? theme.foreground : theme.mutedForeground }}
                 >
                   {prepayDate ? formatDate(prepayDate) : "Tap to pick"}
                 </Text>
               </View>
-              <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+              <Ionicons name="calendar-outline" size={16} color={theme.mutedForeground} />
             </Pressable>
 
             {amountNum >= currentEmi && (
@@ -251,10 +251,10 @@ export default function PrepaymentForm() {
             
             {amountNum > 0 && amountNum < currentEmi && (
               <View
-                className="p-2.5 rounded-lg"
-                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                className="p-2.5 rounded-control"
+                style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
               >
-                <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                <Text className="text-label" style={{ color: theme.mutedForeground }}>
                   Small prepayment ({formatMoney(amountNum)} &lt; EMI of {formatMoney(Math.round(currentEmi))}). Applied straight to principal - tenure and EMI stay the same, the last installment gets smaller.
                 </Text>
               </View>
@@ -262,10 +262,10 @@ export default function PrepaymentForm() {
 
             {impact && amountNum > 0 && (
               <View
-                className="p-3 rounded-xl"
-                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                className="p-3 rounded-card"
+                style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
               >
-                <Text className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: colors.textSecondary }}>
+                <Text className="text-label font-semibold uppercase tracking-wider mb-2" style={{ color: theme.mutedForeground }}>
                   Preview
                 </Text>
                 <ImpactRow label="Prepayment" value={formatMoney(amountNum)} />
@@ -322,22 +322,22 @@ export default function PrepaymentForm() {
                   <Ionicons
                     name={overrideExpanded ? "chevron-down" : "chevron-forward"}
                     size={14}
-                    color={colors.textSecondary}
+                    color={theme.mutedForeground}
                   />
                   <Text
-                    className="text-xs ml-1"
-                    style={{ color: colors.textSecondary }}
+                    className="text-label ml-1"
+                    style={{ color: theme.mutedForeground }}
                   >
                     Override charges (optional)
                   </Text>
                 </Pressable>
                 {overrideExpanded && (
                   <View
-                    className="p-3 rounded-xl"
+                    className="p-3 rounded-card"
                     style={{
-                      backgroundColor: colors.surface,
+                      backgroundColor: theme.card,
                       borderWidth: 1,
-                      borderColor: colors.border,
+                      borderColor: theme.border,
                     }}
                   >
                     <Input
@@ -359,7 +359,7 @@ export default function PrepaymentForm() {
                     />
                     <Text
                       className="text-label mt-1"
-                      style={{ color: colors.textSecondary }}
+                      style={{ color: theme.mutedForeground }}
                     >
                       Your values override the auto-computed ones. Leave blank to use the auto figures.
                     </Text>
@@ -421,14 +421,14 @@ function ImpactRow({
       ? theme.success
       : color === "danger"
         ? theme.danger
-        : colors.text;
+        : theme.foreground;
   return (
     <View className="flex-row items-center justify-between py-1">
-      <Text className="text-xs" style={{ color: colors.textSecondary }}>
+      <Text className="text-label" style={{ color: theme.mutedForeground }}>
         {label}
       </Text>
       <Text
-        className={`text-sm ${bold ? "font-bold" : "font-medium"}`}
+        className={`text-body ${bold ? "font-bold" : "font-medium"}`}
         style={{ color: valueColor }}
       >
         {value}

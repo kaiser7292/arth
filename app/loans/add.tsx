@@ -1,12 +1,12 @@
 import { useState, useCallback, useMemo } from "react";
-import { View, ScrollView, KeyboardAvoidingView, Pressable, Modal, Platform } from "react-native";
+import { View, ScrollView, KeyboardAvoidingView, Pressable, Platform } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, Input, ScreenContainer, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Toggle } from "@/components/goals";
+import { Chip, ChipWrap, Input, RadioRow, ScreenContainer, Segmented, Text } from "@/components/ui";
+import { FoldGroup, FormFooter, FormGroup } from "@/components/ui/FormParts";
+import { useTheme } from "@/hooks/use-theme";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { createLoan, type LoanType } from "@/services/loan-accounts";
 import { computeEMI } from "@/services/loan-engine";
@@ -26,7 +26,7 @@ import { todayIso } from "@/utils/local-date";
 const LOAN_TYPES: { label: string; value: LoanType }[] = [
   { label: "Personal", value: "personal" },
   { label: "Home", value: "home" },
-  { label: "Auto", value: "auto" },
+  { label: "Car", value: "auto" },
   { label: "Education", value: "education" },
   { label: "Business", value: "business" },
   { label: "Gold", value: "gold" },
@@ -37,14 +37,13 @@ const LOAN_TYPES: { label: string; value: LoanType }[] = [
 export default function AddLoanScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const headerHeight = useHeaderHeight();
   const { loanId } = useLocalSearchParams<{ loanId?: string }>();
   const isEdit = !!loanId;
 
   // Core fields
   const [loanType, setLoanType] = useState<LoanType>("personal");
-  const [showLoanTypePicker, setShowLoanTypePicker] = useState(false);
   const [showDisbursementPicker, setShowDisbursementPicker] = useState(false);
   const [showEmiStartPicker, setShowEmiStartPicker] = useState(false);
   const [bankName, setBankName] = useState("");
@@ -259,8 +258,32 @@ export default function AddLoanScreen() {
     router, alert,
   ]);
 
+  const unit = currency === "INR" ? "₹" : undefined;
+  const feesFilled = [processingFee, stampDuty, insurancePremium].filter((v) => parseFloat(v) > 0).length;
+  const prepayFilled = [prepayLatePct, prepayEarlyPct, prepayThresholdEmis, foreclosureWaiverMonths, foreclosureWaiverMinAmount].filter(
+    (v) => parseFloat(v) > 0,
+  ).length;
+  const penalFilled = [penalRatePa, penalRateCapPa].filter((v) => parseFloat(v) > 0).length;
+  const paidSoFar = parseInt(emisAlreadyPaid, 10) || 0;
+  const dateRow = (label: string, value: string, onPress: () => void, a11y: string) => (
+    <View>
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">{label}</Text>
+      <Pressable
+        onPress={onPress}
+        className="flex-row items-center rounded-control border border-border bg-card px-3"
+        style={{ height: 48 }}
+        accessibilityRole="button"
+        accessibilityLabel={a11y}
+      >
+        <Text className={`flex-1 text-body ${value ? "text-foreground" : "text-faint-foreground"}`}>{value || "Tap to pick"}</Text>
+        <Ionicons name="calendar-outline" size={16} color={theme.mutedForeground} />
+      </Pressable>
+    </View>
+  );
+
   return (
     <ScreenContainer padTop={false}>
+      <Stack.Screen options={{ title: isEdit ? "Edit loan" : "Add loan" }} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         keyboardVerticalOffset={Platform.OS === "ios" ? headerHeight : 0}
@@ -268,385 +291,266 @@ export default function AddLoanScreen() {
       >
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ paddingBottom: 48, paddingTop: 12, paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingBottom: 24, paddingTop: 12, paddingHorizontal: 16, gap: 12 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-
           {/* Basics */}
-          <Card title="Basics" className="mb-4">
-            <Pressable
-              onPress={() => setShowLoanTypePicker(true)}
-              className="mb-3 py-3 px-3 rounded-lg border border-border"
-              accessibilityRole="button"
-              accessibilityLabel="Choose loan type"
-            >
-              <Text className="text-xs text-muted-foreground">
-                Loan Type
+          <FormGroup icon="business-outline" title="Basics" hint="Who lent it and what for">
+            <ChipWrap>
+              {LOAN_TYPES.map((t) => (
+                <Chip key={t.value} label={t.label} on={loanType === t.value} onPress={() => setLoanType(t.value)} />
+              ))}
+            </ChipWrap>
+            <Input label="Bank or lender" value={bankName} onChangeText={setBankName} placeholder="e.g. Axis Bank" />
+            <View>
+              <Input
+                label="Loan account number, last 4–6 digits"
+                value={accountNumber}
+                onChangeText={setAccountNumber}
+                keyboardType="numeric"
+                placeholder="e.g. 7249"
+              />
+              <Text className="text-label text-muted-foreground mt-1.5">
+                As shown on the EMI message or NACH mandate. Used to match bank EMI reminders to this loan; if Arth already found
+                this loan from a message, the same digits merge the two.
               </Text>
-              <View className="flex-row items-center justify-between mt-1">
-                <Text className="text-sm font-semibold text-foreground">
-                  {LOAN_TYPES.find((t) => t.value === loanType)?.label ?? "Personal"}
-                </Text>
-                <Ionicons name="chevron-down" size={16} color={colors.textSecondary} />
-              </View>
-            </Pressable>
-            <Input
-              label="Bank / Lender"
-              value={bankName}
-              onChangeText={setBankName}
-              placeholder="e.g. Axis Bank"
-              containerClassName="mb-3"
-            />
-            <Input
-              label="Bank account number (last 4-6 digits)"
-              value={accountNumber}
-              onChangeText={setAccountNumber}
-              keyboardType="numeric"
-              placeholder="e.g. 7249 (as shown on EMI SMS or NACH mandate)"
-              containerClassName="mb-3"
-            />
-            <Text className="text-xs text-muted-foreground -mt-2 mb-3">
-              Used to match bank EMI reminders to this loan. If Arth already auto-detected this loan from an SMS, typing the same digits will merge the two cards.
-            </Text>
-            <Input
-              label="Agreement ID (optional)"
-              value={agreementId}
-              onChangeText={setAgreementId}
-              placeholder="e.g. PPR000810877249"
-              containerClassName="mb-3"
-            />
-            <Pressable
-              onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}
-              className="mb-3 py-3 px-3 rounded-lg border border-border"
-            >
-              <Text className="text-xs text-muted-foreground">
-                Currency
-              </Text>
-              <Text className="text-sm font-semibold text-foreground mt-1">
-                {currency} - {CURRENCIES.find((c) => c.code === currency)?.displayName ?? "-"}
-              </Text>
-            </Pressable>
-            {showCurrencyPicker && (
-              <ScrollView style={{ maxHeight: 240 }} className="mb-3">
-                {CURRENCIES.filter((c) => c.code !== "NONE").slice(0, 15).map((c) => (
-                  <Pressable
-                    key={c.code}
-                    onPress={() => {
-                      setCurrency(c.code);
-                      setShowCurrencyPicker(false);
-                    }}
-                    className="py-2 px-3 rounded-lg"
-                    style={{ backgroundColor: c.code === currency ? colors.surface : undefined }}
-                  >
-                    <Text className="text-sm text-foreground">
-                      {c.code} · {c.displayName}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            )}
-          </Card>
+            </View>
+          </FormGroup>
 
-          {/* Amounts */}
-          <Card title="Amounts" className="mb-4">
-            <Input
-              label="Amount approved"
-              value={principalSanctioned}
-              onChangeText={setPrincipalSanctioned}
-              keyboardType="numeric"
-              formula
-              placeholder="e.g. 1015000"
-              containerClassName="mb-3"
-            />
-            <Input
-              label="Amount received"
-              value={principalDisbursed}
-              onChangeText={setPrincipalDisbursed}
-              keyboardType="numeric"
-              formula
-              placeholder="e.g. 1015000"
-              containerClassName="mb-3"
-            />
-            <Pressable
-              onPress={() => setShowDisbursementPicker(true)}
-              className="mb-3 py-3 px-3 rounded-lg border flex-row items-center"
-              style={{ borderColor: colors.border }}
-              accessibilityRole="button"
-              accessibilityLabel="Pick disbursement date"
-            >
-              <View className="flex-1">
-                <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                  Disbursement Date
-                </Text>
-                <Text
-                  className="text-sm mt-1"
-                  style={{ color: disbursementDate ? colors.text : colors.textSecondary }}
-                >
-                  {disbursementDate || "Tap to pick"}
-                </Text>
-              </View>
-              <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-            </Pressable>
-            <Pressable
-              onPress={() => setShowEmiStartPicker(true)}
-              className="mb-3 py-3 px-3 rounded-lg border flex-row items-center"
-              style={{ borderColor: colors.border }}
-              accessibilityRole="button"
-              accessibilityLabel="Pick EMI start date"
-            >
-              <View className="flex-1">
-                <Text className="text-xs" style={{ color: colors.textSecondary }}>
-                  EMI Start Date
-                </Text>
-                <Text
-                  className="text-sm mt-1"
-                  style={{ color: emiStartDate ? colors.text : colors.textSecondary }}
-                >
-                  {emiStartDate || "Tap to pick"}
-                </Text>
-              </View>
-              <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-            </Pressable>
-            <Input
-              label="EMI Day of Month (1-31)"
-              value={emiDayOfMonth}
-              onChangeText={setEmiDayOfMonth}
-              keyboardType="numeric"
-              placeholder="10"
-              maxLength={2}
-            />
-          </Card>
-
-          {/* Rate + Tenure */}
-          <Card title="Rate & Tenure" className="mb-4">
-            <Input
-              label="Interest Rate % p.a."
-              value={interestRatePa}
-              onChangeText={setInterestRatePa}
-              keyboardType="numeric"
-              placeholder="11.49"
-              containerClassName="mb-3"
-            />
-            <Toggle
-              label="Interest Type"
+          {/* Amount, rate and tenure */}
+          <FormGroup icon="calculator-outline" title="Amount, rate and tenure" hint="EMI is worked out for you">
+            <View className="flex-row" style={{ gap: 10 }}>
+              <Input
+                label="Approved"
+                prefix={unit}
+                value={principalSanctioned}
+                onChangeText={setPrincipalSanctioned}
+                keyboardType="numeric"
+                formula
+                placeholder="1015000"
+                containerClassName="flex-1"
+              />
+              <Input
+                label="Received"
+                prefix={unit}
+                value={principalDisbursed}
+                onChangeText={setPrincipalDisbursed}
+                keyboardType="numeric"
+                formula
+                placeholder="1015000"
+                containerClassName="flex-1"
+              />
+            </View>
+            <View className="flex-row" style={{ gap: 10 }}>
+              <Input
+                label="Interest rate, a year"
+                suffix="%"
+                value={interestRatePa}
+                onChangeText={setInterestRatePa}
+                keyboardType="numeric"
+                placeholder="11.49"
+                containerClassName="flex-1"
+              />
+              <Input
+                label="Tenure, in months"
+                suffix="mo"
+                value={tenureMonths}
+                onChangeText={setTenureMonths}
+                keyboardType="numeric"
+                placeholder="60"
+                containerClassName="flex-1"
+              />
+            </View>
+            <Segmented<"fixed" | "floating">
               options={[
-                { label: "Fixed", value: "fixed" },
-                { label: "Floating", value: "floating" },
+                { value: "fixed", label: "Fixed rate" },
+                { value: "floating", label: "Floating rate" },
               ]}
               value={interestType}
-              onChange={(v) => setInterestType(v as "fixed" | "floating")}
+              onChange={setInterestType}
             />
-            <Input
-              label="Tenure (months)"
-              value={tenureMonths}
-              onChangeText={setTenureMonths}
-              keyboardType="numeric"
-              placeholder="60"
-              containerClassName="mb-3"
-            />
-            <Input
-              label="EMI Amount (optional)"
-              value={emiAmount}
-              onChangeText={setEmiAmount}
-              keyboardType="numeric"
-              formula
-              placeholder={suggestedEMI > 0 ? String(Math.round(suggestedEMI)) : "auto"}
-            />
+            <View className="flex-row" style={{ gap: 10 }}>
+              <View className="flex-1">
+                {dateRow("Disbursement date", disbursementDate, () => setShowDisbursementPicker(true), "Pick disbursement date")}
+              </View>
+              <View className="flex-1">{dateRow("EMI start date", emiStartDate, () => setShowEmiStartPicker(true), "Pick EMI start date")}</View>
+            </View>
+            <View className="flex-row" style={{ gap: 10 }}>
+              <Input
+                label="EMI day of the month"
+                value={emiDayOfMonth}
+                onChangeText={setEmiDayOfMonth}
+                keyboardType="numeric"
+                placeholder="10"
+                maxLength={2}
+                containerClassName="flex-1"
+              />
+              <Input
+                label="EMI amount (optional)"
+                prefix={unit}
+                value={emiAmount}
+                onChangeText={setEmiAmount}
+                keyboardType="numeric"
+                formula
+                placeholder={suggestedEMI > 0 ? String(Math.round(suggestedEMI)) : "auto"}
+                containerClassName="flex-1"
+              />
+            </View>
             {suggestedEMI > 0 && (
-              <Text className="text-xs text-muted-foreground mt-1">
-                Computed EMI: {formatAmount(Math.round(suggestedEMI))}
-              </Text>
+              <View className="flex-row items-center justify-between rounded-control px-3 py-2.5" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+                <Text className="text-meta text-muted-foreground">EMI on the {ordinal(parseInt(emiDayOfMonth, 10) || 1)}, worked out</Text>
+                <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatAmount(Math.round(suggestedEMI))}
+                </Text>
+              </View>
             )}
-          </Card>
+          </FormGroup>
 
-          {/* v17.5.0 — Historical: how many EMIs already paid? */}
-          <Card title="Already in progress?" className="mb-4">
-            <Text className="text-xs text-muted-foreground mb-3">
-              If this loan isn't brand new, how many EMIs have you already paid? Arth will mark those installments as paid so the outstanding principal matches reality.
+          <FoldGroup
+            title="Already paying it?"
+            sub={paidSoFar > 0 ? `${paidSoFar} EMIs paid so far` : "Optional · EMIs paid so far"}
+            icon="time-outline"
+            defaultOpen={isEdit && paidSoFar > 0}
+          >
+            <Text className="text-meta text-muted-foreground">
+              If this loan isn&apos;t brand new, Arth marks the EMIs you&apos;ve already paid so the amount left matches reality.
             </Text>
-            <Input
-              label="EMIs paid so far"
-              value={emisAlreadyPaid}
-              onChangeText={setEmisAlreadyPaid}
-              keyboardType="numeric"
-              placeholder="0"
-            />
-          </Card>
+            <Input label="EMIs paid so far" value={emisAlreadyPaid} onChangeText={setEmisAlreadyPaid} keyboardType="numeric" placeholder="0" />
+          </FoldGroup>
 
-          {/* Fees */}
-          <Card title="Fees (one-time)" className="mb-4">
+          <FoldGroup
+            title="One-time fees"
+            sub={feesFilled > 0 ? `${feesFilled} of 3 filled` : "Optional · processing, stamp duty, insurance"}
+            icon="receipt-outline"
+          >
+            <Input label="Processing fee" prefix={unit} value={processingFee} onChangeText={setProcessingFee} keyboardType="numeric" formula placeholder="0" />
+            <Input label="Stamp duty" prefix={unit} value={stampDuty} onChangeText={setStampDuty} keyboardType="numeric" formula placeholder="0" />
             <Input
-              label="Processing Fee"
-              value={processingFee}
-              onChangeText={setProcessingFee}
-              keyboardType="numeric"
-              formula
-              placeholder="0"
-              containerClassName="mb-3"
-            />
-            <Input
-              label="Stamp Duty"
-              value={stampDuty}
-              onChangeText={setStampDuty}
-              keyboardType="numeric"
-              formula
-              placeholder="0"
-              containerClassName="mb-3"
-            />
-            <Input
-              label="Insurance Premium"
+              label="Insurance premium"
+              prefix={unit}
               value={insurancePremium}
               onChangeText={setInsurancePremium}
               keyboardType="numeric"
               formula
               placeholder="0"
             />
-          </Card>
+          </FoldGroup>
 
-          {/* Prepayment rules */}
-          <Card title="Prepayment / Foreclosure Rules" className="mb-4">
-            <Text className="text-xs text-muted-foreground mb-3">
-              Charges the bank takes when you pay extra ahead of schedule. From your loan's Key Fact Sheet. Nothing to do with missing an EMI - that's Penal Charges below. Leave 0 if not applicable.
+          <FoldGroup
+            title="Prepayment rules"
+            sub={prepayFilled > 0 ? `${prepayFilled} set · GST ${gstPct || 0}%` : "Optional · charges and when they stop"}
+            icon="arrow-up-outline"
+          >
+            <Text className="text-meta text-muted-foreground">
+              What the bank charges when you pay extra ahead of schedule, from your loan&apos;s Key Fact Sheet. Not for a missed EMI
+              (that&apos;s late-payment charges). Leave 0 if it doesn&apos;t apply.
             </Text>
+            <Input label="Standard prepayment charge" suffix="%" value={prepayLatePct} onChangeText={setPrepayLatePct} keyboardType="numeric" placeholder="2" />
             <Input
-              label="Standard prepayment charge %"
-              value={prepayLatePct}
-              onChangeText={setPrepayLatePct}
-              keyboardType="numeric"
-              placeholder="e.g. 2"
-              containerClassName="mb-3"
-            />
-            <Input
-              label="Reduced rate % (near end of tenure)"
+              label="Reduced charge near the end of the tenure"
+              suffix="%"
               value={prepayEarlyPct}
               onChangeText={setPrepayEarlyPct}
               keyboardType="numeric"
-              placeholder="e.g. 0 - 0 means no reduction"
-              containerClassName="mb-3"
+              placeholder="0 means no reduction"
             />
             <Input
-              label="Use reduced rate when remaining EMIs ≤"
+              label="Use the reduced charge when EMIs left are at most"
               value={prepayThresholdEmis}
               onChangeText={setPrepayThresholdEmis}
               keyboardType="numeric"
-              placeholder="e.g. 36"
-              containerClassName="mb-3"
+              placeholder="36"
             />
             <Input
-              label="No charge after N months"
+              label="No charge after this many months"
+              suffix="mo"
               value={foreclosureWaiverMonths}
               onChangeText={setForeclosureWaiverMonths}
               keyboardType="numeric"
-              placeholder="e.g. 12 - no foreclosure fee after this many months"
-              containerClassName="mb-3"
+              placeholder="12"
             />
             <Input
-              label="No charge if loan ≥ amount"
+              label="No charge if the loan is at least"
+              prefix={unit}
               value={foreclosureWaiverMinAmount}
               onChangeText={setForeclosureWaiverMinAmount}
               keyboardType="numeric"
               formula
-              placeholder="e.g. 1000000 - big loans skip the fee"
-              containerClassName="mb-3"
+              placeholder="1000000"
             />
-            <Input
-              label="GST %"
-              value={gstPct}
-              onChangeText={setGstPct}
-              keyboardType="numeric"
-              placeholder="18"
-            />
-          </Card>
+            <Input label="GST on charges" suffix="%" value={gstPct} onChangeText={setGstPct} keyboardType="numeric" placeholder="18" />
+          </FoldGroup>
 
-          {/* Penal */}
-          <Card title="Late-payment charges" className="mb-4">
-            <Text className="text-xs text-muted-foreground mb-3">
-              What the bank charges if you miss an EMI. Different from prepayment charges above.
+          <FoldGroup
+            title="Late-payment charges"
+            sub={penalFilled > 0 ? `${penalRatePa}% a year, at most ${penalRateCapPa}%` : "Optional · 2 fields"}
+            icon="warning-outline"
+          >
+            <Text className="text-meta text-muted-foreground">
+              What the bank charges if you miss an EMI. Different from prepayment charges.
             </Text>
+            <Input label="Late fee rate, a year" suffix="%" value={penalRatePa} onChangeText={setPenalRatePa} keyboardType="numeric" placeholder="8" />
             <Input
-              label="Late fee rate % per year"
-              value={penalRatePa}
-              onChangeText={setPenalRatePa}
-              keyboardType="numeric"
-              placeholder="e.g. 8"
-              containerClassName="mb-3"
-            />
-            <Input
-              label="Maximum late fee % per year"
+              label="Highest late fee rate, a year"
+              suffix="%"
               value={penalRateCapPa}
               onChangeText={setPenalRateCapPa}
               keyboardType="numeric"
-              placeholder="e.g. 24 - caps the compounding"
+              placeholder="24"
             />
-          </Card>
+          </FoldGroup>
 
-          <Button
-            title={saving ? (isEdit ? "Updating…" : "Saving…") : (isEdit ? "Update Loan" : "Save Loan")}
-            onPress={handleSave}
-            loading={saving}
-          />
+          <FoldGroup
+            title="Agreement and currency"
+            sub={`Optional · ${agreementId.trim() ? `agreement ${agreementId.trim()}` : "agreement ID"} · ${currency}`}
+            icon="document-text-outline"
+          >
+            <Input label="Agreement ID" value={agreementId} onChangeText={setAgreementId} placeholder="e.g. PPR000810877249" />
+            <View>
+              <Text className="text-label font-semibold text-muted-foreground mb-1.5">Currency</Text>
+              <Pressable
+                onPress={() => setShowCurrencyPicker(!showCurrencyPicker)}
+                className="flex-row items-center rounded-control border border-border bg-card px-3"
+                style={{ height: 48 }}
+                accessibilityRole="button"
+                accessibilityLabel="Choose currency"
+              >
+                <Text className="flex-1 text-body text-foreground" numberOfLines={1}>
+                  {currency} · {CURRENCIES.find((c) => c.code === currency)?.displayName ?? "-"}
+                </Text>
+                <Ionicons name={showCurrencyPicker ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
+              </Pressable>
+              {showCurrencyPicker && (
+                <ScrollView style={{ maxHeight: 240 }} className="mt-2" nestedScrollEnabled>
+                  {CURRENCIES.filter((c) => c.code !== "NONE")
+                    .slice(0, 15)
+                    .map((c) => (
+                      <RadioRow
+                        key={c.code}
+                        label={`${c.code} · ${c.displayName}`}
+                        on={c.code === currency}
+                        onPress={() => {
+                          setCurrency(c.code);
+                          setShowCurrencyPicker(false);
+                        }}
+                      />
+                    ))}
+                </ScrollView>
+              )}
+            </View>
+          </FoldGroup>
         </ScrollView>
+
+        <FormFooter
+          primary={saving ? (isEdit ? "Saving…" : "Saving…") : isEdit ? "Save changes" : "Save loan"}
+          onPrimary={handleSave}
+          onCancel={() => router.back()}
+          disabled={saving}
+        />
       </KeyboardAvoidingView>
 
-      {/* v17.4.0 — Loan type picker modal */}
-      <Modal
-        visible={showLoanTypePicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLoanTypePicker(false)}
-      >
-        <Pressable
-          className="flex-1 bg-black/40"
-          onPress={() => setShowLoanTypePicker(false)}
-        >
-          <View className="flex-1 justify-center px-8">
-            <Pressable>
-              <View
-                style={{
-                  backgroundColor: colors.surface,
-                  borderRadius: 16,
-                  padding: 16,
-                }}
-              >
-                <Text
-                  className="text-base font-bold mb-3"
-                  style={{ color: colors.text }}
-                >
-                  Loan Type
-                </Text>
-                {LOAN_TYPES.map((t) => (
-                  <Pressable
-                    key={t.value}
-                    onPress={() => {
-                      setLoanType(t.value);
-                      setShowLoanTypePicker(false);
-                    }}
-                    className="py-3 flex-row items-center"
-                  >
-                    <View style={{ width: 24, marginRight: 12 }}>
-                      {loanType === t.value && (
-                        <Ionicons name="checkmark" size={20} color={colors.tint} />
-                      )}
-                    </View>
-                    <Text
-                      className="text-sm"
-                      style={{
-                        color: loanType === t.value ? colors.tint : colors.text,
-                        fontWeight: loanType === t.value ? "600" : "400",
-                      }}
-                    >
-                      {t.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* v17.4.0 — Date pickers */}
+      {/* Date pickers */}
       <CalendarModal
         visible={showDisbursementPicker}
         onClose={() => setShowDisbursementPicker(false)}
@@ -664,22 +568,22 @@ export default function AddLoanScreen() {
       <CalendarModal
         visible={showEmiStartPicker}
         onClose={() => setShowEmiStartPicker(false)}
-        value={
-          emiStartDate ||
-          disbursementDate ||
-          todayIso()
-        }
+        value={emiStartDate || disbursementDate || todayIso()}
         onChange={(d) => {
           setEmiStartDate(d);
           setShowEmiStartPicker(false);
           const day = parseInt(d.split("-")[2], 10);
           if (day >= 1 && day <= 31) setEmiDayOfMonth(String(day));
         }}
-        minimumDate={
-          disbursementDate ? new Date(disbursementDate + "T00:00:00") : undefined
-        }
+        minimumDate={disbursementDate ? new Date(disbursementDate + "T00:00:00") : undefined}
         maximumDate={null}
       />
     </ScreenContainer>
   );
+}
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 }

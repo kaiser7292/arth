@@ -3,11 +3,13 @@ import { useState, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, DateInput, FAB, Input, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Card, Chip, DateInput, FAB, Input, LoadingState, ProgressBar, ScreenContainer, Segmented, Text } from "@/components/ui";
+import { StatTile } from "@/components/ui/LinkRow";
+import { FoldGroup, FormFooter, FormGroup } from "@/components/ui/FormParts";
+import { tint } from "@/constants/brand";
 
 
 import {
@@ -40,7 +42,6 @@ type DurationUnit = "years" | "months";
 export default function MilestonesScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
   const [milestones, setMilestones] = useState<LifeMilestone[]>([]);
   const [milestoneStatuses, setMilestoneStatuses] = useState<MilestoneStatus[]>([]);
@@ -296,215 +297,146 @@ export default function MilestonesScreen() {
   // ─── Add/Edit Form ───────────────────────────────────────
 
   if (viewMode === "add_milestone") {
+    const yrs = parseInt(formDurationYears, 10) || 0;
+    const mos = parseInt(formDurationMonths, 10) || 0;
+    const totalMo = yrs * 12 + mos;
+    const durationLabel = yrs > 0 && mos > 0 ? `${yrs}yr ${mos}mo` : yrs > 0 ? `${yrs}yr` : `${mos}mo`;
     return (
       <ScreenContainer padTop={false}>
+        <Stack.Screen options={{ title: editingId ? "Edit milestone" : "Add milestone" }} />
         {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-        <KeyboardAvoidingView
-          behavior="padding"
-          className="flex-1"
-        >
-          <ScrollView
-            className="flex-1"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          >
-            <View className="px-4 py-4">
-              <Card
-                title={editingId ? "Edit Milestone" : "Add Life Milestone"}
-                className="mb-4"
-              >
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+            <View className="px-4 py-4" style={{ gap: 12 }}>
+              <FormGroup icon="flag-outline" title="The goal" hint="What it is and what it costs">
+                <Input label="Name" value={formName} onChangeText={setFormName} placeholder="e.g. Car down payment" maxLength={50} />
                 <Input
-                  label="Milestone Name"
-                  value={formName}
-                  onChangeText={setFormName}
-                  placeholder="e.g. Car Down Payment"
-                  maxLength={50}
-                  containerClassName="mb-3"
-                />
-                <Input
-                  label="Target Amount (Rs)"
+                  label="Target amount"
+                  prefix="₹"
                   value={formTarget}
                   onChangeText={setFormTarget}
                   keyboardType="numeric"
                   formula
-                  placeholder="e.g. 700000"
-                  containerClassName="mb-3"
+                  placeholder="700000"
                 />
                 <DateInput
-                  label="Target Date (optional)"
+                  label="Target date (optional)"
                   value={formTargetDate}
                   onChange={setFormTargetDate}
                   placeholder="e.g. 2028-03-31"
                   maximumDate={null}
-                  containerClassName="mb-3"
                 />
-                <Input
-                  label="Monthly Contribution Plan (optional)"
-                  value={formMonthlyPlan}
-                  onChangeText={setFormMonthlyPlan}
-                  keyboardType="numeric"
-                  formula
-                  placeholder="e.g. 15000"
-                  containerClassName="mb-3"
-                />
+              </FormGroup>
 
-                {/* Start FY Picker */}
-                <View className="mb-3">
-                  <Text className="text-xs font-medium text-muted-foreground mb-1.5">
-                    Start Financial Year
-                  </Text>
-                  <View className="flex-row items-center">
+              <FormGroup icon="calendar-outline" title="When you'll save for it" hint="The plan works out a monthly amount">
+                <View>
+                  <Text className="text-label font-semibold text-muted-foreground mb-1.5">Start financial year</Text>
+                  <View className="flex-row items-center" style={{ gap: 8 }}>
                     <Pressable
                       onPress={() => setFormStartFY(String(parseInt(formStartFY, 10) - 1))}
-                      className="p-2 rounded-lg bg-card"
+                      className="w-11 h-11 rounded-control border border-border bg-card items-center justify-center"
+                      accessibilityRole="button"
+                      accessibilityLabel="Previous financial year"
                     >
-                      <Ionicons name="chevron-back" size={16} color={colors.textSecondary} />
+                      <Ionicons name="chevron-back" size={18} color={theme.mutedForeground} />
                     </Pressable>
-                    <View className="flex-1 items-center mx-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                      <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
+                    <View className="flex-1 h-11 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.primary }}>
                         {getFYLabel(parseInt(formStartFY, 10), startMonth)}
                       </Text>
                     </View>
                     <Pressable
                       onPress={() => setFormStartFY(String(parseInt(formStartFY, 10) + 1))}
-                      className="p-2 rounded-lg bg-card"
+                      className="w-11 h-11 rounded-control border border-border bg-card items-center justify-center"
+                      accessibilityRole="button"
+                      accessibilityLabel="Next financial year"
                     >
-                      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                      <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
                     </Pressable>
                   </View>
                 </View>
 
-                {/* Duration */}
-                <View className="mb-3">
-                  <Text className="text-xs font-medium text-muted-foreground mb-1.5">
-                    Duration
-                  </Text>
-
-                  {/* Unit toggle */}
-                  <View className="flex-row mb-2 rounded-lg overflow-hidden border border-border">
-                    {(["years", "months"] as DurationUnit[]).map((unit) => (
-                      <Pressable
-                        key={unit}
-                        onPress={() => {
-                          setFormDurationUnit(unit);
-                          if (unit === "years") {
-                            setFormDurationMonths("0");
-                            if (formDurationYears === "0") setFormDurationYears("1");
-                          } else {
-                            setFormDurationYears("0");
-                            if (formDurationMonths === "0") setFormDurationMonths("6");
-                          }
-                        }}
-                        className="flex-1 py-2 items-center"
-                        style={{
-                          backgroundColor: formDurationUnit === unit ? theme.alpha("primary", 0.12) : "transparent",
-                        }}
-                      >
-                        <Text
-                          className="text-sm font-medium capitalize"
-                          style={{ color: formDurationUnit === unit ? colors.blue : theme.mutedForeground }}
-                        >
-                          {unit}
-                        </Text>
-                      </Pressable>
-                    ))}
+                <View>
+                  <Text className="text-label font-semibold text-muted-foreground mb-1.5">Duration</Text>
+                  <Segmented<DurationUnit>
+                    options={[
+                      { value: "years", label: "Years" },
+                      { value: "months", label: "Months" },
+                    ]}
+                    value={formDurationUnit}
+                    onChange={(unit) => {
+                      setFormDurationUnit(unit);
+                      if (unit === "years") {
+                        setFormDurationMonths("0");
+                        if (formDurationYears === "0") setFormDurationYears("1");
+                      } else {
+                        setFormDurationYears("0");
+                        if (formDurationMonths === "0") setFormDurationMonths("6");
+                      }
+                    }}
+                  />
+                  <View className="flex-row items-center mt-2.5" style={{ gap: 8 }}>
+                    {(formDurationUnit === "years" ? ["1", "2", "3", "5", "10"] : ["3", "6", "9", "18"]).map((d) => {
+                      const on =
+                        formDurationUnit === "years"
+                          ? formDurationYears === d && formDurationMonths === "0"
+                          : formDurationMonths === d && formDurationYears === "0";
+                      return (
+                        <Chip
+                          key={d}
+                          label={`${d}${formDurationUnit === "years" ? "yr" : "mo"}`}
+                          on={on}
+                          onPress={() => {
+                            if (formDurationUnit === "years") {
+                              setFormDurationYears(d);
+                              setFormDurationMonths("0");
+                            } else {
+                              setFormDurationMonths(d);
+                              setFormDurationYears("0");
+                            }
+                          }}
+                        />
+                      );
+                    })}
+                    <Input
+                      value={formDurationUnit === "years" ? formDurationYears : formDurationMonths}
+                      onChangeText={(v) => {
+                        if (formDurationUnit === "years") {
+                          setFormDurationYears(v);
+                          setFormDurationMonths("0");
+                        } else {
+                          setFormDurationMonths(v);
+                          setFormDurationYears("0");
+                        }
+                      }}
+                      keyboardType="numeric"
+                      suffix={formDurationUnit === "years" ? "yr" : "mo"}
+                      accessibilityLabel={formDurationUnit === "years" ? "Years" : "Months"}
+                      containerClassName="flex-1"
+                    />
                   </View>
-
-                  {/* Presets + custom */}
-                  {formDurationUnit === "years" ? (
-                    <View className="flex-row items-center">
-                      {["1", "2", "3", "5", "10"].map((d) => (
-                        <Pressable
-                          key={d}
-                          onPress={() => { setFormDurationYears(d); setFormDurationMonths("0"); }}
-                          className="mr-2 px-4 py-2 rounded-lg border"
-                          style={{
-                            borderColor: formDurationYears === d && formDurationMonths === "0" ? colors.blue : theme.border,
-                            backgroundColor: formDurationYears === d && formDurationMonths === "0" ? theme.alpha("primary", 0.08) : "transparent",
-                          }}
-                        >
-                          <Text
-                            className="text-sm font-medium"
-                            style={{ color: formDurationYears === d && formDurationMonths === "0" ? colors.blue : theme.mutedForeground }}
-                          >
-                            {d}yr
-                          </Text>
-                        </Pressable>
-                      ))}
-                      <Input
-                        value={formDurationYears}
-                        onChangeText={(v) => { setFormDurationYears(v); setFormDurationMonths("0"); }}
-                        keyboardType="numeric"
-                        placeholder="Yrs"
-                        containerClassName="flex-1 ml-1"
-                      />
-                    </View>
-                  ) : (
-                    <View className="flex-row items-center">
-                      {["3", "6", "9", "18"].map((d) => (
-                        <Pressable
-                          key={d}
-                          onPress={() => { setFormDurationMonths(d); setFormDurationYears("0"); }}
-                          className="mr-2 px-4 py-2 rounded-lg border"
-                          style={{
-                            borderColor: formDurationMonths === d && formDurationYears === "0" ? colors.blue : theme.border,
-                            backgroundColor: formDurationMonths === d && formDurationYears === "0" ? theme.alpha("primary", 0.08) : "transparent",
-                          }}
-                        >
-                          <Text
-                            className="text-sm font-medium"
-                            style={{ color: formDurationMonths === d && formDurationYears === "0" ? colors.blue : theme.mutedForeground }}
-                          >
-                            {d}mo
-                          </Text>
-                        </Pressable>
-                      ))}
-                      <Input
-                        value={formDurationMonths}
-                        onChangeText={(v) => { setFormDurationMonths(v); setFormDurationYears("0"); }}
-                        keyboardType="numeric"
-                        placeholder="Mo"
-                        containerClassName="flex-1 ml-1"
-                      />
-                    </View>
+                  {parseFloat(formTarget) > 0 && totalMo > 0 && (
+                    <Text className="text-meta text-muted-foreground mt-2">
+                      {durationLabel} → {formatAmount(parseFloat(formTarget) / totalMo)} a month
+                    </Text>
                   )}
-
-                  {/* Contribution summary */}
-                  {parseFloat(formTarget) > 0 && (() => {
-                    const yrs = parseInt(formDurationYears, 10) || 0;
-                    const mos = parseInt(formDurationMonths, 10) || 0;
-                    const totalMo = yrs * 12 + mos;
-                    if (totalMo <= 0) return null;
-                    const monthly = parseFloat(formTarget) / totalMo;
-                    const label = yrs > 0 && mos > 0
-                      ? `${yrs}yr ${mos}mo`
-                      : yrs > 0 ? `${yrs}yr` : `${mos}mo`;
-                    return (
-                      <Text className="text-xs text-muted-foreground mt-1">
-                        {label} → {formatAmount(monthly)}/month
-                      </Text>
-                    );
-                  })()}
                 </View>
+              </FormGroup>
 
-                <View className="flex-row">
-                  <View className="flex-1 mr-2">
-                    <Button
-                      title="Cancel"
-                      variant="outline"
-                      onPress={resetForm}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Button
-                      title={editingId ? "Update" : "Add Milestone"}
-                      onPress={handleSave}
-                    />
-                  </View>
-                </View>
-              </Card>
+              <FoldGroup title="Your own monthly plan" sub="Optional · 1 field" icon="options-outline" defaultOpen={formMonthlyPlan !== ""}>
+                <Input
+                  label="Monthly contribution plan"
+                  prefix="₹"
+                  value={formMonthlyPlan}
+                  onChangeText={setFormMonthlyPlan}
+                  keyboardType="numeric"
+                  formula
+                  placeholder="15000"
+                />
+              </FoldGroup>
             </View>
           </ScrollView>
+          <FormFooter primary={editingId ? "Save milestone" : "Add milestone"} onPrimary={handleSave} onCancel={resetForm} />
         </KeyboardAvoidingView>
       </ScreenContainer>
     );
@@ -515,105 +447,63 @@ export default function MilestonesScreen() {
   return (
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
-      >
-        <View className="px-4 py-4">
-          {/* Overall Summary */}
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
+        <View className="px-4 py-3" style={{ gap: 12 }}>
+          {/* Overall: saved and still to save */}
           {activeMilestones.length > 0 && (
-            <Card className="mb-4">
-              <View className="flex-row mb-3">
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground">
-                    Total Goal
-                  </Text>
-                  <Text className="text-base font-bold text-foreground">
-                    {formatAmount(totalTarget)}
-                  </Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground">
-                    Saved
-                  </Text>
-                  <Text className="text-base font-bold text-success">
-                    {formatAmount(totalSaved)}
-                  </Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground">
-                    Remaining
-                  </Text>
-                  <Text className="text-base font-bold text-danger">
-                    {formatAmount(Math.max(totalTarget - totalSaved, 0))}
-                  </Text>
-                </View>
+            <View style={{ gap: 6 }}>
+              <View className="flex-row" style={{ gap: 8 }}>
+                <StatTile label="Saved" value={formatAmount(totalSaved)} />
+                <StatTile label="Still to save" value={formatAmount(Math.max(totalTarget - totalSaved, 0))} />
               </View>
-              <ProgressBar value={(overallPct) / 100} color={theme.primary} height={12} animated={false} />
-              <Text className="text-xs text-muted-foreground mt-1 text-right">
-                {overallPct.toFixed(1)}% overall progress
-              </Text>
-            </Card>
+              {totalTarget > 0 && (
+                <Text className="text-meta text-muted-foreground px-1">
+                  {overallPct.toFixed(0)}% of {formatAmount(totalTarget)} across {activeMilestones.length}{" "}
+                  {activeMilestones.length === 1 ? "milestone" : "milestones"}
+                </Text>
+              )}
+            </View>
           )}
 
           {/* Empty State */}
           {milestones.length === 0 && (
-            <Card className="mb-4">
+            <Card>
               <View className="items-center py-4">
-                <Ionicons name="flag-outline" size={48} color={colors.textSecondary} />
-                <Text className="text-base font-medium text-foreground mt-2">
-                  No milestones yet
-                </Text>
-                <Text className="text-sm text-muted-foreground mt-1 text-center px-4">
-                  Add your first life goal to start tracking
-                </Text>
+                <Ionicons name="flag-outline" size={48} color={theme.faintForeground} />
+                <Text className="text-body font-semibold text-foreground mt-2">No milestones yet</Text>
+                <Text className="text-meta text-muted-foreground mt-1 text-center px-4">Add your first life goal to start tracking</Text>
               </View>
             </Card>
           )}
 
-          {/* Active Milestones */}
-          {activeMilestones.map((m) => {
-            const fyPlanned = getMilestoneContributionForFY(m, String(currentFY));
-            const fyActual = fyActuals.get(m.id) ?? 0;
-            return (
-              <MilestoneCard
-                key={m.id}
-                milestone={m}
-                realityStatus={milestoneStatuses.find((ms) => ms.id === m.id) ?? null}
-                fyLabel={getFYLabel(currentFY, startMonth)}
-                fyPlanned={fyPlanned}
-                fyActual={fyActual}
-                onPress={() =>
-                  router.push({
-                    pathname: "/goals/milestone-detail",
-                    params: { milestoneId: m.id },
-                  })
-                }
-                onLongPress={() => handleMilestoneActions(m)}
-                onEdit={() => handleEdit(m)}
-                onToggleComplete={() => handleToggleComplete(m)}
-              />
-            );
-          })}
+          {activeMilestones.map((m, i) => (
+            <MilestoneCard
+              key={m.id}
+              index={i}
+              milestone={m}
+              realityStatus={milestoneStatuses.find((ms) => ms.id === m.id) ?? null}
+              fyLabel={getFYLabel(currentFY, startMonth)}
+              fyPlanned={getMilestoneContributionForFY(m, String(currentFY))}
+              fyActual={fyActuals.get(m.id) ?? 0}
+              onPress={() => router.push({ pathname: "/goals/milestone-detail", params: { milestoneId: m.id } })}
+              onLongPress={() => handleMilestoneActions(m)}
+              onEdit={() => handleEdit(m)}
+              onToggleComplete={() => handleToggleComplete(m)}
+            />
+          ))}
 
-          {/* Completed Milestones */}
           {completedMilestones.length > 0 && (
             <>
-              <Text className="text-sm font-semibold text-muted-foreground mt-4 mb-2">
-                Completed ({completedMilestones.length})
+              <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mt-2">
+                Completed · {completedMilestones.length}
               </Text>
-              {completedMilestones.map((m) => (
+              {completedMilestones.map((m, i) => (
                 <MilestoneCard
                   key={m.id}
+                  index={i}
                   milestone={m}
                   realityStatus={null}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/goals/milestone-detail",
-                      params: { milestoneId: m.id },
-                    })
-                  }
+                  onPress={() => router.push({ pathname: "/goals/milestone-detail", params: { milestoneId: m.id } })}
                   onLongPress={() => handleMilestoneActions(m)}
                   onEdit={() => handleEdit(m)}
                   onToggleComplete={() => handleToggleComplete(m)}
@@ -623,22 +513,35 @@ export default function MilestonesScreen() {
           )}
 
           {milestones.length > 0 && (
-            <Text className="text-xs text-faint-foreground text-center mt-2 mb-4">
-              Tap to view details. Long-press for reset/delete options.
-            </Text>
+            <Text className="text-label text-faint-foreground text-center">Tap to open. Long-press to reset or delete.</Text>
           )}
         </View>
       </ScrollView>
 
-      {/* FAB */}
-      <FAB icon="add" onPress={() => setViewMode("add_milestone")} />
+      <FAB icon="add" label="Milestone" onPress={() => setViewMode("add_milestone")} />
     </ScreenContainer>
   );
 }
 
 // ─── Milestone Card Component ────────────────────────────
 
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "2027-03-15" -> "Mar 2027 · 4 months left" (or "· date passed"). */
+function whenLabel(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const [y, m] = iso.split("-").map(Number);
+  if (!y || !m) return iso;
+  const now = new Date();
+  const left = (y - now.getFullYear()) * 12 + (m - 1 - now.getMonth());
+  const base = `${SHORT_MONTHS[m - 1]} ${y}`;
+  if (left < 0) return `${base} · date passed`;
+  if (left === 0) return `${base} · this month`;
+  return `${base} · ${left} ${left === 1 ? "month" : "months"} left`;
+}
+
 function MilestoneCard({
+  index,
   milestone,
   realityStatus,
   fyLabel,
@@ -649,6 +552,7 @@ function MilestoneCard({
   onEdit,
   onToggleComplete,
 }: {
+  index: number;
   milestone: LifeMilestone;
   realityStatus: MilestoneStatus | null;
   fyLabel?: string;
@@ -659,211 +563,131 @@ function MilestoneCard({
   onEdit: () => void;
   onToggleComplete: () => void;
 }) {
-  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
-  const remaining = Math.max(
-    milestone.target_amount - milestone.current_saved,
-    0,
-  );
-  const pct =
-    milestone.target_amount > 0
-      ? Math.min(
-          (milestone.current_saved / milestone.target_amount) * 100,
-          100,
-        )
-      : 0;
   const isComplete = milestone.is_completed === 1;
+  const hasTarget = milestone.target_amount > 0;
+  const pct = hasTarget ? Math.min((milestone.current_saved / milestone.target_amount) * 100, 100) : 0;
+  const color = isComplete ? theme.success : theme.data.series[(index + 3) % theme.data.series.length];
 
   // Monthly saving still needed — via the milestone's effective due date
   // (target_date, or the FY+duration plan's end month as a fallback),
   // counting the current month as one you can still save in.
   const monthlyNeeded = getMilestoneMonthlyNeeded(milestone);
 
+  const plan = (() => {
+    const yrs = milestone.duration_years || 0;
+    const mos = milestone.duration_months || 0;
+    const dur = yrs > 0 && mos > 0 ? `${yrs}yr ${mos}mo` : yrs > 1 ? `${yrs}yr` : mos > 0 ? `${mos}mo` : "";
+    return milestone.start_financial_year ? `FY ${milestone.start_financial_year}${dur ? `, ${dur}` : ""}` : null;
+  })();
+  const when = whenLabel(milestone.target_date) ?? plan ?? "No date set";
+
+  const status: { label: string; tone: "success" | "warning" | "neutral" } = isComplete
+    ? { label: "Done", tone: "success" }
+    : !hasTarget
+      ? { label: "No target yet", tone: "neutral" }
+      : realityStatus && realityStatus.slippageMonths > 2
+        ? { label: "Behind", tone: "warning" }
+        : { label: "On track", tone: "success" };
+
+  const totalMo = getMilestoneTotalMonths(milestone);
+  const planMonthly = totalMo > 1 ? milestone.target_amount / totalMo : null;
+
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress}>
-      <Card className="mb-3">
-        <View className="flex-row items-center justify-between mb-2">
-          <View className="flex-row items-center flex-1">
-            <Pressable onPress={onToggleComplete} hitSlop={8}>
-              <View
-                className="w-7 h-7 rounded-full items-center justify-center mr-2"
-                style={{
-                  backgroundColor: isComplete
-                    ? theme.alpha("success", 0.08)
-                    : theme.alpha("primary", 0.08),
-                }}
-              >
-                <Ionicons
-                  name={isComplete ? "checkmark-circle" : "flag-outline"}
-                  size={16}
-                  color={isComplete ? theme.success : colors.blue}
-                />
-              </View>
-            </Pressable>
-            <View className="flex-1">
-              <Text
-                className="text-sm font-medium text-foreground"
-                numberOfLines={1}
-                style={isComplete ? { textDecorationLine: "line-through" } : {}}
-              >
-                {milestone.name}
-              </Text>
-              <View className="flex-row items-center flex-wrap">
-                {milestone.start_financial_year && (
-                  <Text className="text-xs text-muted-foreground mr-2">
-                    FY {milestone.start_financial_year}
-                    {(() => {
-                      const yrs = milestone.duration_years || 0;
-                      const mos = milestone.duration_months || 0;
-                      if (yrs > 0 && mos > 0) return `, ${yrs}yr ${mos}mo`;
-                      if (yrs > 1) return `, ${yrs}yr`;
-                      if (mos > 0) return `, ${mos}mo`;
-                      return "";
-                    })()}
-                  </Text>
-                )}
-                {milestone.target_date && (
-                  <Text className="text-xs text-muted-foreground">
-                    Due: {milestone.target_date}
-                  </Text>
-                )}
-              </View>
-              {(() => {
-                const totalMo = getMilestoneTotalMonths(milestone);
-                if (totalMo <= 1) return null;
-                const monthly = milestone.target_amount / totalMo;
-                return (
-                  <Text className="text-xs" style={{ color: theme.primary }}>
-                    {formatAmount(monthly)}/month
-                  </Text>
-                );
-              })()}
-            </View>
-          </View>
-          <Pressable onPress={onEdit} hitSlop={8}>
-            <Ionicons name="create-outline" size={16} color={colors.textSecondary} />
-          </Pressable>
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      className="rounded-card bg-card border border-border px-4 py-3.5"
+      style={{ gap: 10 }}
+      accessibilityRole="button"
+      accessibilityLabel={`${milestone.name}, ${status.label}`}
+      accessibilityHint="Long-press to reset or delete"
+    >
+      <View className="flex-row items-center" style={{ gap: 12 }}>
+        <Pressable
+          onPress={onToggleComplete}
+          hitSlop={6}
+          className="w-10 h-10 rounded-control items-center justify-center"
+          style={{ backgroundColor: tint(color, 0.1) }}
+          accessibilityRole="button"
+          accessibilityLabel={isComplete ? "Mark as not done" : "Mark as done"}
+        >
+          <Ionicons name={isComplete ? "checkmark-circle" : "flag-outline"} size={19} color={color} />
+        </Pressable>
+        <View className="flex-1" style={{ minWidth: 0 }}>
+          <Text
+            className="text-body font-bold text-foreground"
+            numberOfLines={1}
+            style={isComplete ? { textDecorationLine: "line-through" } : undefined}
+          >
+            {milestone.name}
+          </Text>
+          <Text className="text-meta text-muted-foreground" numberOfLines={1}>
+            {when}
+          </Text>
         </View>
+        <Chip variant="status" tone={status.tone} label={status.label} />
+        <Pressable onPress={onEdit} hitSlop={8} className="p-1" accessibilityRole="button" accessibilityLabel={`Edit ${milestone.name}`}>
+          <Ionicons name="create-outline" size={18} color={theme.mutedForeground} />
+        </Pressable>
+      </View>
 
-        {/* Saved / Target / Left */}
-        <View className="flex-row mb-2">
-          <View className="flex-1">
-            <Text className="text-xs text-muted-foreground">
-              Saved
-            </Text>
-            <Text className="text-sm font-semibold text-success">
+      {hasTarget && (
+        <View style={{ gap: 6 }}>
+          <ProgressBar value={pct / 100} color={color} height={6} animated={false} />
+          <View className="flex-row justify-between">
+            <Text className="text-meta font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
               {formatAmount(milestone.current_saved)}
+              <Text className="text-meta text-muted-foreground"> of {formatAmount(milestone.target_amount)}</Text>
             </Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-xs text-muted-foreground">
-              Target
-            </Text>
-            <Text className="text-sm font-semibold text-foreground">
-              {formatAmount(milestone.target_amount)}
-            </Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-xs text-muted-foreground">
-              Left
-            </Text>
-            <Text className="text-sm font-semibold text-danger">
-              {formatAmount(remaining)}
+            <Text className="text-meta text-muted-foreground" numberOfLines={1}>
+              {monthlyNeeded != null && !isComplete
+                ? `${formatAmount(monthlyNeeded)} a month`
+                : planMonthly != null
+                  ? `${formatAmount(planMonthly)} a month plan`
+                  : `${pct.toFixed(0)}%`}
             </Text>
           </View>
         </View>
+      )}
 
-        {/* Progress bar */}
-        <ProgressBar value={(pct) / 100} color={isComplete ? theme.success : colors.blue} height={8} animated={false} />
+      {/* This FY: put in so far against the plan */}
+      {fyLabel && fyPlanned != null && fyPlanned > 0 && !isComplete && (
+        <View className="flex-row items-center justify-between border-t border-border pt-2">
+          <Text className="text-label text-muted-foreground">{fyLabel}</Text>
+          <Text className="text-label font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+            {formatCompact(fyActual ?? 0)} of {formatCompact(fyPlanned)}
+          </Text>
+        </View>
+      )}
 
-        {/* Footer: % + monthly needed */}
-        <View className="flex-row items-center justify-between mt-1">
-          <Text className="text-xs text-faint-foreground">{pct.toFixed(0)}%</Text>
-          {monthlyNeeded != null && !isComplete && (
-            <Text className="text-xs text-muted-foreground">
-              Need {formatAmount(monthlyNeeded)}/mo
+      {/* Plan against how you're really saving (from the cockpit) */}
+      {realityStatus && !isComplete && realityStatus.monthlyRealistic > 0 && (
+        <View className="border-t border-border pt-2" style={{ gap: 2 }}>
+          <View className="flex-row justify-between">
+            <Text className="text-label text-muted-foreground">Plan {formatAmount(realityStatus.monthlyPlanned)} a month</Text>
+            {realityStatus.plannedCompletionDate && (
+              <Text className="text-label text-muted-foreground">→ {realityStatus.plannedCompletionDate}</Text>
+            )}
+          </View>
+          <View className="flex-row justify-between">
+            <Text className="text-label font-semibold" style={{ color: realityStatus.slippageMonths > 2 ? theme.warning : theme.success }}>
+              Saving {formatAmount(realityStatus.monthlyRealistic)} a month
+            </Text>
+            {realityStatus.realisticCompletionDate && (
+              <Text className="text-label font-semibold" style={{ color: realityStatus.slippageMonths > 2 ? theme.warning : theme.success }}>
+                → {realityStatus.realisticCompletionDate}
+                {realityStatus.slippageMonths > 0 ? ` (${realityStatus.slippageMonths}mo late)` : ""}
+              </Text>
+            )}
+          </View>
+          {realityStatus.linkedBucketNames.length > 0 && (
+            <Text className="text-label text-faint-foreground" numberOfLines={1}>
+              Fed by {realityStatus.linkedBucketNames.join(", ")}
             </Text>
           )}
         </View>
-
-        {/* Current FY progress */}
-        {fyLabel && fyPlanned != null && fyPlanned > 0 && !isComplete && (
-          <View
-            className="mt-2 pt-2 border-t border-border flex-row items-center justify-between"
-          >
-            <Text className="text-xs text-muted-foreground">
-              {fyLabel}
-            </Text>
-            <Text className="text-xs font-medium" style={{ color: theme.primary }}>
-              {formatCompact(fyActual ?? 0)} of {formatCompact(fyPlanned)}
-            </Text>
-          </View>
-        )}
-
-        {/* Realistic projection (from cockpit) */}
-        {realityStatus && !isComplete && realityStatus.monthlyRealistic > 0 && (
-          <View className="mt-2 pt-2 border-t border-border">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <Ionicons name="calendar-outline" size={12} color={colors.textSecondary} style={{ marginRight: 4 }} />
-                <Text className="text-xs text-muted-foreground">
-                  Plan: {formatAmount(realityStatus.monthlyPlanned)}/mo
-                </Text>
-              </View>
-              {realityStatus.plannedCompletionDate && (
-                <Text className="text-xs text-muted-foreground">
-                  → {realityStatus.plannedCompletionDate}
-                </Text>
-              )}
-            </View>
-            <View className="flex-row items-center justify-between mt-1">
-              <View className="flex-row items-center">
-                <Ionicons
-                  name="pulse-outline"
-                  size={12}
-                  color={realityStatus.slippageMonths > 2 ? theme.warning : theme.success}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  className="text-xs font-medium"
-                  style={{
-                    color: realityStatus.slippageMonths > 2
-                      ? theme.warning
-                      : theme.success,
-                  }}
-                >
-                  Reality: {formatAmount(realityStatus.monthlyRealistic)}/mo
-                </Text>
-              </View>
-              {realityStatus.realisticCompletionDate && (
-                <Text
-                  className="text-xs font-medium"
-                  style={{
-                    color: realityStatus.slippageMonths > 2
-                      ? theme.warning
-                      : theme.success,
-                  }}
-                >
-                  → {realityStatus.realisticCompletionDate}
-                  {realityStatus.slippageMonths > 0
-                    ? ` (${realityStatus.slippageMonths}mo late)`
-                    : ""
-                  }
-                </Text>
-              )}
-            </View>
-            {/* Linked buckets */}
-            {realityStatus.linkedBucketNames.length > 0 && (
-              <View className="flex-row items-center mt-1.5">
-                <Ionicons name="link-outline" size={10} color={colors.textSecondary} style={{ marginRight: 4 }} />
-                <Text className="text-xs text-faint-foreground" numberOfLines={1}>
-                  Fed by: {realityStatus.linkedBucketNames.join(", ")}
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </Card>
+      )}
     </Pressable>
   );
 }

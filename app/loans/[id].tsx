@@ -1,11 +1,12 @@
 import { ForeclosureQuoteSheet } from "@/components/loans/ForeclosureQuoteSheet";
 
 import { LinkInstallmentSheet } from "@/components/loans/LinkInstallmentSheet";
-import { Button, Card, LoadingState, MetricRow, ScreenContainer, Text } from "@/components/ui";
+import { ActionRow, Card, Chip, FieldRow, LoadingState, ProgressBar, ScreenContainer, Text, type ActionRowItem } from "@/components/ui";
+import { HeaderPill } from "@/components/ui/LinkRow";
+import { FoldGroup } from "@/components/ui/FormParts";
 
 import { getDatabase } from "@/database";
 import { useAlert } from "@/hooks/use-alert";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     deleteCorrection,
     deleteLoanFully,
@@ -27,7 +28,7 @@ import { formatDate } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -45,7 +46,6 @@ export default function LoanDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const [loan, setLoan] = useState<LoanAccount | null>(null);
@@ -146,7 +146,7 @@ export default function LoanDetailScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-base text-muted-foreground text-center">
+          <Text className="text-body text-muted-foreground text-center">
             Loan not found.
           </Text>
         </View>
@@ -159,399 +159,393 @@ export default function LoanDetailScreen() {
     loan.principal_disbursed > 0
       ? Math.min(100, (principalPaid / loan.principal_disbursed) * 100)
       : 0;
+  const emisDone = schedule.filter((e) => e.status === "paid" || e.status === "prepaid").length;
+  const emisToGo = schedule.filter((e) => e.status === "scheduled" || e.status === "overdue").length;
 
   const formatMoney = (n: number) =>
     loan.currency === "INR"
       ? formatAmount(n)
       : `${loan.currency} ${n.toLocaleString()}`;
 
+  const isActive = loan.status === "active";
+
+  const confirmDelete = () => {
+    alert(
+      "Delete this loan?",
+      "This removes the loan, its amortization schedule, and all recorded prepayments. Any expenses marked as payments against this loan keep existing as regular expenses. The loan also disappears from Account Master. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteLoanFully(loan.id);
+              router.replace("/goals/loans");
+            } catch (e) {
+              alert("Couldn't delete", formatError("Delete loan", e));
+            }
+          },
+        },
+      ],
+    );
+  };
+  const openEdit = () => router.push({ pathname: "/loans/add", params: { loanId: loan.id } });
+  const openMore = () =>
+    alert("This loan", undefined, [
+      { text: "Edit loan details", onPress: openEdit },
+      { text: "Delete loan", style: "destructive", onPress: confirmDelete },
+      { text: "Cancel", style: "cancel" },
+    ]);
+
+  const actions: ActionRowItem[] = isActive
+    ? [
+        {
+          key: "prepay",
+          label: "Prepay",
+          icon: "arrow-up-outline",
+          onPress: () => router.push({ pathname: "/loans/[id]/prepayment", params: { id: loan.id } }),
+        },
+        { key: "payoff", label: "Payoff", icon: "checkbox-outline", onPress: () => setForeclosureSheetVisible(true) },
+        {
+          key: "correct",
+          label: "Correct",
+          icon: "create-outline",
+          onPress: () => router.push({ pathname: "/loans/[id]/correction", params: { id: loan.id } }),
+        },
+        { key: "more", label: "More", icon: "ellipsis-horizontal", onPress: openMore },
+      ]
+    : [
+        { key: "edit", label: "Edit", icon: "create-outline", onPress: openEdit },
+        { key: "delete", label: "Delete", icon: "trash-outline", danger: true, onPress: confirmDelete },
+      ];
+
+  const lastPrepay = prepayments[0];
+
   return (
     <ScreenContainer padTop={false}>
-      <ScrollView
-        className="flex-1 px-4"
-        contentContainerStyle={{ paddingBottom: 40, paddingTop: 12 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Hero */}
-        <Card className="mb-4">
-          <Text className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-            {bankName} · {loan.loan_type}
+      <Stack.Screen
+        options={{
+          title: "",
+          headerRight: () => <HeaderPill label="Edit" onPress={openEdit} accessibilityLabel="Edit loan details" />,
+        }}
+      />
+      <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
+        {/* Hero: what's left, and how far along */}
+        <View className="items-center pb-4" style={{ gap: 4 }}>
+          <View className="w-[52px] h-[52px] rounded-card items-center justify-center" style={{ backgroundColor: theme.alpha("warning", 0.1) }}>
+            <Ionicons name="business-outline" size={24} color={theme.warning} />
+          </View>
+          <Text className="text-heading font-semibold text-foreground mt-2" numberOfLines={1}>
+            {LOAN_TYPE_NAME[loan.loan_type] ?? loan.loan_type} · {bankName}
           </Text>
-          <View className="flex-row items-end justify-between mb-2">
-            <View>
-              <Text className="text-xs text-muted-foreground">
-                Outstanding
+          <Text className="text-meta text-muted-foreground">{isActive ? "Left to repay" : "Closed"}</Text>
+          <Text className="text-hero font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }} numberOfLines={1}>
+            {formatMoney(outstanding)}
+          </Text>
+          <View className="w-full mt-2.5" style={{ gap: 6 }}>
+            <ProgressBar value={progressPct / 100} color={theme.success} height={8} animated={false} />
+            <View className="flex-row justify-between">
+              <Text className="text-meta text-muted-foreground">
+                {progressPct.toFixed(0)}% repaid · {formatMoney(principalPaid)} of {formatMoney(loan.principal_disbursed)}
               </Text>
-              <Text className="text-3xl font-bold text-danger">
-                {formatMoney(outstanding)}
-              </Text>
-            </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Text className="text-xs text-muted-foreground">
-                EMI
-              </Text>
-              <Text className="text-base font-bold text-foreground">
-                {formatMoney(Math.round(nextEMI?.emi_amount ?? loan.emi_amount))}
-              </Text>
+              {schedule.length > 0 && (
+                <Text className="text-meta text-muted-foreground">
+                  {emisDone} of {schedule.length} EMIs
+                </Text>
+              )}
             </View>
           </View>
-
-          {/* Progress */}
-          <View
-            style={{
-              height: 6,
-              backgroundColor: colors.border,
-              borderRadius: 3,
-              overflow: "hidden",
-              marginTop: 8,
-              marginBottom: 8,
-            }}
-          >
-            <View
-              style={{
-                height: 6,
-                width: `${progressPct}%`,
-                backgroundColor: theme.success,
-              }}
-            />
-          </View>
-          <Text className="text-xs text-faint-foreground">
-            {progressPct.toFixed(0)}% paid · {formatMoney(principalPaid)} of {formatMoney(loan.principal_disbursed)}
-          </Text>
-
           {loan.currency !== "INR" && (
-            <View
-              className="mt-3 flex-row items-center px-2 py-1.5 rounded-lg"
-              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-            >
-              <Ionicons name="information-circle-outline" size={14} color={colors.blue} />
-              <Text className="text-xs ml-1" style={{ color: colors.textSecondary }}>
-                Displayed in native currency. Not converted to INR.
+            <View className="mt-2 flex-row items-center px-2.5 py-1.5 rounded-control" style={{ backgroundColor: theme.alpha("primary", 0.08), gap: 6 }}>
+              <Ionicons name="information-circle-outline" size={14} color={theme.primary} />
+              <Text className="text-label text-muted-foreground">Displayed in native currency. Not converted to INR.</Text>
+            </View>
+          )}
+        </View>
+
+        <ActionRow items={actions} className="mb-3" />
+
+        {/* Bank-sent EMI reminder: shown until dismissed or the due date passes. */}
+        {isActive && loan.last_sms_reminder_due_date && loan.last_sms_reminder_due_date >= todayIso() && (
+          <View className="mb-3 rounded-card px-4 py-3 flex-row items-start" style={{ backgroundColor: theme.alpha("primary", 0.08), gap: 10 }}>
+            <Ionicons name="notifications-outline" size={18} color={theme.primary} style={{ marginTop: 1 }} />
+            <View className="flex-1">
+              <Text className="text-body font-semibold text-foreground">{bankName} reminder</Text>
+              <Text className="text-meta text-muted-foreground mt-0.5">
+                EMI of {formatMoney(Math.round(loan.last_sms_reminder_amount ?? nextEMI?.emi_amount ?? loan.emi_amount))} due on{" "}
+                {formatDate(loan.last_sms_reminder_due_date)}.
               </Text>
             </View>
-          )}
-        </Card>
-
-        {/* v17.6.0 — bank-sent EMI reminder banner. Stamped onto the loan
-            when an "EMI of INR X for A/c XX... is due on DD-MM-YY" SMS
-            matches this loan by (bank, account last-4). Shown until the
-            user dismisses (or until the due date has passed — past-due
-            reminders are cleared on load). */}
-        {loan.status === "active" &&
-          loan.last_sms_reminder_due_date &&
-          loan.last_sms_reminder_due_date >= todayIso() && (
-            <View
-              className="mb-3 rounded-xl px-4 py-3"
-              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
+            <Pressable
+              onPress={async () => {
+                try {
+                  await clearEmiReminderOnLoan(loan.id);
+                  await load();
+                } catch (e) {
+                  alert("Couldn't dismiss", formatError("Dismiss reminder", e));
+                }
+              }}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss reminder"
+              className="w-7 h-7 items-center justify-center -mr-1"
             >
-              <View className="flex-row items-start">
-                <Ionicons
-                  name="notifications-outline"
-                  size={18}
-                  color={theme.primary}
-                  style={{ marginRight: 10, marginTop: 1 }}
-                />
-                <View className="flex-1">
-                  <Text
-                    className="text-sm font-semibold"
-                    style={{ color: theme.primary }}
-                  >
-                    {bankName} reminder
-                  </Text>
-                  <Text
-                    className="text-xs mt-0.5"
-                    style={{ color: colors.text }}
-                  >
-                    EMI of {formatMoney(Math.round(loan.last_sms_reminder_amount ?? nextEMI?.emi_amount ?? loan.emi_amount))}{" "}
-                    due on {formatDate(loan.last_sms_reminder_due_date)}.
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={async () => {
-                    try {
-                      await clearEmiReminderOnLoan(loan.id);
-                      await load();
-                    } catch (e) {
-                      alert("Couldn't dismiss", formatError("Dismiss reminder", e));
-                    }
-                  }}
-                  hitSlop={10}
-                  accessibilityRole="button"
-                  accessibilityLabel="Dismiss reminder"
-                  className="w-7 h-7 items-center justify-center -mr-1"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-                >
-                  <Ionicons name="close" size={16} color={colors.textSecondary} />
-                </Pressable>
-              </View>
-            </View>
-          )}
-
-        {/* v17.5.5 — Action section redesigned to match Home's Explore & Tools
-            pattern: section label + individual Card tiles with colored circle
-            icons, proper breathing room, chevron affordance. */}
-        {loan.status === "active" && (
-          <View className="mb-3">
-            <Button
-              title="Record prepayment"
-              onPress={() => router.push({
-                pathname: "/loans/[id]/prepayment",
-                params: { id: loan.id }
-              })}
-            />
+              <Ionicons name="close" size={16} color={theme.mutedForeground} />
+            </Pressable>
           </View>
         )}
 
-        <Text className="text-xs font-semibold uppercase tracking-wider mb-2 mt-1"
-          style={{ color: colors.textSecondary }}
-        >
-          Manage this loan
-        </Text>
-
-        {loan.status === "active" && (
-          <>
-            <ActionTile
-              icon="calculator-outline"
-              label="Foreclose quote"
-              sublabel="See total to close the loan today"
-              onPress={() => setForeclosureSheetVisible(true)}
-              colors={colors}
-              colorScheme={colorScheme}
-            />
-            <ActionTile
-              icon="construct-outline"
-              label="Manual correction"
-              sublabel="Override outstanding / EMI / rate / remaining EMIs"
-              onPress={() => router.push({
-                pathname: "/loans/[id]/correction",
-                params: { id: loan.id }
-              })}
-              colors={colors}
-              colorScheme={colorScheme}
-            />
-          </>
-        )}
-        <ActionTile
-          icon="pencil-outline"
-          label="Edit loan details"
-          sublabel="Change rate, tenure, EMI day, fees…"
-          onPress={() => router.push({ pathname: "/loans/add", params: { loanId: loan.id } })}
-          colors={colors}
-          colorScheme={colorScheme}
-        />
-        <ActionTile
-          icon="trash-outline"
-          label="Delete loan"
-          sublabel="Removes schedule + all prepayments"
-          onPress={() => {
-            alert(
-              "Delete this loan?",
-              "This removes the loan, its amortization schedule, and all recorded prepayments. Any expenses marked as payments against this loan keep existing as regular expenses. The loan also disappears from Account Master. This can't be undone.",
-              [
-                { text: "Cancel", style: "cancel" },
-                {
-                  text: "Delete",
-                  style: "destructive",
-                  onPress: async () => {
-                    try {
-                      await deleteLoanFully(loan.id);
-                      router.replace("/goals/loans");
-                    } catch (e) {
-                      alert("Couldn't delete", formatError("Delete loan", e));
-                    }
-                  },
-                },
-              ],
-            );
-          }}
-          colors={colors}
-          colorScheme={colorScheme}
-          danger
-        />
-        <View className="mb-4" />
-
-        {/* Summary */}
-        <Card title="Summary" className="mb-4">
-          <MetricRow label="Agreement" value={loan.agreement_id ?? "-"} />
-          <MetricRow
-            label="Sanctioned"
-            value={formatMoney(loan.principal_sanctioned)}
-          />
-          <MetricRow
-            label="Interest rate"
-            value={`${loan.interest_rate_pa}% ${loan.interest_type}`}
-          />
-          <MetricRow label="Tenure" value={`${loan.tenure_months} months`} />
-          <MetricRow
-            label="Disbursed"
-            value={formatDate(loan.disbursement_date)}
-          />
-          <MetricRow
-            label="EMI day"
-            value={`${loan.emi_day_of_month} of each month`}
-          />
+        <View style={{ gap: 12 }}>
+          {/* Next EMI, with its interest / principal split */}
           {nextEMI && (
-            <MetricRow
-              label="Next EMI"
-              value={`${formatDate(nextEMI.due_date)}`}
-            />
+            <Pressable
+              onPress={() => setLinkInstallment(nextEMI)}
+              className="rounded-card bg-card border border-border px-4 py-3.5 flex-row items-center"
+              style={{ gap: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Next EMI ${formatDate(nextEMI.due_date)}, ${formatMoney(Math.round(nextEMI.emi_amount))}`}
+            >
+              <View className="w-10 h-10 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                <Ionicons name="calendar-outline" size={19} color={theme.primary} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-meta text-muted-foreground">Next EMI · {formatDate(nextEMI.due_date)}</Text>
+                <Text className="text-heading font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatMoney(Math.round(nextEMI.emi_amount))}
+                </Text>
+              </View>
+              <View className="items-end">
+                <Text className="text-meta text-muted-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatMoney(Math.round(nextEMI.interest_component))} interest
+                </Text>
+                <Text className="text-meta text-muted-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatMoney(Math.round(nextEMI.principal_component))} principal
+                </Text>
+              </View>
+            </Pressable>
           )}
-          <MetricRow
-            label="Interest paid so far"
-            value={formatMoney(Math.round(totalInterestPaidToDate))}
-          />
-          <MetricRow
-            label="Interest remaining"
-            value={formatMoney(Math.round(totalInterestRemaining))}
-          />
-        </Card>
 
-        {/* Prepayments — v17.5.16: re-wrapped in <Card title="Prepayments · N">
-            so the section visually matches Hero / Summary / Amortization Schedule
-            which all use Card shells. Row silhouette (40×40 icon + title/metadata
-            + right-aligned amount/date + trash) unchanged from v17.5.11; only
-            the outer shell + inline header were dropped. Rows now use py-3
-            only — Card.p-5 owns horizontal padding. */}
-        {prepayments.length > 0 && (
-          <Card title={`Prepayments · ${prepayments.length}`} className="mb-4">
-            {prepayments.map((p, idx) => {
-              const strategyLabel = p.strategy
-                ? p.strategy === "reduce_tenure"
-                  ? "Reduce tenure"
-                  : "Reduce EMI"
-                : null;
-              return (
-                <View
-                  key={p.id}
-                  className={`flex-row items-center py-3 ${
-                    idx < prepayments.length - 1
-                      ? "border-b border-border"
-                      : ""
-                  }`}
-                >
+          {/* Summary */}
+          <Card>
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Summary</Text>
+            <FieldRow label="Interest rate" value={`${loan.interest_rate_pa}% · ${loan.interest_type}`} divider={false} />
+            <FieldRow label="Tenure" value={`${loan.tenure_months} months · EMI on the ${ordinal(loan.emi_day_of_month)}`} />
+            <FieldRow label="Sanctioned" value={formatMoney(loan.principal_sanctioned)} />
+            <FieldRow label="Disbursed" value={formatDate(loan.disbursement_date)} />
+            {loan.agreement_id ? <FieldRow label="Agreement" value={loan.agreement_id} /> : null}
+            <FieldRow label="Interest paid so far" value={formatMoney(Math.round(totalInterestPaidToDate))} />
+            <FieldRow label="Interest still to pay" value={formatMoney(Math.round(totalInterestRemaining))} />
+          </Card>
+
+          {/* Repayment schedule — every EMI opens its transaction (link sheet) */}
+          <FoldGroup
+            title="Repayment schedule"
+            sub={`${schedule.length} EMIs${emisToGo > 0 ? ` · ${emisToGo} to go` : ""}`}
+            icon="list-outline"
+          >
+            <Text className="text-meta text-muted-foreground">
+              {showFullSchedule ? `All ${schedule.length} installments` : `First 5 and last 5 of ${schedule.length} installments`}
+            </Text>
+            <View>
+              {visibleSchedule.map((e, i) => {
+                const tone = STATUS_PILL_COLOR[e.status];
+                return (
                   <Pressable
-                    onPress={() => {
-                      // v17.5.13 — prepayments created by linking an expense
-                      // are managed from the expense. Editing here would
-                      // desync the expense.amount from prepayment.amount.
-                      if (p.linked_expense_id) {
-                        router.push({
-                          pathname: "/expense/[id]",
-                          params: { id: p.linked_expense_id },
-                        });
-                      } else {
-                        router.push({
-                          pathname: "/loans/[id]/prepayment",
-                          params: { id: loan.id, prepaymentId: p.id }
-                        });
-                      }
-                    }}
+                    key={e.id}
+                    onPress={() => setLinkInstallment(e)}
+                    className={`flex-row items-center py-2.5 ${i > 0 ? "border-t border-border" : ""}`}
                     accessibilityRole="button"
-                    accessibilityLabel={
-                      p.linked_expense_id
-                        ? `View linked expense for prepayment of ${formatMoney(p.amount)} on ${formatDate(p.prepayment_date)}`
-                        : `Edit prepayment of ${formatMoney(p.amount)} on ${formatDate(p.prepayment_date)}`
-                    }
-                    className="flex-1 flex-row items-center"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                    accessibilityLabel={`Installment ${e.installment_num}, ${e.status}`}
                   >
-                    {/* Icon circle — accent tint for part-payment, warning
-                        tint for foreclosure (it closes the loan — reads as
-                        a terminal action, same grammar as the simulator
-                        "fulfilled" check). */}
-                    <View
-                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{
-                        backgroundColor:
-                          p.kind === "foreclosure"
-                            ? theme.warning + "14"
-                            : theme.alpha("primary", 0.08),
-                      }}
-                    >
-                      <Ionicons
-                        name={
-                          p.kind === "foreclosure"
-                            ? "flag-outline"
-                            : "arrow-down-circle-outline"
-                        }
-                        size={20}
-                        color={
-                          p.kind === "foreclosure"
-                            ? theme.warning
-                            : theme.primary
-                        }
-                      />
+                    <Text className="text-label text-muted-foreground" style={{ width: 36 }}>
+                      #{e.installment_num}
+                    </Text>
+                    <View className="flex-1">
+                      <Text className="text-body text-foreground">{formatDate(e.due_date)}</Text>
+                      <Text className="text-label text-muted-foreground mt-0.5">
+                        P {formatMoney(Math.round(e.principal_component))} · I {formatMoney(Math.round(e.interest_component))}
+                      </Text>
                     </View>
+                    <View className="items-end">
+                      <Text className="text-body font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                        {formatMoney(Math.round(e.emi_amount))}
+                      </Text>
+                      <Text
+                        className="text-label mt-0.5"
+                        style={{ color: tone === "success" ? theme.success : tone === "danger" ? theme.danger : theme.mutedForeground }}
+                      >
+                        {e.status}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={theme.faintForeground} style={{ marginLeft: 6 }} />
+                  </Pressable>
+                );
+              })}
+            </View>
+            {schedule.length > 10 && (
+              <Pressable
+                onPress={() => setShowFullSchedule(!showFullSchedule)}
+                className="h-11 items-center justify-center rounded-pill border border-border bg-card"
+                accessibilityRole="button"
+              >
+                <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
+                  {showFullSchedule ? "Show fewer" : `Show all ${schedule.length}`}
+                </Text>
+              </Pressable>
+            )}
+          </FoldGroup>
 
-                    {/* Left: title + strategy pill, then metadata line */}
-                    <View className="flex-1 mr-3">
-                      <View className="flex-row items-center">
-                        <Text
-                          className="text-sm font-semibold text-foreground shrink"
-                          numberOfLines={1}
-                        >
-                          {p.kind === "foreclosure" ? "Foreclosure" : "Part payment"}
-                        </Text>
-                        {strategyLabel && (
-                          <View
-                            className="ml-1.5 px-1.5 py-0.5 rounded"
-                            style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                          >
-                            <Text
-                              className="text-label font-bold uppercase"
-                              style={{ color: theme.primary }}
-                            >
-                              {strategyLabel}
-                            </Text>
-                          </View>
+          {/* Prepayments */}
+          {prepayments.length > 0 && (
+            <FoldGroup
+              title={`Prepayments · ${prepayments.length}`}
+              sub={lastPrepay ? `Last: ${formatMoney(lastPrepay.amount)} on ${formatDate(lastPrepay.prepayment_date)}` : ""}
+              icon="arrow-up-outline"
+            >
+              {prepayments.map((p, idx) => {
+                const strategyLabel = p.strategy ? (p.strategy === "reduce_tenure" ? "Reduce tenure" : "Reduce EMI") : null;
+                return (
+                  <View key={p.id} className={`flex-row items-center py-2 ${idx > 0 ? "border-t border-border" : ""}`}>
+                    <Pressable
+                      onPress={() => {
+                        // Prepayments made by linking an expense are managed from the expense;
+                        // editing here would desync expense.amount from prepayment.amount.
+                        if (p.linked_expense_id) {
+                          router.push({ pathname: "/expense/[id]", params: { id: p.linked_expense_id } });
+                        } else {
+                          router.push({ pathname: "/loans/[id]/prepayment", params: { id: loan.id, prepaymentId: p.id } });
+                        }
+                      }}
+                      accessibilityRole="button"
+                      accessibilityLabel={
+                        p.linked_expense_id
+                          ? `View linked expense for prepayment of ${formatMoney(p.amount)} on ${formatDate(p.prepayment_date)}`
+                          : `Edit prepayment of ${formatMoney(p.amount)} on ${formatDate(p.prepayment_date)}`
+                      }
+                      className="flex-1 flex-row items-center"
+                      style={{ gap: 10 }}
+                    >
+                      <View
+                        className="w-9 h-9 rounded-control items-center justify-center"
+                        style={{ backgroundColor: p.kind === "foreclosure" ? theme.alpha("warning", 0.1) : theme.alpha("primary", 0.1) }}
+                      >
+                        <Ionicons
+                          name={p.kind === "foreclosure" ? "flag-outline" : "arrow-up-outline"}
+                          size={18}
+                          color={p.kind === "foreclosure" ? theme.warning : theme.primary}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <View className="flex-row items-center" style={{ gap: 6 }}>
+                          <Text className="text-body font-semibold text-foreground shrink" numberOfLines={1}>
+                            {p.kind === "foreclosure" ? "Foreclosure" : "Part payment"}
+                          </Text>
+                          {strategyLabel && <Chip variant="status" tone="primary" label={strategyLabel} />}
+                        </View>
+                        {p.prepayment_charge > 0 && (
+                          <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
+                            Charge {formatMoney(p.prepayment_charge + p.gst_on_charge)}
+                          </Text>
+                        )}
+                        {p.linked_expense_id && (
+                          <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
+                            Linked from expense · manage there
+                          </Text>
                         )}
                       </View>
-                      {p.prepayment_charge > 0 && (
-                        <Text
-                          className="text-xs text-muted-foreground mt-0.5"
-                          numberOfLines={1}
-                        >
-                          Charge {formatMoney(p.prepayment_charge + p.gst_on_charge)}
+                      <View className="items-end">
+                        <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                          {formatMoney(p.amount)}
                         </Text>
-                      )}
-                      {p.linked_expense_id && (
-                        <Text
-                          className="text-xs text-muted-foreground mt-0.5"
-                          numberOfLines={1}
-                        >
-                          Linked from expense · manage there
+                        <Text className="text-label text-muted-foreground mt-0.5">{formatDate(p.prepayment_date)}</Text>
+                      </View>
+                    </Pressable>
+                    {/* Hidden when linked from an expense: the expense is the source of truth. */}
+                    {!p.linked_expense_id && (
+                      <Pressable
+                        onPress={() => {
+                          alert(
+                            "Delete this prepayment?",
+                            p.kind === "foreclosure"
+                              ? "The loan will be reopened and the schedule recalculated as if this foreclosure never happened."
+                              : "The amortization schedule will be recalculated as if this prepayment never happened.",
+                            [
+                              { text: "Cancel", style: "cancel" },
+                              {
+                                text: "Delete",
+                                style: "destructive",
+                                onPress: async () => {
+                                  try {
+                                    await deletePrepayment(p.id);
+                                    await load();
+                                  } catch (err) {
+                                    alert("Couldn't delete prepayment", formatError("Delete prepayment", err));
+                                  }
+                                },
+                              },
+                            ],
+                          );
+                        }}
+                        hitSlop={10}
+                        accessibilityRole="button"
+                        accessibilityLabel="Delete prepayment"
+                        className="ml-2 w-9 h-9 items-center justify-center"
+                      >
+                        <Ionicons name="trash-outline" size={18} color={theme.mutedForeground} />
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })}
+            </FoldGroup>
+          )}
+
+          {/* Corrections */}
+          {corrections.length > 0 && (
+            <FoldGroup
+              title={`Corrections · ${corrections.length}`}
+              sub={corrections[0].reason ?? `From ${formatDate(corrections[0].effective_date)}`}
+              icon="construct-outline"
+            >
+              {corrections.map((c, idx) => (
+                <View key={c.id} className={`flex-row items-center py-2 ${idx > 0 ? "border-t border-border" : ""}`}>
+                  <Pressable
+                    onPress={() => router.push({ pathname: "/loans/[id]/correction", params: { id: loan.id, correctionId: c.id } })}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Edit correction on ${formatDate(c.effective_date)}`}
+                    className="flex-1 flex-row items-center"
+                    style={{ gap: 10 }}
+                  >
+                    <View className="w-9 h-9 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                      <Ionicons name="construct-outline" size={18} color={theme.primary} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+                        Correction
+                      </Text>
+                      <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
+                        EMI {formatMoney(Math.round(c.emi_amount))}
+                        {c.tenure_remaining_months ? ` · ${c.tenure_remaining_months} EMIs` : ""}
+                      </Text>
+                      {c.reason && (
+                        <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
+                          {c.reason}
                         </Text>
                       )}
                     </View>
-
-                    {/* Right: amount + date, right-aligned (ExpenseListItem shape) */}
-                    <View className="items-end shrink-0">
-                      <Text
-                        className="text-sm font-bold"
-                        style={{ color: theme.success }}
-                      >
-                        {formatMoney(p.amount)}
+                    <View className="items-end">
+                      <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                        {formatMoney(Math.round(c.outstanding_principal))}
                       </Text>
-                      <Text className="text-label text-muted-foreground mt-0.5">
-                        {formatDate(p.prepayment_date)}
-                      </Text>
+                      <Text className="text-label text-muted-foreground mt-0.5">{formatDate(c.effective_date)}</Text>
                     </View>
                   </Pressable>
-
-                  {/* Delete — 36×36 pressable at the row's right edge.
-                      Hidden when this prepayment is linked from an expense:
-                      the expense is the source of truth and deleting from
-                      here would leave the expense pointing at nothing. The
-                      user can delete the expense from the expense detail
-                      screen; its hard-delete will also drop this row. */}
-                  {!p.linked_expense_id && (
                   <Pressable
                     onPress={() => {
                       alert(
-                        "Delete this prepayment?",
-                        p.kind === "foreclosure"
-                          ? "The loan will be reopened and the schedule recalculated as if this foreclosure never happened."
-                          : "The amortization schedule will be recalculated as if this prepayment never happened.",
+                        "Delete this correction?",
+                        "The amortization schedule will be recalculated as if this override was never applied.",
                         [
                           { text: "Cancel", style: "cancel" },
                           {
@@ -559,13 +553,10 @@ export default function LoanDetailScreen() {
                             style: "destructive",
                             onPress: async () => {
                               try {
-                                await deletePrepayment(p.id);
+                                await deleteCorrection(c.id);
                                 await load();
                               } catch (err) {
-                                alert(
-                                  "Couldn't delete prepayment",
-                                  formatError("Delete prepayment", err),
-                                );
+                                alert("Couldn't delete correction", formatError("Delete correction", err));
                               }
                             },
                           },
@@ -574,198 +565,18 @@ export default function LoanDetailScreen() {
                     }}
                     hitSlop={10}
                     accessibilityRole="button"
-                    accessibilityLabel="Delete prepayment"
+                    accessibilityLabel="Delete correction"
                     className="ml-2 w-9 h-9 items-center justify-center"
-                    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
                   >
-                    <Ionicons
-                      name="trash-outline"
-                      size={18}
-                      color={colors.textSecondary}
-                    />
+                    <Ionicons name="trash-outline" size={18} color={theme.mutedForeground} />
                   </Pressable>
-                  )}
                 </View>
-              );
-            })}
-          </Card>
-        )}
-
-        {/* Manual Corrections — v17.5.16: wrapped in <Card title="Corrections · N">
-            for consistency with Prepayments + rest of the loan detail sections.
-            Row silhouette unchanged from v17.5.15. */}
-        {corrections.length > 0 && (
-          <Card title={`Corrections · ${corrections.length}`} className="mb-4">
-            {corrections.map((c, idx) => (
-              <View
-                key={c.id}
-                className={`flex-row items-center py-3 ${
-                  idx < corrections.length - 1
-                    ? "border-b border-border"
-                    : ""
-                }`}
-              >
-                <Pressable
-                  onPress={() => {
-                    router.push({
-                      pathname: "/loans/[id]/correction",
-                      params: { id: loan.id, correctionId: c.id }
-                    });
-                  }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Edit correction on ${formatDate(c.effective_date)}`}
-                  className="flex-1 flex-row items-center"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-                >
-                  <View
-                    className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                  >
-                    <Ionicons
-                      name="construct-outline"
-                      size={20}
-                      color={theme.primary}
-                    />
-                  </View>
-                  <View className="flex-1 mr-3">
-                    <Text
-                      className="text-sm font-semibold text-foreground"
-                      numberOfLines={1}
-                    >
-                      Correction
-                    </Text>
-                    <Text
-                      className="text-xs text-muted-foreground mt-0.5"
-                      numberOfLines={1}
-                    >
-                      EMI {formatMoney(Math.round(c.emi_amount))}
-                      {c.tenure_remaining_months ? ` · ${c.tenure_remaining_months} EMIs` : ""}
-                    </Text>
-                    {c.reason && (
-                      <Text
-                        className="text-xs text-muted-foreground mt-0.5"
-                        numberOfLines={1}
-                      >
-                        {c.reason}
-                      </Text>
-                    )}
-                  </View>
-                  <View className="items-end shrink-0">
-                    <Text
-                      className="text-sm font-bold text-foreground"
-                    >
-                      {formatMoney(Math.round(c.outstanding_principal))}
-                    </Text>
-                    <Text className="text-label text-muted-foreground mt-0.5">
-                      {formatDate(c.effective_date)}
-                    </Text>
-                  </View>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    alert(
-                      "Delete this correction?",
-                      "The amortization schedule will be recalculated as if this override was never applied.",
-                      [
-                        { text: "Cancel", style: "cancel" },
-                        {
-                          text: "Delete",
-                          style: "destructive",
-                          onPress: async () => {
-                            try {
-                              await deleteCorrection(c.id);
-                              await load();
-                            } catch (err) {
-                              alert("Couldn't delete correction", formatError("Delete correction", err));
-                            }
-                          },
-                        },
-                      ],
-                    );
-                  }}
-                  hitSlop={10}
-                  accessibilityRole="button"
-                  accessibilityLabel="Delete correction"
-                  className="ml-2 w-9 h-9 items-center justify-center"
-                  style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-                >
-                  <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
-                </Pressable>
-              </View>
-            ))}
-          </Card>
-        )}
-
-        {/* Schedule */}
-        <Card title="Amortization Schedule" className="mb-4">
-          <Text className="text-xs text-muted-foreground mb-3">
-            {showFullSchedule
-              ? `All ${schedule.length} installments`
-              : `First 5 and last 5 of ${schedule.length} installments`}
-          </Text>
-          {visibleSchedule.map((e, i) => (
-            <Pressable
-              key={e.id}
-              onPress={() => setLinkInstallment(e)}
-              className={`flex-row items-center py-2 ${
-                i < visibleSchedule.length - 1
-                  ? "border-b border-border"
-                  : ""
-              }`}
-              accessibilityRole="button"
-              accessibilityLabel={`Installment ${e.installment_num}, ${e.status}`}
-            >
-              <View style={{ width: 36 }}>
-                <Text className="text-xs text-muted-foreground">
-                  #{e.installment_num}
-                </Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">
-                  {formatDate(e.due_date)}
-                </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
-                  P {formatMoney(Math.round(e.principal_component))} · I {formatMoney(Math.round(e.interest_component))}
-                </Text>
-              </View>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text className="text-sm font-semibold text-foreground">
-                  {formatMoney(Math.round(e.emi_amount))}
-                </Text>
-                <Text
-                  className="text-xs mt-0.5"
-                  style={{
-                    color:
-                      STATUS_PILL_COLOR[e.status] === "success"
-                        ? theme.success
-                        : STATUS_PILL_COLOR[e.status] === "danger"
-                          ? theme.danger
-                          : colors.textSecondary,
-                  }}
-                >
-                  {e.status}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 6 }} />
-            </Pressable>
-          ))}
-          {schedule.length > 10 && (
-            <Pressable
-              onPress={() => setShowFullSchedule(!showFullSchedule)}
-              className="mt-3 py-2 items-center rounded-lg"
-              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-              accessibilityRole="button"
-            >
-              <Text className="text-sm font-medium" style={{ color: colors.tint }}>
-                {showFullSchedule ? "Collapse" : `Show all ${schedule.length}`}
-              </Text>
-            </Pressable>
+              ))}
+            </FoldGroup>
           )}
-        </Card>
+        </View>
       </ScrollView>
 
-
-      {/* v17.1.0 — Foreclosure quote */}
       <ForeclosureQuoteSheet
         visible={foreclosureSheetVisible}
         loan={loan}
@@ -805,84 +616,23 @@ export default function LoanDetailScreen() {
         onClose={() => setLinkInstallment(null)}
         onLinked={() => load()}
       />
-
     </ScreenContainer>
   );
 }
 
-/**
- * Compact action strip button — icon above label, equal-width flex cell.
- * Used on the loan detail screen to consolidate secondary actions
- * (Foreclose / Correct / Edit / Delete) into a single row.
- */
-/**
- * v17.5.4 — horizontal action row with icon + title + sublabel + chevron.
- * Replaces the compressed 4-icon strip on loan detail.
- */
-/**
- * v17.5.5 — ActionTile: individual Card-based action tile matching the
- * Home → Explore & Tools pattern. Colored circle icon (accent for normal,
- * danger for destructive), label + sublabel, right chevron.
- */
-function ActionTile({
-  icon,
-  label,
-  sublabel,
-  onPress,
-  colors,
-  colorScheme,
-  danger,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  sublabel?: string;
-  onPress: () => void;
-  colors: ReturnType<typeof useColorScheme>["colors"];
-  colorScheme: ReturnType<typeof useColorScheme>["colorScheme"];
-  danger?: boolean;
-}) {
-  const theme = useTheme();
-  const circleBg = danger ? "#DC262616" : theme.alpha("primary", 0.08);
-  const iconColor = danger ? theme.danger : theme.primary;
-  const labelColor = danger ? theme.danger : colors.text;
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
-    >
-      <Card className="mb-2">
-        <View className="flex-row items-center">
-          <View
-            className="w-10 h-10 rounded-full items-center justify-center mr-3"
-            style={{ backgroundColor: circleBg }}
-          >
-            <Ionicons name={icon} size={20} color={iconColor} />
-          </View>
-          <View className="flex-1">
-            <Text
-              className="text-sm font-semibold"
-              style={{ color: labelColor }}
-            >
-              {label}
-            </Text>
-            {sublabel && (
-              <Text
-                className="text-xs mt-0.5"
-                style={{ color: colors.textSecondary }}
-              >
-                {sublabel}
-              </Text>
-            )}
-          </View>
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={colors.textSecondary}
-          />
-        </View>
-      </Card>
-    </Pressable>
-  );
+const LOAN_TYPE_NAME: Record<string, string> = {
+  personal: "Personal loan",
+  home: "Home loan",
+  auto: "Car loan",
+  education: "Education loan",
+  business: "Business loan",
+  gold: "Gold loan",
+  against_fd: "Loan against FD",
+  other: "Loan",
+};
+
+function ordinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`;
 }
