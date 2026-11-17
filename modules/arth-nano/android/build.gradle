@@ -1,0 +1,28 @@
+apply plugin: 'com.android.library'
+
+group = 'expo.modules.arthnano'
+version = '1.0.0'
+
+def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
+apply from: expoModulesCorePlugin
+applyKotlinExpoModulesCorePlugin()
+useCoreDependencies()
+useExpoPublishing()
+useDefaultAndroidSdkVersions()
+
+android {
+  namespace "expo.modules.arthnano"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // Gemini Nano through Android's AICore. The model lives in the system, not in Arth, so this
+  // adds only a small client library. Pinned to beta2: beta3 and later are built with Kotlin 2.3+, which Arth's Kotlin 2.1 (Expo SDK 54) can't read.
+  implementation 'com.google.mlkit:genai-prompt:1.0.0-beta2'
+}

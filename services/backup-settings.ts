@@ -121,6 +121,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("biometric_lock_enabled", "boolean", DEVICE("app lock is set up per device; restoring it onto a phone without biometrics could lock you out")),
   S("biometric_lock_timeout_seconds", "number", DEVICE("belongs with the device's app-lock setup")),
   S("ai_setup_pending", "boolean", PROGRESS),
+  S("ai_lab_unlocked", "boolean", DEVICE("a hidden test screen opened by tapping Version 7 times on this phone")),
   S("biometric_last_unlock_at", "number", PROGRESS),
   S("biometric_app_start_time", "number", PROGRESS),
   S("biometric_home_screen_landed", "boolean", PROGRESS),
