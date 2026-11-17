@@ -38,7 +38,7 @@ export function BankPicker({ value, onChange, className }: BankPickerProps) {
     <View className={className}>
       {known.length > 0 && (
         <>
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Bank</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">Bank</Text>
           <View className="flex-row flex-wrap mb-1">
             {known.map((b) => (
               <View key={b} className="mb-2">

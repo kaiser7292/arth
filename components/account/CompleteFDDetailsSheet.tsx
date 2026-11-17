@@ -25,6 +25,7 @@ import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { tint } from "@/constants/brand";
 
 const COMPOUNDING_OPTIONS: { value: CompoundingFreq; label: string }[] = [
   { value: "monthly", label: "Monthly" },
@@ -201,10 +202,10 @@ export function CompleteFDDetailsSheet({
   return (
     <Sheet visible={visible} onClose={handleClose}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           {isFirstTime ? "Complete Fixed Deposit Details" : "Edit Fixed Deposit"}
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           {product.start_date ? `Started ${formatDate(product.start_date)}. ` : ""}
           {editable ? "Update the rate and maturity date to recompute its schedule." : "This FD has matured — rate and maturity are locked, but you can still correct the amount or the bucket link."}
         </Text>
@@ -213,8 +214,8 @@ export function CompleteFDDetailsSheet({
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 8 }}>
         <View className="px-5">
           {renewedOn && editable && (
-            <View className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-              <Text className="text-sm" style={{ color: colors.text }}>
+            <View className="rounded-card px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+              <Text className="text-meta" style={{ color: theme.foreground }}>
                 Renewed on {formatDate(renewedOn)} at the old rate. If the bank renewed it at a different rate, enter the new one below.
               </Text>
             </View>
@@ -229,7 +230,7 @@ export function CompleteFDDetailsSheet({
             containerClassName="mb-3"
           />
 
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             Interest type
           </Text>
           <View className="flex-row gap-2 mb-3">
@@ -239,14 +240,14 @@ export function CompleteFDDetailsSheet({
                 <Pressable
                   key={opt.value}
                   onPress={() => editable && setInterestMethod(opt.value)}
-                  className="flex-1 py-2.5 rounded-xl items-center border"
+                  className="flex-1 py-2.5 rounded-card items-center border"
                   style={{
-                    backgroundColor: active ? theme.primary + "20" : colors.surface,
-                    borderColor: active ? theme.primary : colors.border,
+                    backgroundColor: active ? tint(theme.primary, 0.13) : theme.card,
+                    borderColor: active ? theme.primary : theme.border,
                     opacity: editable ? 1 : 0.6,
                   }}
                 >
-                  <Text className="text-sm font-semibold" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                  <Text className="text-body font-semibold" style={{ color: active ? theme.primary : theme.mutedForeground }}>
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -256,7 +257,7 @@ export function CompleteFDDetailsSheet({
 
           {interestMethod === "compound" && (
             <>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Compounding frequency
               </Text>
               <View className="flex-row gap-2 mb-3">
@@ -266,14 +267,14 @@ export function CompleteFDDetailsSheet({
                     <Pressable
                       key={opt.value}
                       onPress={() => editable && setCompoundingFreq(opt.value)}
-                      className="flex-1 py-2.5 rounded-xl items-center border"
+                      className="flex-1 py-2.5 rounded-card items-center border"
                       style={{
-                        backgroundColor: active ? theme.primary + "20" : colors.surface,
-                        borderColor: active ? theme.primary : colors.border,
+                        backgroundColor: active ? tint(theme.primary, 0.13) : theme.card,
+                        borderColor: active ? theme.primary : theme.border,
                         opacity: editable ? 1 : 0.6,
                       }}
                     >
-                      <Text className="text-sm font-semibold" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                      <Text className="text-body font-semibold" style={{ color: active ? theme.primary : theme.mutedForeground }}>
                         {opt.label}
                       </Text>
                     </Pressable>
@@ -290,29 +291,29 @@ export function CompleteFDDetailsSheet({
             </>
           ) : (
             <>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Matures
               </Text>
               <View
-                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3 mb-3"
+                className="flex-row items-center justify-between border border-border rounded-control px-3 py-3 mb-3"
                 style={{ opacity: 0.6 }}
               >
-                <Text className="text-sm" style={{ color: maturityDate ? colors.text : colors.textSecondary }}>
+                <Text className="text-meta" style={{ color: maturityDate ? theme.foreground : theme.mutedForeground }}>
                   {maturityDate ? formatDate(maturityDate) : "No maturity date"}
                 </Text>
-                <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+                <Ionicons name="calendar-outline" size={18} color={theme.mutedForeground} />
               </View>
             </>
           )}
 
           {computedMaturity != null && (
-            <View className="rounded-xl px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+            <View className="rounded-card px-4 py-3 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
               <View className="flex-row justify-between">
-                <Text className="text-xs" style={{ color: colors.textSecondary }}>Computed maturity amount</Text>
-                <Text className="text-sm font-bold" style={{ color: colors.text }}>{formatAmount(computedMaturity)}</Text>
+                <Text className="text-label" style={{ color: theme.mutedForeground }}>Computed maturity amount</Text>
+                <Text className="text-body font-bold" style={{ color: theme.foreground }}>{formatAmount(computedMaturity)}</Text>
               </View>
               {product.principal != null && (
-                <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-1" style={{ color: theme.mutedForeground }}>
                   Interest: {formatAmount(computedMaturity - product.principal)}
                 </Text>
               )}
@@ -331,16 +332,16 @@ export function CompleteFDDetailsSheet({
 
           {buckets.length > 0 && (
             <View className="mt-1 mb-3">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 Investment bucket (optional)
               </Text>
               <Pressable
                 onPress={() => setBucketId(null)}
-                className="flex-row items-center py-2 px-2 rounded-md"
-                style={{ backgroundColor: bucketId === null ? theme.primary + "1A" : "transparent" }}
+                className="flex-row items-center py-2 px-2 rounded-control"
+                style={{ backgroundColor: bucketId === null ? tint(theme.primary, 0.1) : "transparent" }}
               >
-                <Ionicons name="close-circle-outline" size={16} color={bucketId === null ? theme.primary : colors.textSecondary} />
-                <Text className="flex-1 ml-2 text-sm" style={{ color: colors.text, fontWeight: bucketId === null ? "600" : "400" }}>
+                <Ionicons name="close-circle-outline" size={16} color={bucketId === null ? theme.primary : theme.mutedForeground} />
+                <Text className="flex-1 ml-2 text-meta" style={{ color: theme.foreground, fontWeight: bucketId === null ? "600" : "400" }}>
                   Don't link
                 </Text>
                 {bucketId === null && <Ionicons name="checkmark" size={16} color={theme.primary} />}
@@ -356,17 +357,17 @@ export function CompleteFDDetailsSheet({
                   return (
                     <Pressable
                       onPress={() => setBucketId(item.id)}
-                      className="flex-row items-center py-2 px-2 rounded-md"
-                      style={{ backgroundColor: active ? theme.primary + "1A" : "transparent" }}
+                      className="flex-row items-center py-2 px-2 rounded-control"
+                      style={{ backgroundColor: active ? tint(theme.primary, 0.1) : "transparent" }}
                     >
-                      <Ionicons name="bookmark-outline" size={16} color={active ? theme.primary : colors.textSecondary} />
+                      <Ionicons name="bookmark-outline" size={16} color={active ? theme.primary : theme.mutedForeground} />
                       <View className="flex-1 ml-2">
-                        <Text className="text-sm" style={{ color: colors.text, fontWeight: active ? "600" : "400" }} numberOfLines={1}>
+                        <Text className="text-meta" style={{ color: theme.foreground, fontWeight: active ? "600" : "400" }} numberOfLines={1}>
                           {item.name}
                         </Text>
-                        <Text className="text-label" style={{ color: colors.textSecondary }}>{fyLabel}</Text>
+                        <Text className="text-label" style={{ color: theme.mutedForeground }}>{fyLabel}</Text>
                       </View>
-                      <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label" style={{ color: theme.mutedForeground }}>
                         {formatAmount(item.current_contributed)} / {formatAmount(item.annual_target)}
                       </Text>
                     </Pressable>
@@ -382,19 +383,19 @@ export function CompleteFDDetailsSheet({
         <Pressable
           onPress={handleClose}
           accessibilityRole="button"
-          className="flex-1 py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="flex-1 py-3 rounded-card items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>Cancel</Text>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>Cancel</Text>
         </Pressable>
         <Pressable
           onPress={handleSave}
           disabled={saving}
           accessibilityRole="button"
-          className="flex-1 py-3 rounded-xl items-center"
+          className="flex-1 py-3 rounded-card items-center"
           style={{ backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }}
         >
-          <Text className="text-sm font-semibold text-primary-foreground">{saving ? "Saving…" : "Save"}</Text>
+          <Text className="text-body font-semibold text-primary-foreground">{saving ? "Saving…" : "Save"}</Text>
         </Pressable>
       </View>
 

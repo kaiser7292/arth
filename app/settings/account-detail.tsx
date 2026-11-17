@@ -3,6 +3,7 @@ import { useState, useCallback, useRef } from "react";
 import { logger } from "@/utils/logger";
 import { View, ScrollView, Pressable, Keyboard, RefreshControl, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
+import { LinkRow } from "@/components/ui/LinkRow";
 import { useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, DateInput, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
@@ -51,6 +52,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { addUpiId, parseUpiIds, removeUpiId } from "@/services/account-upi";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   savings: "wallet-outline",
@@ -475,9 +477,9 @@ export default function AccountDetailScreen() {
           options={{
             headerShown: true,
             title: "Account",
-            headerStyle: { backgroundColor: colors.background },
-            headerTitleStyle: { fontWeight: "700", fontSize: 18, color: colors.text },
-            headerTintColor: colors.tint,
+            headerStyle: { backgroundColor: theme.background },
+            headerTitleStyle: { fontWeight: "700", fontSize: 18, color: theme.foreground },
+            headerTintColor: theme.primary,
             headerShadowVisible: false,
           }}
         />
@@ -487,8 +489,8 @@ export default function AccountDetailScreen() {
             <LoadingState />
           ) : (
             <View className="items-center py-16">
-              <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-              <Text className="text-lg font-medium text-foreground mt-4">
+              <Ionicons name="alert-circle-outline" size={48} color={theme.mutedForeground} />
+              <Text className="text-heading font-medium text-foreground mt-4">
                 Account not found
               </Text>
             </View>
@@ -513,9 +515,9 @@ export default function AccountDetailScreen() {
         options={{
           headerShown: true,
           title: headerTitle,
-          headerStyle: { backgroundColor: colors.background },
-          headerTitleStyle: { fontWeight: "700", fontSize: 18, color: colors.text },
-          headerTintColor: colors.tint,
+          headerStyle: { backgroundColor: theme.background },
+          headerTitleStyle: { fontWeight: "700", fontSize: 18, color: theme.foreground },
+          headerTintColor: theme.primary,
           headerShadowVisible: false,
         }}
       />
@@ -531,11 +533,24 @@ export default function AccountDetailScreen() {
           }
         >
           <View className="px-4 py-4">
+          {/* Back to this account's ledger (the ledger's name and gear open this screen). Loans keep their loan details instead. */}
+          {account.account_type !== "loan" && (
+            <View className="rounded-card bg-card border border-border overflow-hidden mb-3">
+              <LinkRow
+                divider={false}
+                icon="list-outline"
+                color={theme.primary}
+                title="Open ledger"
+                sub="This month's money in and out, and the running balance"
+                onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId } })}
+              />
+            </View>
+          )}
           {/* Closed account banner */}
           {account.closed_at && (
-            <View className="bg-warning/10 border border-warning/30 rounded-xl px-4 py-3 mb-3 flex-row items-center gap-3">
+            <View className="bg-warning/10 border border-warning/30 rounded-card px-4 py-3 mb-3 flex-row items-center gap-3">
               <Ionicons name="lock-closed-outline" size={18} color={theme.warning} />
-              <Text className="text-sm text-warning flex-1">
+              <Text className="text-meta text-warning flex-1">
                 This account is closed. History is read-only.
               </Text>
             </View>
@@ -555,14 +570,14 @@ export default function AccountDetailScreen() {
                       : (ACCOUNT_TYPE_ICONS[accountType] ?? "help-outline")
                   }
                   size={24}
-                  color={colors.blue}
+                  color={theme.data.series[3]}
                 />
               </View>
               <View>
-                <Text className="text-base font-bold text-foreground">
+                <Text className="text-body font-bold text-foreground">
                   {account.bank_name}
                 </Text>
-                <Text className="text-xs text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   ****{account.account_identifier}
                 </Text>
               </View>
@@ -578,7 +593,7 @@ export default function AccountDetailScreen() {
                 option). */}
             {account.account_type !== "loan" && account.account_type !== "investment" && (
               <>
-                <Text className="text-xs font-medium text-muted-foreground mb-2">
+                <Text className="text-label font-medium text-muted-foreground mb-2">
                   Account Type
                 </Text>
                 <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
@@ -588,22 +603,22 @@ export default function AccountDetailScreen() {
                       <Pressable
                         key={t.key}
                         onPress={() => { setAccountType(t.key); setDirty(true); }}
-                        className="flex-row items-center px-3 py-2.5 rounded-lg border"
+                        className="flex-row items-center px-3 py-2.5 rounded-control border"
                         style={{
                           width: "48%",
                           backgroundColor: isSelected ? theme.primary : undefined,
-                          borderColor: isSelected ? theme.primary : colors.border,
+                          borderColor: isSelected ? theme.primary : theme.border,
                         }}
                       >
                         <Ionicons
                           name={t.icon}
                           size={16}
-                          color={isSelected ? "#FFFFFF" : colors.textSecondary}
+                          color={isSelected ? "#FFFFFF" : theme.mutedForeground}
                           style={{ marginRight: 6 }}
                         />
                         <Text
-                          className="text-xs font-semibold"
-                          style={{ color: isSelected ? "#FFFFFF" : colors.textSecondary }}
+                          className="text-label font-semibold"
+                          style={{ color: isSelected ? "#FFFFFF" : theme.mutedForeground }}
                         >
                           {t.label}
                         </Text>
@@ -636,16 +651,16 @@ export default function AccountDetailScreen() {
               />
               {siblingCards.length > 0 && (
                 <View
-                  className="flex-row items-start mt-3 p-3 rounded-lg"
-                  style={{ backgroundColor: theme.warning + "14" }}
+                  className="flex-row items-start mt-3 p-3 rounded-control"
+                  style={{ backgroundColor: tint(theme.warning, 0.08) }}
                 >
                   <Ionicons name="information-circle" size={16} color={theme.warning} style={{ marginTop: 1 }} />
                   <View className="flex-1 ml-2">
-                    <Text className="text-xs font-medium" style={{ color: theme.warning }}>
+                    <Text className="text-label font-medium" style={{ color: theme.warning }}>
                       Shared limit - changes sync to all {siblingCards.length + 1} {account.bank_name} cards
                     </Text>
                     {siblingCards.map((s) => (
-                      <Text key={s.id} className="text-xs text-muted-foreground mt-0.5">
+                      <Text key={s.id} className="text-label text-muted-foreground mt-0.5">
                         ****{s.account_identifier}
                         {s.credit_limit != null ? ` · Limit ${formatAmount(s.credit_limit)}` : ""}
                       </Text>
@@ -655,27 +670,27 @@ export default function AccountDetailScreen() {
               )}
               {account.total_due != null && account.total_due > 0 && (
                 <View className="mt-4 pt-3 border-t border-border">
-                  <Text className="text-xs font-semibold text-muted-foreground mb-2">
+                  <Text className="text-label font-semibold text-muted-foreground mb-2">
                     Statement Dues (from SMS)
                   </Text>
                   <View className="flex-row justify-between">
-                    <Text className="text-sm text-foreground">Total Due</Text>
-                    <Text className="text-sm font-bold" style={{ color: theme.danger }}>
+                    <Text className="text-meta text-foreground">Total Due</Text>
+                    <Text className="text-body font-bold" style={{ color: theme.danger }}>
                       {formatAmount(account.total_due)}
                     </Text>
                   </View>
                   {account.min_due != null && (
                     <View className="flex-row justify-between mt-1">
-                      <Text className="text-sm text-foreground">Minimum Due</Text>
-                      <Text className="text-sm font-semibold text-foreground">
+                      <Text className="text-meta text-foreground">Minimum Due</Text>
+                      <Text className="text-body font-semibold text-foreground">
                         {formatAmount(account.min_due)}
                       </Text>
                     </View>
                   )}
                   {account.due_date && (
                     <View className="flex-row justify-between mt-1">
-                      <Text className="text-sm text-foreground">Due Date</Text>
-                      <Text className="text-sm text-foreground">
+                      <Text className="text-meta text-foreground">Due Date</Text>
+                      <Text className="text-meta text-foreground">
                         {new Date(account.due_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </Text>
                     </View>
@@ -699,7 +714,7 @@ export default function AccountDetailScreen() {
                 keyboardType="numeric"
                 formula
               />
-              <Text className="text-xs text-faint-foreground mt-2">
+              <Text className="text-label text-faint-foreground mt-2">
                 Arth will show an alert on Home if this account's closing balance drops below this. Leave at 0 or blank to disable for this account.
               </Text>
             </Card>
@@ -708,25 +723,25 @@ export default function AccountDetailScreen() {
           {/* Demat: Current value summary */}
           {isDematAccount && (
             <Card className="mb-3">
-              <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
+              <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-3">
                 Current Value
               </Text>
               <View className="flex-row justify-between mb-2">
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-0.5">Portfolio</Text>
-                  <Text className="text-base font-bold text-foreground">
+                  <Text className="text-label text-muted-foreground mb-0.5">Portfolio</Text>
+                  <Text className="text-body font-bold text-foreground">
                     {dematLatestValue != null ? formatAmount(dematLatestValue) : "—"}
                   </Text>
                 </View>
                 <View className="flex-1 items-center">
-                  <Text className="text-xs text-muted-foreground mb-0.5">Idle Cash</Text>
-                  <Text className="text-base font-bold text-foreground">
+                  <Text className="text-label text-muted-foreground mb-0.5">Idle Cash</Text>
+                  <Text className="text-body font-bold text-foreground">
                     {dematLatestFund != null ? formatAmount(dematLatestFund) : "—"}
                   </Text>
                 </View>
                 <View className="flex-1 items-end">
-                  <Text className="text-xs text-muted-foreground mb-0.5">Total</Text>
-                  <Text className="text-base font-bold text-foreground">
+                  <Text className="text-label text-muted-foreground mb-0.5">Total</Text>
+                  <Text className="text-body font-bold text-foreground">
                     {dematLatestValue != null ? formatAmount((dematLatestValue ?? 0) + (dematLatestFund ?? 0)) : "—"}
                   </Text>
                 </View>
@@ -743,20 +758,20 @@ export default function AccountDetailScreen() {
           {isDematAccount && (
             <Pressable
               onPress={() => router.push({ pathname: "/demat/snapshots/[id]", params: { id: accountId } })}
-              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-card"
+              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-card bg-card"
             >
-              <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: colors.border }}>
-                <Ionicons name="stats-chart-outline" size={16} color={colors.textSecondary} />
+              <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.border }}>
+                <Ionicons name="stats-chart-outline" size={16} color={theme.mutedForeground} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   Demat Account Details
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
+                <Text className="text-label text-muted-foreground mt-0.5">
                   {dematSnapshotCount > 0 ? `${dematSnapshotCount} snapshots recorded` : "No snapshots yet"}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
             </Pressable>
           )}
 
@@ -789,26 +804,26 @@ export default function AccountDetailScreen() {
                 <View className="flex-row items-center">
                   <View
                     className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: colors.surface }}
+                    style={{ backgroundColor: theme.card }}
                   >
                     <Ionicons
                       name="document-text-outline"
                       size={20}
-                      color={colors.blue}
+                      color={theme.data.series[3]}
                     />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
+                    <Text className="text-body font-semibold text-foreground">
                       View loan details
                     </Text>
-                    <Text className="text-xs text-muted-foreground">
+                    <Text className="text-label text-muted-foreground">
                       Amortization schedule, prepayments, corrections
                     </Text>
                   </View>
                   <Ionicons
                     name="chevron-forward"
                     size={16}
-                    color={colors.textSecondary}
+                    color={theme.mutedForeground}
                   />
                 </View>
               </Card>
@@ -821,20 +836,20 @@ export default function AccountDetailScreen() {
           {investmentProduct && isFDIncomplete(investmentProduct) && (
             <Pressable
               onPress={() => setCompleteFDVisible(true)}
-              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-xl bg-card"
+              className="mx-0 mb-3 flex-row items-center py-3.5 px-4 rounded-card bg-card"
             >
               <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("warning", 0.12) }}>
                 <Ionicons name="alert-circle-outline" size={16} color={theme.warning} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   Add interest rate & maturity date
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
+                <Text className="text-label text-muted-foreground mt-0.5">
                   This FD has no schedule yet — tap to complete it
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
             </Pressable>
           )}
 
@@ -843,48 +858,48 @@ export default function AccountDetailScreen() {
           {investmentProduct && investmentProduct.valuation === "contract" && !isFDIncomplete(investmentProduct) && (
             <Card className="mb-3" title="Fixed Deposit">
               <View className="flex-row justify-between mb-1.5">
-                <Text className="text-xs text-muted-foreground">Principal</Text>
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-label text-muted-foreground">Principal</Text>
+                <Text className="text-body font-semibold text-foreground">
                   {investmentProduct.principal != null ? formatAmount(investmentProduct.principal) : "—"}
                 </Text>
               </View>
               <View className="flex-row justify-between mb-1.5">
-                <Text className="text-xs text-muted-foreground">Interest rate</Text>
-                <Text className="text-sm text-foreground">
+                <Text className="text-label text-muted-foreground">Interest rate</Text>
+                <Text className="text-meta text-foreground">
                   {investmentProduct.interest_rate_pa}% p.a. ({investmentProduct.interest_method})
                 </Text>
               </View>
               <View className="flex-row justify-between mb-1.5">
-                <Text className="text-xs text-muted-foreground">Matures</Text>
-                <Text className="text-sm text-foreground">
+                <Text className="text-label text-muted-foreground">Matures</Text>
+                <Text className="text-meta text-foreground">
                   {investmentProduct.maturity_date ? formatDate(investmentProduct.maturity_date) : "—"}
                 </Text>
               </View>
               {investmentProduct.maturity_amount_override != null && (
                 <View className="flex-row justify-between mb-1.5">
-                  <Text className="text-xs text-muted-foreground">Corrected maturity amount</Text>
-                  <Text className="text-sm font-semibold text-foreground">
+                  <Text className="text-label text-muted-foreground">Corrected maturity amount</Text>
+                  <Text className="text-body font-semibold text-foreground">
                     {formatAmount(investmentProduct.maturity_amount_override)}
                   </Text>
                 </View>
               )}
               <View className="flex-row justify-between mb-3">
-                <Text className="text-xs text-muted-foreground">Status</Text>
-                <Text className="text-sm text-foreground capitalize">{investmentProduct.status}</Text>
+                <Text className="text-label text-muted-foreground">Status</Text>
+                <Text className="text-meta text-foreground capitalize">{investmentProduct.status}</Text>
               </View>
               {fdBucketName && (
                 <View className="flex-row justify-between mb-3">
-                  <Text className="text-xs text-muted-foreground">Investment bucket</Text>
-                  <Text className="text-sm text-foreground">{fdBucketName}</Text>
+                  <Text className="text-label text-muted-foreground">Investment bucket</Text>
+                  <Text className="text-meta text-foreground">{fdBucketName}</Text>
                 </View>
               )}
               <Pressable
                 onPress={() => setCompleteFDVisible(true)}
-                className="flex-row items-center justify-center py-2.5 rounded-lg border"
-                style={{ borderColor: colors.border }}
+                className="flex-row items-center justify-center py-2.5 rounded-control border"
+                style={{ borderColor: theme.border }}
               >
-                <Ionicons name="create-outline" size={16} color={colors.blue} />
-                <Text className="text-sm font-semibold ml-2" style={{ color: colors.blue }}>
+                <Ionicons name="create-outline" size={16} color={theme.data.series[3]} />
+                <Text className="text-body font-semibold ml-2" style={{ color: theme.data.series[3] }}>
                   {fdEditable ? "Edit fixed deposit" : "Correct amount / bucket"}
                 </Text>
               </Pressable>
@@ -902,7 +917,7 @@ export default function AccountDetailScreen() {
           {!isDematAccount && !isFDAccount && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3" title="Monthly Balance Ledger">
             {!seeded ? (
               <View>
-                <Text className="text-xs text-muted-foreground mb-3">
+                <Text className="text-label text-muted-foreground mb-3">
                   Set a starting balance and month to begin tracking. The chain continues automatically from there.
                 </Text>
                 <Input
@@ -932,17 +947,17 @@ export default function AccountDetailScreen() {
                 <PeriodNavigator mode="month" value={ledgerMonth} onChange={setLedgerMonth} variant="inline" />
 
                 {!ledgerSummary ? (
-                  <Text className="text-xs text-muted-foreground text-center py-4">
+                  <Text className="text-label text-muted-foreground text-center py-4">
                     No balance data for this month.
                   </Text>
                 ) : (
                   <View className="mt-2">
                     {/* Opening balance — editable */}
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-xs text-muted-foreground">
+                      <Text className="text-label text-muted-foreground">
                         Opening
                         {ledgerSummary.is_manual_override && (
-                          <Text className="text-xs text-faint-foreground"> (override)</Text>
+                          <Text className="text-label text-faint-foreground"> (override)</Text>
                         )}
                       </Text>
                       {editingMonth === ledgerMonth ? (
@@ -952,7 +967,7 @@ export default function AccountDetailScreen() {
                             onChangeText={setEditingOpeningValue}
                             keyboardType="numeric"
                             formula
-                            className="text-sm py-2"
+                            className="text-meta py-2"
                             containerClassName="w-40"
                           />
                           <Pressable
@@ -970,7 +985,7 @@ export default function AccountDetailScreen() {
                         </View>
                       ) : (
                         <View className="flex-row items-center">
-                          <Text className="text-xs font-medium text-foreground">
+                          <Text className="text-label font-medium text-foreground">
                             {formatAmount(ledgerSummary.opening_balance)}
                           </Text>
                           <Pressable
@@ -981,7 +996,7 @@ export default function AccountDetailScreen() {
                             hitSlop={8}
                             className="ml-2"
                           >
-                            <Ionicons name="create-outline" size={14} color={colors.blue} />
+                            <Ionicons name="create-outline" size={14} color={theme.data.series[3]} />
                           </Pressable>
                           {adjustedMonths[ledgerMonth] && (
                             <Pressable
@@ -1000,10 +1015,10 @@ export default function AccountDetailScreen() {
                     {/* Expenses */}
                     {ledgerSummary.expenses > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-label text-muted-foreground">
                           Expenses
                         </Text>
-                        <Text className="text-xs" style={{ color: theme.danger }}>
+                        <Text className="text-label" style={{ color: theme.danger }}>
                           −{formatAmount(ledgerSummary.expenses)}
                         </Text>
                       </View>
@@ -1012,10 +1027,10 @@ export default function AccountDetailScreen() {
                     {/* Credits */}
                     {ledgerSummary.credits > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-label text-muted-foreground">
                           Credits / Refunds
                         </Text>
-                        <Text className="text-xs" style={{ color: theme.success }}>
+                        <Text className="text-label" style={{ color: theme.success }}>
                           +{formatAmount(ledgerSummary.credits)}
                         </Text>
                       </View>
@@ -1024,10 +1039,10 @@ export default function AccountDetailScreen() {
                     {/* Manual adjustments — drift indicator */}
                     {adjustmentStats.count > 0 && (
                       <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-label text-muted-foreground">
                           Manual adjustments
                         </Text>
-                        <Text className="text-xs" style={{ color: theme.warning }}>
+                        <Text className="text-label" style={{ color: theme.warning }}>
                           {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
                         </Text>
                       </View>
@@ -1035,10 +1050,10 @@ export default function AccountDetailScreen() {
 
                     {/* Closing / Current balance */}
                     <View className="flex-row justify-between mt-2 pt-2 border-t border-border">
-                      <Text className="text-xs font-semibold text-muted-foreground">
+                      <Text className="text-label font-semibold text-muted-foreground">
                         {ledgerMonth === getCurrentMonth() ? "Current" : "Closing"}
                       </Text>
-                      <Text className="text-xs font-bold text-foreground">
+                      <Text className="text-label font-bold text-foreground">
                         {formatAmount(ledgerSummary.closing_balance)}
                       </Text>
                     </View>
@@ -1062,7 +1077,7 @@ export default function AccountDetailScreen() {
           {/* UPI IDs — a payment picture showing one of these picks this account. */}
           {(accountType === "savings" || accountType === "credit_card" || accountType === "wallet") && !isDematAccount && !isFDAccount && (
             <Card className="mb-3" title="UPI IDs">
-              <Text className="text-xs text-muted-foreground mb-2">
+              <Text className="text-label text-muted-foreground mb-2">
                 Your UPI IDs on this account. A payment picture showing one of them picks this account by itself.
               </Text>
               <View className="flex-row flex-wrap" style={{ gap: 6 }}>
@@ -1075,12 +1090,12 @@ export default function AccountDetailScreen() {
                         { text: "Remove", style: "destructive", onPress: async () => { await removeUpiId(account.id, id); loadData(); } },
                       ])
                     }
-                    className="flex-row items-center rounded-md px-2 py-1"
+                    className="flex-row items-center rounded-control px-2 py-1"
                     style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     accessibilityRole="button"
                     accessibilityLabel={`Remove ${id}`}
                   >
-                    <Text className="text-xs font-medium" style={{ color: theme.primary }}>{id}</Text>
+                    <Text className="text-label font-medium" style={{ color: theme.primary }}>{id}</Text>
                     <Ionicons name="close" size={12} color={theme.primary} style={{ marginLeft: 4 }} />
                   </Pressable>
                 ))}
@@ -1097,18 +1112,18 @@ export default function AccountDetailScreen() {
                     onSubmitEditing={() => void saveUpi()}
                     onBlur={() => void saveUpi()}
                     returnKeyType="done"
-                    className="text-xs text-foreground rounded-md px-2 py-1 border"
+                    className="text-label text-foreground rounded-control px-2 py-1 border"
                     style={{ borderColor: theme.primary, minWidth: 150 }}
                     accessibilityLabel="UPI ID"
                   />
                 ) : (
                   <Pressable
                     onPress={() => setAddingUpi(true)}
-                    className="rounded-md px-2 py-1 border border-dashed"
+                    className="rounded-control px-2 py-1 border border-dashed"
                     style={{ borderColor: theme.border }}
                     accessibilityRole="button"
                   >
-                    <Text className="text-xs text-muted-foreground">+ Add a UPI ID</Text>
+                    <Text className="text-label text-muted-foreground">+ Add a UPI ID</Text>
                   </Pressable>
                 )}
               </View>
@@ -1130,7 +1145,7 @@ export default function AccountDetailScreen() {
                     <Ionicons
                       name={isLinked ? "checkbox" : "square-outline"}
                       size={22}
-                      color={isLinked ? colors.blue : theme.faintForeground}
+                      color={isLinked ? theme.data.series[3] : theme.faintForeground}
                     />
                     <Text
                       className={`text-sm ml-3 ${
@@ -1148,7 +1163,7 @@ export default function AccountDetailScreen() {
                 );
               })
             ) : (
-              <Text className="text-xs text-muted-foreground text-center py-2">
+              <Text className="text-label text-muted-foreground text-center py-2">
                 No payment modes created yet. Add them in Settings → Payment Modes.
               </Text>
             )}
@@ -1165,27 +1180,27 @@ export default function AccountDetailScreen() {
           <Card className="mb-3">
             {account.closed_at ? (
               <Pressable onPress={handleReopen} className="flex-row items-center justify-center py-1">
-                <Ionicons name="refresh-outline" size={18} color={colors.blue} />
-                <Text className="text-sm font-medium ml-2" style={{ color: colors.blue }}>Reopen account</Text>
+                <Ionicons name="refresh-outline" size={18} color={theme.data.series[3]} />
+                <Text className="text-body font-medium ml-2" style={{ color: theme.data.series[3] }}>Reopen account</Text>
               </Pressable>
             ) : (
               <Pressable onPress={handleClose} className="flex-row items-center justify-center py-1">
                 <Ionicons name="lock-closed-outline" size={18} color={theme.danger} />
-                <Text className="text-sm font-medium ml-2" style={{ color: theme.danger }}>Close account</Text>
+                <Text className="text-body font-medium ml-2" style={{ color: theme.danger }}>Close account</Text>
               </Pressable>
             )}
             {!account.closed_at && account.account_identifier && (
               <View className="border-t border-border mt-3 pt-3">
                 <Pressable onPress={handleIgnore} className="flex-row items-center justify-center py-1">
                   <Ionicons name="eye-off-outline" size={18} color={theme.warning} />
-                  <Text className="text-sm font-medium ml-2" style={{ color: theme.warning }}>Ignore this account's messages</Text>
+                  <Text className="text-body font-medium ml-2" style={{ color: theme.warning }}>Ignore this account's messages</Text>
                 </Pressable>
               </View>
             )}
             <View className="border-t border-border mt-3 pt-3">
               <Pressable onPress={handleDelete} className="flex-row items-center justify-center py-1">
-                <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
-                <Text className="text-sm ml-2 text-muted-foreground">Remove account</Text>
+                <Ionicons name="trash-outline" size={16} color={theme.mutedForeground} />
+                <Text className="text-meta ml-2 text-muted-foreground">Remove account</Text>
               </Pressable>
             </View>
           </Card>

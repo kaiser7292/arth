@@ -224,17 +224,17 @@ export default function AccountMasterScreen() {
               <Ionicons
                 name={ACCOUNT_TYPE_ICONS[resolvedType(account)] ?? "help-outline"}
                 size={20}
-                color={colors.blue}
+                color={theme.data.series[3]}
               />
             </View>
             <View className="flex-1 mr-2">
               <Text
-                className="text-sm font-semibold text-foreground"
+                className="text-body font-semibold text-foreground"
                 numberOfLines={1}
               >
                 {displayName}
               </Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {subtitleParts.join(" · ")}
               </Text>
             </View>
@@ -251,7 +251,7 @@ export default function AccountMasterScreen() {
                 {account.closed_at ? "Closed" : "Open"}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
           </View>
         </Card>
       </Pressable>
@@ -270,12 +270,12 @@ export default function AccountMasterScreen() {
             <View className="flex-row items-center">
               <Ionicons name="copy-outline" size={18} color={theme.warning} />
               <View className="flex-1 ml-2">
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   {duplicateGroups} account{duplicateGroups === 1 ? " looks" : "s look"} recorded twice
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">Same bank and same last digits. Review and merge them.</Text>
+                <Text className="text-label text-muted-foreground mt-0.5">Same bank and same last digits. Review and merge them.</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
             </View>
           </Card>
         </Pressable>
@@ -287,12 +287,12 @@ export default function AccountMasterScreen() {
             <View className="flex-row items-center">
               <Ionicons name="swap-horizontal-outline" size={18} color={theme.warning} />
               <View className="flex-1 ml-2">
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   {transferFixes} payment{transferFixes === 1 ? "" : "s"} between your accounts
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">Counted as spending. Make them transfers.</Text>
+                <Text className="text-label text-muted-foreground mt-0.5">Counted as spending. Make them transfers.</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
             </View>
           </Card>
         </Pressable>
@@ -304,9 +304,9 @@ export default function AccountMasterScreen() {
           <Ionicons
             name="information-circle-outline"
             size={18}
-            color={colors.textSecondary}
+            color={theme.mutedForeground}
           />
-          <Text className="text-xs text-muted-foreground ml-2 flex-1">
+          <Text className="text-label text-muted-foreground ml-2 flex-1">
             Tap an account to view details, edit financial data, and manage
             linked payment modes.
           </Text>
@@ -317,7 +317,7 @@ export default function AccountMasterScreen() {
       {tools.filterSheet}
 
       {/* Count */}
-      <Text className="text-sm text-muted-foreground px-1 mb-2">
+      <Text className="text-meta text-muted-foreground px-1 mb-2">
         {filteredAccounts.length}
         {filteredAccounts.length !== accounts.length ? ` of ${accounts.length}` : ""}
         {" "}
@@ -327,11 +327,11 @@ export default function AccountMasterScreen() {
       {/* Account list */}
       {isEmpty ? (
         <View className="items-center py-16">
-          <Ionicons name="business-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Ionicons name="business-outline" size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-medium text-foreground mt-4">
             {accounts.length > 0 ? "Nothing matches" : "No accounts yet"}
           </Text>
-          <Text className="text-sm text-muted-foreground mt-1 text-center px-8">
+          <Text className="text-meta text-muted-foreground mt-1 text-center px-8">
             {accounts.length > 0
               ? "Try another search or filter."
               : "Tap + to add an account. Supports savings, credit cards, loans, wallets, and demat accounts."}
@@ -347,16 +347,16 @@ export default function AccountMasterScreen() {
           )}
           {ignoredAccounts.length > 0 && (
             <View className="mt-4">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
                 Ignored · {ignoredAccounts.length}
               </Text>
               <Card>
                 {ignoredAccounts.map((a, i) => (
                   <View key={a.id} className={`flex-row items-center py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
-                    <Ionicons name="eye-off-outline" size={18} color={colors.textSecondary} />
+                    <Ionicons name="eye-off-outline" size={18} color={theme.mutedForeground} />
                     <View className="flex-1 ml-3">
-                      <Text className="text-sm font-medium text-foreground">{a.name} ····{a.digits.slice(-4)}</Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">Its messages are skipped</Text>
+                      <Text className="text-body font-medium text-foreground">{a.name} ····{a.digits.slice(-4)}</Text>
+                      <Text className="text-label text-muted-foreground mt-0.5">Its messages are skipped</Text>
                     </View>
                     <Pressable
                       onPress={async () => {
@@ -368,7 +368,7 @@ export default function AccountMasterScreen() {
                       style={{ height: 40, backgroundColor: theme.alpha("primary", 0.1) }}
                       accessibilityRole="button"
                     >
-                      <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Track again</Text>
+                      <Text className="text-body font-semibold" style={{ color: theme.primary }}>Track again</Text>
                     </Pressable>
                   </View>
                 ))}

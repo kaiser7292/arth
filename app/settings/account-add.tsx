@@ -213,7 +213,7 @@ export default function AccountAddScreen() {
       >
         <View className="px-4 py-4">
           {/* Account Type Picker */}
-          <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-3">
+          <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-3">
             Account Type
           </Text>
           <View className="flex-row flex-wrap mb-4">

@@ -40,6 +40,7 @@ import { getCurrentMonth } from "@/services/budget";
 import { handleDematWithdrawalSideEffects } from "@/services/demat-transfer";
 import { isDematLikeAccountById } from "@/services/investment-accounts";
 import { OpeningBalanceBanner } from "@/components/account/OpeningBalanceBanner";
+import { Statement } from "@/components/ui/LinkRow";
 import type { FinancialAccount } from "@/services/financial-account";
 import { getActiveAccounts, getAllAccounts } from "@/services/financial-account";
 import { getVaultEntriesForAccount } from "@/services/vault";
@@ -51,7 +52,7 @@ import { logger } from "@/utils/logger";
 import { transactionTitle } from "@/utils/transaction-title";
 import { getCategories } from "@/services/category";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, RefreshControl, ScrollView, TextInput, View } from "react-native";
 import Animated from "react-native-reanimated";
@@ -724,8 +725,31 @@ const loadData = useCallback(async () => {
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   };
 
+  const thisAccount = allAccountsState.find((a) => a.id === accountId);
+  const accountName = thisAccount ? thisAccount.account_label || `${thisAccount.bank_name} ··${thisAccount.account_identifier}` : "Account ledger";
+  const openAccountSettings = () => router.push({ pathname: "/settings/account-detail", params: { accountId } });
+
   return (
     <ScreenContainer padTop={false}>
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <Pressable onPress={openAccountSettings} accessibilityRole="button" accessibilityLabel={`${accountName}, open account settings`} hitSlop={6}>
+              <Text className="text-heading font-bold text-foreground" numberOfLines={1}>
+                {accountName}
+              </Text>
+              <Text className="text-label text-muted-foreground" numberOfLines={1}>
+                Tap for account settings
+              </Text>
+            </Pressable>
+          ),
+          headerRight: () => (
+            <Pressable onPress={openAccountSettings} hitSlop={8} className="p-2" accessibilityRole="button" accessibilityLabel="Account settings">
+              <Ionicons name="settings-outline" size={20} color={theme.foreground} />
+            </Pressable>
+          ),
+        }}
+      />
       {/* Month navigator */}
       <PeriodNavigator mode="month" value={month} onChange={setMonth} minMonth={minMonth} maxMonth={maxMonth} />
 
@@ -748,65 +772,35 @@ const loadData = useCallback(async () => {
           <Card className="mx-4 mt-3 mb-2">
             {!seeded && <OpeningBalanceBanner accountId={accountId} message="No opening balance set - computed from ₹0" />}
 
-            {/*
-              The number this screen exists to answer, so it leads rather than sitting last in a
-              stack of equal-weight rows. The arithmetic below is untouched - only the hierarchy
-              changed - and opening becomes the hero's caption instead of its own row.
-            */}
-            <View className="mb-3">
-              <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
-                {isCreditCard ? "Utilized" : "Closing balance"}
-              </Text>
+            {/* The closing balance leads; under it, the month as a statement that adds up:
+                opening + in − out − transfers (± adjustments) = closing. Arithmetic unchanged. */}
+            <View className="mb-2">
+              <Text className="text-meta text-muted-foreground">{isCreditCard ? "Utilized" : "Closing balance"}</Text>
               <Money
                 value={closing}
-                className="text-hero font-bold mt-1"
-                style={{
-                  color: isCreditCard
-                    ? closing === 0
-                      ? theme.success
-                      : theme.danger
-                    : closing >= 0
-                      ? theme.foreground
-                      : theme.danger,
-                }}
+                className="text-hero font-bold mt-0.5"
+                style={{ color: closing < 0 && !isCreditCard ? theme.danger : theme.foreground }}
               />
-              <Text className="text-label text-muted-foreground mt-1">
-                {isCreditCard ? "started at" : "opened at"} {formatAmount(opening)}
-              </Text>
             </View>
-
-            {totalExpenses > 0 && (
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-label text-muted-foreground">
-                  {isCreditCard ? "Spent this cycle" : "Expenses"}
-                </Text>
-                <Money value={-totalExpenses} className="text-meta font-semibold" style={{ color: theme.danger }} />
-              </View>
-            )}
-            {totalCredits > 0 && (
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-label text-muted-foreground">
-                  {isCreditCard ? "Paid back" : "Credits / Refunds"}
-                </Text>
-                <Money value={totalCredits} signed showPlus className="text-meta font-semibold" />
-              </View>
-            )}
-            {!isCreditCard && totalTransfersOut > 0 && (
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-label text-muted-foreground">
-                  Transfers Out
-                </Text>
-                <Money value={-totalTransfersOut} className="text-meta font-semibold" style={{ color: theme.danger }} />
-              </View>
-            )}
-            {!isCreditCard && totalTransfersIn > 0 && (
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-label text-muted-foreground">
-                  Transfers In
-                </Text>
-                <Money value={totalTransfersIn} signed showPlus className="text-meta font-semibold" />
-              </View>
-            )}
+            {(() => {
+              const sign = isCreditCard ? 1 : -1;
+              // What the listed rows add up to; anything left is the month's balance adjustments.
+              const listed = isCreditCard
+                ? opening + totalExpenses - totalCredits
+                : opening - totalExpenses + totalCredits - totalTransfersOut + totalTransfersIn;
+              const adj = Math.round((closing - listed) * 100) / 100;
+              const lines: { label: string; amount: string; sign?: "+" | "−" | "" }[] = [
+                { label: isCreditCard ? "Started the cycle at" : "Opening balance", amount: formatAmount(opening) },
+              ];
+              if (totalCredits > 0)
+                lines.push({ label: isCreditCard ? "Paid back" : "Money in", sign: isCreditCard ? "−" : "+", amount: formatAmount(totalCredits) });
+              if (totalExpenses > 0)
+                lines.push({ label: isCreditCard ? "Spent this cycle" : "Money out", sign: sign < 0 ? "−" : "+", amount: formatAmount(totalExpenses) });
+              if (!isCreditCard && totalTransfersOut > 0) lines.push({ label: "Transfers out", sign: "−", amount: formatAmount(totalTransfersOut) });
+              if (!isCreditCard && totalTransfersIn > 0) lines.push({ label: "Transfers in", sign: "+", amount: formatAmount(totalTransfersIn) });
+              if (Math.abs(adj) >= 0.01) lines.push({ label: "Balance adjustments", sign: adj >= 0 ? "+" : "−", amount: formatAmount(Math.abs(adj)) });
+              return <Statement lines={lines} total={{ label: isCreditCard ? "Utilized" : "Closing balance", amount: formatAmount(closing) }} />;
+            })()}
 
             {/* Reconcile + Vault shortcuts */}
             <View className="flex-row mt-3 pt-3 border-t border-border">

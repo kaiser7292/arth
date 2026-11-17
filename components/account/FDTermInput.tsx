@@ -63,7 +63,7 @@ export function FDTermInput({ startDate, value, onChange, className }: FDTermInp
   return (
     <View className={className}>
       <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Matures</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Matures</Text>
         <View className="flex-row">
           <FilterChip label="Date" active={mode === "date"} onPress={() => switchTo("date")} spacing="sm" />
           <FilterChip label="Term" active={mode === "term"} onPress={() => switchTo("term")} spacing="sm" />
@@ -73,10 +73,10 @@ export function FDTermInput({ startDate, value, onChange, className }: FDTermInp
       {mode === "date" ? (
         <Pressable
           onPress={() => setShowPicker(true)}
-          className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+          className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
           accessibilityRole="button"
         >
-          <Text className="text-sm" style={{ color: value ? colors.text : colors.textSecondary }}>
+          <Text className="text-meta" style={{ color: value ? colors.text : colors.textSecondary }}>
             {value ? formatDate(value) : "Select maturity date"}
           </Text>
           <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
@@ -123,7 +123,7 @@ export function FDTermInput({ startDate, value, onChange, className }: FDTermInp
       )}
 
       {valid && (
-        <Text className="text-xs text-faint-foreground mt-1.5">
+        <Text className="text-label text-faint-foreground mt-1.5">
           {mode === "date"
             ? `Term: ${formatFDTerm(fdTermBetween(startDate, value))}`
             : `Matures on ${formatDate(value)}`}

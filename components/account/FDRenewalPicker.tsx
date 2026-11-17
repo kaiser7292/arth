@@ -23,14 +23,14 @@ export function FDRenewalPicker({ value, onChange, className }: FDRenewalPickerP
   const theme = useTheme();
   return (
     <View className={className}>
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">At maturity</Text>
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">At maturity</Text>
       {OPTIONS.map((opt) => {
         const active = value === opt.value;
         return (
           <Pressable
             key={opt.value}
             onPress={() => onChange(opt.value)}
-            className="flex-row items-start py-2 px-2 rounded-md"
+            className="flex-row items-start py-2 px-2 rounded-control"
             style={{ backgroundColor: active ? theme.alpha("primary", 0.1) : "transparent" }}
             accessibilityRole="radio"
             accessibilityState={{ selected: active }}
@@ -38,14 +38,14 @@ export function FDRenewalPicker({ value, onChange, className }: FDRenewalPickerP
             <Ionicons
               name={active ? "radio-button-on" : "radio-button-off"}
               size={18}
-              color={active ? theme.primary : colors.textSecondary}
+              color={active ? theme.primary : theme.mutedForeground}
               style={{ marginTop: 1 }}
             />
             <View className="flex-1 ml-2">
-              <Text className="text-sm" style={{ color: colors.text, fontWeight: active ? "600" : "400" }}>
+              <Text className="text-meta" style={{ color: theme.foreground, fontWeight: active ? "600" : "400" }}>
                 {RENEWAL_MODE_LABELS[opt.value]}
               </Text>
-              <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                 {opt.hint}
               </Text>
             </View>
