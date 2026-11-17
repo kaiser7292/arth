@@ -3,7 +3,8 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
-import { Button, Card, SelectSheet, Text } from "@/components/ui";
+import { SelectSheet } from "@/components/ui";
+import { LinkedCard } from "./LinkedCard";
 import { useAlert } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
 import type { Expense } from "@/services/expense-types";
@@ -160,48 +161,37 @@ export function MoneyEventPanel({
       await clearMoneyEvent(expense.id);
     });
 
-  return (
-    <Card className="mx-4 mt-3">
-      <View className="flex-row items-center self-start px-2 py-1 rounded-full" style={{ backgroundColor: theme.alpha(meta.tone, 0.12) }}>
-        <Ionicons name={meta.icon} size={13} color={tone} />
-        <Text className="text-label font-semibold ml-1" style={{ color: tone }}>
-          {meta.tag}
-        </Text>
-      </View>
-      <Text className="text-meta text-muted-foreground mt-2">{detail}</Text>
+  const addAccount = () => {
+    const card = isCardBillText(`${expense.merchant_name ?? ""} ${expense.raw_source_text ?? ""}`);
+    router.push({
+      pathname: "/settings/account-add",
+      params: {
+        presetType: card ? "credit_card" : "savings",
+        presetDigits: otherAcctLast4!,
+        // A card bill is usually the same bank's card; an IMPS often isn't, so that's left to fill in.
+        ...(card && bankName ? { presetBank: bankName } : {}),
+        transferExpenseId: expense.id,
+      },
+    });
+  };
 
-      <View className="mt-3">
-        <Button title={meta.primaryAction} onPress={primary} loading={busy} />
-      </View>
-      {event === "fd_closure" && deposit && (
-        <View className="mt-2">
-          <Button title="Record this FD" variant="outline" onPress={() => setRecordFdOpen(true)} />
-        </View>
-      )}
-      {event === "self_transfer" && expense.nature === "realized" && otherAcctLast4 && (
-        <View className="mt-2">
-          <Button
-            title={`Add account ··${otherAcctLast4}`}
-            variant="outline"
-            onPress={() => {
-              const card = isCardBillText(`${expense.merchant_name ?? ""} ${expense.raw_source_text ?? ""}`);
-              router.push({
-                pathname: "/settings/account-add",
-                params: {
-                  presetType: card ? "credit_card" : "savings",
-                  presetDigits: otherAcctLast4!,
-                  // A card bill is usually the same bank's card; an IMPS often isn't, so that's left to fill in.
-                  ...(card && bankName ? { presetBank: bankName } : {}),
-                  transferExpenseId: expense.id,
-                },
-              });
-            }}
-          />
-        </View>
-      )}
-      <View className="mt-2">
-        <Button title={meta.dismissAction} variant="ghost" onPress={dismiss} />
-      </View>
+  return (
+    <>
+      <LinkedCard
+        heading="Arth noticed"
+        icon={meta.icon}
+        color={tone}
+        title={meta.tag}
+        subtitle={detail}
+        actions={[
+          { label: meta.primaryAction, primary: true, onPress: primary, disabled: busy },
+          ...(event === "fd_closure" && deposit ? [{ label: "Record this FD", onPress: () => setRecordFdOpen(true) }] : []),
+          ...(event === "self_transfer" && expense.nature === "realized" && otherAcctLast4
+            ? [{ label: `Add account ··${otherAcctLast4}`, onPress: addAccount }]
+            : []),
+          { label: meta.dismissAction, onPress: dismiss, disabled: busy },
+        ]}
+      />
 
       <SelectSheet
         visible={fdPickerOpen}
@@ -236,6 +226,6 @@ export function MoneyEventPanel({
           onClose={() => setRecordFdOpen(false)}
         />
       )}
-    </Card>
+    </>
   );
 }

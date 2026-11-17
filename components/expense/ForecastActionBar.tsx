@@ -141,57 +141,30 @@ export function ForecastActionBar({
     );
   }
 
+  // The full bar (a forecast's detail page): pill buttons, the same as a linked card's actions.
+  const pill = (label: string, onPress: () => void, kind: "primary" | "plain" | "danger", icon: keyof typeof Ionicons.glyphMap) => {
+    const fg = kind === "primary" ? theme.primaryForeground : kind === "danger" ? theme.danger : theme.primary;
+    return (
+      <Pressable
+        key={label}
+        onPress={onPress}
+        accessibilityLabel={label}
+        accessibilityRole="button"
+        className={`flex-row items-center justify-center rounded-pill px-4 ${kind === "primary" ? "" : "border"}`}
+        style={{ minHeight: 40, backgroundColor: kind === "primary" ? theme.primary : theme.card, borderColor: kind === "danger" ? theme.danger : theme.border }}
+      >
+        <Ionicons name={icon} size={16} color={fg} style={{ marginRight: 6 }} />
+        <Text className="text-meta font-semibold" style={{ color: fg }}>{label}</Text>
+      </Pressable>
+    );
+  };
   return (
-    <View className="flex-row items-center justify-around py-2 border-t border-border mt-2">
-      <Pressable
-        onPress={handleMarkAsPaid}
-        accessibilityLabel={isRepayment ? "Pay bill" : "Mark as paid"}
-        accessibilityRole="button"
-        className="flex-1 items-center py-2"
-      >
-        <Ionicons name="checkmark-circle-outline" size={20} color={theme.success} />
-        <Text className="text-label font-medium text-success mt-1">
-          {isRepayment ? "Pay Bill" : "Mark as paid"}
-        </Text>
-      </Pressable>
-      <View className="w-px h-8 bg-border" />
-      {isRepayment ? (
-        <Pressable
-          onPress={handlePaidExternally}
-          accessibilityLabel="Paid externally"
-          accessibilityRole="button"
-          className="flex-1 items-center py-2"
-        >
-          <Ionicons name="exit-outline" size={20} color={theme.mutedForeground} />
-          <Text className="text-label font-medium mt-1" style={{ color: theme.mutedForeground }}>
-            Paid externally
-          </Text>
-        </Pressable>
-      ) : (
-        <Pressable
-          onPress={handleRealiseNow}
-          accessibilityLabel="Realise now"
-          accessibilityRole="button"
-          className="flex-1 items-center py-2"
-        >
-          <Ionicons name="arrow-forward-circle-outline" size={20} color={theme.primary} />
-          <Text className="text-label font-medium mt-1" style={{ color: theme.primary }}>
-            Realise now
-          </Text>
-        </Pressable>
-      )}
-      <View className="w-px h-8 bg-border" />
-      <Pressable
-        onPress={handleDelete}
-        accessibilityLabel="Delete forecast"
-        accessibilityRole="button"
-        className="flex-1 items-center py-2"
-      >
-        <Ionicons name="trash-outline" size={20} color={theme.danger} />
-        <Text className="text-label font-medium text-danger mt-1">
-          Delete
-        </Text>
-      </Pressable>
+    <View className="flex-row flex-wrap px-4 pb-4 pt-1" style={{ gap: 8 }}>
+      {pill(isRepayment ? "Pay bill" : "Mark as paid", handleMarkAsPaid, "primary", "checkmark-circle-outline")}
+      {isRepayment
+        ? pill("Paid elsewhere", handlePaidExternally, "plain", "exit-outline")
+        : pill("Realise now", handleRealiseNow, "plain", "arrow-forward-circle-outline")}
+      {pill("Delete", handleDelete, "danger", "trash-outline")}
     </View>
   );
 }

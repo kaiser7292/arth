@@ -42,6 +42,7 @@ import { TagPicker } from "@/components/expense/TagPicker";
 import { ActionRow, Button, Chip, FieldRow, Input, LoadingState, ScreenContainer, SectionTitle, Sheet, Text, useToast, type ActionRowItem } from "@/components/ui";
 import { categoryPath } from "@/utils/category-tree";
 import { COMPONENTS } from "@/constants/design-tokens";
+import { LinkedCard } from "@/components/expense/LinkedCard";
 import { MoreActionsSheet, type MoreActionGroup } from "@/components/expense/MoreActionsSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
@@ -2304,117 +2305,46 @@ export default function ExpenseDetailScreen() {
 
               {/* 1b. Split-tender siblings (if this expense is one leg of a split purchase) */}
               {siblings.length > 0 && (
-                <Rows className="mx-4 mt-3 rounded-card bg-card">
-                  <View className="flex-row items-center px-4 py-3 border-b border-border">
-                    <View
-                      className="w-8 h-8 rounded-full items-center justify-center mr-2.5"
-                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                    >
-                      <Ionicons name="git-branch-outline" size={16} color={theme.primary} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
-                        Split Tender
-                      </Text>
-                      <Text className="text-label text-faint-foreground mt-0.5">
-                        Paid across {siblings.length + 1} payment source{siblings.length + 1 !== 1 ? "s" : ""}
-                      </Text>
-                    </View>
-                    <Text className="text-body font-bold text-foreground">
-                      {formatAmount(
-                        expense.amount + siblings.reduce((s, sib) => s + sib.amount, 0),
-                      )}
-                    </Text>
-                  </View>
-
-                  {siblings.map((sib, i) => {
+                <LinkedCard
+                  heading="Split payment"
+                  icon="git-branch-outline"
+                  title={`Paid with ${siblings.length + 1} payment sources`}
+                  subtitle="Tap one to open it"
+                  right={<Text className="text-body font-bold text-foreground">{formatAmount(expense.amount + siblings.reduce((s, sib) => s + sib.amount, 0))}</Text>}
+                >
+                  {siblings.map((sib) => {
                     const sibAccount = accounts.find((a) => a.id === sib.account_id);
                     const sibPM = paymentModes.find((p) => p.id === sib.payment_mode_id);
                     const label =
                       sibAccount?.account_label ||
-                      (sibAccount
-                        ? `${sibAccount.bank_name} ****${sibAccount.account_identifier}`
-                        : sibPM?.name ?? "Unknown source");
+                      (sibAccount ? `${sibAccount.bank_name} ••${sibAccount.account_identifier.slice(-4)}` : sibPM?.name ?? "Unknown source");
                     return (
-                      <Pressable
+                      <FieldRow
                         key={sib.id}
+                        label={label}
+                        value={formatAmount(sib.amount)}
                         onPress={() => router.push(`/expense/${sib.id}`)}
-                        className={`flex-row items-center px-4 py-3 ${i < siblings.length - 1 ? "border-b border-border" : ""}`}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Open sibling leg: ${label}`}
-                      >
-                        <Ionicons
-                          name="card-outline"
-                          size={16}
-                          color={theme.mutedForeground}
-                          style={{ marginRight: 8 }}
-                        />
-                        <Text
-                          className="flex-1 text-meta text-foreground"
-                          numberOfLines={1}
-                        >
-                          {label}
-                        </Text>
-                        <Text className="text-body font-semibold text-foreground mr-2">
-                          {formatAmount(sib.amount)}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
-                      </Pressable>
+                        accessibilityLabel={`Open the payment from ${label}`}
+                      />
                     );
                   })}
-                </Rows>
+                </LinkedCard>
               )}
 
               {/* 2a. Timeline — detection + due + payment dates (forecasts only) */}
               {expense.nature === "forecast" && (() => {
-                const detected = new Date(expense.created_at).toLocaleDateString("en-IN", {
-                  day: "numeric", month: "short", year: "numeric",
-                });
-                const due = expense.due_date
-                  ? new Date(expense.due_date + "T00:00:00").toLocaleDateString("en-IN", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })
-                  : null;
+                const fmt = (d: Date) => d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+                const detected = fmt(new Date(expense.created_at));
+                const due = expense.due_date ? fmt(new Date(expense.due_date + "T00:00:00")) : null;
                 const isPaid = expense.status === "rejected" && expense.paid_from_account_id;
-                const paidOn = isPaid
-                  ? new Date(expense.updated_at).toLocaleDateString("en-IN", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })
-                  : null;
+                const paidOn = isPaid ? fmt(new Date(expense.updated_at)) : null;
                 return (
-                  <Rows className="mx-4 mt-3 rounded-card bg-card">
-                    <View className="flex-row items-center px-4 py-3 border-b border-border">
-                      <Ionicons name="scan-outline" size={16} color={theme.mutedForeground} />
-                      <Text className="text-label text-muted-foreground ml-3 w-24">
-                        Detected
-                      </Text>
-                      <Text className="text-body font-medium text-foreground flex-1 text-right">
-                        {detected}
-                      </Text>
-                    </View>
-                    {due && (
-                      <View className={`flex-row items-center px-4 py-3 ${paidOn ? "border-b border-border" : ""}`}>
-                        <Ionicons name="calendar-outline" size={16} color={theme.mutedForeground} />
-                        <Text className="text-label text-muted-foreground ml-3 w-24">
-                          Due
-                        </Text>
-                        <Text className="text-body font-medium text-foreground flex-1 text-right">
-                          {due}
-                        </Text>
-                      </View>
-                    )}
-                    {paidOn && (
-                      <View className="flex-row items-center px-4 py-3">
-                        <Ionicons name="checkmark-circle-outline" size={16} color={theme.success} />
-                        <Text className="text-label text-muted-foreground ml-3 w-24">
-                          Paid on
-                        </Text>
-                        <Text className="text-body font-medium flex-1 text-right" style={{ color: theme.success }}>
-                          {paidOn}
-                        </Text>
-                      </View>
-                    )}
-                  </Rows>
+                  <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pb-1">
+                    <Text className={COMPONENTS.cardHeading} accessibilityRole="header">Timeline</Text>
+                    <FieldRow divider={false} label="Detected" value={detected} />
+                    {due && <FieldRow label="Due" value={due} />}
+                    {paidOn && <FieldRow label="Paid on" value={paidOn} valueColor={theme.success} />}
+                  </View>
                 );
               })()}
 
@@ -2483,7 +2413,7 @@ export default function ExpenseDetailScreen() {
               {/* 4. Split Section — not applicable for credits, nor my share of a household member's
                   bill (Together keeps that one; its split is theirs) */}
               {expense.nature !== "credit" && !expense.household_ref && splitView && (
-              <View className="mx-4 mt-3">
+              <View>
                 <SplitCard
                     view={splitView}
                     onEdit={() => setShowSplitEdit(true)}
@@ -2518,12 +2448,8 @@ export default function ExpenseDetailScreen() {
 
               {/* 4c. Forecast Actions (only for forecasts) */}
               {expense.nature === "forecast" && (
-                <View className="mx-4 mt-3 rounded-card bg-card overflow-hidden">
-                  <View className="px-4 pt-3 pb-1">
-                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
-                      Forecast Actions
-                    </Text>
-                  </View>
+                <View className="mx-4 mt-3 rounded-card bg-card border border-border overflow-hidden">
+                  <Text className={`${COMPONENTS.cardHeading} px-4`} accessibilityRole="header">Forecast</Text>
                   <ForecastActionBar
                     forecastId={expense.id}
                     forecastType={expense.forecast_type}
@@ -2538,498 +2464,167 @@ export default function ExpenseDetailScreen() {
 
               {/* 4d. Transfer Details (shown when expense is reclassified as transfer, but NOT when the destination is a fixed deposit — that gets its own card below). */}
               {transfer && !fdProduct && (
-                <View className="mx-4 mt-3 rounded-card bg-card overflow-hidden">
-                  <View className="px-4 pt-3 pb-1">
-                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
-                      Transfer Details
-                    </Text>
-                  </View>
-                  <View className="px-4 py-3">
-                    <View className="flex-row items-center mb-3">
-                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="swap-horizontal-outline" size={20} color={theme.primary} />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-body font-semibold text-foreground">
-                          Marked as transfer
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="ml-13 mb-3">
-                      <Text className="text-label text-muted-foreground mb-1">From:</Text>
-                      <Pressable onPress={() => navigateToTransferAccountLedger(transfer.from_account_id)}>
-                        <Text className="text-body font-semibold" style={{ color: theme.primary }}>
-                          {accounts.find(a => a.id === transfer.from_account_id)?.bank_name || "Unknown"} ****{accounts.find(a => a.id === transfer.from_account_id)?.account_identifier || ""}
-                        </Text>
-                      </Pressable>
-                    </View>
-                    <View className="ml-13 mb-3">
-                      <Text className="text-label text-muted-foreground mb-1">To:</Text>
-                      <Pressable onPress={() => navigateToTransferAccountLedger(transfer.to_account_id)}>
-                        <Text className="text-body font-semibold" style={{ color: theme.primary }}>
-                          {accounts.find(a => a.id === transfer.to_account_id)?.bank_name || "Unknown"} ****{accounts.find(a => a.id === transfer.to_account_id)?.account_identifier || ""}
-                        </Text>
-                      </Pressable>
-                    </View>
-                    <View className="ml-13 mb-3">
-                      <Text className="text-label text-muted-foreground mb-1">Amount:</Text>
-                      <Text className="text-body font-semibold text-foreground">
-                        ₹{transfer.amount.toLocaleString()}
-                      </Text>
-                    </View>
-                    <View className="ml-13">
-                      <Text className="text-label text-muted-foreground mb-1">Date:</Text>
-                      <Text className="text-body font-semibold text-foreground">
-                        {transfer.date}
-                      </Text>
-                    </View>
-                  </View>
-                  <Pressable
-                    onPress={handleUndoTransfer}
-                    className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-control bg-background"
-                  >
-                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                      <Ionicons name="arrow-undo-outline" size={20} color={theme.primary} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-body font-semibold text-foreground">
-                        Undo transfer
-                      </Text>
-                      <Text className="text-label text-muted-foreground mt-0.5">
-                        Convert back to expense
-                      </Text>
-                    </View>
-                  </Pressable>
-                </View>
+                <LinkedCard
+                  heading="Transfer"
+                  icon="swap-horizontal"
+                  color={theme.data.transfer}
+                  title={`Moved ${formatAmount(transfer.amount)} between your accounts`}
+                  subtitle={formatDate(transfer.date)}
+                  actions={[{ label: "Undo transfer", icon: "arrow-undo-outline", onPress: handleUndoTransfer }]}
+                  note="Undo turns it back into an expense."
+                >
+                  <FieldRow label="From" value={(() => { const a = accounts.find((x) => x.id === transfer.from_account_id); return a ? (a.account_label || `${a.bank_name} ••${a.account_identifier.slice(-4)}`) : "Unknown account"; })()} onPress={() => navigateToTransferAccountLedger(transfer.from_account_id)} />
+                  <FieldRow label="To" value={(() => { const a = accounts.find((x) => x.id === transfer.to_account_id); return a ? (a.account_label || `${a.bank_name} ••${a.account_identifier.slice(-4)}`) : "Unknown account"; })()} onPress={() => navigateToTransferAccountLedger(transfer.to_account_id)} />
+                </LinkedCard>
               )}
 
               {/* 4d-ii. Fixed Deposit Details (shown when this expense is the deposit
                   transfer for an FD created via "Mark as fixed deposit"). */}
               {transfer && fdProduct && (
-                <View className="mx-4 mt-3 rounded-card bg-card overflow-hidden">
-                  <View className="px-4 pt-3 pb-1">
-                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
-                      Fixed Deposit Details
-                    </Text>
-                  </View>
-                  <View className="px-4 py-3">
-                    <Pressable
-                      className="flex-row items-center mb-3"
-                      onPress={() => router.push({ pathname: "/settings/account-detail", params: { accountId: fdProduct.financial_account_id } })}
-                    >
-                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="cash-outline" size={20} color={theme.primary} />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-body font-semibold" style={{ color: theme.primary }}>
-                          {accounts.find(a => a.id === fdProduct.financial_account_id)?.account_label
-                            ?? accounts.find(a => a.id === fdProduct.financial_account_id)?.bank_name
-                            ?? "Fixed Deposit"}
-                        </Text>
-                        <Text className="text-label text-muted-foreground mt-0.5">
-                          {INSTRUMENT_LABELS[fdProduct.instrument]} · tap to edit
-                        </Text>
-                      </View>
-                    </Pressable>
-                    <View className="ml-13 mb-3">
-                      <Text className="text-label text-muted-foreground mb-1">Principal:</Text>
-                      <Text className="text-body font-semibold text-foreground">
-                        {fdProduct.principal != null ? formatAmount(fdProduct.principal) : "—"}
-                      </Text>
-                    </View>
-                    {isFDIncomplete(fdProduct) ? (
-                      <View className="ml-13">
-                        <Text className="text-label text-muted-foreground mb-1">Interest & maturity:</Text>
-                        <Text className="text-body font-semibold text-foreground">Not set yet</Text>
-                      </View>
-                    ) : (
-                      <>
-                        <View className="ml-13 mb-3">
-                          <Text className="text-label text-muted-foreground mb-1">Interest rate:</Text>
-                          <Text className="text-body font-semibold text-foreground">
-                            {fdProduct.interest_rate_pa}% p.a. ({fdProduct.interest_method})
-                          </Text>
-                        </View>
-                        <View className="ml-13 mb-3">
-                          <Text className="text-label text-muted-foreground mb-1">Matures:</Text>
-                          <Text className="text-body font-semibold text-foreground">
-                            {fdProduct.maturity_date ? formatDate(fdProduct.maturity_date) : "—"}
-                          </Text>
-                        </View>
-                        {fdProduct.maturity_amount_override != null && (
-                          <View className="ml-13 mb-3">
-                            <Text className="text-label text-muted-foreground mb-1">Corrected maturity amount:</Text>
-                            <Text className="text-body font-semibold text-foreground">
-                              {formatAmount(fdProduct.maturity_amount_override)}
-                            </Text>
-                          </View>
-                        )}
-                      </>
-                    )}
-                    <View className="ml-13 mb-3">
-                      <Text className="text-label text-muted-foreground mb-1">Status:</Text>
-                      <Text className="text-body font-semibold text-foreground capitalize">{fdProduct.status}</Text>
-                    </View>
-                    {fdBucketName && (
-                      <View className="ml-13">
-                        <Text className="text-label text-muted-foreground mb-1">Investment bucket:</Text>
-                        <Text className="text-body font-semibold text-foreground">{fdBucketName}</Text>
-                      </View>
-                    )}
-                  </View>
-                  {fdProduct.status === "active" ? (
-                    <Pressable
-                      onPress={handleUndoFD}
-                      className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-control bg-background"
-                    >
-                      <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                        <Ionicons name="arrow-undo-outline" size={20} color={theme.primary} />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-body font-semibold text-foreground">
-                          Undo fixed deposit
-                        </Text>
-                        <Text className="text-label text-muted-foreground mt-0.5">
-                          Convert back to expense
-                        </Text>
-                      </View>
-                    </Pressable>
+                <LinkedCard
+                  heading="Fixed deposit"
+                  icon="cash-outline"
+                  title={
+                    accounts.find((a) => a.id === fdProduct.financial_account_id)?.account_label ??
+                    accounts.find((a) => a.id === fdProduct.financial_account_id)?.bank_name ??
+                    "Fixed deposit"
+                  }
+                  subtitle={`${INSTRUMENT_LABELS[fdProduct.instrument]} · tap to edit`}
+                  onPressTitle={() => router.push({ pathname: "/settings/account-detail", params: { accountId: fdProduct.financial_account_id } })}
+                  actions={fdProduct.status === "active" ? [{ label: "Undo fixed deposit", icon: "arrow-undo-outline", onPress: handleUndoFD }] : []}
+                  note={fdProduct.status === "active" ? "Undo turns it back into an expense." : "This fixed deposit has matured, so it can no longer be undone."}
+                >
+                  <FieldRow label="Principal" value={fdProduct.principal != null ? formatAmount(fdProduct.principal) : "—"} />
+                  {isFDIncomplete(fdProduct) ? (
+                    <FieldRow label="Interest & maturity" value="Not set yet" valueColor={theme.mutedForeground} />
                   ) : (
-                    <View className="mx-4 mb-3 px-4 py-2">
-                      <Text className="text-label text-muted-foreground">
-                        This fixed deposit has matured — it can no longer be undone.
-                      </Text>
-                    </View>
+                    <>
+                      <FieldRow label="Interest" value={`${fdProduct.interest_rate_pa}% a year (${fdProduct.interest_method})`} />
+                      <FieldRow label="Matures" value={fdProduct.maturity_date ? formatDate(fdProduct.maturity_date) : "—"} />
+                      {fdProduct.maturity_amount_override != null && (
+                        <FieldRow label="Corrected maturity" value={formatAmount(fdProduct.maturity_amount_override)} />
+                      )}
+                    </>
                   )}
-                </View>
+                  <FieldRow label="Status" value={fdProduct.status.charAt(0).toUpperCase() + fdProduct.status.slice(1)} />
+                  {fdBucketName ? <FieldRow label="Investment bucket" value={fdBucketName} /> : null}
+                </LinkedCard>
               )}
 
-              {/* v15.12.0: Linked-to-hisaab badge — shown when this credit is
-                   already marked as a settlement. Tap the person name to jump
-                   to their hisaab ledger; tap Unlink to unmark (keeps credit). */}
+              {/* v15.12.0: Linked-to-hisaab — this credit is a settlement. Unlink keeps the credit. */}
               {expense.nature === "credit" && linkedSettlement && (
-                <View
-                  className="mx-4 mt-3 p-3 rounded-card"
-                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                >
-                  <View className="flex-row items-center">
-                    <View
-                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                    >
-                      <Ionicons
-                        name="people"
-                        size={20}
-                        color={theme.primary}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
-                        Settlement from {linkedSettlement.personName}
-                      </Text>
-                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
-                        Applied against their hisaab balance.
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row mt-3 gap-2">
-                    <Pressable
-                      onPress={() => router.push(`/hisaab/ledger?personId=${linkedSettlement.personId}`)}
-                      className="flex-1 py-2 rounded-control items-center"
-                      style={{ backgroundColor: theme.primary }}
-                      accessibilityRole="button"
-                      accessibilityLabel={`View ${linkedSettlement.personName}'s hisaab ledger`}
-                    >
-                      <Text className="text-body font-semibold text-primary-foreground">View ledger</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={handleUnlinkSettlement}
-                      className="flex-1 py-2 rounded-control items-center"
-                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Unlink settlement"
-                    >
-                      <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
-                        Unlink
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
+                <LinkedCard
+                  heading="Hisaab settlement"
+                  icon="people"
+                  title={`Settlement from ${linkedSettlement.personName}`}
+                  subtitle="Applied against their hisaab balance"
+                  onPressTitle={() => router.push(`/hisaab/ledger?personId=${linkedSettlement.personId}`)}
+                  actions={[
+                    { label: "View ledger", primary: true, onPress: () => router.push(`/hisaab/ledger?personId=${linkedSettlement.personId}`) },
+                    { label: "Unlink", onPress: handleUnlinkSettlement },
+                  ]}
+                />
               )}
 
-              {/* Badge: credit already tagged as refund. Tap expense name to deep-link;
-                   tap Unlink to remove the soft link (credit stays in ledger). */}
+              {/* This credit is a refund of an expense. Unlink keeps the credit in the ledger. */}
               {expense.nature === "credit" && expense.refund_of_expense_id && (
-                <View
-                  className="mx-4 mt-3 p-3 rounded-card"
-                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                >
-                  <View className="flex-row items-center">
-                    <View
-                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                    >
-                      <Ionicons
-                        name="return-up-back"
-                        size={20}
-                        color={theme.primary}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
-                        Refund for {linkedExpenseSummary ?? "an expense"}
-                      </Text>
-                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
-                        Reduces effective spend in budget &amp; insights
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row mt-3 gap-2">
-                    <Pressable
-                      onPress={() => router.push(`/expense/${expense.refund_of_expense_id}`)}
-                      className="flex-1 py-2 rounded-control items-center"
-                      style={{ backgroundColor: theme.primary }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Open the linked expense"
-                    >
-                      <Text className="text-body font-semibold text-primary-foreground">View expense</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={handleUnlinkCreditAsRefund}
-                      className="flex-1 py-2 rounded-control items-center"
-                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Unlink refund"
-                    >
-                      <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
-                        Unlink
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
+                <LinkedCard
+                  heading="Refund"
+                  icon="return-up-back"
+                  color={theme.success}
+                  title={`Refund for ${linkedExpenseSummary ?? "an expense"}`}
+                  subtitle="Takes this off that expense in budgets and insights"
+                  onPressTitle={() => router.push(`/expense/${expense.refund_of_expense_id}`)}
+                  actions={[
+                    { label: "View expense", primary: true, onPress: () => router.push(`/expense/${expense.refund_of_expense_id}`) },
+                    { label: "Unlink", onPress: handleUnlinkCreditAsRefund },
+                  ]}
+                />
               )}
 
-              {/* v17.0.0: Investment-linked badge */}
+              {/* v17.0.0: Investment-linked */}
               {investmentLink && (
-                <View
-                  className="mx-4 mt-3 p-3 rounded-card"
-                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                >
-                  <View className="flex-row items-center">
-                    <View
-                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                    >
-                      <Ionicons
-                        name="trending-up"
-                        size={20}
-                        color={theme.primary}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
-                        Investment · {investmentBucketName ?? "Bucket"}
-                      </Text>
-                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
-                        Credited to the bucket. Excluded from this month's budget.
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row mt-3 gap-2">
-                    <Pressable
-                      onPress={() => router.push({ pathname: "/goals/investment-detail", params: { bucketId: investmentLink.investment_bucket_id } })}
-                      className="flex-1 py-2 rounded-control items-center"
-                      style={{ backgroundColor: theme.primary }}
-                      accessibilityRole="button"
-                      accessibilityLabel={`View ${investmentBucketName} bucket`}
-                    >
-                      <Text className="text-body font-semibold text-primary-foreground">View bucket</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={handleUnlinkInvestment}
-                      className="flex-1 py-2 rounded-control items-center"
-                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Unlink investment"
-                    >
-                      <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
-                        Unlink
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
+                <LinkedCard
+                  heading="Investment"
+                  icon="trending-up"
+                  title={investmentBucketName ?? "Investment bucket"}
+                  subtitle="Credited to the bucket, left out of this month's budget"
+                  onPressTitle={() => router.push({ pathname: "/goals/investment-detail", params: { bucketId: investmentLink.investment_bucket_id } })}
+                  actions={[
+                    { label: "View bucket", primary: true, onPress: () => router.push({ pathname: "/goals/investment-detail", params: { bucketId: investmentLink.investment_bucket_id } }) },
+                    { label: "Unlink", onPress: handleUnlinkInvestment },
+                  ]}
+                />
               )}
 
-              {/* v17.4.0: Loan-linked badge */}
+              {/* v17.4.0: Loan-linked */}
               {loanLink && (
-                <View
-                  className="mx-4 mt-3 p-3 rounded-card"
-                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                >
-                  <View className="flex-row items-center">
-                    <View
-                      className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                    >
-                      <Ionicons
-                        name={loanLink.link_kind === "emi" ? "calendar" : "trending-down"}
-                        size={20}
-                        color={theme.primary}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
-                        {loanLink.link_kind === "emi" ? "EMI" : "Prepayment"}
-                        {linkedLoanBankName ? ` · ${linkedLoanBankName}` : ""}
-                        {linkedLoan ? ` ${linkedLoan.loan_type}` : ""}
-                      </Text>
-                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
-                        {loanLink.link_kind === "emi"
-                          ? "Logged against the scheduled installment."
-                          : "Principal reduced. Excluded from budget."}
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="flex-row mt-3 gap-2">
-                    <Pressable
-                      onPress={() =>
-                        router.push({ pathname: "/loans/[id]", params: { id: loanLink.loan_account_id } })
-                      }
-                      className="flex-1 py-2 rounded-control items-center"
-                      style={{ backgroundColor: theme.primary }}
-                      accessibilityRole="button"
-                      accessibilityLabel="View loan"
-                    >
-                      <Text className="text-body font-semibold text-primary-foreground">View loan</Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={handleUnlinkLoan}
-                      className="flex-1 py-2 rounded-control items-center"
-                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
-                      accessibilityRole="button"
-                      accessibilityLabel="Unlink loan payment"
-                    >
-                      <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
-                        Unlink
-                      </Text>
-                    </Pressable>
-                  </View>
-                </View>
+                <LinkedCard
+                  heading="Loan payment"
+                  icon={loanLink.link_kind === "emi" ? "calendar" : "trending-down"}
+                  title={`${loanLink.link_kind === "emi" ? "EMI" : "Prepayment"}${linkedLoanBankName ? ` · ${linkedLoanBankName}` : ""}${linkedLoan ? ` ${linkedLoan.loan_type}` : ""}`}
+                  subtitle={loanLink.link_kind === "emi" ? "Logged against the scheduled instalment" : "Principal reduced, left out of the budget"}
+                  onPressTitle={() => router.push({ pathname: "/loans/[id]", params: { id: loanLink.loan_account_id } })}
+                  actions={[
+                    { label: "View loan", primary: true, onPress: () => router.push({ pathname: "/loans/[id]", params: { id: loanLink.loan_account_id } }) },
+                    { label: "Unlink", onPress: handleUnlinkLoan },
+                  ]}
+                />
               )}
 
-              {/* v14.7.0: Recurring-reminder suggestion banner. Shown only
-                  when this realized expense isn't already linked and a
-                  pending rule matches by merchant + date window. Tapping
-                  "Link" fulfills the reminder; "Dismiss" hides the banner
-                  for this session only. */}
+              {/* v14.7.0: Recurring-reminder suggestion. Shown only when this realized expense isn't
+                  already linked and a pending rule matches by merchant + date window. "Link"
+                  fulfils the reminder; "Not this one" hides it for this session only. */}
               {expense.nature === "realized" && suggestedReminder && (
-                <View
-                  className="mx-4 mt-3 p-3 rounded-card"
-                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                >
-                  <View className="flex-row items-start">
-                    <Ionicons name="repeat-outline" size={18} color={theme.primary} />
-                    <View className="flex-1 ml-2">
-                      <Text
-                        className="text-body font-semibold"
-                        style={{ color: theme.primary }}
-                      >
-                        Link to a reminder?
-                      </Text>
-                      <Text className="text-label text-muted-foreground mt-0.5">
-                        Looks like this could fulfill a recurring reminder due {suggestedReminder.next_due_date}.
-                      </Text>
-                      <View className="flex-row mt-2">
-                        <Pressable
-                          onPress={async () => {
-                            try {
-                              await fulfillReminder(suggestedReminder.id, expense.id);
-                              const rules = await getActiveRecurringRules(DEFAULT_USER_ID);
-                              const match = rules.find(
-                                (r) => r.id === suggestedReminder.id,
-                              );
-                              setFulfilledRule(match ?? suggestedReminder);
-                              setSuggestedReminder(null);
-                            } catch (e) {
-                              alert("Couldn't link", formatError("Link reminder", e));
-                            }
-                          }}
-                          className="px-3 py-1.5 rounded-control mr-2"
-                          style={{ backgroundColor: theme.primary }}
-                          accessibilityRole="button"
-                          accessibilityLabel="Link this expense to the reminder"
-                        >
-                          <Text className="text-label font-semibold text-primary-foreground">Link</Text>
-                        </Pressable>
-                        <Pressable
-                          onPress={() => setSuggestedReminder(null)}
-                          className="px-3 py-1.5 rounded-control"
-                          accessibilityRole="button"
-                          accessibilityLabel="Dismiss suggestion"
-                        >
-                          <Text className="text-label font-semibold" style={{ color: theme.mutedForeground }}>
-                            Dismiss
-                          </Text>
-                        </Pressable>
-                      </View>
-                    </View>
-                  </View>
-                </View>
+                <LinkedCard
+                  heading="Suggestion"
+                  icon="repeat-outline"
+                  title="Link to a reminder?"
+                  subtitle={`This looks like the payment for a reminder due ${suggestedReminder.next_due_date}.`}
+                  actions={[
+                    {
+                      label: "Link",
+                      primary: true,
+                      onPress: async () => {
+                        try {
+                          await fulfillReminder(suggestedReminder.id, expense.id);
+                          const rules = await getActiveRecurringRules(DEFAULT_USER_ID);
+                          const match = rules.find((r) => r.id === suggestedReminder.id);
+                          setFulfilledRule(match ?? suggestedReminder);
+                          setSuggestedReminder(null);
+                        } catch (e) {
+                          alert("Couldn't link", formatError("Link reminder", e));
+                        }
+                      },
+                    },
+                    { label: "Not this one", onPress: () => setSuggestedReminder(null) },
+                  ]}
+                />
               )}
 
-              {/* Refund Details card — shown when at least one refund has been recorded */}
+              {/* Refunds recorded against this expense, each with its own Undo */}
               {expense.nature === "realized" && refunds.length > 0 && (
-                <View className="mx-4 mt-3 rounded-card bg-card overflow-hidden">
-                  <View className="px-4 pt-3 pb-1">
-                    <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
-                      Refund Details
-                    </Text>
-                  </View>
+                <LinkedCard
+                  heading="Refunds"
+                  icon="return-down-back-outline"
+                  color={theme.success}
+                  title={refunds.length > 1 ? `${refunds.length} refunds` : "Refunded"}
+                  subtitle={`${formatAmount(refunds.reduce((sum, r) => sum + r.amount, 0))} back so far`}
+                >
                   {refunds.map((refund, idx) => (
-                    <View key={refund.id}>
-                      <View className="px-4 py-3">
-                        <View className="flex-row items-center mb-2">
-                          <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                            <Ionicons name="return-up-back-outline" size={20} color={theme.primary} />
-                          </View>
-                          <View className="flex-1">
-                            <Text className="text-body font-semibold text-foreground">
-                              {refunds.length > 1 ? `Refund ${idx + 1}` : "Refunded"}
-                            </Text>
-                          </View>
-                        </View>
-                        <View className="ml-13 mb-1">
-                          <Text className="text-label text-muted-foreground mb-0.5">Amount:</Text>
-                          <Text className="text-body font-semibold text-foreground">
-                            {formatAmount(refund.amount)}
-                          </Text>
-                        </View>
-                        <View className="ml-13">
-                          <Text className="text-label text-muted-foreground mb-0.5">Date:</Text>
-                          <Text className="text-body font-semibold text-foreground">
-                            {refund.date}
-                          </Text>
-                        </View>
-                      </View>
+                    <FieldRow key={refund.id} label={refunds.length > 1 ? `Refund ${idx + 1} · ${refund.date}` : refund.date} value={formatAmount(refund.amount)}>
                       <Pressable
                         onPress={() => handleUndoRefund(refund.id)}
-                        className="mx-4 mb-3 flex-row items-center py-3 px-4 rounded-control bg-background"
+                        hitSlop={8}
+                        className="ml-3"
+                        accessibilityRole="button"
+                        accessibilityLabel={`Undo the refund of ${formatAmount(refund.amount)}`}
                       >
-                        <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                          <Ionicons name="arrow-undo-outline" size={20} color={theme.primary} />
-                        </View>
-                        <View className="flex-1">
-                          <Text className="text-body font-semibold text-foreground">
-                            Undo refund
-                          </Text>
-                          <Text className="text-label text-muted-foreground mt-0.5">
-                            Remove this refund record
-                          </Text>
-                        </View>
+                        <Text className="text-meta font-semibold" style={{ color: theme.primary }}>Undo</Text>
                       </Pressable>
-                    </View>
+                    </FieldRow>
                   ))}
-                </View>
+                </LinkedCard>
               )}
 
               {/* 5. Source: how it got here, with what a rule or reminder did to it */}
