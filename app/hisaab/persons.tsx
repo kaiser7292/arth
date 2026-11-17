@@ -5,12 +5,14 @@
  * add/edit person form, navigate to ledger detail.
  */
 
-import { Button, Card, EmptyState, FAB, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, FAB, Input, LoadingState, ScreenContainer, Segmented, Text } from "@/components/ui";
+import { StatTile } from "@/components/ui/LinkRow";
+import { FoldGroup, FormFooter, FormGroup } from "@/components/ui/FormParts";
+import { tint } from "@/constants/brand";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { useAlert } from "@/hooks/use-alert";
 import { useBackOverride } from "@/hooks/use-back-override";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import {
     createPerson,
@@ -21,7 +23,7 @@ import {
 } from "@/services/hisaab";
 import { formatAmount } from "@/utils/expense-validation";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -53,9 +55,10 @@ const peopleSearch = (p: HisaabPersonWithBalance) => ({ texts: [p.name, p.phone,
 export default function HisaabPersonsScreen() {
   const alert = useAlert();
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const editOpened = useRef<string | null>(null);
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [summary, setSummary] = useState({
     totalOwedToYou: 0,
@@ -181,12 +184,29 @@ export default function HisaabPersonsScreen() {
     setViewMode("list");
   };
 
+  // Arriving from a ledger's Edit pill: open that person's form once the list has loaded.
+  useEffect(() => {
+    if (!loaded || !edit || editOpened.current === edit) return;
+    const p = persons.find((x) => x.id === edit);
+    if (p) {
+      editOpened.current = edit;
+      handleEdit(p);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, edit, persons]);
+
   // ─── Loading ───────────────────────────────────────────
+
+  // All / Owe you / You owe: a quick switch over the one list (the filter sheet keeps the full set).
+  const [show, setShow] = useState<"all" | "owed" | "owe">("all");
+  const shownPersons = show === "all" ? persons : persons.filter((p) => (show === "owed" ? p.balance > 0 : p.balance < 0));
+  const owedCount = persons.filter((p) => p.balance > 0).length;
+  const oweCount = persons.filter((p) => p.balance < 0).length;
 
   const tools = useListTools<HisaabPersonWithBalance>({
     screen: "hisaab_people",
     noun: { one: "person", many: "people" },
-    rows: persons,
+    rows: shownPersons,
     fields: PEOPLE_FIELDS,
     sorts: PEOPLE_SORTS,
     search: peopleSearch,
@@ -208,83 +228,56 @@ export default function HisaabPersonsScreen() {
   if (viewMode === "add_person") {
     return (
       <ScreenContainer padTop={false}>
+        <Stack.Screen options={{ title: editingId ? "Edit person" : "Add person" }} />
         {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-        <KeyboardAvoidingView
-          behavior="padding"
-          className="flex-1"
-        >
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
           <ScrollView
             ref={scrollRef}
             className="flex-1"
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
+            contentContainerStyle={{ paddingBottom: 24 }}
             keyboardShouldPersistTaps="handled"
           >
-            <View className="px-4 py-4">
-              <Card
-                title={editingId ? "Edit Person" : "Add Person"}
-                className="mb-4"
+            <View className="px-4 py-4" style={{ gap: 12 }}>
+              <FormGroup icon="person-outline" title="Who" hint="Family or friends you share money with">
+                <Input label="Name" value={formName} onChangeText={setFormName} placeholder="e.g. Jane Doe" maxLength={50} />
+                <View>
+                  <Input
+                    label="Opening balance"
+                    prefix="₹"
+                    value={formInitialBalance}
+                    onChangeText={setFormInitialBalance}
+                    keyboardType="numeric"
+                    formula
+                    placeholder="5000 or -2000"
+                  />
+                  <Text className="text-label text-muted-foreground mt-1.5">Plus if they owe you, minus if you owe them.</Text>
+                </View>
+              </FormGroup>
+              <FoldGroup
+                title="Contact and notes"
+                sub={
+                  [formPhone, formEmail, formNotes].some((v) => v.trim())
+                    ? [formPhone.trim(), formEmail.trim(), formNotes.trim() ? "notes" : ""].filter(Boolean).join(" · ")
+                    : "Optional · phone, email, notes"
+                }
+                icon="call-outline"
+                defaultOpen={[formPhone, formEmail, formNotes].some((v) => v.trim())}
               >
+                <Input label="Phone" value={formPhone} onChangeText={setFormPhone} keyboardType="phone-pad" placeholder="e.g. 9876543210" />
                 <Input
-                  label="Name"
-                  value={formName}
-                  onChangeText={setFormName}
-                  placeholder="e.g. Jane Doe"
-                  maxLength={50}
-                  containerClassName="mb-3"
-                />
-                <Input
-                  label="Phone (optional)"
-                  value={formPhone}
-                  onChangeText={setFormPhone}
-                  keyboardType="phone-pad"
-                  placeholder="e.g. 9876543210"
-                  containerClassName="mb-3"
-                />
-                <Input
-                  label="Email (optional)"
+                  label="Email"
                   value={formEmail}
                   onChangeText={setFormEmail}
                   keyboardType="email-address"
                   placeholder="e.g. tarun@example.com"
                   maxLength={100}
-                  containerClassName="mb-3"
                 />
-                <Input
-                  label="Initial Balance (Rs, +ve = they owe you)"
-                  value={formInitialBalance}
-                  onChangeText={setFormInitialBalance}
-                  keyboardType="numeric"
-                  formula
-                  placeholder="e.g. 5000 or -2000"
-                  containerClassName="mb-3"
-                />
-                <Input
-                  label="Notes (optional)"
-                  value={formNotes}
-                  onChangeText={setFormNotes}
-                  placeholder="e.g. College friend, roommate"
-                  maxLength={300}
-                  containerClassName="mb-4"
-                />
-                <View className="flex-row">
-                  <View className="flex-1 mr-2">
-                    <Button
-                      title="Cancel"
-                      variant="outline"
-                      onPress={resetForm}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Button
-                      title={editingId ? "Update" : "Add Person"}
-                      onPress={handleSave}
-                    />
-                  </View>
-                </View>
-              </Card>
+                <Input label="Notes" value={formNotes} onChangeText={setFormNotes} placeholder="e.g. College friend, roommate" maxLength={300} />
+              </FoldGroup>
             </View>
           </ScrollView>
+          <FormFooter primary={editingId ? "Save person" : "Add person"} onPrimary={handleSave} onCancel={resetForm} />
         </KeyboardAvoidingView>
       </ScreenContainer>
     );
@@ -295,97 +288,84 @@ export default function HisaabPersonsScreen() {
   return (
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
+      {persons.length > 0 && (
+        <View className="px-4 pt-3" style={{ gap: 10 }}>
+          {/* Owed to you / You owe */}
+          <View className="flex-row" style={{ gap: 8 }}>
+            <StatTile
+              label="Owed to you"
+              value={formatAmount(summary.totalOwedToYou)}
+              valueColor={summary.totalOwedToYou > 0 ? theme.success : undefined}
+              sub={`${owedCount} ${owedCount === 1 ? "person" : "people"}`}
+              onPress={() => setShow(show === "owed" ? "all" : "owed")}
+            />
+            <StatTile
+              label="You owe"
+              value={formatAmount(summary.totalYouOwe)}
+              sub={`${oweCount} ${oweCount === 1 ? "person" : "people"}`}
+              onPress={() => setShow(show === "owe" ? "all" : "owe")}
+            />
+          </View>
+          <Text className="text-meta text-muted-foreground px-1">
+            Net {summary.netBalance >= 0 ? "owed to you" : "you owe"}: {formatAmount(Math.abs(summary.netBalance))}
+          </Text>
+        </View>
+      )}
       {persons.length > 0 && <ListToolbar {...tools.toolbar} />}
       {tools.filterSheet}
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
-      >
-        <View className="px-4 py-4">
-          {/* Summary Card */}
-          {persons.length > 0 && (
-            <Card className="mb-4">
-              <View className="flex-row mb-2">
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground">
-                    Owed to You
-                  </Text>
-                  <Text className="text-base font-bold text-success">
-                    {formatAmount(summary.totalOwedToYou)}
-                  </Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground">
-                    You Owe
-                  </Text>
-                  <Text className="text-base font-bold text-danger">
-                    {formatAmount(summary.totalYouOwe)}
-                  </Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground">
-                    Net
-                  </Text>
-                  <Text
-                    className={`text-base font-bold ${summary.netBalance >= 0 ? "text-success" : "text-danger"}`}
-                  >
-                    {summary.netBalance >= 0 ? "+" : ""}
-                    {formatAmount(summary.netBalance)}
-                  </Text>
-                </View>
-              </View>
-            </Card>
-          )}
-
-
-          {/* Empty State */}
+      {persons.length > 0 && (
+        <Segmented<"all" | "owed" | "owe">
+          className="mx-4 mb-1"
+          options={[
+            { value: "all", label: "All" },
+            { value: "owed", label: "Owe you" },
+            { value: "owe", label: "You owe" },
+          ]}
+          value={show}
+          onChange={setShow}
+        />
+      )}
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
+        <View className="px-4 py-3">
           {persons.length === 0 && (
             <Card className="mb-4">
-              <EmptyState
-                icon="people-outline"
-                title="No people yet"
-                subtitle="Add family members or friends to track shared expenses"
-                fillScreen={false}
-              />
+              <EmptyState icon="people-outline" title="No people yet" subtitle="Add family members or friends to track shared expenses" fillScreen={false} />
             </Card>
           )}
 
-          {/* Person Cards */}
-          {tools.rows.length === 0 && tools.narrowed && (
-            <Text className="text-sm text-muted-foreground text-center py-8">Nothing matches.</Text>
+          {tools.rows.length === 0 && (tools.narrowed || show !== "all") && persons.length > 0 && (
+            <Text className="text-meta text-muted-foreground text-center py-8">Nothing matches.</Text>
           )}
-          {tools.grouped.map((row) => {
-            if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
-            const p = row.item;
-            return (
-            <PersonCard
-              key={p.id}
-              person={p}
-              onPress={() =>
-                router.push({
-                  pathname: "/hisaab/ledger",
-                  params: { personId: p.id, personName: p.name },
-                })
-              }
-              onLongPress={() => handleDeactivate(p)}
-              onEdit={() => handleEdit(p)}
-            />
-            );
-          })}
+
+          <View className="rounded-card bg-card border border-border overflow-hidden" style={{ display: tools.rows.length > 0 ? "flex" : "none" }}>
+            {tools.grouped.map((row, i) => {
+              if (row.type === "heading")
+                return (
+                  <View key={`group-${row.key}`} className="px-3.5 pt-2">
+                    <GroupHeading label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />
+                  </View>
+                );
+              const p = row.item;
+              return (
+                <PersonRow
+                  key={p.id}
+                  person={p}
+                  divider={i > 0}
+                  onPress={() => router.push({ pathname: "/hisaab/ledger", params: { personId: p.id, personName: p.name } })}
+                  onLongPress={() => handleDeactivate(p)}
+                  onEdit={() => handleEdit(p)}
+                />
+              );
+            })}
+          </View>
 
           {persons.length > 0 && (
-            <Text className="text-xs text-faint-foreground text-center mt-2 mb-4">
-              Tap to view ledger. Long-press to remove.
-            </Text>
+            <Text className="text-label text-faint-foreground text-center mt-3">Tap to open the ledger. Long-press to remove.</Text>
           )}
         </View>
       </ScrollView>
 
-      {/* FAB */}
-      <FAB icon="person-add-outline" onPress={() => setViewMode("add_person")} />
-
-
+      <FAB icon="add" label="Person" onPress={() => setViewMode("add_person")} />
     </ScreenContainer>
   );
 }
@@ -408,110 +388,76 @@ function prettyDay(iso: string): string {
   });
 }
 
-// ─── Person Card Component ──────────────────────────────
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
 
-function PersonCard({
+// ─── Person row ─────────────────────────────────────────
+
+function PersonRow({
   person,
+  divider,
   onPress,
   onLongPress,
   onEdit,
 }: {
   person: HisaabPersonWithBalance;
+  divider: boolean;
   onPress: () => void;
   onLongPress: () => void;
   onEdit: () => void;
 }) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const balance = person.balance ?? 0;
-  const isPositive = balance >= 0;
-  // Contact details were captured but never shown anywhere. Phone leads because it is what
-  // you reach for when settling up; both are shown when both exist and there is room.
+  const dir = balance > 0 ? "owes you" : balance < 0 ? "you owe" : "settled";
+  const avatar = theme.data.series[(person.name.charCodeAt(0) || 0) % theme.data.series.length];
+  // Contact details: phone leads because it is what you reach for when settling up.
   const contact = [person.phone, person.email].filter(Boolean).join(" · ");
+  const meta = [
+    `${person.entryCount} ${person.entryCount === 1 ? "entry" : "entries"}${person.lastEntryDate ? ` · ${prettyDay(person.lastEntryDate)}` : ""}`,
+    contact,
+    person.notes ?? "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress}>
-      <Card className="mb-3">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1">
-            {/* Avatar */}
-            <View
-              className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{
-                backgroundColor: isPositive
-                  ? theme.alpha("success", 0.08)
-                  : theme.alpha("danger", 0.08),
-              }}
-            >
-              <Text
-                className="text-base font-bold"
-                style={{ color: isPositive ? theme.success : theme.danger }}
-              >
-                {person.name.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-
-            {/* Name + metadata */}
-            <View className="flex-1">
-              <Text
-                className="text-sm font-medium text-foreground"
-                numberOfLines={1}
-              >
-                {person.name}
-              </Text>
-              <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                {person.entryCount} entries
-                {person.lastEntryDate ? ` · ${prettyDay(person.lastEntryDate)}` : ""}
-              </Text>
-              {contact ? (
-                <View className="flex-row items-center mt-0.5">
-                  <Ionicons
-                    name={person.phone ? "call-outline" : "mail-outline"}
-                    size={11}
-                    color={colors.textSecondary}
-                  />
-                  <Text className="text-label text-muted-foreground ml-1 flex-1" numberOfLines={1}>
-                    {contact}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
-
-          {/* Balance + edit */}
-          <View className="flex-row items-center">
-            <View className="items-end mr-2">
-              <Text
-                className={`text-base font-bold ${isPositive ? "text-success" : "text-danger"}`}
-              >
-                {isPositive ? "+" : ""}
-                {formatAmount(balance)}
-              </Text>
-              <Text className="text-xs text-muted-foreground">
-                {isPositive
-                  ? balance === 0
-                    ? "Settled"
-                    : "owes you"
-                  : "you owe"}
-              </Text>
-            </View>
-
-            <Pressable onPress={onEdit} hitSlop={8}>
-              <Ionicons name="create-outline" size={16} color={colors.blue} />
-            </Pressable>
-          </View>
-        </View>
-
-        {/* Notes */}
-        {person.notes && (
-          <Text
-            className="text-xs text-faint-foreground mt-2"
-            numberOfLines={1}
-          >
-            {person.notes}
-          </Text>
-        )}
-      </Card>
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      className={`flex-row items-center px-3.5 ${divider ? "border-t border-border" : ""}`}
+      style={{ minHeight: 64, gap: 12 }}
+      accessibilityRole="button"
+      accessibilityLabel={`${person.name}, ${formatAmount(Math.abs(balance))} ${dir}`}
+      accessibilityHint="Long-press to remove"
+    >
+      <View className="w-10 h-10 rounded-pill items-center justify-center" style={{ backgroundColor: balance === 0 ? theme.alpha("foreground", 0.06) : tint(avatar, 0.1) }}>
+        <Text className="text-meta font-bold" style={{ color: balance === 0 ? theme.mutedForeground : avatar }}>
+          {initials(person.name)}
+        </Text>
+      </View>
+      <View className="flex-1" style={{ minWidth: 0 }}>
+        <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+          {person.name}
+        </Text>
+        <Text className="text-meta text-muted-foreground" numberOfLines={1}>
+          {meta}
+        </Text>
+      </View>
+      <View className="items-end">
+        <Text
+          className="text-body font-bold"
+          style={{ color: balance > 0 ? theme.success : balance < 0 ? theme.foreground : theme.mutedForeground, fontVariant: ["tabular-nums"] }}
+        >
+          {formatAmount(Math.abs(balance))}
+        </Text>
+        <Text className="text-label text-muted-foreground">{dir}</Text>
+      </View>
+      <Pressable onPress={onEdit} hitSlop={8} className="p-1" accessibilityRole="button" accessibilityLabel={`Edit ${person.name}`}>
+        <Ionicons name="create-outline" size={18} color={theme.mutedForeground} />
+      </Pressable>
     </Pressable>
   );
 }
