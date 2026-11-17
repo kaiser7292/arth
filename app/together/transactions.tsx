@@ -1,7 +1,8 @@
+import { useGroupDrawers, type DrawerFlags } from "@/hooks/use-group-drawers";
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { GroupHeading, ListToolbar, Money, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
+import { DrawerCell, GroupHeading, ListToolbar, Money, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
 import { FilterSummaryCard } from "@/components/expense/FilterSummaryCard";
 import { FullScreenFilter, applySortGroup, sortGroupSections } from "@/components/expense/FullScreenFilter";
 import { StatementRowDetail, StatementRowItem } from "@/components/household/StatementList";
@@ -185,24 +186,26 @@ export default function TogetherTransactionsScreen() {
     })),
   ];
 
+  // Days and groups are drawers, as on the Transactions tab.
+  const drawerList = useGroupDrawers(list, {
+    isHeading: (r) => r.type === "day" || r.type === "group",
+    keyOf: (r) => (r.type === "day" ? r.date : r.type === "group" ? r.key : ""),
+    resetKey: listBy,
+  });
+
   const renderItem = useCallback(
-    ({ item }: { item: StatementListRow }) => {
+    ({ item }: { item: StatementListRow & DrawerFlags }) => {
       if (item.type === "day") {
-        return (
-          <View className="px-4 pt-4 pb-1.5 flex-row items-baseline justify-between">
-            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground" style={{ letterSpacing: 0.6 }}>
-              {transactionDayLabel(item.date)}
-            </Text>
-            {item.total !== 0 && <Money value={-item.total} signed showPlus className="text-label font-semibold" />}
-          </View>
-        );
+        return <GroupHeading label={transactionDayLabel(item.date)} total={-item.total} open={item.open} onToggle={item.onToggle} />;
       }
       if (item.type === "group") {
-        return <GroupHeading label={item.label} count={item.count} total={-item.total} />;
+        return <GroupHeading label={item.label} count={item.count} total={-item.total} open={item.open} onToggle={item.onToggle} noun={{ one: "transaction", many: "transactions" }} />;
       }
       const category = categoryLook(item.row.look, item.row.category, myCategories);
       return (
-        <StatementRowItem row={item.row} myMemberId={me} category={category} needsAccount={unfiled.has(item.row.id)} onView={setViewing} />
+        <DrawerCell row={item}>
+          <StatementRowItem row={item.row} myMemberId={me} category={category} needsAccount={unfiled.has(item.row.id)} onView={setViewing} />
+        </DrawerCell>
       );
     },
     [myCategories, me, unfiled],
@@ -228,7 +231,7 @@ export default function TogetherTransactionsScreen() {
       />
 
       <FlatList
-        data={list}
+        data={drawerList}
         keyExtractor={(item) => (item.type === "day" ? `day-${item.date}` : item.type === "group" ? `group-${item.key}` : item.row.id)}
         renderItem={renderItem}
         initialNumToRender={15}

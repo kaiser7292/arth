@@ -15,6 +15,7 @@ import { FilterRailItem, FilterSheetFooter, FilterSheetHeader, applyLabelFor } f
 import { useTheme } from "@/hooks/use-theme";
 import type { DatePreset, SavedFilterView } from "@/services/saved-filter-views";
 import { DATE_PRESET_LABELS, DATE_PRESET_ORDER } from "@/services/saved-filter-views";
+import { autoGroupFor } from "@/utils/auto-group";
 
 /** Everything the sheet edits. A draft until Apply: closing any other way changes nothing. */
 export interface TxFilterDraft {
@@ -75,11 +76,19 @@ interface Field {
 export const DEFAULT_SORT = "date_desc";
 export const DEFAULT_GROUP = "date";
 
+/**
+ * The grouping a draft gets when the owner hasn't picked one: it follows the date range (day,
+ * month or year, utils/auto-group.ts). Transfers only group by date or month.
+ */
+export function defaultGroupFor(d: Pick<TxFilterDraft, "datePreset" | "customStart" | "customEnd">, isTransfers = false): string {
+  return isTransfers ? DEFAULT_GROUP : autoGroupFor(d.datePreset, d.customStart, d.customEnd);
+}
+
 /** How many things are on in each field: the badges on the rail and the Apply count. */
-export function draftCounts(d: TxFilterDraft, defaultPreset: DatePreset): Record<FieldKey, number> {
+export function draftCounts(d: TxFilterDraft, defaultPreset: DatePreset, isTransfers = false): Record<FieldKey, number> {
   return {
     sort: d.sortBy !== DEFAULT_SORT ? 1 : 0,
-    group: d.groupBy !== DEFAULT_GROUP ? 1 : 0,
+    group: d.groupBy !== defaultGroupFor(d, isTransfers) ? 1 : 0,
     date: d.datePreset !== defaultPreset ? 1 : 0,
     category: d.categoryIds.length + d.creditKinds.length,
     amount: d.minAmount.trim() || d.maxAmount.trim() ? 1 : 0,
@@ -95,8 +104,8 @@ export function draftCounts(d: TxFilterDraft, defaultPreset: DatePreset): Record
   };
 }
 
-export function draftTotal(d: TxFilterDraft, defaultPreset: DatePreset): number {
-  return Object.values(draftCounts(d, defaultPreset)).reduce((a, b) => a + b, 0);
+export function draftTotal(d: TxFilterDraft, defaultPreset: DatePreset, isTransfers = false): number {
+  return Object.values(draftCounts(d, defaultPreset, isTransfers)).reduce((a, b) => a + b, 0);
 }
 
 const AMOUNT_PRESETS: { label: string; min: string; max: string }[] = [
@@ -228,8 +237,15 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
   }, [active, railH]);
 
   const set = useCallback(<K extends keyof TxFilterDraft>(key: K, v: TxFilterDraft[K]) => {
-    setDraft((d) => ({ ...d, [key]: v }));
-  }, []);
+    setDraft((d) => {
+      const next = { ...d, [key]: v };
+      // Changing the dates moves the grouping with them, unless the owner picked a grouping.
+      if ((key === "datePreset" || key === "customStart" || key === "customEnd") && d.groupBy === defaultGroupFor(d, nature === "transfers")) {
+        next.groupBy = defaultGroupFor(next, nature === "transfers");
+      }
+      return next;
+    });
+  }, [nature]);
   const toggleIn = useCallback((key: "categoryIds" | "creditKinds" | "accountIds" | "paymentModeIds" | "tagIds" | "merchantNames" | "ruleIds", id: string) => {
     setDraft((d) => {
       const list = d[key];
@@ -237,7 +253,7 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
     });
   }, []);
 
-  const counts = draftCounts(draft, defaultPreset);
+  const counts = draftCounts(draft, defaultPreset, isTransfers);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
   // What Apply would show. Debounced: typing an amount shouldn't run a query per keystroke.
@@ -257,11 +273,13 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
     };
   }, [visible, draft, countFor]);
 
-  const clearAll = () =>
-    setDraft((d) => ({
-      ...d,
+  // Clear all applies straight away, as on every other list: the last 12 months, newest first,
+  // grouped as those dates group (by month).
+  const clearAll = () => {
+    const cleared: TxFilterDraft = {
+      ...draft,
       sortBy: DEFAULT_SORT,
-      groupBy: DEFAULT_GROUP,
+      groupBy: defaultGroupFor({ datePreset: defaultPreset, customStart: "", customEnd: "" }, isTransfers),
       datePreset: defaultPreset,
       customStart: "",
       customEnd: "",
@@ -277,7 +295,11 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
       refundedStatus: "",
       avoidability: "",
       ruleIds: [],
-    }));
+    };
+    setDraft(cleared);
+    onApply(cleared);
+    onClose();
+  };
 
   const jump = (key: FieldKey) => {
     setActive(key);

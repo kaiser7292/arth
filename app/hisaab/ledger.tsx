@@ -816,7 +816,7 @@ export default function LedgerScreen() {
           ) : (
             groupedEntries.map((row) => {
               if (row.type === "heading") {
-                return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} />;
+                return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
               }
               const entry = row.item;
               const linkedAccountId = accountIdMap.get(entry.id);
@@ -847,7 +847,8 @@ export default function LedgerScreen() {
                   accountMap={accountMap}
                   linkedType={entry.linked_expense_id ? linkedTypes.get(entry.linked_expense_id) : undefined}
                 />
-              );
+              
+);
             })
           )}
 

@@ -5,7 +5,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { GroupHeading, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { DrawerCell, GroupHeading, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -281,8 +281,9 @@ export default function InsightFilteredListScreen() {
             ListEmptyComponent={<Text className="text-meta text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
             keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
             renderItem={({ item: row }) => row.type === "heading" ? (
-              <GroupHeading label={row.label} count={row.count} total={row.total} />
+              <GroupHeading label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />
             ) : (
+              <DrawerCell row={row}>
               <ExpenseListRow
                 item={row.item}
                 categoryMap={categoryMap}
@@ -295,6 +296,7 @@ export default function InsightFilteredListScreen() {
                 hideDate={tools.groupBy === "date"}
                 onAddCategory={addCategory.open}
               />
+              </DrawerCell>
             )}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}

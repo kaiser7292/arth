@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, GroupHeading, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
+import { Button, DrawerCell, GroupHeading, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { useAlert } from "@/hooks/use-alert";
 import { getCategories, type Category } from "@/services/category";
@@ -152,9 +152,10 @@ export default function MerchantsScreen() {
           </Text>
         }
         renderItem={({ item: row }) => {
-          if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={0} />;
+          if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={0} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
           const m = row.item;
           return (
+    <DrawerCell row={row}>
           <Pressable
             onPress={() => {
               if (selecting) {
@@ -201,7 +202,8 @@ export default function MerchantsScreen() {
             )}
             {!selecting && <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />}
           </Pressable>
-          );
+          </DrawerCell>
+);
         }}
         ListFooterComponent={
           <Pressable

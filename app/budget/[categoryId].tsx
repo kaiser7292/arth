@@ -5,7 +5,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, EmptyState, GroupHeading, ListCapNote, ListToolbar, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, DrawerCell, GroupHeading, ListCapNote, ListToolbar, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import type { GroupedRow } from "@/utils/group-rows";
@@ -45,6 +45,8 @@ const CATEGORY_SORT_KEY = "budget.category.sortBy";
 const GROUPS: readonly ExpenseGroupBy[] = ["none", "date", "merchant", "account", "payment_mode", "person"];
 const NO_CATEGORIES = new Map<string, { name: string }>();
 
+const TREND_COLLAPSED_KEY = "budget_category_trend_collapsed";
+
 export default function CategoryDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
@@ -65,6 +67,13 @@ export default function CategoryDetailScreen() {
   const [breakdown, setBreakdown] = useState<SummaryBreakdown | null>(null);
   const [personMap, setPersonMap] = useState<Map<string, HisaabPerson>>(new Map());
   const [trend, setTrend] = useState<MonthlyTotal[]>([]);
+  // Remembered on this device: folded, the transactions get the room.
+  const [trendCollapsed, setTrendCollapsed] = useState(() => settingsStorage.getBoolean(TREND_COLLAPSED_KEY) ?? false);
+  const toggleTrend = () => {
+    const next = !trendCollapsed;
+    setTrendCollapsed(next);
+    settingsStorage.set(TREND_COLLAPSED_KEY, next);
+  };
   const [refreshing, setRefreshing] = useState(false);
   const [sortBy, setSortBy] = useState<ExpenseSortBy>(
     () => (settingsStorage.getString(CATEGORY_SORT_KEY) as ExpenseSortBy | undefined) ?? "date_desc",
@@ -163,9 +172,10 @@ export default function CategoryDetailScreen() {
   })();
 
   const renderExpense = ({ item: row }: { item: GroupedRow<Expense> }) => {
-    if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} />;
+    if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
     const item = row.item;
     return (
+    <DrawerCell row={row}>
     <ExpenseListItem
       expense={item}
       category={category}
@@ -176,7 +186,8 @@ export default function CategoryDetailScreen() {
       onPress={() => router.push(`/expense/${item.id}`)}
       hideDate={tools.groupBy === "date"}
     />
-    );
+    </DrawerCell>
+);
   };
 
   return (
@@ -251,19 +262,33 @@ export default function CategoryDetailScreen() {
         )}
       </Card>
 
-      {/* Monthly trend chart */}
+      {/* Monthly trend chart: folds away to leave room for the transactions and their filters */}
       {trend.some((t) => t.total > 0) && (
         <Card className="mx-4 mt-2 mb-2">
-          <Text className="text-label font-medium text-muted-foreground mb-3">
-            Monthly Trend (Last 6 Months)
-          </Text>
-          <TrendBarChart
-            data={trend}
-            color={category.color}
-            budgetAmount={budgetAmount}
-            selectedMonth={selectedMonth}
-            onBarPress={(month) => setSelectedMonth(month)}
-          />
+          <Pressable
+            onPress={toggleTrend}
+            className="flex-row items-center justify-between"
+            style={{ minHeight: 32 }}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: !trendCollapsed }}
+            accessibilityLabel={trendCollapsed ? "Show the monthly trend" : "Hide the monthly trend"}
+          >
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
+              Monthly trend · last 6 months
+            </Text>
+            <Ionicons name={trendCollapsed ? "chevron-down" : "chevron-up"} size={18} color={theme.mutedForeground} />
+          </Pressable>
+          {!trendCollapsed && (
+            <View className="mt-3">
+              <TrendBarChart
+                data={trend}
+                color={category.color}
+                budgetAmount={budgetAmount}
+                selectedMonth={selectedMonth}
+                onBarPress={(month) => setSelectedMonth(month)}
+              />
+            </View>
+          )}
         </Card>
       )}
 

@@ -4,8 +4,25 @@
  */
 
 export type GroupedRow<T> =
-  | { type: "heading"; key: string; label: string; total: number; count: number }
-  | { type: "item"; item: T };
+  | {
+      type: "heading";
+      key: string;
+      label: string;
+      total: number;
+      count: number;
+      /** Set by useListTools: the group is a drawer, open or closed. */
+      open?: boolean;
+      onToggle?: () => void;
+      /** What the rows are called, for "12 transactions". */
+      noun?: { one: string; many: string };
+    }
+  | {
+      type: "item";
+      item: T;
+      /** Set by useListTools: the row sits inside its group's drawer; the last one closes the card. */
+      inDrawer?: boolean;
+      last?: boolean;
+    };
 
 /** Biggest first, the groups without a value last; or in the order they first appear, for dates. */
 export type GroupOrder = "size" | "first";

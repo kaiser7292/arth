@@ -38,7 +38,7 @@ export { ScreenContainer } from "./ScreenContainer";
 export { SearchField, AMOUNT_SEARCH_PLACEHOLDER } from "./SearchField";
 export { SectionHeader } from "./SectionHeader";
 export { SelectSheet } from "./SelectSheet";
-export { GroupHeading } from "./GroupBy";
+export { DrawerCell, GroupHeading } from "./GroupBy";
 export { Rows, drawsOwnDivider } from "./Rows";
 export { ListCapNote, ListToolbar, LoadFailed, LoadFailedBanner } from "./ListToolbar";
 export type { ListToolbarProps, ToolbarChip, ToolbarChoice } from "./ListToolbar";

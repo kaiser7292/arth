@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState, type ComponentProps } from "react";
+import { useGroupDrawers } from "@/hooks/use-group-drawers";
 import { FullScreenFilter, applySortGroup, sortGroupSections } from "@/components/expense/FullScreenFilter";
 import type { ListToolbarProps, ToolbarChip, ToolbarChoice } from "@/components/ui";
 import { useGroupBy } from "@/hooks/use-group-by";
@@ -80,9 +81,20 @@ export function useListTools<T>({
     return sortRows(filtered, sorts?.find((s) => s.id === sortBy));
   }, [rows, fields, filters, query, search, sorts, sortBy]);
 
-  const grouped = useMemo(
+  const flatGroups = useMemo(
     () => groupListRows(shown, groupFields.find((f) => f.id === groupBy), amountOf ?? (() => 0)),
     [shown, groupFields, groupBy, amountOf],
+  );
+
+  // Every group is a drawer, as on the Transactions tab (hooks/use-group-drawers.ts).
+  const drawerRows = useGroupDrawers(flatGroups, {
+    isHeading: (r) => r.type === "heading",
+    keyOf: (r) => (r.type === "heading" ? r.key : ""),
+    resetKey: groupBy,
+  });
+  const grouped = useMemo(
+    () => (noun ? drawerRows.map((r) => (r.type === "heading" ? { ...r, noun } : r)) : drawerRows),
+    [drawerRows, noun],
   );
 
   const clearFilters = useCallback(() => {
