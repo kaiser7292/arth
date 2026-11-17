@@ -34,7 +34,7 @@ import { DEFAULT_USER_ID } from "../../constants/app";
 import {
   createCategory, deleteCategory, getCategoryById, getRecentCategoriesForMerchant, hardDeleteCategory, setCategoryParent, updateCategory,
 } from "../../services/category";
-import { countFilteredExpenses, getExpenseTotalsByCategory, getExpenseIdsByCategory } from "../../services/expense";
+import { countFilteredExpenses, getExpenseTotalsByCategory, getExpenseIdsByCategory, getFilteredGroupTotals } from "../../services/expense";
 import { TABLE_SCHEMAS } from "../../database/TABLE_SCHEMAS";
 import { restoreFromData } from "../../services/backup";
 import { applyOrganiseSuggestions, getOrganiseSuggestions } from "../../services/category-organise";
@@ -164,5 +164,22 @@ describe("sub-categories", () => {
     // Its spending now counts toward Car & Vehicles.
     const totals = new Map((await getExpenseTotalsByCategory(U, "2026-11-01", "2026-11-30")).map((r) => [r.category_id, r.total]));
     expect(totals.get(car)).toBe(400);
+  });
+
+  it("totals the Transactions drawers by whatever the list is grouped by", async () => {
+    addExpense(food, 300, "Cafe");
+    addExpense(groceries, 700, "Fresh Mart");
+    addExpense(bills, 100, "Fresh Mart");
+    const byCat = await getFilteredGroupTotals(U, {}, "category");
+    // A sub-category's spending is in its parent's drawer.
+    expect(byCat.get(food)).toMatchObject({ spent: 1000, count: 2 });
+    expect(byCat.get(bills)).toMatchObject({ spent: 100, count: 1 });
+    const byMerchant = await getFilteredGroupTotals(U, {}, "merchant");
+    expect(byMerchant.get("Fresh Mart")).toMatchObject({ spent: 800, count: 2 });
+    expect((await getFilteredGroupTotals(U, {}, "year")).get("2026")).toMatchObject({ count: 3 });
+    expect((await getFilteredGroupTotals(U, {}, "date")).get("2026-11-10")).toMatchObject({ count: 3 });
+    // No account set: the NOT_SET drawer, which the account filter understands.
+    expect((await getFilteredGroupTotals(U, {}, "account")).get("__none__")).toMatchObject({ count: 3 });
+    expect(await countFilteredExpenses(U, { accountIds: ["__none__"] })).toBe(3);
   });
 });

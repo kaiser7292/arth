@@ -7,7 +7,7 @@ import { transactionDayLabel } from "@/utils/day-label";
 import { groupRows, NO_GROUP, ungrouped, type GroupedRow } from "@/utils/group-rows";
 import type { ListField } from "@/utils/list-tools";
 
-export type ExpenseGroupBy = "none" | "date" | "month" | "category" | "merchant" | "account" | "payment_mode" | "person";
+export type ExpenseGroupBy = "none" | "date" | "month" | "year" | "category" | "merchant" | "account" | "payment_mode" | "person";
 
 /** What a list shows, which decides what its "category" is called. */
 export type ExpenseListKind = "spend" | "credit" | "all";
@@ -17,8 +17,9 @@ const CATEGORY_LABEL: Record<ExpenseListKind, string> = { spend: "Category", cre
 export function expenseGroupLabels(kind: ExpenseListKind): Record<ExpenseGroupBy, string> {
   return {
     none: "None",
-    date: "Date",
+    date: "Day",
     month: "Month",
+    year: "Year",
     category: CATEGORY_LABEL[kind],
     merchant: kind === "credit" ? "Merchant or payer" : "Merchant",
     account: "Account",
@@ -44,6 +45,8 @@ function keyOf(e: Expense, by: ExpenseGroupBy, names: ExpenseGroupNames): string
       return e.date?.slice(0, 10) ?? null;
     case "month":
       return e.date?.slice(0, 7) ?? null;
+    case "year":
+      return e.date?.slice(0, 4) ?? null;
     case "category":
       return e.nature === "credit" ? TYPE_PREFIX + creditKindOf(e.credit_kind) : e.category_id;
     case "merchant":
@@ -67,13 +70,16 @@ const NOTHING: Partial<Record<ExpenseGroupBy, string>> = {
   person: "Not shared",
 };
 
-function labelOf(key: string, by: ExpenseGroupBy, names: ExpenseGroupNames): string {
+/** A group's name: "Tue, 16 Nov", "November 2026", "2026", a category, an account... */
+export function labelOf(key: string, by: ExpenseGroupBy, names: ExpenseGroupNames): string {
   if (key === NO_GROUP) return NOTHING[by] ?? "Other";
   switch (by) {
     case "date":
       return transactionDayLabel(key);
     case "month":
       return formatMonthLabel(key, "long");
+    case "year":
+      return key;
     case "category":
       return key.startsWith(TYPE_PREFIX) ? creditLook(key.slice(TYPE_PREFIX.length)).name : (names.categoryMap.get(key)?.name ?? "Unknown");
     case "account": {
@@ -97,7 +103,7 @@ export function expenseFields(
   return available
     .filter((by) => by !== "none")
     .map((by) => {
-      const isDate = by === "date" || by === "month";
+      const isDate = by === "date" || by === "month" || by === "year";
       return {
         id: by,
         label: labels[by],
@@ -137,6 +143,6 @@ export function groupExpenses(
     keyOf: (e) => keyOf(e, by, names),
     labelOf: (key) => labelOf(key, by, names),
     amountOf,
-    order: by === "date" || by === "month" ? "first" : "size",
+    order: by === "date" || by === "month" || by === "year" ? "first" : "size",
   });
 }
