@@ -343,7 +343,7 @@ export default function AccountMasterScreen() {
           contentContainerStyle={{ paddingBottom: 80 }}
         >
           {tools.grouped.map((row) =>
-            row.type === "heading" ? <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} /> : renderAccount(row.item),
+            row.type === "heading" ? <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} /> : renderAccount(row.item),
           )}
           {ignoredAccounts.length > 0 && (
             <View className="mt-4">

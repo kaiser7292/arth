@@ -21,7 +21,7 @@ import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, moneyTone, useToast } from "@/components/ui";
+import { ContextualHeader, DateInput, DrawerCell, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, moneyTone, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage, ToolbarChip } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -63,6 +63,7 @@ import type { Tag } from "@/services/tags";
 import { formatAmount } from "@/utils/expense-validation";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { FilterDropdown } from "@/components/expense/FilterDropdown";
+import { useGroupDrawers } from "@/hooks/use-group-drawers";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { TransactionFilterSheet, defaultGroupFor, draftTotal, type TxFilterDraft } from "@/components/expense/TransactionFilterSheet";
 import { autoGroupFor } from "@/utils/auto-group";
@@ -1055,6 +1056,12 @@ export default function ExpensesScreen() {
       order: transferGroupBy === "date" || transferGroupBy === "month" ? "first" : "size",
     });
   }, [shownTransfers, transferGroupBy, accountMap]);
+  // Other groupings of transfers are drawers too, as everywhere else.
+  const transferDrawerList = useGroupDrawers(transferRows, {
+    isHeading: (r) => r.type === "heading",
+    keyOf: (r) => (r.type === "heading" ? r.key : ""),
+    resetKey: transferGroupBy,
+  });
 
   const renderTransferItem = useCallback(
     ({ item }: { item: AccountTransfer }) => {
@@ -1678,13 +1685,13 @@ export default function ExpensesScreen() {
                   initialNumToRender={12}
                   maxToRenderPerBatch={10}
                   windowSize={7}
-                  data={transferRows}
+                  data={transferDrawerList}
                   keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
                   renderItem={({ item: row }) =>
                     row.type === "heading" ? (
-                      <GroupHeading label={row.label} count={row.count} total={row.total} signed={false} />
+                      <GroupHeading label={row.label} count={row.count} total={row.total} signed={false} open={row.open} onToggle={row.onToggle} noun={{ one: "transfer", many: "transfers" }} />
                     ) : (
-                      renderTransferItem({ item: row.item })
+                      <DrawerCell row={row}>{renderTransferItem({ item: row.item })}</DrawerCell>
                     )
                   }
                   contentContainerStyle={{ paddingBottom: 80 }}

@@ -5,7 +5,7 @@ import { useListTools } from "@/hooks/use-list-tools";
 import { transactionDayLabel } from "@/utils/day-label";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, Chip, DateInput, FABMenu, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, SectionTitle, Sheet, Text } from "@/components/ui";
+import { Badge, Button, Card, Chip, DateInput, FABMenu, DrawerCell, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, SectionTitle, Sheet, Text } from "@/components/ui";
 import { defaultEntryDate } from "@/utils/ledger-dates";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -949,7 +949,7 @@ const loadData = useCallback(async () => {
           {/* Transaction list */}
           {ledgerRows.map((row) => {
             if (row.type === "heading") {
-              return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} />;
+              return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
             }
             const entry = row.item;
             const isTransfer = entry.type === "transfer_in" || entry.type === "transfer_out";
@@ -963,9 +963,10 @@ const loadData = useCallback(async () => {
             // transfer row so the user's eye lands on it.
             const isFocused = !!focusTransferId && entry.id === focusTransferId && isTransfer;
 
+            // Rows slide to close the gap when one is deleted or converted.
             return (
-              // Rows slide to close the gap when one is deleted or converted.
-              <Animated.View key={entry.id} layout={listLayout()}>
+              <DrawerCell key={entry.id} row={row}>
+              <Animated.View layout={listLayout()}>
               <Pressable
                 style={
                   isFocused
@@ -1169,7 +1170,8 @@ const loadData = useCallback(async () => {
                 </View>
               </Pressable>
               </Animated.View>
-            );
+            </DrawerCell>
+);
           })}
 
           {/* Empty state */}

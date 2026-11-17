@@ -5,7 +5,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
 import { useLocalSearchParams, useRouter, useFocusEffect, Stack } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, GroupHeading, ListCapNote, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
+import { Button, DrawerCell, GroupHeading, ListCapNote, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text, useToast } from "@/components/ui";
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { bulkUpdateExpenses } from "@/services/expense-bulk";
@@ -344,8 +344,9 @@ export default function BudgetTransactionsScreen() {
             ListEmptyComponent={<Text className="text-meta text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
             keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
             renderItem={({ item: row }) => row.type === "heading" ? (
-              <GroupHeading label={row.label} count={row.count} total={row.total} />
+              <GroupHeading label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />
             ) : (
+              <DrawerCell row={row}>
               <ExpenseListRow
                 item={row.item}
                 categoryMap={categoryMap}
@@ -359,6 +360,7 @@ export default function BudgetTransactionsScreen() {
                 hideDate={tools.groupBy === "date"}
                 onAddCategory={addCategory.open}
               />
+              </DrawerCell>
             )}
             extraData={selecting ? selected : personMap}
             ListFooterComponent={expenses.length >= ALL_ROWS ? <ListCapNote limit={ALL_ROWS} /> : null}

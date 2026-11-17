@@ -314,7 +314,7 @@ export default function SmartRulesListScreen() {
           <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 96 }} keyboardShouldPersistTaps="handled">
             {tools.rows.length === 0 && <Text className="text-sm text-muted-foreground text-center py-8">Nothing matches.</Text>}
             {tools.grouped.map((row) => {
-              if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} />;
+              if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
               const item = row.item;
               return (
               <Card key={item.id} className="mb-3">

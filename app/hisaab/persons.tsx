@@ -356,7 +356,7 @@ export default function HisaabPersonsScreen() {
             <Text className="text-sm text-muted-foreground text-center py-8">Nothing matches.</Text>
           )}
           {tools.grouped.map((row) => {
-            if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} />;
+            if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
             const p = row.item;
             return (
             <PersonCard

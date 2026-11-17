@@ -5,7 +5,7 @@ import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-optio
 import { View, FlatList, Pressable, RefreshControl, Modal } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, EmptyState, GroupHeading, ListCapNote, ListToolbar, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, DrawerCell, GroupHeading, ListCapNote, ListToolbar, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import type { GroupedRow } from "@/utils/group-rows";
@@ -172,9 +172,10 @@ export default function CategoryDetailScreen() {
   })();
 
   const renderExpense = ({ item: row }: { item: GroupedRow<Expense> }) => {
-    if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} />;
+    if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
     const item = row.item;
     return (
+    <DrawerCell row={row}>
     <ExpenseListItem
       expense={item}
       category={category}
@@ -185,7 +186,8 @@ export default function CategoryDetailScreen() {
       onPress={() => router.push(`/expense/${item.id}`)}
       hideDate={tools.groupBy === "date"}
     />
-    );
+    </DrawerCell>
+);
   };
 
   return (

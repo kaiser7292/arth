@@ -388,7 +388,7 @@ export default function SmsScanRunsScreen() {
           keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
           renderItem={({ item: row }) =>
             row.type === "heading" ? (
-              <GroupHeading label={row.label} count={row.count} total={row.total} signed={false} inset={false} />
+              <GroupHeading label={row.label} count={row.count} total={row.total} signed={false} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />
             ) : (
               <SmsDetailCard detail={row.item} ruleNameMap={ruleNameMap} />
             )

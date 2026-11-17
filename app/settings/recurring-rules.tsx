@@ -16,7 +16,7 @@ import { formatDate } from "@/utils/date";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadingState } from "@/components/ui";
-import { GroupHeading, ListToolbar } from "@/components/ui";
+import { DrawerCell, GroupHeading, ListToolbar } from "@/components/ui";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
 
@@ -152,7 +152,7 @@ export default function RecurringRulesScreen() {
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
         renderItem={({ item: row }) => {
-          if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} />;
+          if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
           const item = row.item;
           const description =
             item.source?.description ??
@@ -167,6 +167,7 @@ export default function RecurringRulesScreen() {
                 : { color: colors.textSecondary, label: "Upcoming" };
 
           return (
+    <DrawerCell row={row}>
             <View className="flex-row items-center px-4 py-3 border-b border-border">
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
@@ -226,7 +227,8 @@ export default function RecurringRulesScreen() {
                 <Ionicons name="pause-outline" size={18} color={colors.textSecondary} />
               </Pressable>
             </View>
-          );
+          </DrawerCell>
+);
         }}
         showsVerticalScrollIndicator={false}
       />
