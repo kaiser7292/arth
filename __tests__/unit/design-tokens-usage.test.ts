@@ -76,6 +76,9 @@ const FILES = [
   "components/ui/Input.tsx",
   "app/goals/investment-buckets.tsx",
   "app/goals/investment-detail.tsx",
+  "app/goals/balance-sheet.tsx",
+  "components/goals/NetWorthTrendCard.tsx",
+  "components/goals/HisaabNetWorthSheet.tsx",
 ];
 
 const DIRS = ["components/expense", "components/expense/catch-up"];

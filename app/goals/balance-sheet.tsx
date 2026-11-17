@@ -3,7 +3,6 @@ import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
 import { formatAmount, formatCompact } from "@/utils/format";
@@ -19,7 +18,7 @@ import { HisaabNetWorthSheet } from "@/components/goals/HisaabNetWorthSheet";
 import { NetWorthTrendCard } from "@/components/goals/NetWorthTrendCard";
 import { getNetWorthHistory, peekNetWorthHistory, type NetWorthPoint } from "@/services/net-worth-history";
 import { getDataVersion } from "@/services/settings";
-import { Rows } from "@/components/ui/Rows";
+import { LinkRow } from "@/components/ui/LinkRow";
 
 const preloaded = consumeBalanceSheetPreload();
 
@@ -40,12 +39,9 @@ interface ColumnSpec {
   minDate: string | null;
 }
 
-const COL_WIDTH = 136;
-const LABEL_COL_WIDTH = 172;
 
 export default function BalanceSheetScreen() {
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [columns, setColumns] = useState<BalanceSheetColumn[]>(
     preloaded ? [preloaded.liveColumn] : lastTable?.columns ?? [],
@@ -57,7 +53,10 @@ export default function BalanceSheetScreen() {
   // Sections within Assets/Liabilities (Liquid Cash, Investments, Receivables /
   // Credit, Debt, Payables) — collapsed sections tracked by name, all expanded
   // by default. Independent from the top-level showAssets/showLiabilities toggle.
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  // Sections start folded, so the sheet reads as one line per kind (as on the board); a tap opens the accounts.
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    () => new Set(["Liquid Cash", "Investments", "Receivables", "Credit", "Debt", "Payables"]),
+  );
   // Rows with nested children (currently: a savings account with a linked
   // fixed deposit) start collapsed — expand on tap to reveal the FD sub-line.
   const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
@@ -69,22 +68,10 @@ export default function BalanceSheetScreen() {
   const [history, setHistory] = useState<NetWorthPoint[]>(() => peekNetWorthHistory()?.points ?? []);
   const [historyLoading, setHistoryLoading] = useState(() => peekNetWorthHistory() == null);
 
-  // Default: previous FY close + Live. User can add more via the + button.
+  // Default: Today only (owner's board, Nov 2026). + adds the end of the previous FY, then the one before.
   const buildDefaultSpecs = useCallback((): ColumnSpec[] => {
-    const startMonth = getFYStartMonth();
-    const currentFY = getCurrentFY(startMonth);
-    const prev = getFYRange(currentFY - 1, startMonth);
     const todayStr = formatLocalDate(new Date());
-    return [
-      {
-        asOfDate: formatLocalDate(prev.end),
-        label: getFYLabel(currentFY - 1, startMonth),
-        isLive: false,
-        fyYear: currentFY - 1,
-        minDate: formatLocalDate(prev.start),
-      },
-      { asOfDate: todayStr, label: "Today", isLive: true, fyYear: null, minDate: null },
-    ];
+    return [{ asOfDate: todayStr, label: "Today", isLive: true, fyYear: null, minDate: null }];
   }, []);
 
   // Initialise default columns once on mount.
@@ -154,11 +141,11 @@ export default function BalanceSheetScreen() {
       fyYear: nextAddableFY,
       minDate: fyStartStr,
     };
-    // Insert in FY order so columns stay oldest → newest left-to-right.
+    // Today first, then each earlier year to its right, newest to oldest.
     const merged = [...columnSpecs, newSpec].sort((a, b) => {
-      const ay = a.fyYear ?? Number.POSITIVE_INFINITY; // live = infinity → rightmost
+      const ay = a.fyYear ?? Number.POSITIVE_INFINITY; // live = infinity → leftmost
       const by = b.fyYear ?? Number.POSITIVE_INFINITY;
-      return ay - by;
+      return by - ay;
     });
     setColumnSpecs(merged);
   }, [nextAddableFY, columnSpecs]);
@@ -386,8 +373,8 @@ export default function BalanceSheetScreen() {
         {loadFailed ? (
           <View className="flex-1 items-center justify-center px-8">
             <Ionicons name="alert-circle-outline" size={32} color={theme.danger} />
-            <Text className="text-base font-semibold text-foreground mt-3 text-center">Couldn't work out your net worth</Text>
-            <Text className="text-sm text-muted-foreground mt-1 text-center">Something went wrong reading your accounts. Try again.</Text>
+            <Text className="text-body font-semibold text-foreground mt-3 text-center">Couldn&apos;t work out your net worth</Text>
+            <Text className="text-meta text-muted-foreground mt-1 text-center">Something went wrong reading your accounts. Try again.</Text>
             <View className="mt-4 w-40">
               <Button title="Try again" onPress={() => void loadTable()} />
             </View>
@@ -399,468 +386,387 @@ export default function BalanceSheetScreen() {
     );
   }
 
-  // Net worth delta from the *leftmost* historic column to the last live column (if both exist).
   const liveCol = columns.find((c) => c.isLive);
-  const earliestHistoric = columns.find((c) => !c.isLive);
   const liveNetWorth = liveCol?.netWorth ?? 0;
-  const historicNetWorth = earliestHistoric?.netWorth ?? 0;
-  const deltaAbs = liveNetWorth - historicNetWorth;
-  const deltaPct = historicNetWorth !== 0 ? (deltaAbs / Math.abs(historicNetWorth)) * 100 : 0;
-  const deltaColor = deltaAbs > 0 ? theme.success : deltaAbs < 0 ? theme.danger : theme.faintForeground;
-  const liveNetWorthColor =
-    liveNetWorth < 0 ? theme.danger : theme.success;
+  const hasTrend = history.length >= 2 || historyLoading;
 
-  return (
-    <ScreenContainer padTop={false}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Hero: current net worth + delta */}
-        <Card className="mx-4 mt-3 mb-2">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Net Worth · Today
+  // With earlier years beside Today, amounts switch to the short lakh form so every column stays on one line.
+  const multi = columns.length > 1;
+  const money = (n: number) => (multi ? `${n < 0 ? "−" : ""}₹${formatCompact(Math.abs(n))}` : formatAmount(n));
+  const colWidth = multi ? 84 : 124;
+  const labelWidth = multi ? 132 : 172;
+  const colLabel = (col: BalanceSheetColumn) => {
+    if (col.isLive) return "Today";
+    const [y, m, d] = col.asOfDate.split("-").map(Number);
+    return `${d} ${SHORT_MONTHS[m - 1]} ${String(y).slice(2)}`;
+  };
+
+  const sectionHead = (title: string, open: boolean, onPress: () => void, totals: number[], tone: "own" | "owe") => (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center px-3 py-3 border-t border-border"
+      style={{ backgroundColor: tone === "own" ? theme.alpha("primary", 0.04) : theme.alpha("foreground", 0.03) }}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+    >
+      <View className="flex-row items-center" style={{ width: labelWidth }}>
+        <Ionicons name={open ? "chevron-down" : "chevron-forward"} size={13} color={theme.mutedForeground} />
+        <Text className="text-body font-bold text-foreground ml-1" numberOfLines={1}>
+          {title}
+        </Text>
+      </View>
+      {totals.map((t, i) => (
+        <View key={i} style={{ width: colWidth }} className="items-end">
+          <Text className="text-meta font-bold text-foreground" numberOfLines={1} style={{ fontVariant: ["tabular-nums"] }}>
+            {money(t)}
+          </Text>
+        </View>
+      ))}
+      <View style={{ width: 28 }} />
+    </Pressable>
+  );
+
+  const valueCell = (key: string, cell: BalanceSheetRow | undefined, sign: 1 | -1, small = false) => (
+    <View key={key} style={{ width: colWidth }} className="items-end">
+      <Text
+        className={small ? "text-label" : "text-meta"}
+        numberOfLines={1}
+        style={{
+          color: !cell || cell.isFallback ? theme.faintForeground : small ? theme.mutedForeground : theme.foreground,
+          fontStyle: cell?.isFallback ? "italic" : "normal",
+          fontVariant: ["tabular-nums"],
+        }}
+      >
+        {!cell ? "-" : money(sign * cell.amount)}
+      </Text>
+    </View>
+  );
+
+  const table = (
+    <View>
+      {/* Header: Today, earlier years with ✕, and + for one more */}
+      <View className="flex-row items-center px-3 py-2.5">
+        <Text className="text-body font-bold text-foreground" style={{ width: labelWidth }} numberOfLines={1}>
+          Balance sheet
+        </Text>
+        {columns.map((col) => (
+          <View key={col.asOfDate} style={{ width: colWidth }} className="flex-row items-center justify-end">
+            <Text
+              className="text-label font-semibold uppercase tracking-wider"
+              style={{ color: col.isLive ? theme.primary : theme.mutedForeground }}
+              numberOfLines={1}
+            >
+              {colLabel(col)}
             </Text>
-            {recomputing && (
-              <View
-                className="flex-row items-center px-2 py-0.5 rounded-full"
-                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
+            {!col.isLive && (
+              <Pressable
+                onPress={() => removeColumn(col.asOfDate)}
+                hitSlop={12}
+                className="ml-1"
+                accessibilityRole="button"
+                accessibilityLabel={`Hide ${colLabel(col)}`}
               >
-                <ActivityIndicator size="small" color={theme.primary} />
-                <Text className="text-label font-semibold ml-1.5" style={{ color: theme.primary }}>
-                  Updating…
-                </Text>
-              </View>
+                <Ionicons name="close" size={14} color={theme.mutedForeground} />
+              </Pressable>
             )}
           </View>
-          <View className="flex-row items-end" style={{ opacity: recomputing ? 0.55 : 1 }}>
-            {liveNetWorth < 0 && (
-              <Ionicons name="warning-outline" size={20} color={theme.danger} style={{ marginRight: 6 }} />
-            )}
-            <Text className="text-2xl font-bold" style={{ color: liveNetWorthColor }}>
-              {formatAmount(liveNetWorth)}
-            </Text>
-          </View>
-          {earliestHistoric && (
-            <View className="flex-row items-center mt-2">
-              <Ionicons
-                name={deltaAbs >= 0 ? "arrow-up" : "arrow-down"}
-                size={12}
-                color={deltaColor}
-              />
-              <Text className="text-xs font-medium ml-1" style={{ color: deltaColor }}>
-                {deltaAbs >= 0 ? "+" : ""}{formatCompact(deltaAbs)}
-              </Text>
-              <Text className="text-xs text-muted-foreground ml-1">
-                ({deltaAbs >= 0 ? "+" : ""}{deltaPct.toFixed(1)}%) since {earliestHistoric.label}
-              </Text>
-            </View>
-          )}
-        </Card>
-
-        <NetWorthTrendCard points={history} fyStartMonth={fyStartMonthKey} loading={historyLoading} />
-
-        {/* Column headers + body — horizontal scroll so more columns can fit.
-            Plain View (not Card) so the scroller can extend to the table edges
-            without inherited padding. */}
-        <Rows
-          className="mx-4 mb-2 rounded-2xl bg-card overflow-hidden"
-          style={{ opacity: recomputing ? 0.55 : 1 }}
+        ))}
+        <Pressable
+          onPress={canAddEarlierFY ? addPriorFYColumn : undefined}
+          hitSlop={10}
+          className="ml-1 w-7 h-7 rounded-control border items-center justify-center"
+          style={{ borderColor: canAddEarlierFY ? theme.primary : theme.border }}
+          accessibilityRole="button"
+          accessibilityLabel={
+            nextAddableFY != null
+              ? `Compare with the end of ${getFYLabel(nextAddableFY, getFYStartMonth())}`
+              : "No earlier financial year with data"
+          }
+          accessibilityState={{ disabled: !canAddEarlierFY }}
+          disabled={!canAddEarlierFY}
         >
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator
-          >
-            <View>
-              {/* Header row */}
-              <View className="flex-row items-center border-b border-border px-3 py-3">
-                <View style={{ width: LABEL_COL_WIDTH }} />
-                {columns.map((col) => (
-                  <View
-                    key={col.asOfDate}
-                    style={{ width: COL_WIDTH }}
-                    className="flex-row items-center justify-end"
-                  >
-                    <Text
-                      className="text-label font-semibold uppercase tracking-wider"
-                      style={{ color: col.isLive ? theme.primary : colors.textSecondary }}
-                      numberOfLines={1}
-                    >
-                      {col.label}
+          <Ionicons name="add" size={16} color={canAddEarlierFY ? theme.primary : theme.faintForeground} />
+        </Pressable>
+      </View>
+
+      {/* What you own */}
+      {sectionHead("What you own", showAssets, () => setShowAssets(!showAssets), columns.map((c) => c.totalAssets), "own")}
+      {showAssets &&
+        ASSET_SECTIONS.map((section) => {
+          const rows = assetsBySection.get(section) ?? [];
+          if (rows.length === 0) return null;
+          const open = !collapsedSections.has(section);
+          return (
+            <View key={`sec-a-${section}`}>
+              <Pressable
+                onPress={() => toggleSection(section)}
+                className="flex-row items-center px-3 border-t border-border"
+                style={{ minHeight: 52 }}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                accessibilityLabel={`${SECTION_NAME[section]}, ${rows.length} accounts`}
+              >
+                <View style={{ width: labelWidth }}>
+                  <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+                    {SECTION_NAME[section]}
+                  </Text>
+                  {!multi && (
+                    <Text className="text-label text-muted-foreground" numberOfLines={1}>
+                      {SECTION_HINT[section]}
                     </Text>
-                    {!col.isLive && (
-                      <Pressable
-                        onPress={() => removeColumn(col.asOfDate)}
-                        hitSlop={12}
-                        className="ml-1.5 p-0.5"
-                        accessibilityRole="button"
-                        accessibilityLabel={`Remove ${col.label} column`}
-                      >
-                        <Ionicons name="close-circle" size={14} color={colors.textSecondary} />
-                      </Pressable>
-                    )}
+                  )}
+                </View>
+                {columns.map((col) => (
+                  <View key={col.asOfDate} style={{ width: colWidth }} className="items-end">
+                    <Text className="text-meta font-semibold text-foreground" numberOfLines={1} style={{ fontVariant: ["tabular-nums"] }}>
+                      {money(getSectionTotal(col, "assets", rows))}
+                    </Text>
                   </View>
                 ))}
-                <Pressable
-                  onPress={canAddEarlierFY ? addPriorFYColumn : undefined}
-                  hitSlop={12}
-                  className="ml-2 pl-2 justify-center"
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    nextAddableFY != null
-                      ? `Add ${getFYLabel(nextAddableFY, getFYStartMonth())} column`
-                      : "No earlier fiscal year with data"
-                  }
-                  accessibilityState={{ disabled: !canAddEarlierFY }}
-                  disabled={!canAddEarlierFY}
-                  style={{ opacity: canAddEarlierFY ? 1 : 0.35 }}
-                >
-                  <Ionicons
-                    name="add-circle-outline"
-                    size={22}
-                    color={theme.primary}
-                  />
-                </Pressable>
-              </View>
-
-              {/* Assets section */}
-              <Pressable
-                onPress={() => setShowAssets(!showAssets)}
-                className="flex-row items-center px-3 py-3 border-b border-border"
-                style={{ backgroundColor: theme.alpha("primary", 0.04) }}
-              >
-                <Ionicons
-                  name={showAssets ? "chevron-down" : "chevron-forward"}
-                  size={13}
-                  color={colors.textSecondary}
-                />
-                <Text className="text-sm font-bold text-foreground ml-1 flex-1">
-                  Assets
-                </Text>
-              </Pressable>
-
-              {showAssets && ASSET_SECTIONS.map((section) => {
-                const rows = assetsBySection.get(section) ?? [];
-                if (rows.length === 0) return null;
-                const sectionCollapsed = collapsedSections.has(section);
-                return (
-                  <View key={`sec-a-${section}`}>
-                    {/* Section heading — subtotal always visible on the right,
-                        even collapsed, so collapsing a section doesn't hide its total. */}
-                    <Pressable
-                      onPress={() => toggleSection(section)}
-                      className="flex-row items-center px-3"
-                      style={{ paddingVertical: 10, backgroundColor: theme.alpha("primary", 0.03) }}
-                    >
-                      <View className="flex-row items-center" style={{ width: LABEL_COL_WIDTH }}>
-                        <Ionicons
-                          name={sectionCollapsed ? "chevron-forward" : "chevron-down"}
-                          size={11}
-                          color={colors.textSecondary}
-                        />
-                        <Text
-                          className="text-label font-semibold uppercase tracking-wider ml-1"
-                          numberOfLines={1}
-                          style={{ color: colors.textSecondary }}
-                        >
-                          {section}
-                        </Text>
-                      </View>
-                      {columns.map((col) => (
-                        <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
-                            {formatAmount(getSectionTotal(col, "assets", rows))}
-                          </Text>
-                        </View>
-                      ))}
-                    </Pressable>
-
-                    {!sectionCollapsed && rows.map((row) => {
-                      const children = childRowsByParent.get(row.label) ?? [];
-                      const hasChildren = children.length > 0;
-                      const expanded = expandedParents.has(row.label);
-                      return (
-                        <View key={`a-${row.label}`}>
-                          <Pressable
-                            onPress={() => (hasChildren ? toggleParent(row.label) : handleRowPress(row))}
-                            className="flex-row items-center px-3 py-3 border-b border-border"
-                          >
-                            {hasChildren && (
-                              <Ionicons
-                                name={expanded ? "chevron-down" : "chevron-forward"}
-                                size={11}
-                                color={colors.textSecondary}
-                                style={{ marginRight: 4 }}
-                              />
-                            )}
-                            <Text
-                              className="text-sm text-foreground"
-                              numberOfLines={1}
-                              style={{ width: hasChildren ? LABEL_COL_WIDTH - 15 : LABEL_COL_WIDTH }}
-                            >
-                              {row.label}
-                            </Text>
-                            {columns.map((col) => {
-                              const cell = getCellValue(col, row.label, "assets");
-                              const amount = cell?.amount ?? 0;
-                              const isMissing = !cell;
-                              const depositsTotal = hasChildren ? getChildrenTotal(col, row.label) : 0;
-                              return (
-                                <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                                  <Text
-                                    className="text-sm"
-                                    style={{
-                                      color: isMissing
-                                        ? theme.faintForeground
-                                        : cell?.isFallback
-                                          ? theme.faintForeground
-                                          : colors.text,
-                                      fontStyle: cell?.isFallback ? "italic" : "normal",
-                                    }}
-                                  >
-                                    {isMissing ? "-" : formatAmount(amount)}
-                                  </Text>
-                                  {depositsTotal > 0 && (
-                                    <Text className="text-label text-muted-foreground mt-0.5">
-                                      +{formatAmount(depositsTotal)} deposits
-                                    </Text>
-                                  )}
-                                </View>
-                              );
-                            })}
-                          </Pressable>
-                          {hasChildren && expanded && children.map((child) => (
-                            <Pressable
-                              key={`a-${row.label}-${child.label}`}
-                              onPress={() => handleRowPress(child)}
-                              className="flex-row items-center px-3 py-2.5 border-b border-border"
-                              style={{ backgroundColor: theme.alpha("primary", 0.03) }}
-                            >
-                              <Text
-                                className="text-xs text-muted-foreground"
-                                numberOfLines={1}
-                                style={{ width: LABEL_COL_WIDTH, paddingLeft: 16 }}
-                              >
-                                {child.label}
-                              </Text>
-                              {columns.map((col) => {
-                                const cell = getChildCellValue(col, row.label, child.label);
-                                const amount = cell?.amount ?? 0;
-                                const isMissing = !cell;
-                                return (
-                                  <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                                    <Text
-                                      className="text-xs"
-                                      style={{
-                                        color: isMissing
-                                          ? theme.faintForeground
-                                          : cell?.isFallback
-                                            ? theme.faintForeground
-                                            : colors.textSecondary,
-                                        fontStyle: cell?.isFallback ? "italic" : "normal",
-                                      }}
-                                    >
-                                      {isMissing ? "-" : formatAmount(amount)}
-                                    </Text>
-                                  </View>
-                                );
-                              })}
-                            </Pressable>
-                          ))}
-                        </View>
-                      );
-                    })}
-                  </View>
-                );
-              })}
-
-              {/* Total Assets */}
-              {showAssets && (
-                <View className="flex-row items-center px-3 py-3 border-b border-border">
-                  <Text
-                    className="text-sm font-bold text-foreground"
-                    style={{ width: LABEL_COL_WIDTH }}
-                  >
-                    Total Assets
-                  </Text>
-                  {columns.map((col) => (
-                    <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                      <Text className="text-sm font-bold" style={{ color: theme.success }}>
-                        {formatAmount(col.totalAssets)}
-                      </Text>
-                    </View>
-                  ))}
+                <View style={{ width: 28 }} className="items-end">
+                  <Ionicons name={open ? "chevron-up" : "chevron-down"} size={14} color={theme.faintForeground} />
                 </View>
-              )}
-
-              {/* Liabilities section */}
-              <Pressable
-                onPress={() => setShowLiabilities(!showLiabilities)}
-                className="flex-row items-center px-3 py-3 border-b border-border"
-                style={{ backgroundColor: theme.danger + "0A" }}
-              >
-                <Ionicons
-                  name={showLiabilities ? "chevron-down" : "chevron-forward"}
-                  size={13}
-                  color={colors.textSecondary}
-                />
-                <Text className="text-sm font-bold text-foreground ml-1 flex-1">
-                  Liabilities
-                </Text>
               </Pressable>
-
-              {showLiabilities && LIABILITY_SECTIONS.map((section) => {
-                const rows = liabilitiesBySection.get(section) ?? [];
-                if (rows.length === 0) return null;
-                const sectionCollapsed = collapsedSections.has(section);
-                return (
-                  <View key={`sec-l-${section}`}>
-                    <Pressable
-                      onPress={() => toggleSection(section)}
-                      className="flex-row items-center px-3"
-                      style={{ paddingVertical: 10, backgroundColor: theme.danger + "08" }}
-                    >
-                      <View className="flex-row items-center" style={{ width: LABEL_COL_WIDTH }}>
-                        <Ionicons
-                          name={sectionCollapsed ? "chevron-forward" : "chevron-down"}
-                          size={11}
-                          color={colors.textSecondary}
-                        />
-                        <Text
-                          className="text-label font-semibold uppercase tracking-wider ml-1"
-                          numberOfLines={1}
-                          style={{ color: colors.textSecondary }}
-                        >
-                          {section}
-                        </Text>
-                      </View>
-                      {columns.map((col) => (
-                        <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
-                            {formatAmount(getSectionTotal(col, "liabilities", rows))}
-                          </Text>
-                        </View>
-                      ))}
-                    </Pressable>
-
-                    {!sectionCollapsed && rows.map((row) => (
+              {open &&
+                rows.map((row) => {
+                  const children = childRowsByParent.get(row.label) ?? [];
+                  const hasChildren = children.length > 0;
+                  const expanded = expandedParents.has(row.label);
+                  return (
+                    <View key={`a-${row.label}`}>
                       <Pressable
-                        key={`l-${row.label}`}
-                        onPress={() => handleRowPress(row)}
-                        className="flex-row items-center px-3 py-3 border-b border-border"
+                        onPress={() => (hasChildren ? toggleParent(row.label) : handleRowPress(row))}
+                        className="flex-row items-center px-3 py-2.5"
+                        style={{ backgroundColor: theme.alpha("foreground", 0.02) }}
+                        accessibilityRole="button"
+                        accessibilityLabel={hasChildren ? `${row.label}, show deposits` : `${row.label}, open accounts`}
                       >
-                        <Text
-                          className="text-sm text-foreground"
-                          numberOfLines={1}
-                          style={{ width: LABEL_COL_WIDTH }}
-                        >
+                        <Text className="text-meta text-foreground" numberOfLines={1} style={{ width: labelWidth, paddingLeft: 12 }}>
+                          {hasChildren ? (expanded ? "▾ " : "▸ ") : ""}
                           {row.label}
                         </Text>
                         {columns.map((col) => {
-                          const cell = getCellValue(col, row.label, "liabilities");
-                          const amount = cell?.amount ?? 0;
-                          const isMissing = !cell;
+                          const cell = getCellValue(col, row.label, "assets");
+                          const deposits = hasChildren ? getChildrenTotal(col, row.label) : 0;
                           return (
-                            <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
+                            <View key={col.asOfDate} style={{ width: colWidth }} className="items-end">
                               <Text
-                                className="text-sm"
+                                className="text-meta"
+                                numberOfLines={1}
                                 style={{
-                                  color: isMissing
-                                    ? theme.faintForeground
-                                    : cell?.isFallback
-                                      ? theme.faintForeground
-                                      : colors.text,
+                                  color: !cell || cell.isFallback ? theme.faintForeground : theme.foreground,
                                   fontStyle: cell?.isFallback ? "italic" : "normal",
+                                  fontVariant: ["tabular-nums"],
                                 }}
                               >
-                                {isMissing ? "-" : formatAmount(amount)}
+                                {!cell ? "-" : money(cell.amount)}
                               </Text>
+                              {deposits > 0 && (
+                                <Text className="text-label text-muted-foreground" numberOfLines={1}>
+                                  +{money(deposits)} FD
+                                </Text>
+                              )}
                             </View>
                           );
                         })}
+                        <View style={{ width: 28 }} className="items-end">
+                          {!hasChildren && <Ionicons name="chevron-forward" size={13} color={theme.faintForeground} />}
+                        </View>
                       </Pressable>
-                    ))}
-                  </View>
-                );
-              })}
-
-              {/* Total Liabilities */}
-              {showLiabilities && (
-                <View className="flex-row items-center px-3 py-3 border-b border-border">
-                  <Text
-                    className="text-sm font-bold text-foreground"
-                    style={{ width: LABEL_COL_WIDTH }}
-                  >
-                    Total Liabilities
-                  </Text>
-                  {columns.map((col) => (
-                    <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                      <Text className="text-sm font-bold" style={{ color: theme.danger }}>
-                        {formatAmount(col.totalLiabilities)}
-                      </Text>
+                      {hasChildren &&
+                        expanded &&
+                        children.map((child) => (
+                          <Pressable
+                            key={`a-${row.label}-${child.label}`}
+                            onPress={() => handleRowPress(child)}
+                            className="flex-row items-center px-3 py-2"
+                            style={{ backgroundColor: theme.alpha("foreground", 0.03) }}
+                            accessibilityRole="button"
+                          >
+                            <Text className="text-label text-muted-foreground" numberOfLines={1} style={{ width: labelWidth, paddingLeft: 24 }}>
+                              {child.label}
+                            </Text>
+                            {columns.map((col) => valueCell(col.asOfDate, getChildCellValue(col, row.label, child.label), 1, true))}
+                            <View style={{ width: 28 }} className="items-end">
+                              <Ionicons name="chevron-forward" size={13} color={theme.faintForeground} />
+                            </View>
+                          </Pressable>
+                        ))}
                     </View>
-                  ))}
-                </View>
-              )}
+                  );
+                })}
+            </View>
+          );
+        })}
 
-              {/* Net Worth */}
-              <View
-                className="flex-row items-center px-3 py-4"
-                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
+      {/* What you owe: shown as minus amounts */}
+      {sectionHead("What you owe", showLiabilities, () => setShowLiabilities(!showLiabilities), columns.map((c) => -c.totalLiabilities), "owe")}
+      {showLiabilities &&
+        LIABILITY_SECTIONS.map((section) => {
+          const rows = liabilitiesBySection.get(section) ?? [];
+          if (rows.length === 0) return null;
+          const open = !collapsedSections.has(section);
+          return (
+            <View key={`sec-l-${section}`}>
+              <Pressable
+                onPress={() => toggleSection(section)}
+                className="flex-row items-center px-3 border-t border-border"
+                style={{ minHeight: 52 }}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: open }}
+                accessibilityLabel={`${SECTION_NAME[section]}, ${rows.length} accounts`}
               >
-                <Text
-                  className="text-sm font-bold text-foreground"
-                  style={{ width: LABEL_COL_WIDTH }}
-                >
-                  Net Worth
-                </Text>
+                <View style={{ width: labelWidth }}>
+                  <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+                    {SECTION_NAME[section]}
+                  </Text>
+                  {!multi && (
+                    <Text className="text-label text-muted-foreground" numberOfLines={1}>
+                      {SECTION_HINT[section]}
+                    </Text>
+                  )}
+                </View>
                 {columns.map((col) => (
-                  <View key={col.asOfDate} style={{ width: COL_WIDTH }} className="items-end">
-                    <Text
-                      className="text-base font-bold"
-                      style={{
-                        color: col.netWorth < 0 ? theme.danger : colors.text,
-                      }}
-                    >
-                      {formatAmount(col.netWorth)}
+                  <View key={col.asOfDate} style={{ width: colWidth }} className="items-end">
+                    <Text className="text-meta font-semibold text-foreground" numberOfLines={1} style={{ fontVariant: ["tabular-nums"] }}>
+                      {money(-getSectionTotal(col, "liabilities", rows))}
                     </Text>
                   </View>
                 ))}
-              </View>
+                <View style={{ width: 28 }} className="items-end">
+                  <Ionicons name={open ? "chevron-up" : "chevron-down"} size={14} color={theme.faintForeground} />
+                </View>
+              </Pressable>
+              {open &&
+                rows.map((row) => (
+                  <Pressable
+                    key={`l-${row.label}`}
+                    onPress={() => handleRowPress(row)}
+                    className="flex-row items-center px-3 py-2.5"
+                    style={{ backgroundColor: theme.alpha("foreground", 0.02) }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${row.label}, open accounts`}
+                  >
+                    <Text className="text-meta text-foreground" numberOfLines={1} style={{ width: labelWidth, paddingLeft: 12 }}>
+                      {row.label}
+                    </Text>
+                    {columns.map((col) => valueCell(col.asOfDate, getCellValue(col, row.label, "liabilities"), -1))}
+                    <View style={{ width: 28 }} className="items-end">
+                      <Ionicons name="chevron-forward" size={13} color={theme.faintForeground} />
+                    </View>
+                  </Pressable>
+                ))}
             </View>
-          </ScrollView>
-        </Rows>
+          );
+        })}
 
-        {/* Which Hisaab people count towards net worth */}
-        <Pressable onPress={() => setHisaabSheetOpen(true)} className="mx-4 mb-2" accessibilityRole="button">
-          <Card>
-            <View className="flex-row items-center">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-              >
-                <Ionicons name="people-outline" size={18} color={theme.primary} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">Hisaab in Net Worth</Text>
-                <Text className="text-xs text-muted-foreground">Choose whose balances count</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-            </View>
-          </Card>
-        </Pressable>
+      {/* Net worth = what you own − what you owe */}
+      <View className="flex-row items-center px-3 py-3.5 border-t border-border" style={{ backgroundColor: theme.alpha("primary", 0.06) }}>
+        <View style={{ width: labelWidth }}>
+          <Text className="text-body font-bold text-foreground">Net worth</Text>
+          {!multi && <Text className="text-label text-muted-foreground">What you own minus what you owe</Text>}
+        </View>
+        {columns.map((col) => (
+          <View key={col.asOfDate} style={{ width: colWidth }} className="items-end">
+            <Text
+              className="text-body font-bold"
+              numberOfLines={1}
+              style={{ color: col.netWorth < 0 ? theme.danger : theme.foreground, fontVariant: ["tabular-nums"] }}
+            >
+              {money(col.netWorth)}
+            </Text>
+          </View>
+        ))}
+        <View style={{ width: 28 }} />
+      </View>
+    </View>
+  );
 
-        {/* Caveats footer */}
-        <Card className="mx-4 mb-2">
-          <View className="flex-row items-start">
-            <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} style={{ marginTop: 2 }} />
-            <View className="flex-1 ml-2">
-              <Text className="text-label text-muted-foreground leading-4">
-                A "-" means no data for that row in that period. For demat, it means no portfolio or fund snapshot was recorded within that fiscal year. Italic values fall back to the last SMS balance when the ledger opening isn't seeded - seed openings to make those authoritative.
+  return (
+    <ScreenContainer padTop={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40, paddingTop: 12 }}>
+        {/* Net worth today: the trend card carries it; this stands in when there's no history yet. */}
+        {!hasTrend && (
+          <Card className="mx-4 mb-2">
+            <Text className="text-meta text-muted-foreground">Net worth today</Text>
+            <View className="flex-row items-center" style={{ opacity: recomputing ? 0.55 : 1 }}>
+              {liveNetWorth < 0 && <Ionicons name="warning-outline" size={20} color={theme.danger} style={{ marginRight: 6 }} />}
+              <Text className="text-hero font-bold" style={{ color: liveNetWorth < 0 ? theme.danger : theme.foreground }}>
+                {formatAmount(liveNetWorth)}
               </Text>
             </View>
-          </View>
-        </Card>
+          </Card>
+        )}
+
+        <NetWorthTrendCard points={history} fyStartMonth={fyStartMonthKey} loading={historyLoading} />
+
+        <View className="mx-4 mb-2 rounded-card bg-card border border-border overflow-hidden" style={{ opacity: recomputing ? 0.55 : 1 }}>
+          {recomputing && (
+            <View className="flex-row items-center px-3 pt-2.5" style={{ gap: 6 }}>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <Text className="text-label font-semibold" style={{ color: theme.primary }}>
+                Updating…
+              </Text>
+            </View>
+          )}
+          {columns.length > 2 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator>
+              {table}
+            </ScrollView>
+          ) : (
+            table
+          )}
+          <Text className="text-label text-muted-foreground px-3 pb-3 pt-1">
+            {!multi
+              ? "Tap + to compare with the end of an earlier financial year. Tap a row to open those accounts."
+              : canAddEarlierFY
+                ? "Tap + for another year, ✕ to hide one."
+                : "No earlier financial year with data. Tap ✕ to hide a year."}
+          </Text>
+        </View>
+
+        {/* Which Hisaab people count towards net worth */}
+        <View className="mx-4 mb-2 rounded-card bg-card border border-border overflow-hidden">
+          <LinkRow
+            divider={false}
+            icon="people-outline"
+            color={theme.primary}
+            title="Hisaab in net worth"
+            sub="Choose whose balances count"
+            onPress={() => setHisaabSheetOpen(true)}
+          />
+        </View>
+
+        {/* Caveats footer */}
+        <View className="mx-4 mb-2 flex-row items-start px-1" style={{ gap: 8 }}>
+          <Ionicons name="information-circle-outline" size={14} color={theme.mutedForeground} style={{ marginTop: 1 }} />
+          <Text className="flex-1 text-label text-muted-foreground">
+            A &quot;-&quot; means no data for that row in that period. For demat, it means no portfolio or fund snapshot was recorded within
+            that financial year. Grey italic values fall back to the last bank-message balance when the ledger opening isn&apos;t set:
+            set the openings to make them exact.
+          </Text>
+        </View>
       </ScrollView>
       <HisaabNetWorthSheet visible={hisaabSheetOpen} onClose={() => setHisaabSheetOpen(false)} />
     </ScreenContainer>
   );
 }
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const SECTION_NAME: Record<string, string> = {
+  "Liquid Cash": "Liquid cash",
+  Investments: "Investments",
+  Receivables: "Receivables",
+  Credit: "Card dues",
+  Debt: "Loans",
+  Payables: "Payables",
+};
+const SECTION_HINT: Record<string, string> = {
+  "Liquid Cash": "Banks, wallets and their FDs",
+  Investments: "Demat, funds, pension",
+  Receivables: "People owe you",
+  Credit: "Credit cards",
+  Debt: "Left to repay",
+  Payables: "You owe people",
+};
