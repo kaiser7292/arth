@@ -64,7 +64,8 @@ import { formatAmount } from "@/utils/expense-validation";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { FilterDropdown } from "@/components/expense/FilterDropdown";
 import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
-import { TransactionFilterSheet, draftTotal, type TxFilterDraft } from "@/components/expense/TransactionFilterSheet";
+import { TransactionFilterSheet, defaultGroupFor, draftTotal, type TxFilterDraft } from "@/components/expense/TransactionFilterSheet";
+import { autoGroupFor } from "@/utils/auto-group";
 import { DrawerBody, DrawerEmpty, DrawerEnd, DrawerLoading, GroupDrawerHeader, MonthDrawerHeader, type DrawerMode } from "@/components/expense/MonthDrawer";
 import { buildDrawerRows, monthBounds, orderMonths, summarizeByMonth, type DrawerRow, type MonthSummary } from "@/utils/month-drawers";
 import { formatDateForDisplay } from "@/utils/expense-validation";
@@ -377,6 +378,17 @@ export default function ExpensesScreen() {
   });
   // Date (and month) order shows month drawers, each loading its own rows; any other grouping
   // needs every row at once to add its groups up.
+  // The grouping follows the date range (day, month or year: utils/auto-group.ts) until the owner
+  // picks one; Clear all hands it back to the dates. Not remembered across app restarts.
+  const [groupPinned, setGroupPinned] = useState(false);
+  const autoGroup = autoGroupFor(datePreset, customStartDate, customEndDate);
+  useEffect(() => {
+    if (groupPinned || filterNature === "transfers") return;
+    if (grouping.groupBy !== autoGroup) grouping.setGroupBy(autoGroup);
+    // grouping.setGroupBy is stable enough; re-run on what decides the grouping.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupPinned, autoGroup, filterNature, grouping.groupBy]);
+
   // Drawers follow the grouping: a day, month or year each, or one per category, merchant, account
   // or payment mode. Each drawer loads its own rows; only Person still needs every row at once.
   const drawerMode = filterNature !== "transfers" && DRAWER_GROUPS.has(grouping.groupBy);
@@ -750,6 +762,11 @@ export default function ExpensesScreen() {
   }, [filterNature, summaryGroupBy, natureTabs]);
 
   const clearFilters = useCallback(() => {
+    // Back to the defaults: the last 12 months, newest first, grouped as the dates group (by month).
+    setGroupPinned(false);
+    setSortBy("date_desc");
+    settingsStorage.set(SORT_KEY, "date_desc");
+    setTransferGroupBy("date");
     setDatePreset(DEFAULT_PRESET);
     setMinAmount("");
     setMaxAmount("");
@@ -798,6 +815,8 @@ export default function ExpensesScreen() {
         settingsStorage.set(SORT_KEY, f.sortBy);
       }
       if (f.groupBy) setGroupByPreference(`transactions_${f.nature ?? "realized"}`, f.groupBy);
+      // A saved view's grouping is a choice, unless it's just what its dates give.
+      setGroupPinned(!!f.groupBy && f.groupBy !== autoGroupFor(preset, f.customStartDate ?? "", f.customEndDate ?? ""));
       setSearch(f.search ?? "");
       setActiveViewId(view.id);
       setFilterSheet({ open: false });
@@ -1358,7 +1377,7 @@ export default function ExpensesScreen() {
     avoidability: filterAvoidability,
     ruleIds: filterRuleIds,
   };
-  const appliedCount = draftTotal(currentDraft, DEFAULT_PRESET);
+  const appliedCount = draftTotal(currentDraft, DEFAULT_PRESET, filterNature === "transfers");
 
   // The filter sheet's "Show 24 transactions": same query as the list, counted.
   const countForDraft = useCallback(
@@ -1375,7 +1394,11 @@ export default function ExpensesScreen() {
   const applyDraft = (d: TxFilterDraft) => {
     if (d.sortBy !== sortBy) chooseSort(d.sortBy as ExpenseSortBy);
     if (filterNature === "transfers") setTransferGroupBy(d.groupBy as TransferGroupBy);
-    else if (d.groupBy !== grouping.groupBy) grouping.setGroupBy(d.groupBy as ExpenseGroupBy);
+    else {
+      // A grouping other than the one these dates give is the owner's choice: keep it.
+      setGroupPinned(d.groupBy !== defaultGroupFor(d));
+      if (d.groupBy !== grouping.groupBy) grouping.setGroupBy(d.groupBy as ExpenseGroupBy);
+    }
     setDatePreset(d.datePreset);
     setCustomStartDate(d.customStart);
     setCustomEndDate(d.customEnd);
