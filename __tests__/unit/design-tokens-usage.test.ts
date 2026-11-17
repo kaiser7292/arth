@@ -55,6 +55,7 @@ const FILES = [
   "components/ui/FieldRow.tsx",
   "components/ui/FilterSheetParts.tsx",
   "components/expense/PickerSheet.tsx",
+  "app/(tabs)/settings.tsx",
   "components/home/pages/InsightsPage.tsx",
   "components/home/pages/VaultPage.tsx",
   "components/home/pages/SimulatorPage.tsx",

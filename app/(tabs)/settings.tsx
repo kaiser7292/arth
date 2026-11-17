@@ -2,9 +2,9 @@ import { formatDisplayDate } from "@/utils/date";
 import { getStartDate } from "@/services/start-date";
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
-import { Card, ContextualHeader, ScreenContainer, Text, useToast } from "@/components/ui";
+import { ContextualHeader, ScreenContainer, SearchField, Segmented, Text, useToast } from "@/components/ui";
+import { GroupLabel, LinkRow } from "@/components/ui/LinkRow";
 import { isAiLabUnlocked, setAiLabUnlocked, TAPS_TO_UNLOCK } from "@/services/ai/ai-lab";
-import { PressableScale } from "@/components/motion";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -25,61 +25,42 @@ import { PRIVACY_POLICY_URL, TERMS_URL } from "@/components/sms/SmsDisclosure";
 import { isDemoBuild, seedDemoData } from "@/services/demo-data";
 import { useTheme } from "@/hooks/use-theme";
 import { AppUpdateRow } from "@/components/settings/AppUpdateRow";
-import { drawsOwnDivider } from "@/components/ui/Rows";
 
 const THEME_OPTIONS: { value: "system" | "light" | "dark"; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { value: "system", label: "System", icon: "phone-portrait-outline" },
   { value: "light", label: "Light", icon: "sunny-outline" },
   { value: "dark", label: "Dark", icon: "moon-outline" },
 ];
-
-interface SettingsRowProps {
+interface SettingsItem {
+  key: string;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   subtitle?: string;
+  /** Extra words the search should find this row by. */
+  keywords?: string;
   onPress: () => void;
-  disabled?: boolean;
-  iconColor?: string;
-  lastRow?: boolean;
+}
+interface SettingsGroup {
+  title: string;
+  items: SettingsItem[];
 }
 
-function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor, lastRow }: SettingsRowProps) {
-  const { colors: themeColors } = useColorScheme();
-  const uiTheme = useTheme();
-  return (
-    <PressableScale
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      className={lastRow ? "" : "border-b border-border"}
-      style={{ flexDirection: "row", alignItems: "center", paddingVertical: 12, opacity: disabled ? 0.4 : 1 }}
-    >
-      <Ionicons name={icon} size={20} color={iconColor ?? themeColors.textSecondary} />
-      <View className="flex-1 ml-3">
-        <Text className="text-body text-foreground">
-          {label}
-        </Text>
-        {subtitle && (
-          <Text className="text-label text-faint-foreground mt-0.5">{subtitle}</Text>
-        )}
-      </View>
-      <Ionicons name="chevron-forward" size={18} color={themeColors.textSecondary} />
-    </PressableScale>
-  );
-}
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 export default function SettingsScreen() {
   useCustomisation();
   const alert = useAlert();
   const router = useRouter();
-  const { colorScheme, setColorScheme, colors } = useColorScheme();
+  const { colorScheme, setColorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const [theme, setTheme] = useState(getThemePreference);
+  const [query, setQuery] = useState("");
   // Status lines for the combined screens.
   const [messagesLine, setMessagesLine] = useState("Scan, templates, your name, duplicates");
   const [backupLine, setBackupLine] = useState("Backups, recycle bin, import, clean up");
   const [startDate, setStartDateLine] = useState<string | null>(getStartDate);
+  /** What "Needs a look" shows: only when something does. */
+  const [needs, setNeeds] = useState<{ backupDays: number | null; unread: number; dupes: number }>({ backupDays: null, unread: 0, dupes: 0 });
   const toast = useToast();
   // Tap Version 7 times to show the On-device AI lab, like Android's developer options.
   const [aiLab, setAiLab] = useState(isAiLabUnlocked);
@@ -117,6 +98,8 @@ export default function SettingsScreen() {
           ? `Last backup ${formatLastBackupTime(last).toLowerCase()} · recycle bin, import, clean up`
           : "Not backed up yet · recycle bin, import, clean up",
       );
+      const lastMs = last ? new Date(last).getTime() : NaN;
+      const backupDays = Number.isFinite(lastMs) ? Math.floor((Date.now() - lastMs) / DAY_MS) : -1;
 
       const android = Platform.OS === "android";
       const smsOn = android && isSmsDetectionEnabled();
@@ -124,109 +107,108 @@ export default function SettingsScreen() {
         countUnrecognisedSms().catch(() => 0),
         scanAllDuplicatesCached(DEFAULT_USER_ID).then((r) => r.duplicateGroupCount).catch(() => 0),
       ]).then(([unread, dupes]) => {
-        const needs: string[] = [];
-        if (unread > 0) needs.push(`${unread} unread`);
-        if (dupes > 0) needs.push(`${dupes} possible duplicate${dupes === 1 ? "" : "s"}`);
+        const parts: string[] = [];
+        if (unread > 0) parts.push(`${unread} unread`);
+        if (dupes > 0) parts.push(`${dupes} possible duplicate${dupes === 1 ? "" : "s"}`);
         const base = !android ? "Bank messages via Shortcuts" : smsOn ? "Reading on" : "Reading off";
-        setMessagesLine(needs.length > 0 ? `${base} · ${needs.join(" · ")}` : `${base} · scan, templates, your name, duplicates`);
+        setMessagesLine(parts.length > 0 ? `${base} · ${parts.join(" · ")}` : `${base} · scan, templates, your name, duplicates`);
+        setNeeds({ backupDays, unread, dupes });
       });
     }, []),
   );
 
-  const handleThemeChange = useCallback((value: "system" | "light" | "dark") => {
-    setThemePreference(value);
-    setColorScheme(value);
-    setTheme(value);
-  }, [setColorScheme]);
+  const handleThemeChange = useCallback(
+    (value: "system" | "light" | "dark") => {
+      setThemePreference(value);
+      setColorScheme(value);
+      setTheme(value);
+    },
+    [setColorScheme],
+  );
 
-  const activeThemeLabel = theme === "system"
-    ? `System (${colorScheme === "dark" ? "Dark" : "Light"})`
-    : theme === "dark" ? "Dark" : "Light";
+  const activeThemeLabel =
+    theme === "system" ? `System (${colorScheme === "dark" ? "Dark" : "Light"})` : theme === "dark" ? "Dark" : "Light";
 
-  return (
-    <ScreenContainer>
-      <ContextualHeader title="Settings" />
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        <View className="px-4 py-4">
-          <Card title="Data Management" className="mb-4">
-            <SettingsRow icon="grid-outline" label="Categories" subtitle="Manage expense categories" onPress={() => router.push("/settings/categories")} />
-            <SettingsRow icon="card-outline" label="Payment Modes" subtitle="Credit cards, UPI, wallets" onPress={() => router.push("/settings/payment-modes")} />
-            <SettingsRow icon="business-outline" label="Accounts" subtitle="Add & manage account details" onPress={() => router.push("/settings/account-master")} />
-            <SettingsRow icon="pricetags-outline" label="Tags" subtitle="Label and organize expenses" onPress={() => router.push("/settings/tags")} />
-            <SettingsRow icon="calculator-outline" label="Budget Configuration" subtitle="Set monthly budgets per category" onPress={() => router.push("/settings/budget-config")} />
-          </Card>
-
-          <Card title="Transactions" className="mb-4">
-            <SettingsRow icon="chatbubbles-outline" label="Transaction Messages" subtitle={messagesLine} onPress={() => router.push("/settings/transaction-messages")} />
-            <SettingsRow icon="storefront-outline" label="Merchants" subtitle="Names, merged names and the category each one goes to" onPress={() => router.push("/settings/merchants")} />
-            <SettingsRow icon="calendar-clear-outline" label="Start date" subtitle={startDate ? `Ignoring before ${formatDisplayDate(startDate)}` : "Counting everything"} onPress={() => router.push("/settings/start-date")} />
-          </Card>
-
-          <Card title="Automation" className="mb-4">
-            <SettingsRow icon="scale-outline" label="Update Balances" subtitle="Type what's really in each account and owed on each card" onPress={() => router.push("/settings/update-balances")} />
-            <SettingsRow icon="medkit-outline" label="Fix My Data" subtitle="Data health, and your AI fixes your whole history in one go" onPress={() => router.push("/settings/fix-my-data")} />
-            <SettingsRow icon="sparkles-outline" label="AI Assisted Setup" subtitle="Let your AI assistant set up categories, budgets, income and goals" onPress={() => router.push("/settings/ai-assisted-setup")} />
-            <SettingsRow icon="flash-outline" label="Smart Rules" subtitle="Auto-categorize expenses by merchant, amount, account" onPress={() => router.push("/settings/smart-rules")} />
-            <SettingsRow icon="repeat-outline" label="Reminders" subtitle="Rent, subscriptions, anything that repeats" onPress={() => router.push("/settings/recurring-rules")} />
-            <SettingsRow icon="mic-outline" label="Voice Input" subtitle="Voice sound, speak-back questions on or off" onPress={() => router.push("/settings/voice-input")} />
-            <SettingsRow icon="list-outline" label="Audit Log" subtitle="See every action taken on detected and manual records" onPress={() => router.push("/settings/audit-log")} />
-          </Card>
-
-          {getFlag("household") && isPartOn("together") && (
-            <Card title="Together" className="mb-4">
-              <SettingsRow icon="people-outline" label="Household" subtitle="Share household spending with your partner or family" onPress={() => router.push("/settings/household")} />
-            </Card>
-          )}
-
-          {isPartOn("investments") && (
-          <Card title="Integrations" className="mb-4">
-            <SettingsRow icon="trending-up-outline" label="Zerodha Kite" subtitle="Connect your Zerodha account to sync portfolio" onPress={() => router.push("/settings/kite-connect")} />
-            <SettingsRow icon="bar-chart-outline" label="Angel One" subtitle="Connect your Angel One account to sync portfolio" onPress={() => router.push("/settings/angel-connect" as any)} />
-            <SettingsRow icon="logo-bitcoin" label="Zebpay" subtitle="Connect your Zebpay account to view crypto portfolio" onPress={() => router.push("/settings/zebpay-connect" as any)} />
-          </Card>
-          )}
-
-          <Card title="Backup and Data" className="mb-4">
-            <SettingsRow icon="cloud-upload-outline" label="Backup and Data" subtitle={backupLine} onPress={() => router.push("/settings/backup-data")} />
-          </Card>
-
-          <Card title="Preferences & Security" className="mb-4">
-            <SettingsRow icon="globe-outline" label="Region" subtitle="Currency, date format, number format, fiscal year" onPress={() => router.push("/settings/region")} />
-            <SettingsRow icon="notifications-outline" label="Notifications" subtitle="SMS scan alerts, due reminders" onPress={() => router.push("/settings/notifications")} />
-            <SettingsRow icon="calendar-outline" label="Calendar sync" subtitle="Bills, EMIs and reminders in your calendar" onPress={() => router.push("/settings/calendar-sync")} />
-            <SettingsRow icon="options-outline" label="Customise Arth" subtitle="Switch off what you don't use, and order your Home cards" onPress={() => router.push("/settings/customise")} />
-            <SettingsRow icon="lock-closed-outline" label="Security" subtitle="App lock with biometric authentication" onPress={() => router.push("/settings/security")} />
-            <>
-              <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground mt-4 mb-2">Theme</Text>
-              <Text className="text-meta text-muted-foreground mb-3">Current: {activeThemeLabel}</Text>
-              <View className="flex-row">
-                {THEME_OPTIONS.map((option) => (
-                  <Pressable
-                    key={option.value}
-                    onPress={() => handleThemeChange(option.value)}
-                    className={`flex-1 items-center py-3 mx-1 rounded-control border ${theme === option.value ? "" : "border-border"}`}
-                    style={theme === option.value ? { borderColor: uiTheme.primary, backgroundColor: uiTheme.alpha("primary", 0.1) } : undefined}
-                    >
-                      <Ionicons name={option.icon} size={20} color={theme === option.value ? colors.blue : colors.textSecondary} />
-                      <Text
-                        className={`text-label mt-1 ${theme === option.value ? "font-medium" : "text-muted-foreground"}`}
-                        style={theme === option.value ? { color: uiTheme.primary } : undefined}
-                      >
-                        {option.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-            </>
-          </Card>
-
-          {isDemoBuild() && (
-            <Card title="Demo build" className="mb-4">
-              <SettingsRow
-                icon="flask-outline"
-                label="Load sample data"
-                subtitle="Fictional accounts and transactions for screenshots"
-                onPress={() =>
+  const go = (path: string) => () => router.push(path as never);
+  const groups: SettingsGroup[] = [
+    {
+      title: "Your data",
+      items: [
+        { key: "categories", icon: "grid-outline", label: "Categories", subtitle: "Main categories, sub-categories, reorder", onPress: go("/settings/categories") },
+        { key: "modes", icon: "card-outline", label: "Payment modes", subtitle: "Credit cards, UPI, wallets", onPress: go("/settings/payment-modes") },
+        { key: "accounts", icon: "business-outline", label: "Accounts", subtitle: "Add and manage account details", keywords: "bank card wallet loan demat", onPress: go("/settings/account-master") },
+        { key: "tags", icon: "pricetags-outline", label: "Tags", subtitle: "Label and organise transactions", onPress: go("/settings/tags") },
+        { key: "budget", icon: "calculator-outline", label: "Budget configuration", subtitle: "Monthly budgets per category", onPress: go("/settings/budget-config") },
+      ],
+    },
+    {
+      title: "Transactions",
+      items: [
+        { key: "messages", icon: "chatbubbles-outline", label: "Transaction messages", subtitle: messagesLine, keywords: "sms scan templates duplicates", onPress: go("/settings/transaction-messages") },
+        { key: "merchants", icon: "storefront-outline", label: "Merchants", subtitle: "Names, merged names and the category each one goes to", onPress: go("/settings/merchants") },
+        {
+          key: "start",
+          icon: "calendar-clear-outline",
+          label: "Start date",
+          subtitle: startDate ? `Ignoring before ${formatDisplayDate(startDate)}` : "Counting everything",
+          onPress: go("/settings/start-date"),
+        },
+      ],
+    },
+    {
+      title: "Automation",
+      items: [
+        { key: "balances", icon: "scale-outline", label: "Update balances", subtitle: "Type what's really in each account and owed on each card", onPress: go("/settings/update-balances") },
+        { key: "fix", icon: "medkit-outline", label: "Fix my data", subtitle: "Data health, and your AI fixes your whole history in one go", onPress: go("/settings/fix-my-data") },
+        { key: "aisetup", icon: "sparkles-outline", label: "AI-assisted setup", subtitle: "Let your AI assistant set up categories, budgets, income and goals", onPress: go("/settings/ai-assisted-setup") },
+        { key: "rules", icon: "flash-outline", label: "Smart rules", subtitle: "Auto-categorise by merchant, amount, account", onPress: go("/settings/smart-rules") },
+        { key: "reminders", icon: "repeat-outline", label: "Reminders", subtitle: "Rent, subscriptions, anything that repeats", keywords: "recurring", onPress: go("/settings/recurring-rules") },
+        { key: "voice", icon: "mic-outline", label: "Voice input", subtitle: "Voice sound, speak-back questions on or off", onPress: go("/settings/voice-input") },
+        { key: "audit", icon: "list-outline", label: "Audit log", subtitle: "Every action taken on detected and manual records", onPress: go("/settings/audit-log") },
+      ],
+    },
+    ...(getFlag("household") && isPartOn("together")
+      ? [{ title: "Together", items: [{ key: "household", icon: "people-outline" as const, label: "Household", subtitle: "Share household spending with your partner or family", onPress: go("/settings/household") }] }]
+      : []),
+    ...(isPartOn("investments")
+      ? [
+          {
+            title: "Integrations",
+            items: [
+              { key: "kite", icon: "trending-up-outline" as const, label: "Zerodha Kite", subtitle: "Connect your Zerodha account to sync portfolio", keywords: "broker", onPress: go("/settings/kite-connect") },
+              { key: "angel", icon: "bar-chart-outline" as const, label: "Angel One", subtitle: "Connect your Angel One account to sync portfolio", keywords: "broker", onPress: go("/settings/angel-connect") },
+              { key: "zebpay", icon: "logo-bitcoin" as const, label: "Zebpay", subtitle: "Connect your Zebpay account to view crypto portfolio", keywords: "crypto", onPress: go("/settings/zebpay-connect") },
+            ],
+          },
+        ]
+      : []),
+    {
+      title: "Backup and data",
+      items: [
+        { key: "backup", icon: "cloud-upload-outline", label: "Backup and data", subtitle: backupLine, keywords: "restore recycle bin import excel clean up", onPress: go("/settings/backup-data") },
+      ],
+    },
+    {
+      title: "Preferences and security",
+      items: [
+        { key: "region", icon: "globe-outline", label: "Region", subtitle: "Currency, date format, number format, financial year", keywords: "timezone", onPress: go("/settings/region") },
+        { key: "notif", icon: "notifications-outline", label: "Notifications", subtitle: "Message scan alerts, due reminders", onPress: go("/settings/notifications") },
+        { key: "calendar", icon: "calendar-outline", label: "Calendar sync", subtitle: "Bills, EMIs and reminders in your calendar", onPress: go("/settings/calendar-sync") },
+        { key: "customise", icon: "options-outline", label: "Customise Arth", subtitle: "Switch off what you don't use, and order your Home cards", keywords: "tabs features", onPress: go("/settings/customise") },
+        { key: "security", icon: "lock-closed-outline", label: "Security", subtitle: "App lock with biometric authentication", keywords: "fingerprint passcode", onPress: go("/settings/security") },
+      ],
+    },
+    ...(isDemoBuild()
+      ? [
+          {
+            title: "Demo build",
+            items: [
+              {
+                key: "demo",
+                icon: "flask-outline" as const,
+                label: "Load sample data",
+                subtitle: "Fictional accounts and transactions for screenshots",
+                onPress: () =>
                   alert("Load sample data?", "Adds three months of fictional accounts, transactions, budgets, a loan, goals and a family ledger.", [
                     { text: "Cancel", style: "cancel" },
                     {
@@ -240,73 +222,128 @@ export default function SettingsScreen() {
                         }
                       },
                     },
-                  ])
-                }
-              />
-            </Card>
-          )}
+                  ]),
+              },
+            ],
+          },
+        ]
+      : []),
+    {
+      title: "About and help",
+      items: [
+        ...(getFlag("v15_help_center")
+          ? [{ key: "help", icon: "help-circle-outline" as const, label: "Help center", subtitle: "Ask anything in plain English", onPress: go("/settings/help") }]
+          : []),
+        { key: "privacy", icon: "shield-checkmark-outline", label: "Privacy policy", subtitle: "What Arth reads, stores and never sends", onPress: () => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {}) },
+        { key: "terms", icon: "reader-outline", label: "Terms of use", onPress: () => Linking.openURL(TERMS_URL).catch(() => {}) },
+        { key: "licences", icon: "document-text-outline", label: "Open-source licences", subtitle: "Libraries and models Arth is built with", onPress: go("/settings/licenses") },
+        ...(aiLab && Platform.OS === "android"
+          ? [{ key: "ailab", icon: "flask-outline" as const, label: "On-device AI lab", subtitle: "Test Gemini Nano on your bank messages", onPress: go("/settings/ai-lab") }]
+          : []),
+      ],
+    },
+  ];
 
-          <Card title="About & Help" className="mb-4">
-            {getFlag("v15_help_center") && (
-              <SettingsRow
-                icon="help-circle-outline"
-                label="Help Center"
-                subtitle="Ask anything in plain English"
-                onPress={() => router.push("/settings/help")}
-              />
-            )}
-            <SettingsRow
-              icon="shield-checkmark-outline"
-              label="Privacy policy"
-              subtitle="What Arth reads, stores and never sends"
-              onPress={() => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {})}
-            />
-            <SettingsRow
-              icon="reader-outline"
-              label="Terms of use"
-              onPress={() => Linking.openURL(TERMS_URL).catch(() => {})}
-            />
-            <SettingsRow
-              icon="document-text-outline"
-              label="Open-source licences"
-              subtitle="Libraries and models Arth is built with"
-              onPress={() => router.push("/settings/licenses")}
-            />
-            {aiLab && Platform.OS === "android" && (
-              <SettingsRow
-                icon="flask-outline"
-                label="On-device AI lab"
-                subtitle="Test Gemini Nano on your bank messages"
-                onPress={() => router.push("/settings/ai-lab")}
-              />
-            )}
-            <View className="flex-row items-center justify-between py-2 border-b border-border">
-              <Text className="text-meta" style={{ color: colors.textSecondary }}>App Name</Text>
-              <View className="flex-row items-center" style={{ gap: 4 }}>
-                <Text className="text-body font-medium" style={{ color: colors.text }}>Arth ·</Text>
-                <Text className="text-body font-medium text-foreground">अर्थ</Text>
-              </View>
-            </View>
-            <AppUpdateRow />
-            <Pressable
-              onPress={tapVersion}
-              accessibilityLabel="Version"
-              className="flex-row items-center justify-between py-2"
-            >
-              <Text className="text-meta" style={{ color: colors.textSecondary }}>Version</Text>
-              <Text className="text-body font-medium" style={{ color: colors.text }}>
-                {(() => {
-                  const v = require("expo-constants").default.expoConfig?.version ?? "-";
-                  const sha = require("@/constants/build-info").COMMIT_SHA;
-                  return sha ? `${v} - ${sha}` : v;
-                })()}
-              </Text>
-            </Pressable>
-          </Card>
+  // "Needs a look": only what does.
+  const needItems: SettingsItem[] = [];
+  if (needs.backupDays === -1 || (needs.backupDays != null && needs.backupDays > 7))
+    needItems.push({
+      key: "n-backup",
+      icon: "cloud-upload-outline",
+      label: needs.backupDays === -1 ? "Not backed up yet" : `Last backup ${needs.backupDays} days ago`,
+      subtitle: "Back up now",
+      onPress: go("/settings/backup-data"),
+    });
+  if (needs.dupes > 0)
+    needItems.push({ key: "n-dupes", icon: "copy-outline", label: `${needs.dupes} possible duplicate${needs.dupes === 1 ? "" : "s"}`, subtitle: "Check them in Fix my data", onPress: go("/settings/fix-my-data") });
+  if (needs.unread > 0)
+    needItems.push({ key: "n-unread", icon: "chatbubbles-outline", label: `${needs.unread} unread bank message${needs.unread === 1 ? "" : "s"}`, subtitle: "Teach Arth to read them", onPress: go("/settings/transaction-messages") });
+
+  const q = query.trim().toLowerCase();
+  const hits = q
+    ? groups.flatMap((g) => g.items.filter((i) => `${i.label} ${i.subtitle ?? ""} ${i.keywords ?? ""} ${g.title}`.toLowerCase().includes(q)).map((i) => ({ ...i, group: g.title })))
+    : [];
+  const themeHit = q && "theme dark light appearance".includes(q);
+
+  const card = (items: (SettingsItem & { group?: string })[]) => (
+    <View className="rounded-card bg-card border border-border overflow-hidden">
+      {items.map((i, idx) => (
+        <LinkRow key={i.key} divider={idx > 0} icon={i.icon} title={i.label} sub={i.group ? `${i.group} · ${i.subtitle ?? ""}` : i.subtitle} onPress={i.onPress} />
+      ))}
+    </View>
+  );
+
+  const themePicker = (
+    <View className="rounded-card bg-card border border-border p-4">
+      <Text className="text-body font-semibold text-foreground">Theme</Text>
+      <Text className="text-meta text-muted-foreground mb-3">Now: {activeThemeLabel}</Text>
+      <Segmented<"system" | "light" | "dark">
+        options={THEME_OPTIONS.map((o) => ({ value: o.value, label: o.label, icon: o.icon }))}
+        value={theme}
+        onChange={handleThemeChange}
+      />
+    </View>
+  );
+
+  return (
+    <ScreenContainer>
+      <ContextualHeader title="Settings" />
+      <View className="px-4 pb-2">
+        <SearchField value={query} onChangeText={setQuery} placeholder="Search settings" accessibilityLabel="Search settings" />
+      </View>
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+        <View className="px-4 pt-2" style={{ gap: 16 }}>
+          {q ? (
+            hits.length > 0 || themeHit ? (
+              <>
+                {hits.length > 0 && card(hits)}
+                {themeHit && themePicker}
+              </>
+            ) : (
+              <Text className="text-meta text-muted-foreground text-center py-8">No setting matches “{query.trim()}”</Text>
+            )
+          ) : (
+            <>
+              {needItems.length > 0 && (
+                <View>
+                  <GroupLabel>Needs a look</GroupLabel>
+                  <View className="rounded-card overflow-hidden" style={{ backgroundColor: uiTheme.alpha("warning", 0.08) }}>
+                    {needItems.map((i, idx) => (
+                      <LinkRow key={i.key} divider={idx > 0} icon={i.icon} color={uiTheme.warning} title={i.label} sub={i.subtitle} onPress={i.onPress} />
+                    ))}
+                  </View>
+                </View>
+              )}
+              {groups.map((g) => (
+                <View key={g.title}>
+                  <GroupLabel>{g.title}</GroupLabel>
+                  {card(g.items)}
+                  {g.title === "Preferences and security" && <View className="mt-3">{themePicker}</View>}
+                  {g.title === "About and help" && (
+                    <View className="rounded-card bg-card border border-border px-4 mt-3">
+                      <View className="flex-row items-center justify-between py-3 border-b border-border">
+                        <Text className="text-meta text-muted-foreground">App name</Text>
+                        <Text className="text-body font-semibold text-foreground">Arth · अर्थ</Text>
+                      </View>
+                      <AppUpdateRow />
+                      <Pressable onPress={tapVersion} accessibilityLabel="Version" className="flex-row items-center justify-between py-3">
+                        <Text className="text-meta text-muted-foreground">Version</Text>
+                        <Text className="text-body font-semibold text-foreground">
+                          {(() => {
+                            const v = require("expo-constants").default.expoConfig?.version ?? "-";
+                            const sha = require("@/constants/build-info").COMMIT_SHA;
+                            return sha ? `${v} - ${sha}` : v;
+                          })()}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </>
+          )}
         </View>
       </ScrollView>
     </ScreenContainer>
   );
 }
-
-drawsOwnDivider(SettingsRow);
