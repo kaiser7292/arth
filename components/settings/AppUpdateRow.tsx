@@ -19,8 +19,8 @@ export function AppUpdateRow({ lastRow }: { lastRow?: boolean }) {
     <View className={`py-2 ${lastRow ? "" : "border-b border-border"}`}>
       <View className="flex-row items-center">
         <View className="flex-1 mr-3">
-          <Text className="text-sm text-foreground">Tell me about new versions</Text>
-          <Text className="text-xs text-muted-foreground mt-0.5 leading-4">
+          <Text className="text-meta text-foreground">Tell me about new versions</Text>
+          <Text className="text-label text-muted-foreground mt-0.5 leading-4">
             Asks the Play Store. Nothing about you is sent.
           </Text>
         </View>
@@ -50,7 +50,7 @@ export function AppUpdateRow({ lastRow }: { lastRow?: boolean }) {
           className="self-start mt-1"
           accessibilityRole="button"
         >
-          <Text className="text-xs font-semibold" style={{ color: theme.primary }}>{checking ? "Checking…" : "Check now"}</Text>
+          <Text className="text-label font-semibold" style={{ color: theme.primary }}>{checking ? "Checking…" : "Check now"}</Text>
         </Pressable>
       )}
     </View>

@@ -57,11 +57,11 @@ function SettingsRow({ icon, label, subtitle, onPress, disabled, iconColor, last
     >
       <Ionicons name={icon} size={20} color={iconColor ?? themeColors.textSecondary} />
       <View className="flex-1 ml-3">
-        <Text className="text-base text-foreground">
+        <Text className="text-body text-foreground">
           {label}
         </Text>
         {subtitle && (
-          <Text className="text-xs text-faint-foreground mt-0.5">{subtitle}</Text>
+          <Text className="text-label text-faint-foreground mt-0.5">{subtitle}</Text>
         )}
       </View>
       <Ionicons name="chevron-forward" size={18} color={themeColors.textSecondary} />
@@ -197,19 +197,19 @@ export default function SettingsScreen() {
             <SettingsRow icon="options-outline" label="Customise Arth" subtitle="Switch off what you don't use, and order your Home cards" onPress={() => router.push("/settings/customise")} />
             <SettingsRow icon="lock-closed-outline" label="Security" subtitle="App lock with biometric authentication" onPress={() => router.push("/settings/security")} />
             <>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground mt-4 mb-2">Theme</Text>
-              <Text className="text-sm text-muted-foreground mb-3">Current: {activeThemeLabel}</Text>
+              <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground mt-4 mb-2">Theme</Text>
+              <Text className="text-meta text-muted-foreground mb-3">Current: {activeThemeLabel}</Text>
               <View className="flex-row">
                 {THEME_OPTIONS.map((option) => (
                   <Pressable
                     key={option.value}
                     onPress={() => handleThemeChange(option.value)}
-                    className={`flex-1 items-center py-3 mx-1 rounded-lg border ${theme === option.value ? "" : "border-border"}`}
+                    className={`flex-1 items-center py-3 mx-1 rounded-control border ${theme === option.value ? "" : "border-border"}`}
                     style={theme === option.value ? { borderColor: uiTheme.primary, backgroundColor: uiTheme.alpha("primary", 0.1) } : undefined}
                     >
                       <Ionicons name={option.icon} size={20} color={theme === option.value ? colors.blue : colors.textSecondary} />
                       <Text
-                        className={`text-xs mt-1 ${theme === option.value ? "font-medium" : "text-muted-foreground"}`}
+                        className={`text-label mt-1 ${theme === option.value ? "font-medium" : "text-muted-foreground"}`}
                         style={theme === option.value ? { color: uiTheme.primary } : undefined}
                       >
                         {option.label}
@@ -281,10 +281,10 @@ export default function SettingsScreen() {
               />
             )}
             <View className="flex-row items-center justify-between py-2 border-b border-border">
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>App Name</Text>
+              <Text className="text-meta" style={{ color: colors.textSecondary }}>App Name</Text>
               <View className="flex-row items-center" style={{ gap: 4 }}>
-                <Text className="text-sm font-medium" style={{ color: colors.text }}>Arth ·</Text>
-                <Text className="text-sm font-medium text-foreground">अर्थ</Text>
+                <Text className="text-body font-medium" style={{ color: colors.text }}>Arth ·</Text>
+                <Text className="text-body font-medium text-foreground">अर्थ</Text>
               </View>
             </View>
             <AppUpdateRow />
@@ -293,8 +293,8 @@ export default function SettingsScreen() {
               accessibilityLabel="Version"
               className="flex-row items-center justify-between py-2"
             >
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>Version</Text>
-              <Text className="text-sm font-medium" style={{ color: colors.text }}>
+              <Text className="text-meta" style={{ color: colors.textSecondary }}>Version</Text>
+              <Text className="text-body font-medium" style={{ color: colors.text }}>
                 {(() => {
                   const v = require("expo-constants").default.expoConfig?.version ?? "-";
                   const sha = require("@/constants/build-info").COMMIT_SHA;

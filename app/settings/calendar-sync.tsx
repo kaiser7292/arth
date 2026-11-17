@@ -89,8 +89,8 @@ function Row({
   return (
     <View className={`flex-row items-center justify-between py-3 ${lastRow ? "" : "border-b border-border"}`}>
       <View className="flex-1 mr-3">
-        <Text className="text-sm font-medium text-foreground">{title}</Text>
-        {subtitle ? <Text className="text-xs text-muted-foreground mt-0.5">{subtitle}</Text> : null}
+        <Text className="text-body font-medium text-foreground">{title}</Text>
+        {subtitle ? <Text className="text-label text-muted-foreground mt-0.5">{subtitle}</Text> : null}
       </View>
       <Switch
         value={value}
@@ -199,8 +199,8 @@ export default function CalendarSyncScreen() {
     >
       <View className="w-3 h-3 rounded-full mr-3" style={{ backgroundColor: color ?? theme.primary }} />
       <View className="flex-1">
-        <Text className="text-sm font-medium text-foreground">{title}</Text>
-        {subtitle ? <Text className="text-xs text-muted-foreground mt-0.5">{subtitle}</Text> : null}
+        <Text className="text-body font-medium text-foreground">{title}</Text>
+        {subtitle ? <Text className="text-label text-muted-foreground mt-0.5">{subtitle}</Text> : null}
       </View>
       <Ionicons
         name={isSelected ? "radio-button-on" : "radio-button-off"}
@@ -214,8 +214,8 @@ export default function CalendarSyncScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 pt-5 pb-3">
-          <Text className="text-lg font-bold text-foreground">Calendar sync</Text>
-          <Text className="text-xs text-muted-foreground mt-1">
+          <Text className="text-heading font-bold text-foreground">Calendar sync</Text>
+          <Text className="text-label text-muted-foreground mt-1">
             Adds upcoming bills, EMIs, reminders and FD maturities to your calendar, with an alert the day before.
           </Text>
         </View>
@@ -223,13 +223,13 @@ export default function CalendarSyncScreen() {
         <Card className="mx-4 mb-3">
           <Row title="Sync to calendar" value={prefs.enabled} onChange={(v) => void toggleEnabled(v)} />
           {prefs.enabled && (
-            <Text className="text-xs text-muted-foreground pt-3">{describeResult(last)}</Text>
+            <Text className="text-label text-muted-foreground pt-3">{describeResult(last)}</Text>
           )}
         </Card>
 
         {prefs.enabled && (
           <>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 mt-2 mb-2">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-4 mt-2 mb-2">
               Calendar
             </Text>
             <Card className="mx-4 mb-3">
@@ -241,19 +241,19 @@ export default function CalendarSyncScreen() {
               )}
               {[...groups.entries()].map(([acct, cals]) => (
                 <View key={acct}>
-                  <Text className="text-xs text-muted-foreground pt-3">{acct}</Text>
+                  <Text className="text-label text-muted-foreground pt-3">{acct}</Text>
                   {cals.map((c) => option(idOf(c.id), c.title, null, idOf(c.id) === prefs.calendarId, c.color))}
                 </View>
               ))}
               {!prefs.calendarId && (
-                <Text className="text-xs pt-3" style={{ color: theme.warning }}>
+                <Text className="text-label pt-3" style={{ color: theme.warning }}>
                   Pick a calendar to start syncing.
                 </Text>
               )}
             </Card>
             {syncsToCloud && (
-              <View className="mx-4 mb-3 px-3 py-2.5 rounded-xl" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-                <Text className="text-xs text-muted-foreground">
+              <View className="mx-4 mb-3 px-3 py-2.5 rounded-card" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+                <Text className="text-label text-muted-foreground">
                   This calendar syncs to {selected?.source?.name ?? "your account"} through Android, so events will also
                   appear on your other devices{prefs.showAmounts ? ", amounts included" : ""}. Arth itself never
                   connects to Google.
@@ -261,7 +261,7 @@ export default function CalendarSyncScreen() {
               </View>
             )}
 
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-4 mt-2 mb-2">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-4 mt-2 mb-2">
               What to add
             </Text>
             <Card className="mx-4 mb-3">
@@ -285,7 +285,7 @@ export default function CalendarSyncScreen() {
             <View className="mx-4 mt-2">
               <Button title="Sync now" onPress={() => void runSync()} loading={syncing} disabled={!prefs.calendarId} />
             </View>
-            <Text className="text-xs text-muted-foreground mx-4 mt-3">
+            <Text className="text-label text-muted-foreground mx-4 mt-3">
               Covers the next 90 days. Arth updates the calendar when you open or leave the app. Mark things paid in
               Arth; edits made in the calendar get overwritten. Past events stay in your calendar as history.
             </Text>

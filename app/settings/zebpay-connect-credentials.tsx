@@ -89,9 +89,9 @@ export default function ZebpayConnectCredentialsScreen() {
   };
 
   const inputStyle = {
-    color: colors.text,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    color: theme.foreground,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -121,28 +121,28 @@ export default function ZebpayConnectCredentialsScreen() {
 
           <Card className="mb-3">
             <View className="mb-4">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 API Key
               </Text>
               <TextInput
                 value={apiKey}
                 onChangeText={setApiKey}
                 placeholder="Your Zebpay API key"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={inputStyle}
               />
             </View>
             <View>
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Secret Key
               </Text>
               <TextInput
                 value={secretKey}
                 onChangeText={setSecretKey}
                 placeholder="Your Zebpay secret key"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
@@ -157,7 +157,7 @@ export default function ZebpayConnectCredentialsScreen() {
             <Pressable
               onPress={handleConnect}
               disabled={isBusy || !agreed}
-              className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+              className="flex-1 rounded-control p-3.5 flex-row items-center justify-center"
               style={{ backgroundColor: theme.primary, opacity: isBusy || !agreed ? 0.5 : 1 }}
             >
               {isBusy ? (
@@ -165,7 +165,7 @@ export default function ZebpayConnectCredentialsScreen() {
               ) : (
                 <>
                   <Ionicons name="link-outline" size={18} color="#fff" />
-                  <Text className="text-white font-semibold text-sm ml-2">
+                  <Text className="text-white font-semibold text-body ml-2">
                     {hasExisting ? 'Update & Reconnect' : 'Connect'}
                   </Text>
                 </>
@@ -175,19 +175,19 @@ export default function ZebpayConnectCredentialsScreen() {
             {hasExisting ? (
               <Pressable
                 onPress={handleClear}
-                className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+                className="flex-1 rounded-control p-3.5 flex-row items-center justify-center"
                 style={{ backgroundColor: theme.danger }}
               >
                 <Ionicons name="trash-outline" size={18} color="#fff" />
-                <Text className="text-white font-semibold text-sm ml-2">Remove</Text>
+                <Text className="text-white font-semibold text-body ml-2">Remove</Text>
               </Pressable>
             ) : (
               <Pressable
                 onPress={() => router.back()}
-                className="flex-1 rounded-lg p-3.5 items-center justify-center border border-border"
-                style={{ backgroundColor: colors.surface }}
+                className="flex-1 rounded-control p-3.5 items-center justify-center border border-border"
+                style={{ backgroundColor: theme.card }}
               >
-                <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+                <Text className="text-body font-semibold text-foreground">Cancel</Text>
               </Pressable>
             )}
           </View>

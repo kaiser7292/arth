@@ -133,7 +133,7 @@ export default function TagsSettingsScreen() {
             onChangeText={setEditName}
             autoFocus
             maxLength={50}
-            className="text-base text-foreground border rounded-lg px-3 py-2 mb-2"
+            className="text-body text-foreground border rounded-control px-3 py-2 mb-2"
             style={{ borderColor: theme.primary }}
           />
           {/* Color picker */}
@@ -184,10 +184,10 @@ export default function TagsSettingsScreen() {
           style={{ backgroundColor: item.color }}
         />
         <View className="flex-1">
-          <Text className="text-base text-foreground">
+          <Text className="text-body text-foreground">
             {item.name}
           </Text>
-          <Text className="text-xs text-faint-foreground">
+          <Text className="text-label text-faint-foreground">
             {count} {count === 1 ? "expense" : "expenses"}
           </Text>
         </View>
@@ -203,7 +203,7 @@ export default function TagsSettingsScreen() {
       {loadFailed && <LoadFailedBanner onRetry={loadTags} />}
       {/* Count */}
       <View className="px-4 py-3">
-        <Text className="text-sm text-muted-foreground">
+        <Text className="text-meta text-muted-foreground">
           {tags.length} {tags.length === 1 ? "tag" : "tags"}
         </Text>
       </View>
@@ -215,10 +215,10 @@ export default function TagsSettingsScreen() {
             value={newTagName}
             onChangeText={setNewTagName}
             placeholder="Tag name"
-            placeholderTextColor={colors.tabIconDefault}
+            placeholderTextColor={theme.mutedForeground}
             autoFocus
             maxLength={50}
-            className="text-base text-foreground border border-border rounded-lg px-3 py-2 mb-3"
+            className="text-body text-foreground border border-border rounded-control px-3 py-2 mb-3"
           />
           {/* Color picker */}
           <View className="flex-row flex-wrap mb-3">
@@ -242,16 +242,16 @@ export default function TagsSettingsScreen() {
           <View className="flex-row gap-3">
             <Pressable
               onPress={() => { setShowAdd(false); setNewTagName(""); }}
-              className="flex-1 py-2.5 rounded-xl border border-border items-center"
+              className="flex-1 py-2.5 rounded-card border border-border items-center"
             >
-              <Text className="text-sm font-medium text-muted-foreground">Cancel</Text>
+              <Text className="text-body font-medium text-muted-foreground">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleAdd}
-              className="flex-1 py-2.5 rounded-xl items-center"
+              className="flex-1 py-2.5 rounded-card items-center"
               style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-sm font-semibold text-primary-foreground">Create tag</Text>
+              <Text className="text-body font-semibold text-primary-foreground">Create tag</Text>
             </Pressable>
           </View>
         </Card>

@@ -96,7 +96,7 @@ export default function PaymentModeEditScreen() {
             containerClassName="mb-6"
           />
 
-          <Text className="text-sm font-medium text-muted-foreground mb-2">
+          <Text className="text-body font-medium text-muted-foreground mb-2">
             Type
           </Text>
           <View className="flex-row flex-wrap mb-8">

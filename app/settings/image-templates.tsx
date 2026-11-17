@@ -53,7 +53,7 @@ export default function ImageTemplatesScreen() {
     <ScreenContainer padTop={false}>
       {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        <Text className="text-sm text-muted-foreground mb-3 leading-5">
+        <Text className="text-meta text-muted-foreground mb-3 leading-5">
           Payment picture layouts you taught Arth. A picture that matches one is read with it. Tap one to rename it, change
           its fields or delete it.
         </Text>
@@ -67,8 +67,8 @@ export default function ImageTemplatesScreen() {
           <Card className="mb-3">
             <View className="flex-row items-start">
               <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">{t.name}</Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
+                <Text className="text-body font-semibold text-foreground">{t.name}</Text>
+                <Text className="text-label text-muted-foreground mt-0.5">
                   {KIND_LABEL[t.kind]} · used {t.useCount} {t.useCount === 1 ? "time" : "times"}
                 </Text>
               </View>
@@ -76,8 +76,8 @@ export default function ImageTemplatesScreen() {
             </View>
             <View className="flex-row flex-wrap mt-2" style={{ gap: 6 }}>
               {TEMPLATE_FIELDS.filter((d) => t.fields[d.field]).map((d) => (
-                <View key={d.field} className="rounded-md px-2 py-1" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                <View key={d.field} className="rounded-control px-2 py-1" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                  <Text className="text-label font-medium" style={{ color: theme.primary }}>
                     {t.kind === "credit" && d.creditLabel ? d.creditLabel : d.label}
                   </Text>
                 </View>

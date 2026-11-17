@@ -116,28 +116,28 @@ export default function PasteSmsScreen() {
             <View className="flex-row items-start">
               <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
               <View className="flex-1 ml-2">
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   Resume unfinished template?
                 </Text>
-                <Text className="text-xs text-faint-foreground mt-0.5">
+                <Text className="text-label text-faint-foreground mt-0.5">
                   You started teaching Arth an SMS earlier but didn't save. Continue where you left off, or discard and start over.
                 </Text>
                 <View className="flex-row mt-2" style={{ gap: 8 }}>
                   <Pressable
                     onPress={() => router.push("/settings/sms-templates/tag")}
-                    className="flex-1 items-center py-2 rounded-lg"
+                    className="flex-1 items-center py-2 rounded-control"
                     style={{ backgroundColor: colors.tint }}
                   >
-                    <Text className="text-xs font-semibold" style={{ color: "#FFFFFF" }}>
+                    <Text className="text-label font-semibold" style={{ color: "#FFFFFF" }}>
                       Continue
                     </Text>
                   </Pressable>
                   <Pressable
                     onPress={handleDiscard}
-                    className="flex-1 items-center py-2 rounded-lg"
+                    className="flex-1 items-center py-2 rounded-control"
                     style={{ borderWidth: 1, borderColor: colors.border }}
                   >
-                    <Text className="text-xs font-semibold" style={{ color: colors.text }}>
+                    <Text className="text-label font-semibold" style={{ color: colors.text }}>
                       Discard
                     </Text>
                   </Pressable>
@@ -148,10 +148,10 @@ export default function PasteSmsScreen() {
         )}
 
         <Card className="mb-4">
-          <Text className="text-sm font-semibold text-foreground mb-2">
+          <Text className="text-body font-semibold text-foreground mb-2">
             Paste an SMS Arth couldn't read
           </Text>
-          <Text className="text-xs text-faint-foreground mb-3">
+          <Text className="text-label text-faint-foreground mb-3">
             Copy the raw SMS from your Messages app. Include the whole body so Arth can learn the format.
           </Text>
           <TextInput
@@ -173,13 +173,13 @@ export default function PasteSmsScreen() {
               textAlignVertical: "top",
             }}
           />
-          <Text className="text-xs text-faint-foreground mt-2 mb-3">
+          <Text className="text-label text-faint-foreground mt-2 mb-3">
             Tip: long-press inside the text box and tap Paste.
           </Text>
           <Button title="Next" onPress={handleNext} disabled={!canProceed} />
         </Card>
 
-        <Text className="text-xs text-faint-foreground px-2">
+        <Text className="text-label text-faint-foreground px-2">
           ⚠️ The SMS body is stored on your device with the template so Arth can show it back to you later. If the SMS contains sensitive details (full account numbers, OTPs), remove them before pasting.
         </Text>
       </ScrollView>

@@ -20,7 +20,8 @@ const fs = require("fs");
 const babel = require("@babel/parser");
 
 const WRITE = process.argv.includes("--write");
-const files = process.argv.slice(2).filter((a) => a !== "--write");
+const NO_COLORS = process.argv.includes("--no-colors");
+const files = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const Q = String.fromCharCode(34);
 
 const TEXT = { xs: "label", base: "body", lg: "heading", xl: "title", "2xl": "title", "3xl": "display", "4xl": "hero" };
@@ -106,7 +107,7 @@ for (const file of files) {
   const hex = convertHexAlpha(s);
   s = hex.out;
   if (hex.used) s = ensureTintImport(s);
-  s = convertColors(s);
+  if (!NO_COLORS) s = convertColors(s);
   const ok = parses(s);
   const left = [];
   s.split(/\r?\n/).forEach((l, i) => {

@@ -31,6 +31,7 @@ import type { AlertButton } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 const ACCOUNT_SUFFIX_MAP_KEY = "recon_account_suffix_map";
 
@@ -434,10 +435,10 @@ export default function NewReconciliationScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <LoadingState />
-          <Text className="text-base font-semibold text-foreground mt-5 text-center">
+          <Text className="text-body font-semibold text-foreground mt-5 text-center">
             Matching transactions…
           </Text>
-          <Text className="text-sm text-muted-foreground mt-2 text-center">
+          <Text className="text-meta text-muted-foreground mt-2 text-center">
             {progress}
           </Text>
         </View>
@@ -456,11 +457,11 @@ export default function NewReconciliationScreen() {
         onRequestClose={() => { setPdfPasswordVisible(false); pendingPdfRef.current = null; }}
       >
         <View className="flex-1 justify-center items-center px-8" style={{ backgroundColor: "#00000066" }}>
-          <View className="w-full rounded-2xl p-6" style={{ backgroundColor: colors.surface }}>
-            <Text className="text-base font-bold text-foreground mb-1">
+          <View className="w-full rounded-card p-6" style={{ backgroundColor: theme.card }}>
+            <Text className="text-body font-bold text-foreground mb-1">
               Password-protected PDF
             </Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+            <Text className="text-meta text-muted-foreground mb-4">
               Enter the password to unlock this statement.
             </Text>
             <TextInput
@@ -468,30 +469,30 @@ export default function NewReconciliationScreen() {
               onChangeText={setPdfPassword}
               secureTextEntry
               placeholder="Statement password"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               returnKeyType="done"
               onSubmitEditing={handlePdfPasswordSubmit}
-              className="border rounded-xl px-4 py-3 text-base text-foreground mb-2"
-              style={{ borderColor: pdfPasswordError ? theme.danger : colors.border }}
+              className="border rounded-card px-4 py-3 text-body text-foreground mb-2"
+              style={{ borderColor: pdfPasswordError ? theme.danger : theme.border }}
               autoFocus
             />
             {pdfPasswordError ? (
-              <Text className="text-xs text-red-500 mb-2">{pdfPasswordError}</Text>
+              <Text className="text-label text-red-500 mb-2">{pdfPasswordError}</Text>
             ) : null}
             <View className="flex-row gap-3 mt-2">
               <Pressable
                 onPress={() => { setPdfPasswordVisible(false); pendingPdfRef.current = null; }}
-                className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: colors.border + "55" }}
+                className="flex-1 py-3 rounded-card items-center"
+                style={{ backgroundColor: tint(theme.border, 0.33) }}
               >
-                <Text className="text-sm font-medium text-foreground">Cancel</Text>
+                <Text className="text-body font-medium text-foreground">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handlePdfPasswordSubmit}
-                className="flex-1 py-3 rounded-xl items-center"
+                className="flex-1 py-3 rounded-card items-center"
                 style={{ backgroundColor: theme.primary }}
               >
-                <Text className="text-sm font-semibold text-primary-foreground">Unlock</Text>
+                <Text className="text-body font-semibold text-primary-foreground">Unlock</Text>
               </Pressable>
             </View>
           </View>
@@ -505,11 +506,11 @@ export default function NewReconciliationScreen() {
         onRequestClose={() => { setXlsPasswordVisible(false); pendingXlsRef.current = null; }}
       >
         <View className="flex-1 justify-center items-center px-8" style={{ backgroundColor: "#00000066" }}>
-          <View className="w-full rounded-2xl p-6" style={{ backgroundColor: colors.surface }}>
-            <Text className="text-base font-bold text-foreground mb-1">
+          <View className="w-full rounded-card p-6" style={{ backgroundColor: theme.card }}>
+            <Text className="text-body font-bold text-foreground mb-1">
               Password-protected file
             </Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+            <Text className="text-meta text-muted-foreground mb-4">
               Enter the password to unlock this Excel statement.
             </Text>
             <TextInput
@@ -517,30 +518,30 @@ export default function NewReconciliationScreen() {
               onChangeText={setXlsPassword}
               secureTextEntry
               placeholder="File password"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               returnKeyType="done"
               onSubmitEditing={handleXlsPasswordSubmit}
-              className="border rounded-xl px-4 py-3 text-base text-foreground mb-2"
-              style={{ borderColor: xlsPasswordError ? theme.danger : colors.border }}
+              className="border rounded-card px-4 py-3 text-body text-foreground mb-2"
+              style={{ borderColor: xlsPasswordError ? theme.danger : theme.border }}
               autoFocus
             />
             {xlsPasswordError ? (
-              <Text className="text-xs text-red-500 mb-2">{xlsPasswordError}</Text>
+              <Text className="text-label text-red-500 mb-2">{xlsPasswordError}</Text>
             ) : null}
             <View className="flex-row gap-3 mt-2">
               <Pressable
                 onPress={() => { setXlsPasswordVisible(false); pendingXlsRef.current = null; }}
-                className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: colors.border + "55" }}
+                className="flex-1 py-3 rounded-card items-center"
+                style={{ backgroundColor: tint(theme.border, 0.33) }}
               >
-                <Text className="text-sm font-medium text-foreground">Cancel</Text>
+                <Text className="text-body font-medium text-foreground">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleXlsPasswordSubmit}
-                className="flex-1 py-3 rounded-xl items-center"
+                className="flex-1 py-3 rounded-card items-center"
                 style={{ backgroundColor: theme.primary }}
               >
-                <Text className="text-sm font-semibold text-primary-foreground">Unlock</Text>
+                <Text className="text-body font-semibold text-primary-foreground">Unlock</Text>
               </Pressable>
             </View>
           </View>
@@ -555,13 +556,13 @@ export default function NewReconciliationScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="px-4 pt-5 pb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
             Step 1 of 2
           </Text>
-          <Text className="text-xl font-bold text-foreground">
+          <Text className="text-title font-bold text-foreground">
             Which account?
           </Text>
-          <Text className="text-sm text-muted-foreground mt-1">
+          <Text className="text-meta text-muted-foreground mt-1">
             Select the account this statement belongs to.
           </Text>
         </View>
@@ -581,16 +582,16 @@ export default function NewReconciliationScreen() {
                 className={`flex-row items-center py-3.5 ${i < accounts.length - 1 ? "border-b border-border" : ""}`}
               >
                 <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground">
+                  <Text className="text-body font-medium text-foreground">
                     {acc.account_label || acc.bank_name}
                   </Text>
                   {(acc.account_identifier || accountBalances[acc.id] != null) && (
-                    <Text className="text-xs text-muted-foreground mt-0.5">
+                    <Text className="text-label text-muted-foreground mt-0.5">
                       {withPickerBalance(acc.account_identifier ? `****${acc.account_identifier}` : "", accountBalances[acc.id])}
                     </Text>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
               </Pressable>
             ))}
           </Card>
@@ -611,11 +612,11 @@ export default function NewReconciliationScreen() {
 
         {/* Step header + selected account */}
         <View className="pt-5 pb-4">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
             Step 2 of 2
           </Text>
           <View className="flex-row items-center justify-between">
-            <Text className="text-xl font-bold text-foreground">
+            <Text className="text-title font-bold text-foreground">
               Import statement
             </Text>
             <Pressable
@@ -623,18 +624,18 @@ export default function NewReconciliationScreen() {
               className="flex-row items-center"
             >
               <Ionicons name="swap-horizontal-outline" size={14} color={theme.primary} />
-              <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>
+              <Text className="text-label font-semibold ml-1" style={{ color: theme.primary }}>
                 Change account
               </Text>
             </Pressable>
           </View>
           {selectedAccount && (
             <View
-              className="mt-2 flex-row items-center px-3 py-2 rounded-xl self-start"
+              className="mt-2 flex-row items-center px-3 py-2 rounded-card self-start"
               style={{ backgroundColor: theme.alpha("primary", 0.09) }}
             >
               <Ionicons name="wallet-outline" size={13} color={theme.primary} />
-              <Text className="text-xs font-semibold ml-1.5" style={{ color: theme.primary }}>
+              <Text className="text-label font-semibold ml-1.5" style={{ color: theme.primary }}>
                 {selectedAccount.account_label || selectedAccount.bank_name}
                 {selectedAccount.account_identifier ? ` ····${selectedAccount.account_identifier}` : ""}
               </Text>
@@ -645,23 +646,23 @@ export default function NewReconciliationScreen() {
         {/* File upload zone */}
         <Pressable
           onPress={handlePickFile}
-          className="border-2 border-dashed rounded-2xl py-10 items-center mb-3"
+          className="border-2 border-dashed rounded-card py-10 items-center mb-3"
           style={{ borderColor: theme.primary }}
         >
           <Ionicons name="cloud-upload-outline" size={36} color={theme.primary} />
-          <Text className="text-sm font-semibold mt-2" style={{ color: theme.primary }}>
+          <Text className="text-body font-semibold mt-2" style={{ color: theme.primary }}>
             {filename ?? "Upload XLS, XLSX, or PDF"}
           </Text>
-          <Text className="text-xs text-faint-foreground mt-1">
+          <Text className="text-label text-faint-foreground mt-1">
             Digital statements only — scanned images not supported
           </Text>
         </Pressable>
 
         {/* Mismatch warning */}
         {mismatchWarning && (
-          <View className="mb-3 px-4 py-3 rounded-xl flex-row items-start" style={{ backgroundColor: "#F59E0B22" }}>
+          <View className="mb-3 px-4 py-3 rounded-card flex-row items-start" style={{ backgroundColor: "#F59E0B22" }}>
             <Ionicons name="warning-outline" size={18} color={theme.warning} />
-            <Text className="text-xs text-foreground ml-2 flex-1">
+            <Text className="text-label text-foreground ml-2 flex-1">
               {mismatchWarning}
             </Text>
           </View>
@@ -672,24 +673,24 @@ export default function NewReconciliationScreen() {
           <Card className="mb-4">
             <View className="flex-row items-center mb-2">
               <Ionicons name="document-text-outline" size={18} color={theme.primary} />
-              <Text className="text-sm font-semibold text-foreground ml-2 flex-1" numberOfLines={1}>
+              <Text className="text-body font-semibold text-foreground ml-2 flex-1" numberOfLines={1}>
                 {filename}
               </Text>
             </View>
             {parsed.detectedBank && (
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-label text-muted-foreground">
                 Bank: {parsed.detectedBank}
                 {parsed.detectedAccountSuffix ? ` · ****${parsed.detectedAccountSuffix}` : ""}
               </Text>
             )}
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {parsed.rows.length} transactions
               {parsed.startDate && parsed.endDate
                 ? ` · ${parsed.startDate} to ${parsed.endDate}`
                 : ""}
             </Text>
             {parsed.closingBalance !== null && (
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 Closing balance: ₹{parsed.closingBalance.toLocaleString("en-IN")}
               </Text>
             )}
@@ -700,15 +701,15 @@ export default function NewReconciliationScreen() {
       {/* Pinned bottom button */}
       <View
         className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3"
-        style={{ backgroundColor: colors.background }}
+        style={{ backgroundColor: theme.background }}
       >
         <Pressable
           onPress={handleStartMatching}
           disabled={!parsed}
-          className="py-4 rounded-2xl items-center"
-          style={{ backgroundColor: parsed ? theme.primary : colors.border, opacity: parsed ? 1 : 0.5 }}
+          className="py-4 rounded-card items-center"
+          style={{ backgroundColor: parsed ? theme.primary : theme.border, opacity: parsed ? 1 : 0.5 }}
         >
-          <Text className="text-base font-semibold text-white">
+          <Text className="text-body font-semibold text-white">
             Start matching
           </Text>
         </Pressable>

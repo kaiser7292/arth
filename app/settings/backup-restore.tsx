@@ -34,6 +34,7 @@ import {
 } from "@/services/backup-schedule";
 import type { BackupScheduleSettings, ScheduledBackupInfo } from "@/services/backup-schedule";
 import { useTheme } from "@/hooks/use-theme";
+import { tint } from "@/constants/brand";
 
 type Mode = "menu" | "backup" | "restore";
 
@@ -268,51 +269,51 @@ export default function BackupRestoreScreen() {
         {/* Menu */}
         {mode === "menu" && (
           <View className="py-4">
-            <Text className="text-sm text-muted-foreground mb-6">
+            <Text className="text-meta text-muted-foreground mb-6">
               Create encrypted backups of your data or restore from a previous backup.
             </Text>
 
             <Pressable
               onPress={() => setMode("backup")}
-              className="flex-row items-center p-4 mb-3 rounded-lg border border-border"
+              className="flex-row items-center p-4 mb-3 rounded-control border border-border"
             >
               <View className="w-12 h-12 rounded-full bg-success/8 items-center justify-center mr-4">
                 <Ionicons name="cloud-upload-outline" size={24} color={theme.success} />
               </View>
               <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   Create backup
                 </Text>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-meta text-muted-foreground">
                   Save all your data as an encrypted file
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={20} color={theme.mutedForeground} />
             </Pressable>
 
             <Pressable
               onPress={() => setMode("restore")}
-              className="flex-row items-center p-4 mb-3 rounded-lg border border-border"
+              className="flex-row items-center p-4 mb-3 rounded-control border border-border"
             >
               <View className="w-12 h-12 rounded-full items-center justify-center mr-4" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-                <Ionicons name="cloud-download-outline" size={24} color={colors.blue} />
+                <Ionicons name="cloud-download-outline" size={24} color={theme.data.series[3]} />
               </View>
               <View className="flex-1">
-                <Text className="text-base font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   Restore from backup
                 </Text>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-meta text-muted-foreground">
                   Load data from an .arth backup file
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={20} color={theme.mutedForeground} />
             </Pressable>
 
-            <View className="mt-4 p-3 rounded-lg bg-warning/8">
-              <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
+            <View className="mt-4 p-3 rounded-control bg-warning/8">
+              <Text className="text-body font-medium mb-1" style={{ color: theme.warning }}>
                 Keep your password safe
               </Text>
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-label text-muted-foreground">
                 Without your backup password, the backup cannot be restored.
                 There is no recovery mechanism.
               </Text>
@@ -320,24 +321,24 @@ export default function BackupRestoreScreen() {
 
             {/* Scheduled Backup */}
             <View className="mt-6">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 Scheduled Backup
               </Text>
 
               {/* Toggle */}
-              <View className="flex-row items-center p-4 mb-3 rounded-lg border border-border">
+              <View className="flex-row items-center p-4 mb-3 rounded-control border border-border">
                 <View className="flex-1 mr-4">
-                  <Text className="text-base font-semibold text-foreground">
+                  <Text className="text-body font-semibold text-foreground">
                     Auto backup
                   </Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">
+                  <Text className="text-label text-muted-foreground mt-0.5">
                     Saves a backup automatically at the chosen interval, even when the app is closed
                   </Text>
                 </View>
                 <Switch
                   value={schedSettings.enabled}
                   onValueChange={handleToggleScheduled}
-                  trackColor={{ false: colors.border, true: theme.primary }}
+                  trackColor={{ false: theme.border, true: theme.primary }}
                   thumbColor={schedSettings.enabled ? "#FFFFFF" : "#FFFFFF"}
                 />
               </View>
@@ -345,8 +346,8 @@ export default function BackupRestoreScreen() {
               {schedSettings.enabled && (
                 <>
                   {/* Frequency chips */}
-                  <View className="p-4 mb-3 rounded-lg border border-border">
-                    <Text className="text-sm text-muted-foreground mb-3">
+                  <View className="p-4 mb-3 rounded-control border border-border">
+                    <Text className="text-meta text-muted-foreground mb-3">
                       Back up every
                     </Text>
                     <View className="flex-row flex-wrap gap-2">
@@ -358,13 +359,13 @@ export default function BackupRestoreScreen() {
                             onPress={() => handlePickFrequency(o.hours)}
                             className="py-1.5 px-3 rounded-full border"
                             style={{
-                              backgroundColor: active ? theme.primary + "22" : "transparent",
-                              borderColor: active ? theme.primary : colors.border,
+                              backgroundColor: active ? tint(theme.primary, 0.13) : "transparent",
+                              borderColor: active ? theme.primary : theme.border,
                             }}
                           >
                             <Text
-                              className="text-sm font-medium"
-                              style={{ color: active ? theme.primary : colors.textSecondary }}
+                              className="text-body font-medium"
+                              style={{ color: active ? theme.primary : theme.mutedForeground }}
                             >
                               {o.label}
                             </Text>
@@ -377,12 +378,12 @@ export default function BackupRestoreScreen() {
                   {/* Last / next backup status */}
                   <View className="flex-row items-center justify-between px-1 mb-3">
                     <View className="flex-row items-center">
-                      <Ionicons name="checkmark-circle-outline" size={15} color={colors.textSecondary} />
-                      <Text className="ml-1.5 text-xs text-muted-foreground">
+                      <Ionicons name="checkmark-circle-outline" size={15} color={theme.mutedForeground} />
+                      <Text className="ml-1.5 text-label text-muted-foreground">
                         Last: {formatLastBackupTime(getLastScheduledBackupAt())}
                       </Text>
                     </View>
-                    <Text className="text-xs text-muted-foreground">
+                    <Text className="text-label text-muted-foreground">
                       Next: {formatNextBackup(schedSettings.frequencyHours)}
                     </Text>
                   </View>
@@ -392,22 +393,22 @@ export default function BackupRestoreScreen() {
               {/* Stored backups list */}
               {schedBackups.length > 0 && (
                 <>
-                  <Text className="text-xs text-muted-foreground mb-2">
+                  <Text className="text-label text-muted-foreground mb-2">
                     {schedBackups.length} stored backup{schedBackups.length !== 1 ? "s" : ""} · newest first
                   </Text>
                   {schedBackups.map((b) => (
                     <View
                       key={b.filePath}
-                      className="flex-row items-center p-3 mb-2 rounded-lg border border-border"
+                      className="flex-row items-center p-3 mb-2 rounded-control border border-border"
                     >
                       <View className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-3 shrink-0">
                         <Ionicons name="shield-checkmark-outline" size={18} color={theme.success} />
                       </View>
                       <View className="flex-1 mr-2">
-                        <Text className="text-sm font-medium text-foreground">
+                        <Text className="text-body font-medium text-foreground">
                           {b.timestamp.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                         </Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
+                        <Text className="text-label text-muted-foreground mt-0.5">
                           {b.timestamp.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                           {b.fileSizeBytes > 0 ? ` · ${formatFileSize(b.fileSizeBytes)}` : ""}
                         </Text>
@@ -415,15 +416,15 @@ export default function BackupRestoreScreen() {
                       <Pressable
                         onPress={() => handleRestoreScheduled(b)}
                         disabled={restoringScheduled === b.filePath}
-                        className="py-1.5 px-3 rounded-lg mr-2"
-                        style={{ backgroundColor: theme.primary + "22" }}
+                        className="py-1.5 px-3 rounded-control mr-2"
+                        style={{ backgroundColor: tint(theme.primary, 0.13) }}
                       >
-                        <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+                        <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                           {restoringScheduled === b.filePath ? "…" : "Restore"}
                         </Text>
                       </Pressable>
                       <Pressable onPress={() => handleShareScheduled(b)} hitSlop={8} className="mr-2">
-                        <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
+                        <Ionicons name="share-outline" size={18} color={theme.mutedForeground} />
                       </Pressable>
                       <Pressable onPress={() => handleDeleteScheduled(b)} hitSlop={8}>
                         <Ionicons name="trash-outline" size={18} color={theme.danger} />
@@ -440,54 +441,54 @@ export default function BackupRestoreScreen() {
         {mode === "backup" && !backupResult && (
           <View className="py-4">
             <Pressable onPress={resetState} className="flex-row items-center mb-4">
-              <Ionicons name="arrow-back" size={20} color={colors.blue} />
+              <Ionicons name="arrow-back" size={20} color={theme.data.series[3]} />
               <Text className="ml-2 font-medium" style={{ color: theme.primary }}>
                 Back
               </Text>
             </Pressable>
 
-            <Text className="text-xl font-bold text-foreground mb-2">
+            <Text className="text-title font-bold text-foreground mb-2">
               Create backup
             </Text>
-            <Text className="text-sm text-muted-foreground mb-6">
+            <Text className="text-meta text-muted-foreground mb-6">
               Set a password to encrypt your backup. You'll need this password to restore.
             </Text>
 
-            <Text className="text-sm font-medium text-foreground mb-1">
+            <Text className="text-body font-medium text-foreground mb-1">
               Password
             </Text>
-            <View className="flex-row items-center border border-border rounded-lg mb-4">
+            <View className="flex-row items-center border border-border rounded-control mb-4">
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 placeholder="Enter backup password"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 accessibilityLabel="Backup password"
                 maxLength={128}
-                className="flex-1 px-4 py-3 text-base text-foreground"
+                className="flex-1 px-4 py-3 text-body text-foreground"
               />
               <Pressable onPress={() => setShowPassword((v) => !v)} className="px-3" hitSlop={8}>
-                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.textSecondary} />
+                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={theme.mutedForeground} />
               </Pressable>
             </View>
 
-            <Text className="text-sm font-medium text-foreground mb-1">
+            <Text className="text-body font-medium text-foreground mb-1">
               Confirm Password
             </Text>
-            <View className="flex-row items-center border border-border rounded-lg mb-6">
+            <View className="flex-row items-center border border-border rounded-control mb-6">
               <TextInput
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
                 placeholder="Re-enter password"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 accessibilityLabel="Confirm backup password"
                 maxLength={128}
-                className="flex-1 px-4 py-3 text-base text-foreground"
+                className="flex-1 px-4 py-3 text-body text-foreground"
               />
               <Pressable onPress={() => setShowConfirmPassword((v) => !v)} className="px-3" hitSlop={8}>
-                <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.textSecondary} />
+                <Ionicons name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} size={22} color={theme.mutedForeground} />
               </Pressable>
             </View>
 
@@ -515,27 +516,27 @@ export default function BackupRestoreScreen() {
               />
             </View>
 
-            <Text className="text-xl font-bold text-foreground mb-2">
+            <Text className="text-title font-bold text-foreground mb-2">
               {backupResult.success ? "Backup created" : "Backup Failed"}
             </Text>
 
             {backupResult.success && backupResult.metadata && (
-              <View className="w-full rounded-lg border border-border p-4 mt-4">
+              <View className="w-full rounded-control border border-border p-4 mt-4">
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground">Tables backed up</Text>
-                  <Text className="text-sm font-semibold text-foreground">
+                  <Text className="text-meta text-muted-foreground">Tables backed up</Text>
+                  <Text className="text-body font-semibold text-foreground">
                     {backupResult.metadata.tables.length}
                   </Text>
                 </View>
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground">Total records</Text>
-                  <Text className="text-sm font-semibold text-foreground">
+                  <Text className="text-meta text-muted-foreground">Total records</Text>
+                  <Text className="text-body font-semibold text-foreground">
                     {Object.values(backupResult.metadata.rowCounts).reduce((a, b) => a + b, 0)}
                   </Text>
                 </View>
                 <View className="flex-row justify-between">
-                  <Text className="text-sm text-muted-foreground">Created</Text>
-                  <Text className="text-sm text-foreground">
+                  <Text className="text-meta text-muted-foreground">Created</Text>
+                  <Text className="text-meta text-foreground">
                     {new Date(backupResult.metadata.createdAt).toLocaleString()}
                   </Text>
                 </View>
@@ -543,7 +544,7 @@ export default function BackupRestoreScreen() {
             )}
 
             {backupResult.error && (
-              <Text className="text-sm text-danger mt-4">{backupResult.error}</Text>
+              <Text className="text-meta text-danger mt-4">{backupResult.error}</Text>
             )}
 
             <View className="mt-6 gap-2">
@@ -574,16 +575,16 @@ export default function BackupRestoreScreen() {
         {mode === "restore" && !restoreResult && (
           <View className="py-4">
             <Pressable onPress={resetState} className="flex-row items-center mb-4">
-              <Ionicons name="arrow-back" size={20} color={colors.blue} />
+              <Ionicons name="arrow-back" size={20} color={theme.data.series[3]} />
               <Text className="ml-2 font-medium" style={{ color: theme.primary }}>
                 Back
               </Text>
             </Pressable>
 
-            <Text className="text-xl font-bold text-foreground mb-2">
+            <Text className="text-title font-bold text-foreground mb-2">
               Restore from backup
             </Text>
-            <Text className="text-sm text-muted-foreground mb-6">
+            <Text className="text-meta text-muted-foreground mb-6">
               Select your .arth backup file (or a .json auto-backup), then enter the password to decrypt.
             </Text>
 
@@ -591,56 +592,56 @@ export default function BackupRestoreScreen() {
               <View>
                 <Button title="Select backup file" onPress={handlePickFile} variant="outline" />
                 {fileError && (
-                  <View className="mt-3 p-3 rounded-lg bg-danger/8">
-                    <Text className="text-sm text-danger font-medium">{fileError}</Text>
+                  <View className="mt-3 p-3 rounded-control bg-danger/8">
+                    <Text className="text-body text-danger font-medium">{fileError}</Text>
                   </View>
                 )}
               </View>
             ) : (
               <View>
-                <View className="flex-row items-center p-3 mb-4 rounded-lg border border-border" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
+                <View className="flex-row items-center p-3 mb-4 rounded-control border border-border" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
                   <Ionicons name="document-attach-outline" size={24} color={theme.success} />
                   <View className="flex-1 ml-3">
-                    <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+                    <Text className="text-body font-medium text-foreground" numberOfLines={1}>
                       {pickedFile.name}
                     </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
+                    <Text className="text-label text-muted-foreground mt-0.5">
                       {pickedFile.sizeLabel} · {pickedFile.isAutoBackup ? "Auto-backup (no password needed)" : "Encrypted backup"}
                     </Text>
                   </View>
                   <Pressable onPress={() => { setPickedFile(null); setPassword(""); }} hitSlop={8}>
-                    <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                    <Ionicons name="close-circle" size={20} color={theme.mutedForeground} />
                   </Pressable>
                 </View>
 
                 {!pickedFile.isAutoBackup && (
                   <>
-                    <Text className="text-sm font-medium text-foreground mb-1">
+                    <Text className="text-body font-medium text-foreground mb-1">
                       Backup Password
                     </Text>
-                    <View className="flex-row items-center border border-border rounded-lg mb-4">
+                    <View className="flex-row items-center border border-border rounded-control mb-4">
                       <TextInput
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry={!showPassword}
                         placeholder="Enter backup password"
-                        placeholderTextColor={colors.textSecondary}
+                        placeholderTextColor={theme.mutedForeground}
                         accessibilityLabel="Restore password"
                         maxLength={128}
-                        className="flex-1 px-4 py-3 text-base text-foreground"
+                        className="flex-1 px-4 py-3 text-body text-foreground"
                       />
                       <Pressable onPress={() => setShowPassword((v) => !v)} className="px-3" hitSlop={8}>
-                        <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={colors.textSecondary} />
+                        <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={theme.mutedForeground} />
                       </Pressable>
                     </View>
                   </>
                 )}
 
-                <View className="p-3 rounded-lg bg-danger/8 mb-4">
-                  <Text className="text-sm text-danger font-medium">
+                <View className="p-3 rounded-control bg-danger/8 mb-4">
+                  <Text className="text-body text-danger font-medium">
                     Warning: Restoring will replace ALL current data.
                   </Text>
-                  <Text className="text-xs text-muted-foreground mt-1">
+                  <Text className="text-label text-muted-foreground mt-1">
                     Create a backup first if you want to keep your current data.
                   </Text>
                 </View>
@@ -671,21 +672,21 @@ export default function BackupRestoreScreen() {
               />
             </View>
 
-            <Text className="text-xl font-bold text-foreground mb-2">
+            <Text className="text-title font-bold text-foreground mb-2">
               {restoreResult.success ? "Restore Complete" : "Restore failed"}
             </Text>
 
             {restoreResult.success && (
-              <View className="w-full rounded-lg border border-border p-4 mt-4">
+              <View className="w-full rounded-control border border-border p-4 mt-4">
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-sm text-muted-foreground">Tables restored</Text>
-                  <Text className="text-sm font-semibold text-foreground">
+                  <Text className="text-meta text-muted-foreground">Tables restored</Text>
+                  <Text className="text-body font-semibold text-foreground">
                     {restoreResult.tablesRestored.length}
                   </Text>
                 </View>
                 <View className="flex-row justify-between">
-                  <Text className="text-sm text-muted-foreground">Total records</Text>
-                  <Text className="text-sm font-semibold text-foreground">
+                  <Text className="text-meta text-muted-foreground">Total records</Text>
+                  <Text className="text-body font-semibold text-foreground">
                     {restoreResult.totalRows}
                   </Text>
                 </View>
@@ -693,13 +694,13 @@ export default function BackupRestoreScreen() {
             )}
 
             {restoreResult.success && restoreResult.failedRows > 0 && (
-              <Text className="text-sm text-warning mt-4 text-center">
+              <Text className="text-meta text-warning mt-4 text-center">
                 {restoreResult.failedRows} record{restoreResult.failedRows === 1 ? "" : "s"} could not be restored and were skipped.
               </Text>
             )}
 
             {restoreResult.error && (
-              <Text className="text-sm text-danger mt-4 text-center">{restoreResult.error}</Text>
+              <Text className="text-meta text-danger mt-4 text-center">{restoreResult.error}</Text>
             )}
 
             <Button

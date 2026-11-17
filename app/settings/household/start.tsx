@@ -32,13 +32,13 @@ export default function StartHouseholdScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <Text className="text-sm text-muted-foreground mb-4 leading-5">
+        <Text className="text-meta text-muted-foreground mb-4 leading-5">
           You&apos;ll be the one who invites and approves people. Nothing is shared until you choose what to share.
         </Text>
         <Input label="Household name" value={name} onChangeText={setName} placeholder="Home" maxLength={40} />
         <View className="h-3" />
         <Input label="Your name" value={me} onChangeText={setMe} placeholder="Sourav" maxLength={40} autoFocus />
-        <Text className="text-xs text-muted-foreground mt-1">How the others in the household will see you.</Text>
+        <Text className="text-label text-muted-foreground mt-1">How the others in the household will see you.</Text>
         <Button title="Start and invite" onPress={() => void start()} loading={busy} className="mt-6" />
       </ScrollView>
     </ScreenContainer>

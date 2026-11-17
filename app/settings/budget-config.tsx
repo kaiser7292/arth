@@ -21,6 +21,7 @@ import { formatAmount } from "@/utils/expense-validation";
 
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { tint } from "@/constants/brand";
 
 interface BudgetRow {
   category: Category;
@@ -243,7 +244,7 @@ export default function BudgetConfigScreen() {
     <View className="flex-row items-center px-4 py-3 border-b border-border">
       <View
         className="w-9 h-9 rounded-full items-center justify-center mr-3"
-        style={{ backgroundColor: item.category.color + "14" }}
+        style={{ backgroundColor: tint(item.category.color, 0.08) }}
       >
         <Ionicons
           name={item.category.icon as keyof typeof Ionicons.glyphMap}
@@ -253,25 +254,25 @@ export default function BudgetConfigScreen() {
       </View>
       <View className="flex-1 mr-3">
         <Text
-          className="text-sm font-medium text-foreground"
+          className="text-body font-medium text-foreground"
           numberOfLines={1}
         >
           {item.category.name}
         </Text>
         {item.category.is_unavoidable === 1 && (
-          <Text className="text-xs text-faint-foreground">Unavoidable</Text>
+          <Text className="text-label text-faint-foreground">Unavoidable</Text>
         )}
       </View>
       <View className="flex-row items-center">
-        <Text className="text-sm text-faint-foreground mr-1">
+        <Text className="text-meta text-faint-foreground mr-1">
           {"\u20B9"}
         </Text>
         <FormulaTextInput
           value={item.editAmount}
           onChangeText={(text) => handleAmountChange(item.category.id, text)}
           keyboardType="numeric"
-          className="w-20 text-right text-base font-medium text-foreground border-b border-border py-1"
-          placeholderTextColor={colors.tabIconDefault}
+          className="w-20 text-right text-body font-medium text-foreground border-b border-border py-1"
+          placeholderTextColor={theme.mutedForeground}
           selectTextOnFocus
         />
       </View>
@@ -287,15 +288,15 @@ export default function BudgetConfigScreen() {
       {/* No-budget banner — offer to copy from previous month */}
       {hasNoBudget && (
         <View
-          className="mx-4 mt-2 mb-1 px-3 py-2.5 rounded-lg flex-row items-center"
+          className="mx-4 mt-2 mb-1 px-3 py-2.5 rounded-control flex-row items-center"
           style={{ backgroundColor: theme.alpha("warning", 0.08) }}
         >
           <Ionicons name="information-circle-outline" size={16} color={theme.warning} />
-          <Text className="text-xs text-muted-foreground flex-1 ml-2">
+          <Text className="text-label text-muted-foreground flex-1 ml-2">
             No budget set for {monthLabel}.
           </Text>
           <Pressable onPress={copyFromPreviousMonth} className="ml-2">
-            <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+            <Text className="text-label font-semibold" style={{ color: theme.primary }}>
               Copy from {previousMonthLabel}
             </Text>
           </Pressable>
@@ -305,10 +306,10 @@ export default function BudgetConfigScreen() {
       {/* Total */}
       <View className="px-4 py-3 bg-card">
         <View className="flex-row items-center justify-between">
-          <Text className="text-sm text-muted-foreground">
+          <Text className="text-meta text-muted-foreground">
             Total Monthly Budget
           </Text>
-          <Text className="text-lg font-bold text-foreground">
+          <Text className="text-heading font-bold text-foreground">
             {formatAmount(totalBudget)}
           </Text>
         </View>

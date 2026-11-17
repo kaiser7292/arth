@@ -31,6 +31,7 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { syncTransactionAlertTasks } from "@/services/transaction-alerts";
 import { drawsOwnDivider } from "@/components/ui/Rows";
+import { tint } from "@/constants/brand";
 
 interface NotifToggleProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -50,15 +51,15 @@ function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onTo
       <View className="flex-row items-center flex-1 mr-3">
         <View
           className="w-7 h-7 rounded-full items-center justify-center mr-3"
-          style={{ backgroundColor: iconColor + "14" }}
+          style={{ backgroundColor: tint(iconColor, 0.08) }}
         >
           <Ionicons name={icon} size={16} color={iconColor} />
         </View>
         <View className="flex-1">
-          <Text className="text-sm font-medium text-foreground">
+          <Text className="text-body font-medium text-foreground">
             {title}
           </Text>
-          <Text className="text-xs text-muted-foreground mt-0.5">
+          <Text className="text-label text-muted-foreground mt-0.5">
             {subtitle}
           </Text>
         </View>
@@ -66,7 +67,7 @@ function NotifToggle({ icon, iconColor, title, subtitle, category, enabled, onTo
       <Switch
         value={enabled}
         onValueChange={(val) => onToggle(category, val)}
-        trackColor={{ false: theme.border, true: colors.blue }}
+        trackColor={{ false: theme.border, true: theme.data.series[3] }}
         thumbColor={enabled ? "#FFFFFF" : theme.faintForeground}
       />
     </View>
@@ -127,10 +128,10 @@ export default function NotificationPreferencesScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 pt-5 pb-3">
-          <Text className="text-lg font-bold text-foreground">
+          <Text className="text-heading font-bold text-foreground">
             Notification Preferences
           </Text>
-          <Text className="text-xs text-muted-foreground mt-1">
+          <Text className="text-label text-muted-foreground mt-1">
             Choose which alerts you want to receive
           </Text>
         </View>
@@ -138,13 +139,13 @@ export default function NotificationPreferencesScreen() {
         {/* Permission Banner */}
         {permissionGranted === false && (
           <View
-            className="mx-4 mb-3 p-3 rounded-xl"
+            className="mx-4 mb-3 p-3 rounded-card"
             style={{ backgroundColor: theme.alpha("warning", 0.08) }}
           >
             <View className="flex-row items-center">
               <Ionicons name="warning-outline" size={16} color={theme.warning} />
               <Text
-                className="text-xs font-medium ml-2"
+                className="text-label font-medium ml-2"
                 style={{ color: theme.warning }}
               >
                 Notification permission not granted. Enable in device settings.
@@ -197,7 +198,7 @@ export default function NotificationPreferencesScreen() {
 
         {isBrokerHistoryOn() && (
           <>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mx-4 mb-2">Save today's trades</Text>
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mx-4 mb-2">Save today's trades</Text>
             <Card className="mx-4 mb-3">
               {BROKER_REMINDERS.map((b, i) => (
                 <BrokerReminderRow key={b.broker} broker={b.broker} title={b.title} subtitle={b.subtitle} lastRow={i === BROKER_REMINDERS.length - 1} />
@@ -206,8 +207,8 @@ export default function NotificationPreferencesScreen() {
           </>
         )}
 
-        <View className="mx-4 px-3 py-2.5 rounded-xl" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
-          <Text className="text-xs text-muted-foreground">
+        <View className="mx-4 px-3 py-2.5 rounded-card" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
+          <Text className="text-label text-muted-foreground">
             The daily digest fires at 9:10 AM via a system alarm — it works even when the app is closed. Content reflects your data as of the last time Arth was open. No notification is sent if nothing needs your attention.
           </Text>
         </View>
@@ -230,8 +231,8 @@ function BrokerReminderRow({ broker, title, subtitle, lastRow }: { broker: ApiBr
   return (
     <View className={`flex-row items-center py-3 ${lastRow ? "" : "border-b border-border"}`}>
       <View className="flex-1 mr-3">
-        <Text className="text-sm font-semibold text-foreground">{title}</Text>
-        <Text className="text-xs text-muted-foreground mt-0.5">{subtitle}</Text>
+        <Text className="text-body font-semibold text-foreground">{title}</Text>
+        <Text className="text-label text-muted-foreground mt-0.5">{subtitle}</Text>
       </View>
       <Switch
         value={on}

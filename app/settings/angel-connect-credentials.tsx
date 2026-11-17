@@ -34,7 +34,7 @@ function CredentialField({
 }) {
   return (
     <View className="mb-4">
-      <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+      <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2">
         {label}
       </Text>
       <TextInput
@@ -57,7 +57,7 @@ function CredentialField({
           fontFamily: 'Inter',
         }}
       />
-      {hint && <Text className="text-xs text-muted-foreground mt-1.5">{hint}</Text>}
+      {hint && <Text className="text-label text-muted-foreground mt-1.5">{hint}</Text>}
     </View>
   );
 }
@@ -196,7 +196,7 @@ export default function AngelConnectCredentialsScreen() {
             <Pressable
               onPress={handleConnect}
               disabled={isSaving || !agreed}
-              className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+              className="flex-1 rounded-control p-3.5 flex-row items-center justify-center"
               style={{ backgroundColor: theme.primary, opacity: isSaving || !agreed ? 0.5 : 1 }}
             >
               {isSaving ? (
@@ -204,7 +204,7 @@ export default function AngelConnectCredentialsScreen() {
               ) : (
                 <>
                   <Ionicons name="link-outline" size={18} color="#fff" />
-                  <Text className="text-white font-semibold text-sm ml-2">Connect</Text>
+                  <Text className="text-white font-semibold text-body ml-2">Connect</Text>
                 </>
               )}
             </Pressable>
@@ -212,19 +212,19 @@ export default function AngelConnectCredentialsScreen() {
             {apiKey ? (
               <Pressable
                 onPress={handleClear}
-                className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+                className="flex-1 rounded-control p-3.5 flex-row items-center justify-center"
                 style={{ backgroundColor: theme.danger }}
               >
                 <Ionicons name="trash-outline" size={18} color="#fff" />
-                <Text className="text-white font-semibold text-sm ml-2">Remove</Text>
+                <Text className="text-white font-semibold text-body ml-2">Remove</Text>
               </Pressable>
             ) : (
               <Pressable
                 onPress={() => router.back()}
-                className="flex-1 rounded-lg p-3.5 items-center justify-center border border-border"
+                className="flex-1 rounded-control p-3.5 items-center justify-center border border-border"
                 style={{ backgroundColor: colors.surface }}
               >
-                <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+                <Text className="text-body font-semibold text-foreground">Cancel</Text>
               </Pressable>
             )}
           </View>

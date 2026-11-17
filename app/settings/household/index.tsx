@@ -143,23 +143,23 @@ export default function HouseholdScreen() {
             <View className="w-16 h-16 rounded-full items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.12) }}>
               <Ionicons name="people-outline" size={30} color={theme.primary} />
             </View>
-            <Text className="text-xl font-bold text-foreground mt-4 text-center">Money, together</Text>
-            <Text className="text-sm text-muted-foreground mt-2 text-center leading-5">
+            <Text className="text-title font-bold text-foreground mt-4 text-center">Money, together</Text>
+            <Text className="text-meta text-muted-foreground mt-2 text-center leading-5">
               Share household spending with your partner or family (up to 5 people). Each of you keeps your own Arth and
               chooses what to share. It&apos;s locked so only your household&apos;s phones can read it.
             </Text>
           </View>
           {pendingJoin && (
             <Card className="mb-3">
-              <Text className="text-sm font-semibold text-foreground">Waiting to join {pendingJoin.householdName}</Text>
-              <Text className="text-xs text-muted-foreground mt-1">Check code {pendingJoin.code}</Text>
+              <Text className="text-body font-semibold text-foreground">Waiting to join {pendingJoin.householdName}</Text>
+              <Text className="text-label text-muted-foreground mt-1">Check code {pendingJoin.code}</Text>
               <Button title="Open" variant="outline" className="mt-3" onPress={() => router.push("/settings/household/join")} />
             </Card>
           )}
           <Button title="Start a household" onPress={() => router.push("/settings/household/start")} className="mb-3" />
           <Button title="Join a household" variant="outline" onPress={() => router.push("/settings/household/join")} />
           <Card className="mt-6">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">How it stays private</Text>
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">How it stays private</Text>
             {[
               ["eye-off-outline", "Nothing is shared until you choose, with a preview first."],
               ["lock-closed-outline", "Changes travel end-to-end encrypted. Arth's relay can't read them."],
@@ -167,7 +167,7 @@ export default function HouseholdScreen() {
             ].map(([icon, line]) => (
               <View key={line} className="flex-row items-start py-1.5">
                 <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={16} color={theme.mutedForeground} style={{ marginTop: 1 }} />
-                <Text className="text-xs text-muted-foreground ml-2 flex-1 leading-4">{line}</Text>
+                <Text className="text-label text-muted-foreground ml-2 flex-1 leading-4">{line}</Text>
               </View>
             ))}
           </Card>
@@ -183,8 +183,8 @@ export default function HouseholdScreen() {
       <ScreenContainer padTop={false}>
         <View className="p-4">
           <Card>
-            <Text className="text-base font-semibold text-foreground">{msg.title}</Text>
-            <Text className="text-sm text-muted-foreground mt-2 leading-5">{msg.body}</Text>
+            <Text className="text-body font-semibold text-foreground">{msg.title}</Text>
+            <Text className="text-meta text-muted-foreground mt-2 leading-5">{msg.body}</Text>
             <Button title="OK" className="mt-4" onPress={() => run("forget", forgetHousehold)} loading={busy === "forget"} />
           </Card>
         </View>
@@ -215,7 +215,7 @@ export default function HouseholdScreen() {
             </View>
             <View className="flex-1">
               <View className="flex-row items-center">
-                <Text className="text-base font-semibold text-foreground shrink" numberOfLines={1}>{h.name}</Text>
+                <Text className="text-body font-semibold text-foreground shrink" numberOfLines={1}>{h.name}</Text>
                 {h.role === "creator" && !renaming && (
                   <Pressable
                     onPress={() => {
@@ -231,7 +231,7 @@ export default function HouseholdScreen() {
                   </Pressable>
                 )}
               </View>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {h.last_sync_error
                   ? h.last_sync_error === "offline"
                     ? "Offline · will sync when you're back"
@@ -266,19 +266,19 @@ export default function HouseholdScreen() {
             className="flex-row items-center justify-between mt-3 pt-3 border-t border-border"
             accessibilityRole="button"
           >
-            <Text className="text-sm font-semibold" style={{ color: theme.primary }}>Open Together</Text>
+            <Text className="text-body font-semibold" style={{ color: theme.primary }}>Open Together</Text>
             <Ionicons name="chevron-forward" size={16} color={theme.primary} />
           </Pressable>
         </Card>
 
         {requests.map((r) => (
           <Card key={r.inviteId} className="mb-3">
-            <Text className="text-sm font-semibold text-foreground">{r.name} wants to join</Text>
-            <Text className="text-xs text-muted-foreground mt-1">{r.device}</Text>
+            <Text className="text-body font-semibold text-foreground">{r.name} wants to join</Text>
+            <Text className="text-label text-muted-foreground mt-1">{r.device}</Text>
             <View className="items-center my-3">
-              <Text className="text-xs text-muted-foreground">Check code</Text>
-              <Text className="text-2xl font-bold text-foreground tracking-wider">{r.code}</Text>
-              <Text className="text-xs text-muted-foreground mt-1 text-center">It should match the code on {r.name}&apos;s phone.</Text>
+              <Text className="text-label text-muted-foreground">Check code</Text>
+              <Text className="text-title font-bold text-foreground tracking-wider">{r.code}</Text>
+              <Text className="text-label text-muted-foreground mt-1 text-center">It should match the code on {r.name}&apos;s phone.</Text>
             </View>
             <View className="flex-row gap-2">
               <Button title="Decline" variant="outline" className="flex-1" onPress={() => run(`d${r.inviteId}`, () => declineJoin(r.inviteId), "Declined")} />
@@ -288,16 +288,16 @@ export default function HouseholdScreen() {
         ))}
 
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">People</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">People</Text>
           {members.map((m) => (
             <View key={m.id} className="flex-row items-center py-2 border-b border-border">
               <Avatar member={m} size={28} />
               <View className="flex-1 ml-3">
-                <Text className="text-sm text-foreground">
+                <Text className="text-meta text-foreground">
                   {m.id === h.my_member_id ? `${m.name} (you)` : m.name}
                   {m.role === "creator" ? " · started it" : ""}
                 </Text>
-                {m.joined_at ? <Text className="text-xs text-muted-foreground">Joined {ago(m.joined_at)}</Text> : null}
+                {m.joined_at ? <Text className="text-label text-muted-foreground">Joined {ago(m.joined_at)}</Text> : null}
               </View>
               {isCreator && m.id !== h.my_member_id && (
                 <Pressable
@@ -325,8 +325,8 @@ export default function HouseholdScreen() {
           <Pressable className="flex-row items-center py-2 border-b border-border" onPress={() => router.push("/settings/household/share")} accessibilityRole="button">
             <Ionicons name="eye-outline" size={20} color={theme.mutedForeground} />
             <View className="flex-1 ml-3">
-              <Text className="text-sm text-foreground">What you share</Text>
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-meta text-foreground">What you share</Text>
+              <Text className="text-label text-muted-foreground">
                 {[
                   h.share_all_transactions ? "every transaction" : null,
                   !h.share_all_transactions && h.share_household_categories ? "household categories" : null,
@@ -342,8 +342,8 @@ export default function HouseholdScreen() {
           <Pressable className="flex-row items-center py-2" onPress={() => router.push("/settings/household/categories")} accessibilityRole="button">
             <Ionicons name="grid-outline" size={20} color={theme.mutedForeground} />
             <View className="flex-1 ml-3">
-              <Text className="text-sm text-foreground">Household categories</Text>
-              <Text className="text-xs text-muted-foreground">Which of your categories count as household spending</Text>
+              <Text className="text-meta text-foreground">Household categories</Text>
+              <Text className="text-label text-muted-foreground">Which of your categories count as household spending</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
           </Pressable>
@@ -351,11 +351,11 @@ export default function HouseholdScreen() {
 
         {moments.length > 0 && (
           <Card className="mb-3">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Activity</Text>
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Activity</Text>
             {moments.slice(0, 15).map((e) => (
               <View key={e.id} className="flex-row items-center justify-between py-1.5">
-                <Text className="text-sm text-foreground flex-1 mr-2">{eventLine(e, nameOf(e.member_id))}</Text>
-                <Text className="text-xs text-muted-foreground">{ago(e.at)}</Text>
+                <Text className="text-meta text-foreground flex-1 mr-2">{eventLine(e, nameOf(e.member_id))}</Text>
+                <Text className="text-label text-muted-foreground">{ago(e.at)}</Text>
               </View>
             ))}
           </Card>

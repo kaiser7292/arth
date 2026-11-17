@@ -9,6 +9,7 @@ import { updateItem } from "@/services/reconciliation/reconciliation-crud";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 interface ArthEntry {
   id: string;
@@ -227,15 +228,15 @@ export default function ManualLinkScreen() {
         className="flex-row items-center py-3.5"
       >
         <View className="flex-1">
-          <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+          <Text className="text-body font-medium text-foreground" numberOfLines={1}>
             {item.description}
           </Text>
-          <Text className="text-xs text-muted-foreground mt-0.5">
+          <Text className="text-label text-muted-foreground mt-0.5">
             {formatDate(item.date)} · {amountStr(item.amount)}
             {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
           </Text>
           {meta.length > 0 && (
-            <Text className="text-xs text-faint-foreground mt-0.5" numberOfLines={1}>
+            <Text className="text-label text-faint-foreground mt-0.5" numberOfLines={1}>
               {meta.join(" · ")}
             </Text>
           )}
@@ -252,20 +253,20 @@ export default function ManualLinkScreen() {
   return (
     <ScreenContainer padTop={false}>
       <View className="px-4 pt-3 pb-2">
-        <Text className="text-xs text-muted-foreground mb-3">
+        <Text className="text-label text-muted-foreground mb-3">
           Statement: {direction === "debit" ? "−" : "+"}{amountStr(parseFloat(amount ?? "0"))} on {formatDate(date ?? "")}. Pick the matching Arth entry.
         </Text>
         <View
-          className="flex-row items-center rounded-xl px-3 py-2.5"
-          style={{ backgroundColor: colors.border + "55" }}
+          className="flex-row items-center rounded-card px-3 py-2.5"
+          style={{ backgroundColor: tint(theme.border, 0.33) }}
         >
-          <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+          <Ionicons name="search-outline" size={16} color={theme.mutedForeground} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder="Search by name or amount…"
-            placeholderTextColor={colors.textSecondary}
-            className="flex-1 ml-2 text-sm text-foreground"
+            placeholderTextColor={theme.mutedForeground}
+            className="flex-1 ml-2 text-meta text-foreground"
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -286,7 +287,7 @@ export default function ManualLinkScreen() {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-muted-foreground">
+              <Text className="text-meta text-muted-foreground">
                 {query ? `No results for "${query}"` : "No nearby Arth entries found."}
               </Text>
             </View>

@@ -17,6 +17,7 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 export default function DismissedDuplicatesScreen() {
   const router = useRouter();
@@ -114,11 +115,11 @@ export default function DismissedDuplicatesScreen() {
       <ScreenContainer padTop={false}>
         {loadFailed && <LoadFailedBanner onRetry={load} />}
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="checkmark-done-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Ionicons name="checkmark-done-outline" size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-medium text-foreground mt-4">
             Nothing dismissed
           </Text>
-          <Text className="text-sm text-muted-foreground text-center mt-2">
+          <Text className="text-meta text-muted-foreground text-center mt-2">
             Groups you mark as "Keep both" will appear here so you can restore them later.
           </Text>
         </View>
@@ -131,18 +132,18 @@ export default function DismissedDuplicatesScreen() {
       {loadFailed && <LoadFailedBanner onRetry={load} />}
       {/* Summary + bulk action bar */}
       <View className="flex-row items-center justify-between px-4 py-2.5 border-b border-border">
-        <Text className="text-sm text-muted-foreground flex-1 mr-2">
+        <Text className="text-meta text-muted-foreground flex-1 mr-2">
           {groups.length} dismissed group{groups.length !== 1 ? "s" : ""}
         </Text>
         <Pressable
           onPress={handleRestoreAll}
           accessibilityRole="button"
           accessibilityLabel="Restore all dismissed groups"
-          className="flex-row items-center py-1.5 px-3 rounded-lg"
-          style={{ backgroundColor: warn + "26", borderWidth: 1, borderColor: warn + "66" }}
+          className="flex-row items-center py-1.5 px-3 rounded-control"
+          style={{ backgroundColor: tint(warn, 0.15), borderWidth: 1, borderColor: tint(warn, 0.4) }}
         >
           <Ionicons name="refresh-outline" size={14} color={warn} />
-          <Text className="text-xs font-semibold ml-1" style={{ color: warn }}>
+          <Text className="text-label font-semibold ml-1" style={{ color: warn }}>
             Restore all
           </Text>
         </Pressable>

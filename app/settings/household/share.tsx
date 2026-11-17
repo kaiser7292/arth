@@ -93,8 +93,8 @@ export default function ShareScreen() {
   const Row = drawsOwnDivider(({ title, body, value, onChange, disabled, lastRow }: { title: string; body: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean; lastRow?: boolean }) => (
     <View className={`flex-row items-center py-3 ${lastRow ? "" : "border-b border-border"}`} style={{ opacity: disabled ? 0.4 : 1 }}>
       <View className="flex-1 mr-3">
-        <Text className="text-sm font-medium text-foreground">{title}</Text>
-        <Text className="text-xs text-muted-foreground mt-0.5 leading-4">{body}</Text>
+        <Text className="text-body font-medium text-foreground">{title}</Text>
+        <Text className="text-label text-muted-foreground mt-0.5 leading-4">{body}</Text>
       </View>
       <Switch value={value} onValueChange={onChange} disabled={disabled} accessibilityLabel={title} />
     </View>
@@ -104,7 +104,7 @@ export default function ShareScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Spending</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Spending</Text>
           <Row
             title="Show household spending by default"
             body="Spends in categories set to Always share appear in Together, in full but not split. Others appear once split with someone in the household. You can change one from its screen."
@@ -117,7 +117,7 @@ export default function ShareScreen() {
             value={choices.allTransactions}
             onChange={(v) => set({ allTransactions: v })}
           />
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4">Money</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-4">Money</Text>
           <Row
             title="Savings rate"
             body="A percentage each month, from your yearly plan. Never your salary."
@@ -137,30 +137,30 @@ export default function ShareScreen() {
                   onPress={() => setBalanceIds(on ? balanceIds.filter((x) => x !== a.id) : [...balanceIds, a.id])}
                 >
                   <Ionicons name={on ? "checkbox" : "square-outline"} size={20} color={on ? theme.primary : theme.mutedForeground} />
-                  <Text className="text-sm text-foreground ml-2">{a.name}</Text>
+                  <Text className="text-meta text-foreground ml-2">{a.name}</Text>
                 </Pressable>
               );
             })}
         </Card>
 
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Others will see · this month</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">Others will see · this month</Text>
           {preview === null ? (
             <LoadingState rows={3} />
           ) : preview.length === 0 ? (
-            <Text className="text-sm text-muted-foreground">No spending this month with these choices.</Text>
+            <Text className="text-meta text-muted-foreground">No spending this month with these choices.</Text>
           ) : (
             preview.slice(0, 12).map((p) => (
               <View key={p.category} className="flex-row justify-between py-1">
-                <Text className="text-sm text-foreground">
+                <Text className="text-meta text-foreground">
                   {p.category}
-                  <Text className="text-xs text-muted-foreground">{p.detail === "total" ? "  · total only" : ""}</Text>
+                  <Text className="text-label text-muted-foreground">{p.detail === "total" ? "  · total only" : ""}</Text>
                 </Text>
-                <Text className="text-sm text-foreground">{formatAmount(p.amount)}</Text>
+                <Text className="text-meta text-foreground">{formatAmount(p.amount)}</Text>
               </View>
             ))
           )}
-          <Text className="text-xs text-muted-foreground mt-2 leading-4">
+          <Text className="text-label text-muted-foreground mt-2 leading-4">
             Never shared: pending items, income, message text, notes, account numbers, the Vault, loans and investments.
           </Text>
         </Card>

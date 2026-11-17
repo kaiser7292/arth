@@ -20,6 +20,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
 import { creditLook } from "@/services/expense-types";
+import { tint } from "@/constants/brand";
 
 const APPLIES_LABELS: Record<string, string> = { expense: "Expenses", credit: "Credits", any: "All transactions" };
 const RULE_FIELDS: ListField<SmartRule>[] = [
@@ -248,31 +249,31 @@ export default function SmartRulesListScreen() {
         onPress={() => setShowDeleted((v) => !v)}
         className="flex-row items-center justify-between py-2 mb-2"
       >
-        <Text className="text-xs font-semibold uppercase" style={{ color: colors.textSecondary, letterSpacing: 0.5 }}>
+        <Text className="text-label font-semibold uppercase" style={{ color: theme.mutedForeground, letterSpacing: 0.5 }}>
           Deleted ({deletedRules.length})
         </Text>
-        <Ionicons name={showDeleted ? "chevron-up" : "chevron-down"} size={14} color={colors.textSecondary} />
+        <Ionicons name={showDeleted ? "chevron-up" : "chevron-down"} size={14} color={theme.mutedForeground} />
       </Pressable>
       {showDeleted && (
         <>
           <View className="flex-row gap-2 mb-3">
-            <Pressable onPress={confirmRestoreAll} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: colors.tint + "20" }}>
-              <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore all</Text>
+            <Pressable onPress={confirmRestoreAll} className="flex-1 py-2 rounded-control items-center" style={{ backgroundColor: tint(theme.primary, 0.13) }}>
+              <Text className="text-label font-semibold" style={{ color: theme.primary }}>Restore all</Text>
             </Pressable>
-            <Pressable onPress={confirmPurge} className="flex-1 py-2 rounded-lg items-center" style={{ backgroundColor: theme.danger + "14" }}>
-              <Text className="text-xs font-semibold" style={{ color: theme.danger }}>Delete forever</Text>
+            <Pressable onPress={confirmPurge} className="flex-1 py-2 rounded-control items-center" style={{ backgroundColor: tint(theme.danger, 0.08) }}>
+              <Text className="text-label font-semibold" style={{ color: theme.danger }}>Delete forever</Text>
             </Pressable>
           </View>
           {deletedRules.map((item) => (
             <View key={item.id} className="mb-2" style={{ opacity: 0.6 }}>
               <Card>
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-sm font-medium text-faint-foreground flex-1" numberOfLines={1}>{item.name}</Text>
+                  <Text className="text-body font-medium text-faint-foreground flex-1" numberOfLines={1}>{item.name}</Text>
                   <Pressable onPress={() => handleRestore(item)} hitSlop={8} className="ml-3">
-                    <Text className="text-xs font-semibold" style={{ color: colors.tint }}>Restore</Text>
+                    <Text className="text-label font-semibold" style={{ color: theme.primary }}>Restore</Text>
                   </Pressable>
                 </View>
-                <Text className="text-xs text-faint-foreground mt-0.5" numberOfLines={1}>
+                <Text className="text-label text-faint-foreground mt-0.5" numberOfLines={1}>
                   {summarizeConditions(item)}
                 </Text>
               </Card>
@@ -287,7 +288,7 @@ export default function SmartRulesListScreen() {
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
-          <Text className="text-xs text-faint-foreground">
+          <Text className="text-label text-faint-foreground">
             Rules auto-apply when new expenses are added (manually or from SMS). First matching rule wins.
           </Text>
         </View>
@@ -297,11 +298,11 @@ export default function SmartRulesListScreen() {
         ) : rules.length === 0 ? (
           <ScrollView contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingBottom: 96 }}>
             <View className="flex-1 items-center justify-center py-16 px-8">
-              <Ionicons name="sparkles-outline" size={48} color={colors.textSecondary} />
-              <Text className="text-lg font-medium text-foreground mt-4">
+              <Ionicons name="sparkles-outline" size={48} color={theme.mutedForeground} />
+              <Text className="text-heading font-medium text-foreground mt-4">
                 No rules yet
               </Text>
-              <Text className="text-sm text-faint-foreground text-center mt-2">
+              <Text className="text-meta text-faint-foreground text-center mt-2">
                 Create a rule to auto-categorize expenses by merchant, amount, or account.
               </Text>
             </View>
@@ -312,7 +313,7 @@ export default function SmartRulesListScreen() {
           <ListToolbar {...tools.toolbar} />
           {tools.filterSheet}
           <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 96 }} keyboardShouldPersistTaps="handled">
-            {tools.rows.length === 0 && <Text className="text-sm text-muted-foreground text-center py-8">Nothing matches.</Text>}
+            {tools.rows.length === 0 && <Text className="text-meta text-muted-foreground text-center py-8">Nothing matches.</Text>}
             {tools.grouped.map((row) => {
               if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
               const item = row.item;
@@ -321,10 +322,10 @@ export default function SmartRulesListScreen() {
                 <Pressable onPress={() => router.push(`/settings/smart-rules/${item.id}`)}>
                   <View className="flex-row items-center mb-2">
                     <View className="flex-1">
-                      <Text className={`text-base font-semibold ${item.is_active ? "text-foreground" : "text-faint-foreground"}`}>
+                      <Text className={`text-body font-semibold ${item.is_active ? "text-foreground" : "text-faint-foreground"}`}>
                         {item.name}
                       </Text>
-                      <Text className="text-xs text-faint-foreground mt-0.5">
+                      <Text className="text-label text-faint-foreground mt-0.5">
                         Priority {item.priority}
                         {item.applies_to === "credit" && <Text> · Credits</Text>}
                         {item.applies_to === "any" && <Text> · All transactions</Text>}
@@ -332,10 +333,10 @@ export default function SmartRulesListScreen() {
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-sm text-muted-foreground mb-1">
+                  <Text className="text-meta text-muted-foreground mb-1">
                     WHEN: {summarizeConditions(item)}
                   </Text>
-                  <Text className="text-sm text-muted-foreground">
+                  <Text className="text-meta text-muted-foreground">
                     THEN: {summarizeActions(item)}
                   </Text>
                 </Pressable>
@@ -346,15 +347,15 @@ export default function SmartRulesListScreen() {
                     className="flex-1 items-center py-1"
                   >
                     <Ionicons name="create-outline" size={16} color={accentColor} />
-                    <Text className="text-xs mt-0.5" style={{ color: accentColor }}>Edit</Text>
+                    <Text className="text-label mt-0.5" style={{ color: accentColor }}>Edit</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => router.push(`/settings/smart-rules/applications/${item.id}`)}
                     hitSlop={4}
                     className="flex-1 items-center py-1"
                   >
-                    <Ionicons name="checkmark-circle-outline" size={16} color={item.apply_count > 0 ? accentColor : colors.textSecondary} />
-                    <Text className="text-xs mt-0.5" style={{ color: item.apply_count > 0 ? accentColor : colors.textSecondary }}>
+                    <Ionicons name="checkmark-circle-outline" size={16} color={item.apply_count > 0 ? accentColor : theme.mutedForeground} />
+                    <Text className="text-label mt-0.5" style={{ color: item.apply_count > 0 ? accentColor : theme.mutedForeground }}>
                       Applied {item.apply_count}
                     </Text>
                   </Pressable>
@@ -363,8 +364,8 @@ export default function SmartRulesListScreen() {
                     hitSlop={4}
                     className="flex-1 items-center py-1"
                   >
-                    <Ionicons name="copy-outline" size={16} color={colors.textSecondary} />
-                    <Text className="text-xs mt-0.5 text-faint-foreground">Duplicate</Text>
+                    <Ionicons name="copy-outline" size={16} color={theme.mutedForeground} />
+                    <Text className="text-label mt-0.5 text-faint-foreground">Duplicate</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => confirmDelete(item)}
@@ -372,7 +373,7 @@ export default function SmartRulesListScreen() {
                     className="flex-1 items-center py-1"
                   >
                     <Ionicons name="trash-outline" size={16} color={theme.danger} />
-                    <Text className="text-xs mt-0.5" style={{ color: theme.danger }}>Delete</Text>
+                    <Text className="text-label mt-0.5" style={{ color: theme.danger }}>Delete</Text>
                   </Pressable>
                 </View>
               </Card>

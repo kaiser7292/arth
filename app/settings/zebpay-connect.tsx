@@ -160,17 +160,17 @@ export default function ZebpayConnectScreen() {
                 style={{ backgroundColor: `${theme.primary}22` }}>
                 <Ionicons name="logo-bitcoin" size={28} color={theme.primary} />
               </View>
-              <Text className="text-base font-bold text-foreground mb-1">Zebpay</Text>
-              <Text className="text-sm text-muted-foreground text-center mb-5 px-4">
+              <Text className="text-body font-bold text-foreground mb-1">Zebpay</Text>
+              <Text className="text-meta text-muted-foreground text-center mb-5 px-4">
                 Connect your Zebpay account to view your crypto portfolio, balances, and orders in Arth.
               </Text>
               <Pressable
                 onPress={() => router.push('/settings/zebpay-connect-credentials' as any)}
-                className="rounded-lg px-6 py-3 flex-row items-center"
+                className="rounded-control px-6 py-3 flex-row items-center"
                 style={{ backgroundColor: theme.primary }}
               >
                 <Ionicons name="link-outline" size={18} color="#fff" />
-                <Text className="text-white font-semibold text-sm ml-2">Connect Zebpay</Text>
+                <Text className="text-white font-semibold text-body ml-2">Connect Zebpay</Text>
               </Pressable>
             </Card>
           </View>
@@ -201,8 +201,8 @@ export default function ZebpayConnectScreen() {
                 <View className="w-2 h-2 rounded-full mr-2"
                   style={{ backgroundColor: theme.success }} />
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold text-foreground">Connected</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">
+                  <Text className="text-body font-semibold text-foreground">Connected</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5">
                     {lastSynced
                       ? `Last synced ${new Date(lastSynced).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`
                       : 'Not yet synced'}
@@ -212,7 +212,7 @@ export default function ZebpayConnectScreen() {
               <Pressable
                 onPress={handleSync}
                 disabled={syncing}
-                className="flex-row items-center px-3 py-2 rounded-lg"
+                className="flex-row items-center px-3 py-2 rounded-control"
                 style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
               >
                 {syncing ? (
@@ -220,7 +220,7 @@ export default function ZebpayConnectScreen() {
                 ) : (
                   <>
                     <Ionicons name="sync-outline" size={16} color="#fff" />
-                    <Text className="text-white text-xs font-semibold ml-1">Sync</Text>
+                    <Text className="text-white text-label font-semibold ml-1">Sync</Text>
                   </>
                 )}
               </Pressable>
@@ -245,8 +245,8 @@ export default function ZebpayConnectScreen() {
           {/* No data yet */}
           {balances.length === 0 && orders.length === 0 && (
             <Card className="mx-4 mb-3 items-center py-6">
-              <Ionicons name="bar-chart-outline" size={32} color={colors.textSecondary} />
-              <Text className="text-sm text-muted-foreground mt-2">Tap Sync to load your portfolio</Text>
+              <Ionicons name="bar-chart-outline" size={32} color={theme.mutedForeground} />
+              <Text className="text-meta text-muted-foreground mt-2">Tap Sync to load your portfolio</Text>
             </Card>
           )}
 
@@ -256,13 +256,13 @@ export default function ZebpayConnectScreen() {
               onPress={() => router.push('/settings/zebpay-connect-credentials' as any)}
               className="flex-row items-center py-2.5 border-b border-border"
             >
-              <Ionicons name="key-outline" size={16} color={colors.text} />
-              <Text className="text-sm text-foreground ml-3 flex-1">Update credentials</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+              <Ionicons name="key-outline" size={16} color={theme.foreground} />
+              <Text className="text-meta text-foreground ml-3 flex-1">Update credentials</Text>
+              <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
             </Pressable>
             <Pressable onPress={handleDisconnect} className="flex-row items-center py-2.5">
               <Ionicons name="log-out-outline" size={16} color={theme.danger} />
-              <Text className="text-sm font-medium ml-3" style={{ color: theme.danger }}>
+              <Text className="text-body font-medium ml-3" style={{ color: theme.danger }}>
                 Disconnect Zebpay
               </Text>
             </Pressable>
@@ -274,9 +274,9 @@ export default function ZebpayConnectScreen() {
       {/* Demat account picker modal */}
       <Modal visible={showAccountPicker} transparent animationType="slide">
         <Pressable className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setShowAccountPicker(false)} />
-        <View className="bg-background rounded-t-2xl p-4 pb-8" style={{ maxHeight: '60%' }}>
-          <Text className="text-base font-bold text-foreground mb-1">Link an account</Text>
-          <Text className="text-xs text-muted-foreground mb-4">
+        <View className="bg-background rounded-t-card p-4 pb-8" style={{ maxHeight: '60%' }}>
+          <Text className="text-body font-bold text-foreground mb-1">Link an account</Text>
+          <Text className="text-label text-muted-foreground mb-4">
             Choose the account where Zebpay portfolio snapshots will be saved.
           </Text>
           {pickerAccounts.map(a => (
@@ -285,32 +285,32 @@ export default function ZebpayConnectScreen() {
               onPress={() => handlePickAccount(a.id)}
               className="py-3 border-b border-border flex-row items-center"
             >
-              <Ionicons name="briefcase-outline" size={16} color={colors.textSecondary} />
-              <Text className="text-sm text-foreground ml-3">{a.label}</Text>
+              <Ionicons name="briefcase-outline" size={16} color={theme.mutedForeground} />
+              <Text className="text-meta text-foreground ml-3">{a.label}</Text>
             </Pressable>
           ))}
           {pickerAccounts.length === 0 && (
-            <Text className="text-sm text-muted-foreground text-center py-4">
+            <Text className="text-meta text-muted-foreground text-center py-4">
               You don't have an account for Zebpay in Arth yet.
             </Text>
           )}
           <Pressable
             onPress={() => void handleCreateAccount()}
-            className="mt-3 py-3 rounded-lg flex-row items-center justify-center"
+            className="mt-3 py-3 rounded-control flex-row items-center justify-center"
             style={{ borderWidth: 1.5, borderColor: theme.primary }}
             accessibilityRole="button"
           >
             <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
-            <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
+            <Text className="text-body font-semibold ml-2" style={{ color: theme.primary }}>
               Create a Zebpay account and link it
             </Text>
           </Pressable>
           <Pressable
             onPress={() => setShowAccountPicker(false)}
-            className="mt-4 py-3 rounded-lg items-center"
-            style={{ backgroundColor: colors.border }}
+            className="mt-4 py-3 rounded-control items-center"
+            style={{ backgroundColor: theme.border }}
           >
-            <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+            <Text className="text-body font-semibold text-foreground">Cancel</Text>
           </Pressable>
         </View>
       </Modal>

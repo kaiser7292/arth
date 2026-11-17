@@ -5,7 +5,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, LoadingState, ScreenContainer, SelectSheet, Text } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 import { useTheme } from "@/hooks/use-theme";
-import { DATA_HEX } from "@/constants/brand";
+import { DATA_HEX, tint } from "@/constants/brand";
 import { extractTime, parseDateAny } from "@/services/sms/bank-patterns";
 import { inferDirection } from "@/services/sms/money-signals";
 import { normalizeSms } from "@/services/sms/sms-normalize";
@@ -273,7 +273,7 @@ export default function ConfirmTemplateScreen() {
   if (!group) {
     return (
       <ScreenContainer padTop={false}>
-        <Text className="text-sm text-muted-foreground text-center px-8 mt-10">These messages have already been read.</Text>
+        <Text className="text-meta text-muted-foreground text-center px-8 mt-10">These messages have already been read.</Text>
       </ScreenContainer>
     );
   }
@@ -291,16 +291,16 @@ export default function ConfirmTemplateScreen() {
               <View className="w-12 h-12 rounded-full items-center justify-center" style={{ backgroundColor: theme.alpha("success", 0.12) }}>
                 <Ionicons name="checkmark" size={26} color={theme.success} />
               </View>
-              <Text className="text-base font-semibold text-foreground mt-3">Arth can read {group.sender} now</Text>
-              <Text className="text-xs text-muted-foreground mt-1">
+              <Text className="text-body font-semibold text-foreground mt-3">Arth can read {group.sender} now</Text>
+              <Text className="text-label text-muted-foreground mt-1">
                 {done.read} of {done.total} message{done.total === 1 ? "" : "s"} in this group read correctly
               </Text>
             </View>
           </Card>
           {done.created > 0 && (
             <Card className="mt-3">
-              <Text className="text-sm font-medium text-foreground">{done.created} transaction{done.created === 1 ? "" : "s"} to review</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-body font-medium text-foreground">{done.created} transaction{done.created === 1 ? "" : "s"} to review</Text>
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {[done.outTotal > 0 ? `${formatAmount(done.outTotal)} out` : null, done.inTotal > 0 ? `${formatAmount(done.inTotal)} in` : null].filter(Boolean).join(" · ")}
               </Text>
             </Card>
@@ -332,9 +332,9 @@ export default function ConfirmTemplateScreen() {
                   <Pressable
                     key={w.start}
                     onPress={() => tapWord(w)}
-                    className="rounded-md px-1.5 py-1"
+                    className="rounded-control px-1.5 py-1"
                     style={{
-                      backgroundColor: on ? FIELD_META[fixing].color + "33" : "transparent",
+                      backgroundColor: on ? tint(FIELD_META[fixing].color, 0.2) : "transparent",
                       borderWidth: 1,
                       borderColor: on ? FIELD_META[fixing].color : theme.border,
                       borderStyle: on ? "solid" : "dashed",
@@ -342,20 +342,20 @@ export default function ConfirmTemplateScreen() {
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
                   >
-                    <Text className="text-sm text-foreground">{w.text}</Text>
+                    <Text className="text-meta text-foreground">{w.text}</Text>
                   </Pressable>
                 );
               })}
             </View>
           </Card>
-          <Text className="text-xs text-muted-foreground mt-2 px-1">
+          <Text className="text-label text-muted-foreground mt-2 px-1">
             Tap a word, then tap another to take the words between. Only this field changes; the rest stays as guessed.
           </Text>
           <Card className="mt-3">
             <View className="flex-row items-center">
-              <View className="w-2.5 h-2.5 rounded-sm mr-2" style={{ backgroundColor: FIELD_META[fixing].color }} />
-              <Text className="text-sm text-muted-foreground">{FIELD_META[fixing].label}</Text>
-              <Text className="text-sm font-semibold text-foreground ml-2 flex-1" numberOfLines={1}>
+              <View className="w-2.5 h-2.5 rounded-control mr-2" style={{ backgroundColor: FIELD_META[fixing].color }} />
+              <Text className="text-meta text-muted-foreground">{FIELD_META[fixing].label}</Text>
+              <Text className="text-body font-semibold text-foreground ml-2 flex-1" numberOfLines={1}>
                 {pick ? body.slice(trimSpan(body, pick.start, pick.end).start, trimSpan(body, pick.start, pick.end).end) : "Nothing picked"}
               </Text>
             </View>
@@ -388,11 +388,11 @@ export default function ConfirmTemplateScreen() {
       <Stack.Screen options={{ title: group.sender }} />
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Card>
-          <View className="rounded-xl px-3 py-2.5" style={{ backgroundColor: theme.alpha("foreground", 0.04), borderTopLeftRadius: 4 }}>
-            <Text className="text-sm text-foreground leading-6">
+          <View className="rounded-card px-3 py-2.5" style={{ backgroundColor: theme.alpha("foreground", 0.04), borderTopLeftRadius: 4 }}>
+            <Text className="text-meta text-foreground leading-6">
               {highlighted.map((p, i) =>
                 p.field ? (
-                  <Text key={i} className="text-sm font-semibold" style={{ color: FIELD_META[p.field].color, backgroundColor: FIELD_META[p.field].color + "22" }}>
+                  <Text key={i} className="text-body font-semibold" style={{ color: FIELD_META[p.field].color, backgroundColor: tint(FIELD_META[p.field].color, 0.13) }}>
                     {p.text}
                   </Text>
                 ) : (
@@ -401,7 +401,7 @@ export default function ConfirmTemplateScreen() {
               )}
             </Text>
           </View>
-          <Text className="text-xs text-muted-foreground mt-2">
+          <Text className="text-label text-muted-foreground mt-2">
             {group.messages.length > 1 ? `Compared with ${group.messages.length - 1} other message${group.messages.length === 2 ? "" : "s"} from ${group.sender}` : `From ${group.sender}`}
           </Text>
         </Card>
@@ -418,12 +418,12 @@ export default function ConfirmTemplateScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${FIELD_META[f].label}: ${v ?? "not found"}. Fix`}
               >
-                <View className="w-2.5 h-2.5 rounded-sm mr-2" style={{ backgroundColor: FIELD_META[f].color, opacity: v ? 1 : 0.35 }} />
-                <Text className="text-sm text-muted-foreground" style={{ width: 96 }}>{FIELD_META[f].label}</Text>
-                <Text className={`text-sm flex-1 ${v ? "font-semibold text-foreground" : "text-faint-foreground"}`} numberOfLines={1}>
+                <View className="w-2.5 h-2.5 rounded-control mr-2" style={{ backgroundColor: FIELD_META[f].color, opacity: v ? 1 : 0.35 }} />
+                <Text className="text-meta text-muted-foreground" style={{ width: 96 }}>{FIELD_META[f].label}</Text>
+                <Text className={`text-body flex-1 ${v ? "font-semibold text-foreground" : "text-faint-foreground"}`} numberOfLines={1}>
                   {v ?? "Not found"}
                 </Text>
-                <Text className="text-xs font-medium" style={{ color: theme.primary }}>{v ? "Fix" : "Add"}</Text>
+                <Text className="text-label font-medium" style={{ color: theme.primary }}>{v ? "Fix" : "Add"}</Text>
               </Pressable>
             );
           })}
@@ -439,21 +439,21 @@ export default function ConfirmTemplateScreen() {
               color={direction === "transfer" ? theme.primary : direction === "debit" ? theme.danger : theme.success}
               style={{ marginRight: 6 }}
             />
-            <Text className="text-sm text-foreground flex-1">
+            <Text className="text-meta text-foreground flex-1">
               {direction === "transfer" ? "Transfer between my accounts" : direction === "credit" ? "Money in" : direction === "refund" ? "Refund" : "Money out"}
-              {txType === "auto" ? <Text className="text-xs text-muted-foreground"> · from the words</Text> : null}
+              {txType === "auto" ? <Text className="text-label text-muted-foreground"> · from the words</Text> : null}
             </Text>
-            <Text className="text-xs font-medium" style={{ color: theme.primary }}>Change</Text>
+            <Text className="text-label font-medium" style={{ color: theme.primary }}>Change</Text>
           </Pressable>
         </Card>
 
         <Card className="mt-3">
-          <Text className="text-xs text-muted-foreground">Bank or wallet</Text>
+          <Text className="text-label text-muted-foreground">Bank or wallet</Text>
           {bankKnown ? (
             <Pressable onPress={() => setBankKnown(false)} className="flex-row items-center mt-0.5" accessibilityRole="button">
-              <Text className="text-sm font-medium text-foreground flex-1">{bank}</Text>
-              <Text className="text-xs text-muted-foreground">from the sender · </Text>
-              <Text className="text-xs font-medium" style={{ color: theme.primary }}>Change</Text>
+              <Text className="text-body font-medium text-foreground flex-1">{bank}</Text>
+              <Text className="text-label text-muted-foreground">from the sender · </Text>
+              <Text className="text-label font-medium" style={{ color: theme.primary }}>Change</Text>
             </Pressable>
           ) : (
             <TextInput
@@ -461,19 +461,19 @@ export default function ConfirmTemplateScreen() {
               onChangeText={setBank}
               placeholder="Kotak Bank, Amazon Pay"
               placeholderTextColor={theme.mutedForeground}
-              className="text-sm text-foreground py-1.5 border-b"
+              className="text-meta text-foreground py-1.5 border-b"
               style={{ borderColor: theme.primary }}
               accessibilityLabel="Bank or wallet"
             />
           )}
-          <Text className="text-xs text-muted-foreground mt-3">Template name</Text>
+          <Text className="text-label text-muted-foreground mt-3">Template name</Text>
           <TextInput
             value={name}
             onChangeText={(t) => {
               setName(t);
               setNameEdited(true);
             }}
-            className="text-sm text-foreground py-1.5 border-b border-border"
+            className="text-meta text-foreground py-1.5 border-b border-border"
             accessibilityLabel="Template name"
           />
         </Card>

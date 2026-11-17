@@ -124,9 +124,9 @@ export default function KiteConnectApiKeyScreen() {
   };
 
   const inputStyle = {
-    color: colors.text,
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    color: theme.foreground,
+    backgroundColor: theme.card,
+    borderColor: theme.border,
     borderWidth: 1,
     borderRadius: 8,
     paddingHorizontal: 12,
@@ -151,36 +151,36 @@ export default function KiteConnectApiKeyScreen() {
 
         {/* Input */}
         <Card className="mb-3">
-          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             API Key
           </Text>
           <TextInput
             value={apiKey}
             onChangeText={setApiKey}
             placeholder="e.g. abcdef1234567890"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
             style={inputStyle}
           />
-          <Text className="text-xs text-muted-foreground mt-2 mb-4">
+          <Text className="text-label text-muted-foreground mt-2 mb-4">
             Found at developers.kite.trade/apps → your app → API Key
           </Text>
-          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-3">
             API Secret
           </Text>
           <TextInput
             value={apiSecret}
             onChangeText={setApiSecret}
             placeholder="Your app's API secret"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
             style={inputStyle}
           />
-          <Text className="text-xs text-muted-foreground mt-2">
+          <Text className="text-label text-muted-foreground mt-2">
             Same page, next to the API key. It stays encrypted on this phone; only a one-way checksum made from
             it is sent to Zerodha when you log in.
           </Text>
@@ -188,17 +188,17 @@ export default function KiteConnectApiKeyScreen() {
 
         {/* Zerodha login — optional, for filling the daily login */}
         <Card className="mb-3">
-          <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+          <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-1">
             Zerodha login (optional)
           </Text>
-          <Text className="text-xs text-muted-foreground mb-3">
+          <Text className="text-label text-muted-foreground mb-3">
             Arth fills these on Zerodha’s login page when you connect each day. You still tap Login yourself.
           </Text>
           <TextInput
             value={loginId}
             onChangeText={setLoginId}
             placeholder="User ID, e.g. AB1234"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             autoCapitalize="characters"
             autoCorrect={false}
             style={[inputStyle, { marginBottom: 10 }]}
@@ -207,7 +207,7 @@ export default function KiteConnectApiKeyScreen() {
             value={loginPassword}
             onChangeText={setLoginPassword}
             placeholder="Password"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             autoCapitalize="none"
             autoCorrect={false}
             secureTextEntry
@@ -218,7 +218,7 @@ export default function KiteConnectApiKeyScreen() {
               value={totpKey}
               onChangeText={setTotpKey}
               placeholder="TOTP key"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               autoCapitalize="characters"
               autoCorrect={false}
               secureTextEntry={!showTotpKey}
@@ -230,10 +230,10 @@ export default function KiteConnectApiKeyScreen() {
               className="ml-3"
               accessibilityLabel={showTotpKey ? 'Hide TOTP key' : 'Show TOTP key'}
             >
-              <Ionicons name={showTotpKey ? 'eye-off-outline' : 'eye-outline'} size={18} color={colors.textSecondary} />
+              <Ionicons name={showTotpKey ? 'eye-off-outline' : 'eye-outline'} size={18} color={theme.mutedForeground} />
             </Pressable>
           </View>
-          <Text className="text-xs text-muted-foreground mt-2">
+          <Text className="text-label text-muted-foreground mt-2">
             The TOTP key is the text code Zerodha shows when you set up TOTP (“Can’t scan the QR code?”). Stored
             encrypted in your Vault.
           </Text>
@@ -246,7 +246,7 @@ export default function KiteConnectApiKeyScreen() {
           <Pressable
             onPress={handleSave}
             disabled={isSaving || !agreed}
-            className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+            className="flex-1 rounded-control p-3.5 flex-row items-center justify-center"
             style={{ backgroundColor: theme.primary, opacity: isSaving || !agreed ? 0.5 : 1 }}
           >
             {isSaving ? (
@@ -254,7 +254,7 @@ export default function KiteConnectApiKeyScreen() {
             ) : (
               <>
                 <Ionicons name="checkmark" size={18} color="#fff" />
-                <Text className="text-white font-semibold text-sm ml-2">Save</Text>
+                <Text className="text-white font-semibold text-body ml-2">Save</Text>
               </>
             )}
           </Pressable>
@@ -262,19 +262,19 @@ export default function KiteConnectApiKeyScreen() {
           {apiKey ? (
             <Pressable
               onPress={handleClear}
-              className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+              className="flex-1 rounded-control p-3.5 flex-row items-center justify-center"
               style={{ backgroundColor: theme.danger }}
             >
               <Ionicons name="trash-outline" size={18} color="#fff" />
-              <Text className="text-white font-semibold text-sm ml-2">Clear</Text>
+              <Text className="text-white font-semibold text-body ml-2">Clear</Text>
             </Pressable>
           ) : (
             <Pressable
               onPress={() => router.back()}
-              className="flex-1 rounded-lg p-3.5 items-center justify-center"
-              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+              className="flex-1 rounded-control p-3.5 items-center justify-center"
+              style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
             >
-              <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+              <Text className="text-body font-semibold text-foreground">Cancel</Text>
             </Pressable>
           )}
         </View>

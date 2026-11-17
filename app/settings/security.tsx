@@ -120,10 +120,10 @@ export default function SecuritySettingsScreen() {
             <View className="flex-row items-center py-3">
               <Ionicons name="lock-closed" size={20} color={accentColor} />
               <View className="flex-1 ml-3">
-                <Text className="text-base text-foreground font-semibold">
+                <Text className="text-body text-foreground font-semibold">
                   Enable app lock
                 </Text>
-                <Text className="text-xs text-faint-foreground mt-0.5">
+                <Text className="text-label text-faint-foreground mt-0.5">
                   {canEnable
                     ? `Use ${biometricLabel} to unlock Arth`
                     : !hasHardware
@@ -154,7 +154,7 @@ export default function SecuritySettingsScreen() {
                     className="flex-row items-center py-3 border-b border-border last:border-b-0"
                   >
                     <View className="flex-1">
-                      <Text className="text-base text-foreground">
+                      <Text className="text-body text-foreground">
                         {LOCK_TIMEOUT_LABELS[opt]}
                       </Text>
                     </View>
@@ -163,7 +163,7 @@ export default function SecuritySettingsScreen() {
                     )}
                   </Pressable>
                 ))}
-                <Text className="text-xs text-faint-foreground mt-3">
+                <Text className="text-label text-faint-foreground mt-3">
                   "Never" means Arth only locks on cold start (after closing the app completely).
                   Any other option also locks when the app is backgrounded for that long.
                 </Text>
@@ -173,10 +173,10 @@ export default function SecuritySettingsScreen() {
                 <Pressable onPress={onLockNow} className="flex-row items-center py-3">
                   <Ionicons name="log-out-outline" size={20} color={theme.foreground} />
                   <View className="flex-1 ml-3">
-                    <Text className="text-base text-foreground font-semibold">
+                    <Text className="text-body text-foreground font-semibold">
                       Lock now
                     </Text>
-                    <Text className="text-xs text-faint-foreground mt-0.5">
+                    <Text className="text-label text-faint-foreground mt-0.5">
                       Immediately lock Arth
                     </Text>
                   </View>
@@ -186,7 +186,7 @@ export default function SecuritySettingsScreen() {
             </>
           )}
 
-          <Text className="text-xs text-faint-foreground px-2">
+          <Text className="text-label text-faint-foreground px-2">
             App lock preferences are stored on this device only. Uninstalling Arth or restoring from
             a backup on another device will start with the lock off - you can turn it on again from
             this screen.

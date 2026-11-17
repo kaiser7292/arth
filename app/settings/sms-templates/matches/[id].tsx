@@ -59,11 +59,11 @@ export default function TemplateMatchesScreen() {
         <LoadingState />
       ) : matches.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Ionicons name="document-text-outline" size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-medium text-foreground mt-4">
             No matches yet
           </Text>
-          <Text className="text-sm text-faint-foreground text-center mt-2">
+          <Text className="text-meta text-faint-foreground text-center mt-2">
             SMS detected using this template will appear here after a scan.
           </Text>
         </View>
@@ -76,17 +76,17 @@ export default function TemplateMatchesScreen() {
           keyExtractor={(_, i) => String(i)}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
           ListHeaderComponent={
-            <Text className="text-xs text-faint-foreground mb-3">
+            <Text className="text-label text-faint-foreground mb-3">
               {matches.length} SMS detected using this template
             </Text>
           }
           renderItem={({ item }) => (
             <Card className="mb-3">
               <View className="flex-row items-start justify-between mb-1">
-                <Text className="text-xs font-semibold text-muted-foreground flex-1 mr-2">
+                <Text className="text-label font-semibold text-muted-foreground flex-1 mr-2">
                   {item.sms_address ?? "Unknown sender"}
                 </Text>
-                <Text className="text-xs text-faint-foreground">
+                <Text className="text-label text-faint-foreground">
                   {formatSmsDate(item.sms_date)}
                 </Text>
               </View>
@@ -94,20 +94,20 @@ export default function TemplateMatchesScreen() {
                 {item.parsed_amount != null && (
                   <View className="flex-row items-center">
                     <Ionicons name="cash-outline" size={12} color={accentColor} />
-                    <Text className="text-xs font-semibold ml-1" style={{ color: accentColor }}>
+                    <Text className="text-label font-semibold ml-1" style={{ color: accentColor }}>
                       {formatAmount(item.parsed_amount)}
                     </Text>
                   </View>
                 )}
                 {item.parsed_merchant != null && item.parsed_merchant !== "" && (
-                  <Text className="text-xs text-muted-foreground" numberOfLines={1}>
+                  <Text className="text-label text-muted-foreground" numberOfLines={1}>
                     {item.parsed_merchant}
                   </Text>
                 )}
               </View>
               {item.sms_body_preview != null && item.sms_body_preview !== "" && (
                 <Text
-                  className="text-xs text-faint-foreground"
+                  className="text-label text-faint-foreground"
                   numberOfLines={2}
                 >
                   {item.sms_body_preview}

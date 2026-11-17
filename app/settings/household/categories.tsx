@@ -68,16 +68,16 @@ export default function HouseholdCategoriesScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         {theirs.length > 0 && (
           <Card className="mb-3">
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Their categories</Text>
-            <Text className="text-xs text-muted-foreground mb-2 leading-4">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Their categories</Text>
+            <Text className="text-label text-muted-foreground mb-2 leading-4">
               Categories others in {h.name} file shared bills under that you don&apos;t have. Your share of those bills goes where you choose.
             </Text>
             {theirs.map((t) => (
               <View key={t.name} className="py-2.5 border-b border-border">
                 <View className="flex-row items-center">
                   <View className="flex-1 mr-2">
-                    <Text className="text-sm text-foreground">{t.name}</Text>
-                    <Text className="text-xs text-muted-foreground">
+                    <Text className="text-meta text-foreground">{t.name}</Text>
+                    <Text className="text-label text-muted-foreground">
                       {t.members.join(", ")}
                       {t.mappedTo ? ` · goes to your ${mine.find((c) => c.id === t.mappedTo)?.name ?? "category"}` : t.suggestion ? ` · closest: your ${t.suggestion.name}` : ""}
                     </Text>
@@ -88,7 +88,7 @@ export default function HouseholdCategoriesScreen() {
                     style={{ borderColor: theme.alpha("foreground", 0.15) }}
                     accessibilityRole="button"
                   >
-                    <Text className="text-xs" style={{ color: theme.primary }}>{t.mappedTo ? "Change" : "Map"}</Text>
+                    <Text className="text-label" style={{ color: theme.primary }}>{t.mappedTo ? "Change" : "Map"}</Text>
                   </Pressable>
                   {!t.mappedTo && (
                     <Pressable
@@ -105,7 +105,7 @@ export default function HouseholdCategoriesScreen() {
                       style={{ backgroundColor: theme.alpha("primary", 0.12) }}
                       accessibilityRole="button"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Create</Text>
+                      <Text className="text-label font-semibold" style={{ color: theme.primary }}>Create</Text>
                     </Pressable>
                   )}
                 </View>
@@ -115,15 +115,15 @@ export default function HouseholdCategoriesScreen() {
         )}
 
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Household categories</Text>
-          <Text className="text-xs text-muted-foreground mb-2 leading-4">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Household categories</Text>
+          <Text className="text-label text-muted-foreground mb-2 leading-4">
             {isCreator
               ? "Arth's categories, so everyone's map by name. Always share: every spend shows in Together. Only when split: a spend shows once it's split with someone in the household."
               : "Set by whoever started the household. Always share: every spend shows in Together. Only when split: a spend shows once it's split with someone in the household."}
           </Text>
           {hcats.map((c) => (
             <View key={c.id} className="flex-row items-center py-2 border-b border-border">
-              <Text className="text-sm text-foreground flex-1">{c.name}</Text>
+              <Text className="text-meta text-foreground flex-1">{c.name}</Text>
               {isCreator ? (
                 <Pressable
                   onPress={() => setRuleFor(c)}
@@ -132,11 +132,11 @@ export default function HouseholdCategoriesScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`${c.name}: ${c.shared_default ? "always share" : "share only when split"}`}
                 >
-                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>{c.shared_default ? "Always" : "When split"}</Text>
+                  <Text className="text-label font-medium" style={{ color: theme.primary }}>{c.shared_default ? "Always" : "When split"}</Text>
                   <Ionicons name="chevron-down" size={12} color={theme.primary} style={{ marginLeft: 2 }} />
                 </Pressable>
               ) : (
-                <Text className="text-xs text-muted-foreground">{c.shared_default ? "Always" : "When split"}</Text>
+                <Text className="text-label text-muted-foreground">{c.shared_default ? "Always" : "When split"}</Text>
               )}
               {isCreator && (
                 <Pressable
@@ -169,8 +169,8 @@ export default function HouseholdCategoriesScreen() {
         </Card>
 
         <Card>
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Your categories</Text>
-          <Text className="text-xs text-muted-foreground mb-2 leading-4">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Your categories</Text>
+          <Text className="text-label text-muted-foreground mb-2 leading-4">
             Tap one to say which household category it counts as. Spends in those are household spending; the rest stay personal.
           </Text>
           {mine.map((c) => {
@@ -183,8 +183,8 @@ export default function HouseholdCategoriesScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`${c.name}: ${mapped ?? "personal"}`}
               >
-                <Text className="text-sm text-foreground flex-1">{c.name}</Text>
-                <Text className="text-sm mr-1" style={{ color: mapped ? theme.primary : theme.mutedForeground }}>
+                <Text className="text-meta text-foreground flex-1">{c.name}</Text>
+                <Text className="text-meta mr-1" style={{ color: mapped ? theme.primary : theme.mutedForeground }}>
                   {mapped ?? "Personal"}
                 </Text>
                 <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
