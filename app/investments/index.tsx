@@ -473,7 +473,7 @@ export default function InvestmentsListScreen() {
           </>
         )}
       </ScrollView>
-      <FAB icon="add" onPress={() => router.push("/investments/add")} accessibilityLabel="Add investment" />
+      <FAB icon="add" label="Investment" onPress={() => router.push("/investments/add")} accessibilityLabel="Add investment" />
     </ScreenContainer>
   );
 }

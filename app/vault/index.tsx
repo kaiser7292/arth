@@ -15,7 +15,7 @@ export default function VaultIndexScreen() {
   return (
     <ScreenContainer padTop={false}>
       <VaultPage />
-      <FAB icon="add" onPress={() => router.push("/vault/add")} />
+      <FAB icon="add" label="Entry" onPress={() => router.push("/vault/add")} accessibilityLabel="Add a vault entry" />
     </ScreenContainer>
   );
 }

@@ -1340,6 +1340,7 @@ export default function ScenarioDetailScreen() {
         && !horizonPickerVisible && !menuVisible && !hisaabSheetVisible && (
         <FAB
           icon="add"
+          label="Entry"
           onPress={() => {
             router.push({
               pathname: "/simulator/[id]/entry",
