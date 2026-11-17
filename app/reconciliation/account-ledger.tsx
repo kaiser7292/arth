@@ -5,7 +5,7 @@ import { useListTools } from "@/hooks/use-list-tools";
 import { transactionDayLabel } from "@/utils/day-label";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, DateInput, FABMenu, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, SectionTitle, Sheet, Text } from "@/components/ui";
+import { Badge, Button, Card, Chip, DateInput, FABMenu, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, SectionTitle, Sheet, Text } from "@/components/ui";
 import { defaultEntryDate } from "@/utils/ledger-dates";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -954,7 +954,8 @@ const loadData = useCallback(async () => {
             const entry = row.item;
             const isTransfer = entry.type === "transfer_in" || entry.type === "transfer_out";
             const isDebitSide = entry.type === "debit" || entry.type === "transfer_out";
-            const entryColor = isDebitSide ? theme.danger : theme.success;
+            // Money tones: spending is ink, money in is green (red is for over budget only).
+            const entryColor = isDebitSide ? theme.foreground : theme.success;
             const transferColor = TRANSFER_COLOR;
             const isReclassified = entry.reclassifiedAsTransfer === true;
             // When the ledger is opened via a cross-link (e.g. "From transfer"
@@ -1036,14 +1037,14 @@ const loadData = useCallback(async () => {
                       : undefined
                 }
               >
-                <View className="flex-row items-center mx-4 py-3 border-b border-border">
-                  {/* Icon */}
+                <View className="flex-row items-start mx-4 py-3 border-b border-border">
+                  {/* Icon tile, as on every transaction row */}
                   <View
-                    className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                    className="w-10 h-10 rounded-control items-center justify-center mr-3"
                     style={{
                       backgroundColor: isTransfer
-                        ? tint(transferColor, 0.08)
-                        : tint(entry.creditType?.color ?? entryColor, 0.08),
+                        ? tint(transferColor, 0.12)
+                        : tint(entry.creditType?.color ?? (isDebitSide ? theme.mutedForeground : entryColor), 0.12),
                     }}
                   >
                     <Ionicons
@@ -1058,8 +1059,8 @@ const loadData = useCallback(async () => {
                               ? "arrow-up-outline"
                               : "arrow-down-outline"
                       }
-                      size={14}
-                      color={isTransfer ? transferColor : (entry.creditType?.color ?? entryColor)}
+                      size={20}
+                      color={isTransfer ? transferColor : (entry.creditType?.color ?? (isDebitSide ? theme.mutedForeground : entryColor))}
                     />
                   </View>
 
@@ -1067,65 +1068,47 @@ const loadData = useCallback(async () => {
                   <View className="flex-1">
                     <View className="flex-row items-center">
                       <Text
-                        className="text-meta text-foreground"
+                        className="text-body font-semibold text-foreground"
                         numberOfLines={1}
                         style={{ flex: 1 }}
                       >
                         {entry.description}
                       </Text>
                       {isReclassified && (
-                        <Badge label="Transfer" color={transferColor} className="ml-2" />
+                        <Chip variant="status" tone="transfer" label="Transfer" className="ml-2" />
                       )}
                     </View>
                     {isTransfer && entry.counterAccountName && (
-                      <Text className="text-label mt-0.5" style={{ color: transferColor }}>
+                      <Text className="text-meta mt-0.5" style={{ color: transferColor }}>
                         {entry.type === "transfer_in" ? "From" : "To"} {entry.counterAccountName}
                       </Text>
                     )}
                     {/* Wraps: a row can have more tags than fit beside the amount. */}
-                    <View className="flex-row flex-wrap items-center mt-0.5" style={{ columnGap: 6, rowGap: 4 }}>
-                      <Text className="text-label text-muted-foreground">
+                    <View className="flex-row flex-wrap items-center mt-1" style={{ columnGap: 6, rowGap: 4 }}>
+                      <Text className="text-meta text-muted-foreground">
                         {formatEntryDate(entry.date)}
                       </Text>
                       {poolSiblings.length > 1 && entry.cardLast4 && (
-                        <Text className="text-label text-faint-foreground">
-                          · {"••••"} {entry.cardLast4}
+                        <Text className="text-meta text-muted-foreground">
+                          · {"••"}{entry.cardLast4}
                         </Text>
                       )}
                       {(entry.source === "sms_auto" || (isTransfer && !!entry.rawSourceText)) && (
-                        <View className="px-1 py-0.5 rounded bg-primary/15">
-                          <Text className="text-label font-semibold text-primary">SMS</Text>
-                        </View>
+                        <Chip variant="status" tone="primary" label="SMS" />
                       )}
-                      {/* A Hisaab credit's own tag below already says what it is. */}
-                      {!entry.isRefund && !isTransfer && !(entry.type === "credit" && entry.linkedHisaabPersonName) && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: tint(entryColor, 0.08) }}>
-                          <Text className="text-label font-semibold" style={{ color: entryColor }}>
-                            {entry.isAdjustment ? "ADJUSTMENT" : entry.type === "credit" ? (entry.creditType?.name.toUpperCase() ?? "CREDIT") : "EXPENSE"}
-                          </Text>
-                        </View>
+                      {/* What kind of row: an expense needs no word; a Hisaab credit's own chip below says it. */}
+                      {!entry.isRefund && !isTransfer && !(entry.type === "credit" && entry.linkedHisaabPersonName) && (entry.isAdjustment || entry.type === "credit") && (
+                        entry.isAdjustment ? (
+                          <Chip variant="status" tone="neutral" label="Adjustment" />
+                        ) : (
+                          <Chip variant="category" color={entry.creditType?.color ?? theme.success} label={entry.creditType?.name ?? "Credit"} />
+                        )
                       )}
-                      {entry.isRefund && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: tint(theme.success, 0.08) }}>
-                          <Text className="text-label font-semibold" style={{ color: theme.success }}>REFUND</Text>
-                        </View>
-                      )}
-                      {isTransfer && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: tint(transferColor, 0.08) }}>
-                          <Text className="text-label font-semibold" style={{ color: transferColor }}>TRANSFER</Text>
-                        </View>
-                      )}
-                      {isTransfer && entry.linkedExpenseId && (
-                        <View className="px-1 py-0.5 rounded bg-warning/15">
-                          <Text className="text-label font-semibold text-warning">RECLASSIFIED</Text>
-                        </View>
-                      )}
+                      {entry.isRefund && <Chip variant="status" tone="success" label="Refund" />}
+                      {isTransfer && <Chip variant="status" tone="transfer" label="Transfer" />}
+                      {isTransfer && entry.linkedExpenseId && <Chip variant="status" tone="warning" label="Reclassified" />}
                       {entry.type === "credit" && entry.linkedHisaabPersonName && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: theme.alpha("primary", 0.1), maxWidth: "100%" }}>
-                          <Text className="text-label font-semibold" style={{ color: theme.primary }} numberOfLines={1}>
-                            HISAAB · {entry.linkedHisaabPersonName.toUpperCase()}
-                          </Text>
-                        </View>
+                        <Chip variant="status" tone="primary" label={`Hisaab · ${entry.linkedHisaabPersonName}`} />
                       )}
                     </View>
                   </View>
@@ -1140,12 +1123,12 @@ const loadData = useCallback(async () => {
                     <Money
                       value={isDebitSide ? -entry.amount : entry.amount}
                       showPlus={!isDebitSide}
-                      className="text-meta font-bold"
+                      className="text-body font-bold"
                       style={{ color: isTransfer ? transferColor : entryColor }}
                     />
                     {entry.splitPersonName && (
                       <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1} style={{ maxWidth: 130 }}>
-                        Split w/ {entry.splitPersonName}
+                        Split with {entry.splitPersonName}
                       </Text>
                     )}
                   </View>
