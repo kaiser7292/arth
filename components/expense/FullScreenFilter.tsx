@@ -24,10 +24,44 @@ interface FilterSection {
   icon?: keyof typeof Ionicons.glyphMap;
   /** Under the section title. Defaults to "Select any" / "Pick one" / "Choose a range". */
   hint?: string;
+  /** What counts as "nothing changed" (sort and group): not counted on the rail or in Apply. */
+  defaultIds?: string[];
 }
 
 const countOn = (section: FilterSection, selected: string[]) =>
-  section.type === "custom" ? 0 : section.type === "dates" ? (selected[0] && selected[1] ? 1 : 0) : selected.length;
+  section.type === "custom"
+    ? 0
+    : section.type === "dates"
+      ? (selected[0] && selected[1] ? 1 : 0)
+      : section.defaultIds && (selected.length === 0 || selected.join("|") === section.defaultIds.join("|"))
+        ? 0
+        : selected.length;
+
+type Choice = { value: string; defaultValue: string; options: { value: string; label: string }[]; onChange: (v: string) => void };
+
+export const SORT_KEY = "__sort";
+export const GROUP_KEY = "__group";
+
+/**
+ * Sort and Group as the first sections of a filter sheet, so every list sets all three in one
+ * place (the Transactions tab's layout). Pair with applySortGroup in onApply.
+ */
+export function sortGroupSections(sort?: Choice, group?: Choice): FilterSection[] {
+  const out: FilterSection[] = [];
+  if (sort && sort.options.length > 1) {
+    out.push({ key: SORT_KEY, label: "Sort", icon: "swap-vertical-outline", type: "single", hint: "Pick one", options: sort.options.map((o) => ({ id: o.value, label: o.label })), selectedIds: [sort.value], defaultIds: [sort.defaultValue] });
+  }
+  if (group && group.options.length > 1) {
+    out.push({ key: GROUP_KEY, label: "Group", icon: "layers-outline", type: "single", hint: "How the list is arranged", options: group.options.map((o) => ({ id: o.value, label: o.label })), selectedIds: [group.value], defaultIds: [group.defaultValue] });
+  }
+  return out;
+}
+
+/** Applies the Sort and Group sections; nothing picked means back to the default. */
+export function applySortGroup(selections: Record<string, string[]>, sort?: Choice, group?: Choice): void {
+  if (sort && selections[SORT_KEY]) sort.onChange(selections[SORT_KEY][0] ?? sort.defaultValue);
+  if (group && selections[GROUP_KEY]) group.onChange(selections[GROUP_KEY][0] ?? group.defaultValue);
+}
 
 const HINT: Record<FilterSection["type"], string> = {
   multi: "Select any",
@@ -61,7 +95,11 @@ export function FullScreenFilter({ visible, sections, onApply, onReset, onClose,
   const { height: winH } = useWindowDimensions();
 
   // Opens on a filter, not on a section like saved views.
-  const firstSection = (sections.find((s) => s.type !== "custom") ?? sections[0])?.key ?? "";
+  // Opens on the first real filter: not sort or group, not a section like saved views.
+  const firstSection =
+    (sections.find((s) => s.type !== "custom" && s.key !== SORT_KEY && s.key !== GROUP_KEY) ??
+      sections.find((s) => s.type !== "custom") ??
+      sections[0])?.key ?? "";
   const [activeSection, setActiveSection] = useState(firstSection);
   const [localSelections, setLocalSelections] = useState<Record<string, string[]>>(() => {
     const map: Record<string, string[]> = {};

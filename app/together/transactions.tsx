@@ -3,7 +3,7 @@ import { FlatList, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { GroupHeading, ListToolbar, Money, PeriodNavigator, ScreenContainer, Text, useToast } from "@/components/ui";
 import { FilterSummaryCard } from "@/components/expense/FilterSummaryCard";
-import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
+import { FullScreenFilter, applySortGroup, sortGroupSections } from "@/components/expense/FullScreenFilter";
 import { StatementRowDetail, StatementRowItem } from "@/components/household/StatementList";
 import { PaidBillSheet } from "@/components/household/PaidBillsCard";
 import { getUnfiledPaidBills, type PaidBill } from "@/services/household/paid-bills";
@@ -208,14 +208,21 @@ export default function TogetherTransactionsScreen() {
     [myCategories, me, unfiled],
   );
 
+  // Sort and group live in the filter sheet, as on every list.
+
+  const sortChoice = { value: sortBy, defaultValue: "date_desc", options: SORT_OPTIONS, onChange: (v: string) => setSortBy(v as typeof sortBy) };
+
+  const groupChoice = { value: listBy, defaultValue: "date", options: LIST_GROUP_OPTIONS, onChange: (v: string) => setListBy(v as typeof listBy) };
+
+
   return (
     <ScreenContainer padTop={false}>
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
       <ListToolbar
         search={{ value: query, onChangeText: setQuery, placeholder: "Search name or >5000" }}
         filter={{ onPress: () => setFiltersOpen(true), activeCount: active.length }}
-        sort={{ value: sortBy, defaultValue: "date_desc", options: SORT_OPTIONS, onChange: setSortBy }}
-        group={{ value: listBy, defaultValue: "date", options: LIST_GROUP_OPTIONS, onChange: setListBy }}
+        sort={{ ...sortChoice, inSheet: true }}
+        group={{ ...groupChoice, inSheet: true }}
         chips={active.map((a) => ({ key: a.key, label: a.label, onRemove: a.remove }))}
         onClearAll={clearFilters}
       />
@@ -279,6 +286,7 @@ export default function TogetherTransactionsScreen() {
         noun={{ one: "transaction", many: "transactions" }}
         visible={filtersOpen}
         sections={[
+          ...sortGroupSections(sortChoice, groupChoice),
           { key: "member", label: "Paid by", type: "multi", options: (s?.members ?? []).map((m) => ({ id: m.id, label: nameOf(m.id) })), selectedIds: members },
           {
             key: "kind",
@@ -305,13 +313,18 @@ export default function TogetherTransactionsScreen() {
           },
         ]}
         onApply={(selected) => {
+          applySortGroup(selected, sortChoice, groupChoice);
           setMembers(selected.member ?? []);
           setKinds((selected.kind ?? []).filter((k) => k !== NEEDS_ACCOUNT) as StatementKind[]);
           setNeedsAccount((selected.kind ?? []).includes(NEEDS_ACCOUNT));
           setCategories(selected.category ?? []);
           setMerchants(selected.merchant ?? []);
         }}
-        onReset={clearFilters}
+        onReset={() => {
+          clearFilters();
+          setSortBy("date_desc");
+          setListBy("date");
+        }}
         onClose={() => setFiltersOpen(false)}
       />
     </ScreenContainer>

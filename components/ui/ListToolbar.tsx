@@ -18,6 +18,12 @@ export interface ToolbarChoice<K extends string> {
   defaultValue: K;
   options: SelectOption<K>[];
   onChange: (value: K) => void;
+  /**
+   * Set inside the filter sheet (its first sections, as on the Transactions tab) rather than by a
+   * button of its own. The toolbar then shows one button for filter, sort and group together, and
+   * still lists a changed sort or group as a chip.
+   */
+  inSheet?: boolean;
 }
 
 export interface ListToolbarProps<S extends string = string, G extends string = string> {
@@ -120,6 +126,10 @@ export function ListToolbar<S extends string = string, G extends string = string
     ...(groupOn ? [{ key: "__group", label: `Grouped: ${nameOf(group!)}`, onRemove: () => group!.onChange(group!.defaultValue) }] : []),
   ];
 
+  // One count on the one button: filters, plus a changed sort or group when they live in the sheet.
+  const filterCount =
+    (filter?.activeCount ?? 0) + (sort?.inSheet && sortOn ? 1 : 0) + (group?.inSheet && groupOn ? 1 : 0);
+
   const clearAll = () => {
     onClearAll?.();
     if (sortOn) sort!.onChange(sort!.defaultValue);
@@ -168,14 +178,14 @@ export function ListToolbar<S extends string = string, G extends string = string
           <ToolButton
             icon="funnel-outline"
             activeIcon="funnel"
-            label="Filter"
-            active={filter.activeCount > 0}
+            label={sort?.inSheet || group?.inSheet ? "Filter, sort and group" : "Filter"}
+            active={filterCount > 0}
             onPress={filter.onPress}
-            count={filter.showCount ? filter.activeCount : undefined}
+            count={filter.showCount || sort?.inSheet || group?.inSheet ? filterCount : undefined}
           />
         )}
-        {sort && <ToolButton icon="swap-vertical-outline" label="Sort" active={sortOn} onPress={() => setSheet("sort")} />}
-        {group && <ToolButton icon="layers-outline" label="Group by" active={groupOn} onPress={() => setSheet("group")} />}
+        {sort && !(filter && sort.inSheet) && <ToolButton icon="swap-vertical-outline" label="Sort" active={sortOn} onPress={() => setSheet("sort")} />}
+        {group && !(filter && group.inSheet) && <ToolButton icon="layers-outline" label="Group by" active={groupOn} onPress={() => setSheet("group")} />}
       </View>
 
       {(all.length > 0 || action) && (

@@ -18,7 +18,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, SectionList, View } from "react-native";
 import { useTheme, type Theme } from "@/hooks/use-theme";
-import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
+import { FullScreenFilter, applySortGroup, sortGroupSections } from "@/components/expense/FullScreenFilter";
 import { isoDate } from "@/utils/local-date";
 import { LoadingState } from "@/components/ui";
 
@@ -438,18 +438,21 @@ export default function AuditLogScreen() {
     [handleOpen, theme],
   );
 
+  // Sort lives in the filter sheet with the filters, as on every list.
+  const orderChoice = {
+    value: order,
+    defaultValue: "newest",
+    options: [{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }],
+    onChange: (v: string) => setOrder(v as "newest" | "oldest"),
+  };
+
   return (
     <ScreenContainer padTop={false}>
       <ListToolbar
         search={{ value: searchRaw, onChangeText: setSearchRaw, placeholder: "Search merchant, account…" }}
         dates={{ onPress: () => setDatesOpen(true), active: scope !== "7d" }}
         filter={{ onPress: () => setShowFilters(true), activeCount: sources.size + objects.size + actions.size }}
-        sort={{
-          value: order,
-          defaultValue: "newest",
-          options: [{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }],
-          onChange: setOrder,
-        }}
+        sort={{ ...orderChoice, inSheet: true }}
         chips={[
           ...(scope !== "7d"
             ? [{
@@ -486,16 +489,21 @@ export default function AuditLogScreen() {
         noun={{ one: "change", many: "changes" }}
         visible={showFilters}
         sections={[
+          ...sortGroupSections(orderChoice),
           { key: "source", label: "Source", icon: "chatbubble-outline", type: "multi", options: SOURCE_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(sources) },
           { key: "object", label: "Type", icon: "shapes-outline", type: "multi", options: OBJECT_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(objects) },
           { key: "action", label: "Action", icon: "pulse-outline", type: "multi", options: ACTION_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(actions), searchable: true },
         ]}
         onApply={(selections) => {
+          applySortGroup(selections, orderChoice);
           setSources(new Set((selections.source ?? []) as AuditSourceType[]));
           setObjects(new Set((selections.object ?? []) as AuditObjectType[]));
           setActions(new Set((selections.action ?? []) as AuditActionType[]));
         }}
-        onReset={clearAll}
+        onReset={() => {
+          clearAll();
+          setOrder("newest");
+        }}
         onClose={() => setShowFilters(false)}
       />
 

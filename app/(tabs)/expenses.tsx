@@ -1432,12 +1432,14 @@ export default function ExpensesScreen() {
             </Pressable>
           ) : null,
         }}
-        filter={{ onPress: () => setFilterSheet({ open: true }), activeCount: appliedCount, showCount: true }}
+        filter={{ onPress: () => setFilterSheet({ open: true }), activeCount: appliedCount - (filterNature !== "transfers" && sortBy !== "date_desc" ? 1 : 0), showCount: true }}
         sort={filterNature === "transfers" ? undefined : {
           value: sortBy,
           defaultValue: "date_desc",
           options: EXPENSE_SORT_OPTIONS,
           onChange: chooseSort,
+          // Sort and group are the first sections of the filter sheet.
+          inSheet: true,
         }}
         chips={toolbarChips}
         onClearAll={() => {

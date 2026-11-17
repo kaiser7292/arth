@@ -137,3 +137,26 @@ describe("filter sheet frame", () => {
     expect(iconForFilter("xyz")).toBe("funnel-outline");
   });
 });
+
+import { applySortGroup, sortGroupSections, SORT_KEY, GROUP_KEY } from "../../components/expense/FullScreenFilter";
+
+describe("sort and group in the filter sheet", () => {
+  const sort = { value: "date_desc", defaultValue: "date_desc", options: [{ value: "date_desc", label: "Newest" }, { value: "amount_desc", label: "Biggest" }], onChange: jest.fn() };
+  const group = { value: "none", defaultValue: "none", options: [{ value: "none", label: "None" }, { value: "merchant", label: "Merchant" }], onChange: jest.fn() };
+
+  it("adds Sort and Group as the first single-choice sections", () => {
+    const sections = sortGroupSections(sort, group);
+    expect(sections.map((s) => s.key)).toEqual([SORT_KEY, GROUP_KEY]);
+    expect(sections[0]).toMatchObject({ type: "single", selectedIds: ["date_desc"], defaultIds: ["date_desc"] });
+  });
+
+  it("skips a choice with only one option", () => {
+    expect(sortGroupSections({ ...sort, options: sort.options.slice(0, 1) })).toEqual([]);
+  });
+
+  it("applies the picks, and nothing picked means the default", () => {
+    applySortGroup({ [SORT_KEY]: ["amount_desc"], [GROUP_KEY]: [] }, sort, group);
+    expect(sort.onChange).toHaveBeenCalledWith("amount_desc");
+    expect(group.onChange).toHaveBeenCalledWith("none");
+  });
+});
