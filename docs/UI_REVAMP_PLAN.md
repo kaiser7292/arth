@@ -173,6 +173,7 @@ Licences, iPhone messages, SMS disclosure.
 - Bucket detail: the round + button (the "+ Contribution" chip, and the "Add contribution" row when there is no history yet, open the same form).
 - Net worth: the separate "Net worth · Today" card (the trend card shows the same figure); it still shows when there is no history yet.
 - Hisaab ledger: the round + button (the new Lent action opens the same form).
+- Budget: the ✕ on each Overview widget card (the apps button's switches do the same).
 
 ## Questions for the owner
 
@@ -182,6 +183,8 @@ Anything listed here is kept as it is until answered.
 2. **Net worth chart, All / Liquid cash / Investments / Debt.** The board and the note show this switch on the chart. The app has a period switch there instead (This FY / 1Y / 3Y / All), not a by-type one. Keep the periods, add the type switch as well, or swap?
 3. **Settle sheet, "I paid Ravi".** The board has a Ravi paid me / I paid Ravi switch. The app records every settlement as money received (into the chosen account). Is "I paid them" a new behaviour to build, or should the sheet keep one direction?
 4. **Goals tab, risk coverage and year in review.** Not on the board; both kept (Track and Analyse lists). Confirm that's where they belong.
+6. **Budget summary fold.** The Budget summary card could be folded shut from its own header before; it is now always open (it can still be hidden from the apps button). OK?
+7. **Budget drill-down, "By sub-category".** The board shows a by-sub-category split on a category's page. That breakdown doesn't exist yet; it's new work (sum the month by sub-category). Build it?
 5. **Bucket detail Edit.** "Edit" opens the bucket's form on the buckets list; after saving you land on the list, not back on the detail. Fine, or should it come back to the detail?
 
 ## Progress
@@ -192,7 +195,7 @@ Each commit passed `npm run typecheck` and `npx jest` (2,938 tests). Not checked
 |---|---|---|
 | 1. Goals | Done: Goals tab, Yearly plan, Milestones (+ form), Loan detail, Add loan, Buckets (+ form), Bucket detail, Net worth, Income calculator; drill-ins and loan sub-screens restyled | 19ee715, a71e2aa, d487774, 12694eb, 324df07, f9526a9 |
 | 2. Hisaab | Done: People (+ form), Person ledger, Settle | e81d846 |
-| 3. Budget | Not started | |
+| 3. Budget | Done: Overview (hero, tiles, More numbers fold, categories), drill-down Edit budget pill; Spending split and Summary restyled | 7f42110 |
 | 4. Account ledger + settings | Not started | |
 | 5. Insights, Vault, Simulator, Investments | Not started | |
 | 6. Add / edit transaction | Not started | |
