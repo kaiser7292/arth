@@ -4,7 +4,6 @@ import { Sheet, Text } from "@/components/ui";
 import { View, Pressable,  ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
 import { getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
@@ -32,7 +31,6 @@ export function HisaabSettlementPickerSheet({
   onPick,
   onClose,
 }: Props) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,24 +73,24 @@ export function HisaabSettlementPickerSheet({
 
       {/* Header */}
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Mark as settlement
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           Who paid you this {formatAmount(creditAmount)}? It'll apply against their hisaab balance.
         </Text>
       </View>
 
       {loading ? (
         <View className="px-5 py-8 items-center">
-          <Text className="text-sm" style={{ color: colors.textSecondary }}>
+          <Text className="text-meta" style={{ color: theme.mutedForeground }}>
             Loading people…
           </Text>
         </View>
       ) : persons.length === 0 ? (
         <View className="px-5 py-8 items-center">
-          <Ionicons name="people-outline" size={40} color={colors.textSecondary} />
-          <Text className="text-sm mt-3 text-center" style={{ color: colors.textSecondary }}>
+          <Ionicons name="people-outline" size={40} color={theme.mutedForeground} />
+          <Text className="text-meta mt-3 text-center" style={{ color: theme.mutedForeground }}>
             No hisaab people yet. Add one from the Settings tab → Hisaab.
           </Text>
         </View>
@@ -111,7 +109,7 @@ export function HisaabSettlementPickerSheet({
               ? theme.success
               : youOwe
                 ? theme.danger
-                : colors.textSecondary;
+                : theme.mutedForeground;
             const balanceLabel = owesYou
               ? `Owes you ${formatAmount(p.balance)}`
               : youOwe
@@ -124,11 +122,11 @@ export function HisaabSettlementPickerSheet({
                 onPress={() => handlePick(p.id)}
                 accessibilityRole="button"
                 accessibilityLabel={`Mark settlement from ${p.name}. ${balanceLabel}.`}
-                className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                className="flex-row items-center py-3 px-4 rounded-control mb-2"
                 style={{
-                  backgroundColor: colors.surface,
+                  backgroundColor: theme.card,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: theme.border,
                 }}
               >
                 <View
@@ -143,16 +141,16 @@ export function HisaabSettlementPickerSheet({
                 </View>
                 <View className="flex-1">
                   <Text
-                    className="text-sm font-semibold"
-                    style={{ color: colors.text }}
+                    className="text-body font-semibold"
+                    style={{ color: theme.foreground }}
                   >
                     {p.name}
                   </Text>
-                  <Text className="text-xs mt-0.5" style={{ color: balanceColor }}>
+                  <Text className="text-label mt-0.5" style={{ color: balanceColor }}>
                     {balanceLabel}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
               </Pressable>
             );
           })}
@@ -165,10 +163,10 @@ export function HisaabSettlementPickerSheet({
           onPress={handleClose}
           accessibilityRole="button"
           accessibilityLabel="Cancel"
-          className="py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="py-3 rounded-control items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
             Cancel
           </Text>
         </Pressable>

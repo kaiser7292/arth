@@ -1,4 +1,5 @@
 import { getDatabase } from "@/database";
+import { rolledUpCategorySql } from "@/services/category-rollup";
 import { generateUUID } from "@/utils/uuid";
 import { bumpDataVersion } from "@/services/settings";
 import { logger } from "@/utils/logger";
@@ -300,7 +301,8 @@ export async function getBudgetVsActual(
   //    refund-adjusted, approved, not investment/loan-linked.
   //    Pre-aggregate refunds via LEFT JOIN instead of a correlated subquery per row.
   const actualRows = await db.getAllAsync<{ category_id: string; total: number }>(
-    `SELECT e.category_id,
+    // Sub-categories count toward their parent (095), where the budget is set.
+    `SELECT ${rolledUpCategorySql("e.category_id")} AS category_id,
             SUM(MAX(e.amount - COALESCE(refunds.refund_total, 0), 0)) AS total
      FROM expenses e
      LEFT JOIN (
@@ -317,7 +319,7 @@ export async function getBudgetVsActual(
        AND e.category_id IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM expense_investment_links l WHERE l.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
-     GROUP BY e.category_id`,
+     GROUP BY ${rolledUpCategorySql("e.category_id")}`,
     userId, startDate, endDate,
   );
   const actualMap = new Map(actualRows.map((r) => [r.category_id, r.total]));

@@ -1,3 +1,5 @@
+import { useAddCategory } from "@/hooks/use-add-category";
+import { useTheme } from "@/hooks/use-theme";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { View, FlatList, ActivityIndicator, Pressable, Modal } from "react-native";
@@ -7,7 +9,6 @@ import { Button, GroupHeading, ListCapNote, ListToolbar, LoadFailed, LoadingStat
 import { useExpenseTools } from "@/hooks/use-expense-tools";
 import type { ExpenseGroupBy } from "@/utils/expense-grouping";
 import { bulkUpdateExpenses } from "@/services/expense-bulk";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getExpensesPaginated,
@@ -63,7 +64,7 @@ export default function BudgetTransactionsScreen() {
     categoryId?: string;
     title?: string;
   }>();
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const toast = useToast();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -106,6 +107,10 @@ export default function BudgetTransactionsScreen() {
     () => new Map(accounts.map((a) => [a.id, a])),
     [accounts],
   );
+
+  // "+ Add category" on an untagged row picks one in place.
+
+  const addCategory = useAddCategory({ categories });
 
   const tools = useExpenseTools({
     screen: "budget_transactions",
@@ -283,7 +288,7 @@ export default function BudgetTransactionsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={selecting ? "Cancel selecting" : "Select transactions"}
                 >
-                  <Ionicons name={selecting ? "close" : "checkmark-circle-outline"} size={22} color={colors.tint} />
+                  <Ionicons name={selecting ? "close" : "checkmark-circle-outline"} size={22} color={theme.primary} />
                 </Pressable>
               )}
             </View>
@@ -292,12 +297,12 @@ export default function BudgetTransactionsScreen() {
       />
       <ScreenContainer padTop={false}>
         {summary && (
-          <View className="mx-4 my-2 p-4 rounded-xl bg-card">
+          <View className="mx-4 my-2 p-4 rounded-control bg-card">
             <View className="flex-row items-center justify-between">
-              <Text className="text-sm font-medium text-muted-foreground">
+              <Text className="text-body font-medium text-muted-foreground">
                 Total (approved)
               </Text>
-              <Text className="text-lg font-bold text-foreground">
+              <Text className="text-heading font-bold text-foreground">
                 {formatAmount(summary.total)}
               </Text>
             </View>
@@ -317,11 +322,11 @@ export default function BudgetTransactionsScreen() {
           <LoadFailed onRetry={() => { setLoading(true); load(true); }} />
         ) : expenses.length === 0 ? (
           <View className="flex-1 items-center justify-center px-8">
-            <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
-            <Text className="text-lg font-medium text-foreground mt-4">
+            <Ionicons name="receipt-outline" size={48} color={theme.mutedForeground} />
+            <Text className="text-heading font-medium text-foreground mt-4">
               No transactions
             </Text>
-            <Text className="text-sm text-muted-foreground text-center mt-2">
+            <Text className="text-meta text-muted-foreground text-center mt-2">
               No approved expenses for this period.
             </Text>
           </View>
@@ -329,13 +334,14 @@ export default function BudgetTransactionsScreen() {
           <>
           <ListToolbar {...tools.toolbar} />
           {tools.filterSheet}
+          {addCategory.sheet}
           <FlatList
             initialNumToRender={12}
             maxToRenderPerBatch={10}
             windowSize={7}
             data={tools.grouped}
             keyboardShouldPersistTaps="handled"
-            ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
+            ListEmptyComponent={<Text className="text-meta text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
             keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
             renderItem={({ item: row }) => row.type === "heading" ? (
               <GroupHeading label={row.label} count={row.count} total={row.total} />
@@ -349,16 +355,9 @@ export default function BudgetTransactionsScreen() {
                 splitNote={buildSplitNote(row.item, personMap)}
                 onPress={handleItemPress}
                 onLongPress={handleLongPress}
-                rightElement={
-                  selecting ? (
-                    <Ionicons
-                      name={selected.has(row.item.id) ? "checkbox" : "square-outline"}
-                      size={22}
-                      color={selected.has(row.item.id) ? colors.blue : colors.textSecondary}
-                      style={{ marginLeft: 10 }}
-                    />
-                  ) : undefined
-                }
+                selected={selecting && selected.has(row.item.id)}
+                hideDate={tools.groupBy === "date"}
+                onAddCategory={addCategory.open}
               />
             )}
             extraData={selecting ? selected : personMap}
@@ -374,7 +373,7 @@ export default function BudgetTransactionsScreen() {
         {selecting && (
           <View className="absolute left-0 right-0 bottom-0 px-4 pt-3 pb-6 bg-card border-t border-border">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-sm text-foreground">
+              <Text className="text-meta text-foreground">
                 {selected.size === 0 ? "Tap transactions to pick them" : `${selected.size} selected`}
               </Text>
               <Pressable
@@ -383,7 +382,7 @@ export default function BudgetTransactionsScreen() {
                 }
                 hitSlop={8}
               >
-                <Text className="text-sm font-semibold text-primary">
+                <Text className="text-body font-semibold text-primary">
                   {selected.size === tools.rows.length ? "Select none" : `Select all ${tools.rows.length}`}
                 </Text>
               </Pressable>

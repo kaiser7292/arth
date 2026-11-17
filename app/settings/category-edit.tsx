@@ -1,18 +1,22 @@
+import { tint } from "@/constants/brand";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable, TextInput, FlatList, Switch, useWindowDimensions, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Input, ScreenContainer, Sheet, Text } from "@/components/ui";
+import { Button, Input, ScreenContainer, SelectSheet, Sheet, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 import {
   getCategoryById,
+  getCategories,
   createCategory,
   updateCategory,
+  setCategoryParent,
+  type Category,
 } from "@/services/category";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -150,7 +154,6 @@ interface PickerDrawerProps {
 }
 
 function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   // Both pickers render a scrollable (an icon grid, a colour list), which needs a definite
   // height to scroll against - inside Sheet's auto-height panel a flex-1 child collapses to
@@ -160,11 +163,11 @@ function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) 
   return (
     <Sheet visible={visible} onClose={onClose}>
           <View className="flex-row items-center justify-between px-4 pb-2">
-            <Text className="text-base font-semibold text-foreground">
+            <Text className="text-body font-semibold text-foreground">
               {title}
             </Text>
             <Pressable onPress={onClose} className="p-1">
-              <Ionicons name="close" size={22} color={colors.textSecondary} />
+              <Ionicons name="close" size={22} color={theme.mutedForeground} />
             </Pressable>
           </View>
           {/* Content */}
@@ -178,9 +181,9 @@ function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) 
 export default function CategoryEditScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
-  const { id } = useLocalSearchParams<{ id?: string }>();
+  const { id, parentId: parentParam } = useLocalSearchParams<{ id?: string; parentId?: string }>();
   const isEditing = !!id;
   const scrollRef = useRef<ScrollView>(null);
 
@@ -193,6 +196,30 @@ export default function CategoryEditScreen() {
   const [customHex, setCustomHex] = useState("");
   const [showIconDrawer, setShowIconDrawer] = useState(false);
   const [showColorDrawer, setShowColorDrawer] = useState(false);
+  // Sub-categories (095): which top-level category this sits under, if any.
+  const [parentId, setParentId] = useState<string | null>(parentParam ?? null);
+  const [originalParentId, setOriginalParentId] = useState<string | null>(null);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [showParentSheet, setShowParentSheet] = useState(false);
+  const styleTouched = useRef(false);
+
+  useEffect(() => {
+    getCategories(DEFAULT_USER_ID).then(setAllCategories).catch(() => {});
+  }, []);
+  // A category with sub-categories of its own can't become one (one level only).
+  const hasChildren = !!id && allCategories.some((c) => c.parent_id === id);
+  const parentOptions = allCategories.filter((c) => !c.parent_id && c.id !== id);
+  const parentName = parentId ? allCategories.find((c) => c.id === parentId)?.name ?? null : null;
+  // A new sub-category starts with its parent's look.
+  useEffect(() => {
+    if (isEditing || styleTouched.current || !parentId) return;
+    const p = allCategories.find((c) => c.id === parentId);
+    if (p) {
+      setIcon(p.icon);
+      setColor(p.color);
+      setIsUnavoidable(p.is_unavoidable === 1);
+    }
+  }, [parentId, allCategories, isEditing]);
 
   useEffect(() => {
     const sub = Keyboard.addListener("keyboardDidShow", () => {
@@ -209,6 +236,8 @@ export default function CategoryEditScreen() {
           setIcon(cat.icon);
           setColor(cat.color);
           setIsUnavoidable(cat.is_unavoidable === 1);
+          setParentId(cat.parent_id ?? null);
+          setOriginalParentId(cat.parent_id ?? null);
         }
       });
     }
@@ -217,6 +246,12 @@ export default function CategoryEditScreen() {
   const handleSave = async () => {
     if (!name.trim()) {
       alert("Error", "Category name is required.");
+      return;
+    }
+    // Merchant rules file transactions by category name, so two categories can't share one.
+    const clash = allCategories.find((c) => c.id !== id && c.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (clash) {
+      alert("Name already used", `"${clash.name}" is already a category. Pick another name.`);
       return;
     }
 
@@ -229,6 +264,7 @@ export default function CategoryEditScreen() {
           color,
           is_unavoidable: isUnavoidable ? 1 : 0,
         });
+        if (parentId !== originalParentId) await setCategoryParent(id, parentId);
       } else {
         await createCategory({
           user_id: DEFAULT_USER_ID,
@@ -236,6 +272,7 @@ export default function CategoryEditScreen() {
           icon,
           color,
           is_unavoidable: isUnavoidable ? 1 : 0,
+          parent_id: parentId,
         });
       }
       router.back();
@@ -249,8 +286,8 @@ export default function CategoryEditScreen() {
 
   const renderIconItem = useCallback(({ item: iconName }: { item: string }) => (
     <Pressable
-      onPress={() => { setIcon(iconName); setShowIconDrawer(false); }}
-      className={`w-12 h-12 rounded-lg items-center justify-center m-1 ${
+      onPress={() => { styleTouched.current = true; setIcon(iconName); setShowIconDrawer(false); }}
+      className={`w-12 h-12 rounded-control items-center justify-center m-1 ${
         icon === iconName
           ? "border-2"
           : "bg-card"
@@ -263,10 +300,10 @@ export default function CategoryEditScreen() {
       <Ionicons
         name={iconName as keyof typeof Ionicons.glyphMap}
         size={22}
-        color={icon === iconName ? colors.blue : "#6B7280"}
+        color={icon === iconName ? theme.primary : "#6B7280"}
       />
     </Pressable>
-  ), [icon, colorScheme, colors.blue]);
+  ), [icon, colorScheme, theme.primary]);
 
   return (
     <ScreenContainer padTop={false} keyboardAware>
@@ -281,17 +318,48 @@ export default function CategoryEditScreen() {
             containerClassName="mb-6"
           />
 
+          {/* Sits under: makes this a sub-category (one level only) */}
+          <Text className="text-label font-semibold text-muted-foreground mb-1.5">Sits under</Text>
+          <Pressable
+            onPress={() => setShowParentSheet(true)}
+            disabled={hasChildren}
+            className="flex-row items-center px-4 py-3 rounded-control border border-border bg-card"
+            style={{ opacity: hasChildren ? 0.6 : 1 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Sits under: ${parentName ?? "nothing, it's a main category"}`}
+          >
+            <Ionicons name="git-merge-outline" size={18} color={theme.mutedForeground} />
+            <Text className="flex-1 ml-3 text-body text-foreground">{parentName ?? "Nothing - a main category"}</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
+          </Pressable>
+          <Text className="text-label text-muted-foreground mt-1 ml-1 mb-6">
+            {hasChildren
+              ? "This has sub-categories, so it stays a main category."
+              : parentName
+                ? `A sub-category of ${parentName}. Its spending counts toward ${parentName}'s budget.`
+                : "Pick a category to make this a sub-category of it, like Food › Groceries."}
+          </Text>
+          <SelectSheet<string>
+            visible={showParentSheet}
+            title="Sits under"
+            options={[{ value: "__none", label: "Nothing - a main category" }, ...parentOptions.map((c) => ({ value: c.id, label: c.name }))]}
+            value={parentId ?? "__none"}
+            onChange={(v) => setParentId(v === "__none" ? null : v)}
+            onClose={() => setShowParentSheet(false)}
+            searchable={parentOptions.length > 8}
+          />
+
           {/* Icon picker — tap to open drawer */}
-          <Text className="text-sm font-medium text-muted-foreground mb-2">
+          <Text className="text-body font-medium text-muted-foreground mb-2">
             Icon
           </Text>
           <Pressable
             onPress={() => setShowIconDrawer(true)}
-            className="flex-row items-center px-4 py-3 rounded-lg border border-border mb-6"
+            className="flex-row items-center px-4 py-3 rounded-control border border-border mb-6"
           >
             <View
               className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: color + "14" }}
+              style={{ backgroundColor: tint(color, 0.08) }}
             >
               <Ionicons
                 name={icon as keyof typeof Ionicons.glyphMap}
@@ -299,19 +367,19 @@ export default function CategoryEditScreen() {
                 color={color}
               />
             </View>
-            <Text className="flex-1 text-sm text-foreground">
+            <Text className="flex-1 text-meta text-foreground">
               {icon.replace(/-outline$/, "").replace(/-/g, " ")}
             </Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
           </Pressable>
 
           {/* Color picker — tap to open drawer */}
-          <Text className="text-sm font-medium text-muted-foreground mb-2">
+          <Text className="text-body font-medium text-muted-foreground mb-2">
             Color
           </Text>
           <Pressable
             onPress={() => setShowColorDrawer(true)}
-            className="flex-row items-center px-4 py-3 rounded-lg border border-border mb-6"
+            className="flex-row items-center px-4 py-3 rounded-control border border-border mb-6"
           >
             <View
               className="w-10 h-10 rounded-full mr-3 items-center justify-center"
@@ -319,26 +387,26 @@ export default function CategoryEditScreen() {
             >
               <Ionicons name="checkmark" size={18} color="#FFFFFF" />
             </View>
-            <Text className="flex-1 text-sm text-foreground">
+            <Text className="flex-1 text-meta text-foreground">
               {color}
             </Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
           </Pressable>
 
           {/* Unavoidable toggle */}
           <View className="flex-row items-center justify-between px-1 py-3 mb-6 border-b border-border">
             <View className="flex-1 mr-3">
-              <Text className="text-sm font-medium text-foreground">
+              <Text className="text-body font-medium text-foreground">
                 Unavoidable Expense
               </Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 Rent, insurance, EMIs - expenses you can't skip
               </Text>
             </View>
             <Switch
               value={isUnavoidable}
               onValueChange={setIsUnavoidable}
-              trackColor={{ false: "#E5E5E3", true: colors.blue }}
+              trackColor={{ false: "#E5E5E3", true: theme.primary }}
               thumbColor={isUnavoidable ? "#FFFFFF" : "#9CA3AF"}
             />
           </View>
@@ -382,7 +450,7 @@ export default function CategoryEditScreen() {
             {COLOR_OPTIONS.map((c) => (
               <Pressable
                 key={c}
-                onPress={() => { setColor(c); setShowCustomColor(false); setShowColorDrawer(false); }}
+                onPress={() => { styleTouched.current = true; setColor(c); setShowCustomColor(false); setShowColorDrawer(false); }}
                 className={`w-12 h-12 rounded-full m-1.5 items-center justify-center ${
                   color === c && !showCustomColor ? "border-2 border-foreground" : ""
                 }`}
@@ -406,19 +474,19 @@ export default function CategoryEditScreen() {
                 onChangeText={(t) => {
                   const hex = t.startsWith("#") ? t : "#" + t;
                   setCustomHex(hex);
-                  if (/^#[0-9A-Fa-f]{6}$/.test(hex)) setColor(hex);
+                  if (/^#[0-9A-Fa-f]{6}$/.test(hex)) { styleTouched.current = true; setColor(hex); }
                 }}
                 placeholder="#FF5733"
-                placeholderTextColor={colors.tabIconDefault}
+                placeholderTextColor={theme.faintForeground}
                 maxLength={7}
                 autoCapitalize="characters"
-                className="flex-1 px-3 py-2 rounded-lg border border-border bg-card text-foreground text-sm font-mono"
+                className="flex-1 px-3 py-2 rounded-control border border-border bg-card text-foreground text-meta font-mono"
               />
               <Pressable
                 onPress={() => { setShowCustomColor(false); setCustomHex(""); }}
                 className="p-2 ml-2"
               >
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
+                <Ionicons name="close" size={20} color={theme.mutedForeground} />
               </Pressable>
             </View>
           ) : (
@@ -429,8 +497,8 @@ export default function CategoryEditScreen() {
               }}
               className="flex-row items-center"
             >
-              <Ionicons name="color-palette-outline" size={16} color={colors.textSecondary} />
-              <Text className="text-xs text-muted-foreground ml-1">
+              <Ionicons name="color-palette-outline" size={16} color={theme.mutedForeground} />
+              <Text className="text-label text-muted-foreground ml-1">
                 Custom hex color
               </Text>
             </Pressable>

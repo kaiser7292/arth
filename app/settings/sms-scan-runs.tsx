@@ -69,6 +69,7 @@ export default function SmsScanRunsScreen() {
   const categoryDetails = useMemo(() => details.filter((d) => d.category === selectedCategory), [details, selectedCategory]);
   const tools = useListTools<ScanDetailRow>({
     screen: "sms_scan_details",
+    noun: { one: "message", many: "messages" },
     rows: categoryDetails,
     fields: SCAN_FIELDS,
     sorts: SCAN_SORTS,

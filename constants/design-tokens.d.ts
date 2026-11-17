@@ -44,6 +44,12 @@ export declare const DATA: {
   series: Channels[];
 };
 
+export type MoneyToneName = "out" | "in" | "moved" | "over";
+export interface MoneyToneToken { fg: SemanticRole | "transfer"; fill: SemanticRole | "transfer"; fillAlpha: number }
+export declare const MONEY: Record<MoneyToneName, MoneyToneToken>;
+
+interface ChipSize { base: string; label: string; icon: number }
+
 /**
  * Component shape recipes. Class strings, except where a value lands in a style object.
  * See the block comment in design-tokens.js for the rules that keep these safe to change.
@@ -52,7 +58,16 @@ export declare const COMPONENTS: {
   button: { base: string; pad: string; label: string; pressedOpacity: number; disabled: string };
   card: { base: string; title: string };
   input: { base: string; label: string; hint: string; error: string };
-  chip: { base: string; label: string };
+  chip: { choice: ChipSize; inline: ChipSize; add: string; gap: string };
+  optionRow: { base: string; minHeight: number; label: string; sub: string; mark: number };
+  segmented: { base: string; item: string; label: string };
+  sectionTitle: { base: string; iconBox: string; icon: number; title: string; hint: string };
+  actionRow: { base: string; button: string; circle: string; icon: number; label: string };
+  moneyChip: { base: string; label: string; icon: number };
+  fieldRow: { base: string; label: string; value: string };
+  cardHeading: string;
+  rail: { item: string; pill: string; icon: number; label: string; badge: string };
+  search: { base: string; minHeight: number; minHeightLg: number; input: string; inputSize: string; inputSizeLg: string };
   badge: {
     sm: { pad: string; label: string; icon: number };
     md: { pad: string; label: string; icon: number };

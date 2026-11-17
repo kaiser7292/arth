@@ -137,7 +137,7 @@ export function InvestmentWithdrawalSheet({
       <Pressable
         key={key}
         onPress={() => setSelected(key)}
-        className="flex-row items-center py-3 px-3 rounded-xl mb-1.5 border"
+        className="flex-row items-center py-3 px-3 rounded-control mb-1.5 border"
         style={{
           borderColor: active ? theme.primary : theme.border,
           backgroundColor: active ? theme.alpha("primary", 0.08) : "transparent",
@@ -147,8 +147,8 @@ export function InvestmentWithdrawalSheet({
       >
         <Ionicons name={icon} size={18} color={active ? theme.primary : theme.mutedForeground} />
         <View className="flex-1 ml-3">
-          <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>{title}</Text>
-          {sub ? <Text className="text-xs text-muted-foreground mt-0.5">{sub}</Text> : null}
+          <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{title}</Text>
+          {sub ? <Text className="text-label text-muted-foreground mt-0.5">{sub}</Text> : null}
         </View>
         {active && <Ionicons name="checkmark-circle" size={18} color={theme.primary} />}
       </Pressable>
@@ -158,12 +158,12 @@ export function InvestmentWithdrawalSheet({
   return (
     <Sheet visible={visible} onClose={onClose} maxHeightPct={90}>
       <ScrollView className="px-4" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
-        <Text className="text-lg font-bold text-foreground">Money back from an investment</Text>
-        <Text className="text-sm text-muted-foreground mt-1 mb-4">
+        <Text className="text-heading font-bold text-foreground">Money back from an investment</Text>
+        <Text className="text-meta text-muted-foreground mt-1 mb-4">
           {`${formatAmount(amount)} came in. It's recorded as coming out of the investment, so it doesn't count as income.`}
         </Text>
 
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Which investment?</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">Which investment?</Text>
         {investments.map((i) =>
           row(i.account.id, i.isMarket ? "trending-up-outline" : "shield-checkmark-outline", i.label, i.kindLabel),
         )}
@@ -172,7 +172,7 @@ export function InvestmentWithdrawalSheet({
         {selected === NEW && (
           <View className="mt-2">
             <Input label="Name" value={newName} onChangeText={setNewName} placeholder="Parag Parikh Flexi Cap, Zerodha, PPF" containerClassName="mb-3" />
-            <Text className="text-sm font-medium text-muted-foreground mb-2">Type</Text>
+            <Text className="text-body font-medium text-muted-foreground mb-2">Type</Text>
             <View className="flex-row flex-wrap mb-3">
               {QUICK_ADD_INSTRUMENTS.map((s) => (
                 <View key={s.instrument} className="mb-2">
@@ -193,11 +193,11 @@ export function InvestmentWithdrawalSheet({
               placeholder="0 if you took everything out"
               containerClassName="mb-1"
             />
-            <Text className="text-xs text-muted-foreground mb-2">Left at 0, the investment is added as closed.</Text>
+            <Text className="text-label text-muted-foreground mb-2">Left at 0, the investment is added as closed.</Text>
           </View>
         )}
 
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-2">Amount</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-2">Amount</Text>
         <Input
           label="Taken out of the investment"
           value={withdrawn}
@@ -207,7 +207,7 @@ export function InvestmentWithdrawalSheet({
           formula
           containerClassName="mb-1"
         />
-        <Text className="text-xs text-muted-foreground mb-3">
+        <Text className="text-label text-muted-foreground mb-3">
           {!amountError && gain > 0
             ? `${formatAmount(gain)} is recorded as investment gain and counts as income.`
             : "The whole amount is assumed to come out of the investment. Lower it if part of this was gain."}
@@ -222,8 +222,8 @@ export function InvestmentWithdrawalSheet({
             >
               <Ionicons name="bookmark-outline" size={18} color={theme.mutedForeground} />
               <View className="flex-1 ml-3">
-                <Text className="text-sm font-semibold text-foreground">Take it out of a bucket</Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
+                <Text className="text-body font-semibold text-foreground">Take it out of a bucket</Text>
+                <Text className="text-label text-muted-foreground mt-0.5">
                   {bucket ? `${bucket.name} goes down by ${amountError ? "this amount" : formatAmount(withdrawnNum)}` : "Optional - leaves your yearly plan as it is"}
                 </Text>
               </View>
@@ -240,10 +240,10 @@ export function InvestmentWithdrawalSheet({
                         setBucketId(b.id);
                         setBucketsOpen(false);
                       }}
-                      className="flex-row items-center py-2.5 px-3 rounded-lg"
+                      className="flex-row items-center py-2.5 px-3 rounded-control"
                       style={{ backgroundColor: active ? theme.alpha("primary", 0.08) : "transparent" }}
                     >
-                      <Text className="flex-1 text-sm text-foreground" style={{ fontWeight: active ? "600" : "400" }}>
+                      <Text className="flex-1 text-meta text-foreground" style={{ fontWeight: active ? "600" : "400" }}>
                         {b.name}
                       </Text>
                       {active && <Ionicons name="checkmark" size={16} color={theme.primary} />}
@@ -258,8 +258,8 @@ export function InvestmentWithdrawalSheet({
         {selectedInvestment && (
           <View className="flex-row items-center py-2 mb-2">
             <View className="flex-1 mr-3">
-              <Text className="text-sm font-semibold text-foreground">Fully withdrawn</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">Close {selectedInvestment.label}. It stops counting in your net worth.</Text>
+              <Text className="text-body font-semibold text-foreground">Fully withdrawn</Text>
+              <Text className="text-label text-muted-foreground mt-0.5">Close {selectedInvestment.label}. It stops counting in your net worth.</Text>
             </View>
             <Switch
               value={closeIt}
@@ -270,7 +270,7 @@ export function InvestmentWithdrawalSheet({
           </View>
         )}
         {selectedInvestment?.isMarket && (
-          <Text className="text-xs text-muted-foreground mb-2">
+          <Text className="text-label text-muted-foreground mb-2">
             {`${selectedInvestment.label}'s cash balance goes down by the amount taken out.`}
           </Text>
         )}

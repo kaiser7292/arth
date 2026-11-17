@@ -840,9 +840,9 @@ export default function CatchUpScreen() {
       <View className="flex-1 px-4">
         {batchOffer && (
           <Card className="mb-3">
-            <Text className="text-sm text-foreground">
+            <Text className="text-meta text-foreground">
               {batchOffer.kind === "pending" ? "Approve" : "File"} {batchOffer.expenses.length} more from{" "}
-              <Text className="text-sm font-semibold text-foreground">{batchOffer.merchant}</Text>
+              <Text className="text-body font-semibold text-foreground">{batchOffer.merchant}</Text>
               {batchOffer.categoryId && categoryMap.get(batchOffer.categoryId)
                 ? ` as ${categoryMap.get(batchOffer.categoryId)!.name}`
                 : ""}
@@ -925,9 +925,9 @@ export default function CatchUpScreen() {
       <Sheet visible={messageFor != null} onClose={() => setMessageFor(null)}>
         {messageFor && (
           <View className="px-5 pb-6">
-            <Text className="text-base font-semibold text-foreground">{messageFor.source_sms_address || "Message"}</Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">{formatDateForDisplay(messageFor.date)}</Text>
-            <Text className="text-sm text-foreground leading-6 mt-3" selectable>
+            <Text className="text-body font-semibold text-foreground">{messageFor.source_sms_address || "Message"}</Text>
+            <Text className="text-label text-muted-foreground mt-0.5">{formatDateForDisplay(messageFor.date)}</Text>
+            <Text className="text-meta text-foreground leading-6 mt-3" selectable>
               {messageFor.raw_source_text}
             </Text>
           </View>
@@ -939,6 +939,7 @@ export default function CatchUpScreen() {
         categories={categories}
         selectedId={cardExpense ? categoryFor(cardExpense) : null}
         onSelect={onPickCategory}
+        merchantName={cardExpense?.merchant_name}
         onClose={() => setPicker(null)}
       />
 

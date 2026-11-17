@@ -5,7 +5,6 @@ import type { TextInputProps } from "react-native";
 import { FORMULA_KEYBOARD, Input, Text } from "@/components/ui";
 import { evaluateFormula, isFormulaMode, getFormulaExpr } from "@/utils/formula";
 import { formatAmount } from "@/utils/format";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useTheme } from "@/hooks/use-theme";
 
 interface AmountInputProps {
@@ -44,7 +43,6 @@ export function AmountInput({
   autoFocus,
 }: AmountInputProps) {
   const theme = useTheme();
-  const { colors } = useColorScheme();
 
   const inFormula = isFormulaMode(value);
   const formulaExpr = inFormula ? getFormulaExpr(value) : "";
@@ -77,13 +75,13 @@ export function AmountInput({
 
   return (
     <View className="items-center mb-6">
-      <Text className="text-sm text-muted-foreground mb-1">
+      <Text className="text-meta text-muted-foreground mb-1">
         Amount
       </Text>
       <View className="flex-row items-center">
         {/* ₹ prefix — dimmed in formula mode since user is typing an expression */}
         <Text
-          className={`text-3xl font-bold mr-1 ${inFormula ? "text-faint-foreground" : "text-faint-foreground"}`}
+          className={`text-display font-bold mr-1 ${inFormula ? "text-faint-foreground" : "text-faint-foreground"}`}
         >
           {"₹"}
         </Text>
@@ -98,7 +96,7 @@ export function AmountInput({
           keyboardType={FORMULA_KEYBOARD}
           maxLength={inFormula ? 80 : 15}
           error={inFormula ? undefined : error}
-          className={`text-3xl font-bold text-center border-0 bg-transparent px-0 py-0 ${
+          className={`text-display font-bold text-center border-0 bg-transparent px-0 py-0 ${
             inFormula ? "min-w-[200px]" : "min-w-[120px]"
           }`}
           autoFocus={autoFocus}
@@ -110,8 +108,8 @@ export function AmountInput({
       {/* Formula result preview */}
       {inFormula && hasExpr && (
         <Text
-          className="text-base font-semibold mt-1"
-          style={{ color: formulaValid ? colors.tint : theme.danger }}
+          className="text-body font-semibold mt-1"
+          style={{ color: formulaValid ? theme.primary : theme.danger }}
         >
           {formulaValid
             ? `= ${formatAmount(formulaResult!)}`
@@ -121,14 +119,14 @@ export function AmountInput({
 
       {/* Hint shown as soon as "=" is typed but expression is empty */}
       {inFormula && !hasExpr && (
-        <Text className="text-xs text-faint-foreground mt-1">
+        <Text className="text-label text-faint-foreground mt-1">
           Type an expression, e.g. =5000+2500
         </Text>
       )}
 
       {/* Normal error (suppressed in formula mode) */}
       {error && !inFormula && (
-        <Text className="text-xs text-danger mt-1">{error}</Text>
+        <Text className="text-label text-danger mt-1">{error}</Text>
       )}
     </View>
   );

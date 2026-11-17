@@ -185,6 +185,7 @@ export default function HisaabPersonsScreen() {
 
   const tools = useListTools<HisaabPersonWithBalance>({
     screen: "hisaab_people",
+    noun: { one: "person", many: "people" },
     rows: persons,
     fields: PEOPLE_FIELDS,
     sorts: PEOPLE_SORTS,

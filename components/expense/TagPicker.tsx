@@ -6,11 +6,11 @@
  * Type to filter. "Create new" option when no match.
  */
 
+import { tint } from "@/constants/brand";
 import { useState, useEffect, useCallback } from "react";
 import { Text } from "@/components/ui";
 import { View, Pressable, TextInput, FlatList } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getTags,
@@ -37,7 +37,6 @@ interface TagPickerProps {
 }
 
 export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen, onClose }: TagPickerProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [activeTags, setActiveTags] = useState<Tag[]>([]);
@@ -128,14 +127,14 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
           <View
             key={tag.id}
             className="flex-row items-center rounded-full px-2.5 py-1 mr-1.5 mb-1.5"
-            style={{ backgroundColor: tag.color + "14" }}
+            style={{ backgroundColor: tint(tag.color, 0.08) }}
           >
             <View
               className="w-2 h-2 rounded-full mr-1.5"
               style={{ backgroundColor: tag.color }}
             />
             <Text
-              className="text-xs font-medium mr-1"
+              className="text-label font-medium mr-1"
               style={{ color: tag.color }}
             >
               {tag.name}
@@ -159,9 +158,9 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
           <Ionicons
             name={showPicker ? "close" : "add"}
             size={14}
-            color={colors.textSecondary}
+            color={theme.mutedForeground}
           />
-          <Text className="text-xs text-muted-foreground ml-0.5">
+          <Text className="text-label text-muted-foreground ml-0.5">
             {showPicker ? "Close" : "Add Tag"}
           </Text>
         </Pressable>
@@ -169,15 +168,15 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
 
       {/* Picker dropdown */}
       {showPicker && (
-        <Rows className="mt-2 rounded-xl bg-card p-3">
+        <Rows className="mt-2 rounded-control bg-card p-3">
           <TextInput
             value={searchText}
             onChangeText={setSearchText}
             placeholder="Search or create tag..."
-            placeholderTextColor={colors.tabIconDefault}
+            placeholderTextColor={theme.faintForeground}
             autoFocus
             maxLength={50}
-            className="text-sm text-foreground border-b border-border pb-2 mb-2"
+            className="text-meta text-foreground border-b border-border pb-2 mb-2"
           />
 
           <FlatList
@@ -204,14 +203,14 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
                   className="w-3 h-3 rounded-full mr-2"
                   style={{ backgroundColor: item.color }}
                 />
-                <Text className="text-sm text-foreground">
+                <Text className="text-meta text-foreground">
                   {item.name}
                 </Text>
               </Pressable>
             )}
             ListEmptyComponent={
               !showCreateOption ? (
-                <Text className="text-xs text-faint-foreground py-2">
+                <Text className="text-label text-faint-foreground py-2">
                   {searchText ? "No matching tags" : "No tags yet"}
                 </Text>
               ) : null
@@ -223,8 +222,8 @@ export function TagPicker({ expenseId, selectedTagIds, onSelectionChange, onOpen
               onPress={handleCreateAndAdd}
               className="flex-row items-center py-2 border-t border-border mt-1"
             >
-              <Ionicons name="add-circle-outline" size={16} color={colors.blue} />
-              <Text className="text-sm font-medium ml-2" style={{ color: theme.primary }}>
+              <Ionicons name="add-circle-outline" size={16} color={theme.primary} />
+              <Text className="text-body font-medium ml-2" style={{ color: theme.primary }}>
                 Create "{searchText.trim()}"
               </Text>
             </Pressable>

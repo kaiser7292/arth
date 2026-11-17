@@ -180,7 +180,8 @@ export default function BudgetScreen() {
       // Compute derived values in-memory
       const budgetMap = new Map(budgets.map((b) => [b.category_id, b.amount]));
       const actualMap = new Map(actuals.map((a) => [a.category_id, a.total]));
-      const merged: BudgetDashboardRow[] = categories.map((cat) => ({
+      // Budgets are set on top-level categories; a sub-category's spending is already in its parent's total.
+      const merged: BudgetDashboardRow[] = categories.filter((cat) => !cat.parent_id).map((cat) => ({
         category: cat,
         budget: budgetMap.get(cat.id) ?? 0,
         spent: actualMap.get(cat.id) ?? 0,

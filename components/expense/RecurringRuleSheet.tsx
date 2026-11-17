@@ -1,9 +1,9 @@
+import { tint } from "@/constants/brand";
 import { useState, useEffect, useCallback, useMemo } from "react";
 
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable, TextInput, ScrollView } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { CalendarModal } from "@/components/ui/CalendarModal";
@@ -133,7 +133,6 @@ export function RecurringRuleSheet({
   subtitle,
   confirmLabel,
 }: RecurringRuleSheetProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [frequency, setFrequency] = useState<RecurringFrequency>(
     initial?.frequency ?? "monthly",
@@ -216,10 +215,10 @@ export function RecurringRuleSheet({
 
       {/* Header */}
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           {title ?? (initial ? "Edit reminder" : "Set reminder")}
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           {subtitle ??
             (initial
               ? "Changes apply to future cycles. Existing upcoming reminders keep their values."
@@ -236,8 +235,8 @@ export function RecurringRuleSheet({
         {!hideNotes && (
           <View className="px-5 pt-1 pb-3">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
+              className="text-label font-semibold uppercase tracking-wider mb-2"
+              style={{ color: theme.mutedForeground }}
             >
               Notes (optional)
             </Text>
@@ -245,9 +244,9 @@ export function RecurringRuleSheet({
               value={notes}
               onChangeText={setNotes}
               placeholder="e.g., Flat rent, split 50/50 with flatmate"
-              placeholderTextColor={colors.textSecondary}
-              className="border border-border rounded-lg px-3 py-2.5 text-sm"
-              style={{ color: colors.text, minHeight: 60 }}
+              placeholderTextColor={theme.mutedForeground}
+              className="border border-border rounded-control px-3 py-2.5 text-meta"
+              style={{ color: theme.foreground, minHeight: 60 }}
               multiline
             />
           </View>
@@ -256,8 +255,8 @@ export function RecurringRuleSheet({
         {/* Frequency */}
         <View className="px-5 pt-1 pb-3">
           <Text
-            className="text-xs font-semibold uppercase tracking-wider mb-2"
-            style={{ color: colors.textSecondary }}
+            className="text-label font-semibold uppercase tracking-wider mb-2"
+            style={{ color: theme.mutedForeground }}
           >
             Repeats
           </Text>
@@ -269,30 +268,30 @@ export function RecurringRuleSheet({
                 onPress={() => handleFrequencyChange(opt.key)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                className="flex-row items-center py-3 px-4 rounded-control mb-2"
                 style={{
                   backgroundColor: active
-                    ? theme.primary + "26"
-                    : colors.surface,
+                    ? tint(theme.primary, 0.15)
+                    : theme.card,
                   borderWidth: active ? 2 : 1,
                   borderColor: active
                     ? theme.primary
-                    : colors.border,
+                    : theme.border,
                 }}
               >
                 <Ionicons
                   name={opt.icon}
                   size={20}
-                  color={active ? theme.primary : colors.textSecondary}
+                  color={active ? theme.primary : theme.mutedForeground}
                 />
                 <View className="flex-1 ml-3">
                   <Text
-                    className="text-sm font-semibold"
-                    style={{ color: colors.text }}
+                    className="text-body font-semibold"
+                    style={{ color: theme.foreground }}
                   >
                     {opt.label}
                   </Text>
-                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                     {opt.sub}
                   </Text>
                 </View>
@@ -313,8 +312,8 @@ export function RecurringRuleSheet({
           <>
             <View className="px-5 pt-1 pb-3">
               <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
+                className="text-label font-semibold uppercase tracking-wider mb-2"
+                style={{ color: theme.mutedForeground }}
               >
                 Which occurrence
               </Text>
@@ -332,11 +331,11 @@ export function RecurringRuleSheet({
                       }}
                       className="px-4 py-2 rounded-full border"
                       style={{
-                        backgroundColor: active ? theme.primary + "26" : colors.surface,
-                        borderColor: active ? theme.primary : colors.border,
+                        backgroundColor: active ? tint(theme.primary, 0.15) : theme.card,
+                        borderColor: active ? theme.primary : theme.border,
                       }}
                     >
-                      <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                      <Text className="text-body font-medium" style={{ color: active ? theme.primary : theme.mutedForeground }}>
                         {o.label}
                       </Text>
                     </Pressable>
@@ -346,8 +345,8 @@ export function RecurringRuleSheet({
             </View>
             <View className="px-5 pt-1 pb-3">
               <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
+                className="text-label font-semibold uppercase tracking-wider mb-2"
+                style={{ color: theme.mutedForeground }}
               >
                 Day of week
               </Text>
@@ -365,11 +364,11 @@ export function RecurringRuleSheet({
                       }}
                       className="px-4 py-2 rounded-full border"
                       style={{
-                        backgroundColor: active ? theme.primary + "26" : colors.surface,
-                        borderColor: active ? theme.primary : colors.border,
+                        backgroundColor: active ? tint(theme.primary, 0.15) : theme.card,
+                        borderColor: active ? theme.primary : theme.border,
                       }}
                     >
-                      <Text className="text-sm font-medium" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                      <Text className="text-body font-medium" style={{ color: active ? theme.primary : theme.mutedForeground }}>
                         {w.label}
                       </Text>
                     </Pressable>
@@ -384,24 +383,24 @@ export function RecurringRuleSheet({
         {!initial && !hideStart && (
           <View className="px-5 pt-1 pb-3">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
+              className="text-label font-semibold uppercase tracking-wider mb-2"
+              style={{ color: theme.mutedForeground }}
             >
               Starts
             </Text>
             <Pressable
               onPress={() => setStartPickerVisible(true)}
-              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+              className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
               accessibilityRole="button"
               accessibilityLabel={`Starts on ${prettyDate(startDate)}. Tap to change.`}
             >
-              <Text className="text-sm" style={{ color: colors.text }}>
+              <Text className="text-meta" style={{ color: theme.foreground }}>
                 {prettyDate(startDate)}
               </Text>
-              <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+              <Ionicons name="calendar-outline" size={18} color={theme.mutedForeground} />
             </Pressable>
             {!startTouched && (
-              <Text className="text-xs mt-1.5" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mt-1.5" style={{ color: theme.mutedForeground }}>
                 Suggested based on {FREQUENCY_OPTIONS.find((o) => o.key === frequency)?.label.toLowerCase() ?? frequency} cadence - tap to change.
               </Text>
             )}
@@ -411,22 +410,22 @@ export function RecurringRuleSheet({
         {/* Until (optional) — calendar picker */}
         <View className="px-5 pt-1 pb-3">
           <Text
-            className="text-xs font-semibold uppercase tracking-wider mb-2"
-            style={{ color: colors.textSecondary }}
+            className="text-label font-semibold uppercase tracking-wider mb-2"
+            style={{ color: theme.mutedForeground }}
           >
             Until (optional)
           </Text>
           <Pressable
             onPress={() => setEndPickerVisible(true)}
-            className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+            className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
             accessibilityRole="button"
             accessibilityLabel={
               endDate ? `Ends on ${prettyDate(endDate)}. Tap to change.` : "No end date. Tap to pick one."
             }
           >
             <Text
-              className="text-sm"
-              style={{ color: endDate ? colors.text : colors.textSecondary }}
+              className="text-meta"
+              style={{ color: endDate ? theme.foreground : theme.mutedForeground }}
             >
               {endDate ? prettyDate(endDate) : "Leave blank for open-ended"}
             </Text>
@@ -441,14 +440,14 @@ export function RecurringRuleSheet({
                   hitSlop={8}
                   accessibilityLabel="Clear end date"
                 >
-                  <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                  <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
                 </Pressable>
               ) : null}
-              <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+              <Ionicons name="calendar-outline" size={18} color={theme.mutedForeground} />
             </View>
           </Pressable>
           {!endDateValid && endDate.trim() ? (
-            <Text className="text-xs mt-1.5" style={{ color: theme.danger }}>
+            <Text className="text-label mt-1.5" style={{ color: theme.danger }}>
               End date must be after the start date.
             </Text>
           ) : null}
@@ -461,10 +460,10 @@ export function RecurringRuleSheet({
           onPress={handleClose}
           accessibilityRole="button"
           accessibilityLabel="Cancel"
-          className="flex-1 py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="flex-1 py-3 rounded-control items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
             Cancel
           </Text>
         </Pressable>
@@ -473,13 +472,13 @@ export function RecurringRuleSheet({
           disabled={!endDateValid}
           accessibilityRole="button"
           accessibilityLabel="Save reminder"
-          className="flex-1 py-3 rounded-xl items-center"
+          className="flex-1 py-3 rounded-control items-center"
           style={{
             backgroundColor: theme.primary,
             opacity: endDateValid ? 1 : 0.5,
           }}
         >
-          <Text className="text-sm font-semibold text-primary-foreground">
+          <Text className="text-body font-semibold text-primary-foreground">
             {confirmLabel ?? (initial ? "Save changes" : "Save reminder")}
           </Text>
         </Pressable>

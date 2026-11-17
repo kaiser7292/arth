@@ -2,8 +2,7 @@ import { useState, useMemo } from "react";
 
 import { View, Pressable } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, ProgressBar, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Card, Chip, ProgressBar, Text, moneyTone } from "@/components/ui";
 
 import { formatAmount } from "@/utils/expense-validation";
 import { useTheme } from "@/hooks/use-theme";
@@ -68,16 +67,16 @@ export function FilterSummaryCard<G extends string = DefaultGroupBy>({
         >
           <View className="flex-row items-start justify-between">
             <View className="flex-1">
-              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
-                Filtered Total
+              <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground">
+                Filtered total
               </Text>
               <Text
-                className="text-2xl font-bold mt-1"
-                style={{ color: theme.primary }}
+                className="text-title font-bold mt-1"
+                style={{ color: moneyTone(theme, isCredit ? "in" : "out").fg }}
               >
                 {formatAmount(summary.total)}
               </Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-meta text-muted-foreground mt-0.5">
                 {summary.count} {itemLabel}
               </Text>
               {previousTotal != null && previousTotal > 0 && (() => {
@@ -90,7 +89,7 @@ export function FilterSummaryCard<G extends string = DefaultGroupBy>({
                 const isGood = isCredit ? isUp : !isUp;
                 const color = isGood ? theme.success : theme.danger;
                 return (
-                  <Text className="text-xs font-medium mt-1" style={{ color }}>
+                  <Text className="text-meta font-medium mt-1" style={{ color }}>
                     {isUp ? "↑" : "↓"} {absDelta.toFixed(0)}% vs previous period
                   </Text>
                 );
@@ -107,32 +106,14 @@ export function FilterSummaryCard<G extends string = DefaultGroupBy>({
         {!collapsed && summary.groups.length > 0 && (
           <View className="mt-3 pt-3 border-t border-border">
             {allowGroupByChange && onChangeGroupBy && availableGroupBys.length > 1 && (
-              <View className="flex-row mb-3">
+              <View className="flex-row flex-wrap mb-3" style={{ rowGap: 8 }}>
                 {availableGroupBys.map((gb) => {
                   const isActive = summary.groupBy === gb;
                   const label = groupByLabels?.[gb] ?? DEFAULT_GROUP_LABELS[gb];
                   return (
-                    <Pressable
-                      key={gb}
-                      onPress={() => onChangeGroupBy(gb)}
-                      className={`px-3 py-1 rounded-full mr-2 ${
-                        isActive ? "border" : "bg-card"
-                      }`}
-                      style={
-                        isActive
-                          ? { backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.primary }
-                          : undefined
-                      }
-                    >
-                      <Text
-                        className={`text-xs ${
-                          isActive ? "font-medium" : "text-muted-foreground"
-                        }`}
-                        style={isActive ? { color: theme.primary } : undefined}
-                      >
-                        {label}
-                      </Text>
-                    </Pressable>
+                    <View key={gb} className="mr-2">
+                      <Chip label={label} on={isActive} onPress={() => onChangeGroupBy(gb)} />
+                    </View>
                   );
                 })}
               </View>
@@ -148,12 +129,12 @@ export function FilterSummaryCard<G extends string = DefaultGroupBy>({
                 <View key={group.key ?? "__null__"} className="mb-2">
                   <View className="flex-row items-center justify-between mb-1">
                     <Text
-                      className="text-sm text-foreground flex-1 pr-2"
+                      className="text-body text-foreground flex-1 pr-2"
                       numberOfLines={1}
                     >
                       {resolveGroupLabel(group.key)}
                     </Text>
-                    <Text className="text-sm font-semibold text-foreground">
+                    <Text className="text-body font-semibold text-foreground">
                       {formatAmount(group.total)}
                     </Text>
                   </View>
@@ -168,8 +149,8 @@ export function FilterSummaryCard<G extends string = DefaultGroupBy>({
             })}
 
             {summary.groups.length > MAX_VISIBLE_GROUPS && (
-              <Pressable onPress={() => setShowAll((v) => !v)} className="mt-1">
-                <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+              <Pressable onPress={() => setShowAll((v) => !v)} className="mt-1 py-2" accessibilityRole="button">
+                <Text className="text-meta font-medium" style={{ color: theme.primary }}>
                   {showAll ? "Show less" : `Show all ${summary.groups.length}`}
                 </Text>
               </Pressable>

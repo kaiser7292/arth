@@ -1,7 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Text } from "./Text";
 import { Pressable, View } from "react-native";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useTheme } from "@/hooks/use-theme";
 import { HeaderGlobalActions } from "./HeaderGlobalActions";
@@ -30,14 +29,13 @@ interface Props {
 }
 
 export function ContextualHeader({ title, subtitle, badge, rightActions, globalActions = true }: Props) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
 
   const badgeColors = badge
     ? {
-        warning: { bg: theme.warning + "1A", text: theme.warning },
-        success: { bg: theme.success + "1A", text: theme.success },
-        danger:  { bg: theme.danger  + "1A", text: theme.danger  },
+        warning: { bg: theme.alpha("warning", 0.12), text: theme.warning },
+        success: { bg: theme.alpha("success", 0.12), text: theme.success },
+        danger:  { bg: theme.alpha("danger", 0.12), text: theme.danger },
       }[badge.variant]
     : null;
 
@@ -49,14 +47,14 @@ export function ContextualHeader({ title, subtitle, badge, rightActions, globalA
       {/* Left: title + optional subtitle */}
       <View className="flex-1">
         <Text
-          className="text-base font-semibold text-foreground"
+          className="text-heading font-bold text-foreground"
           numberOfLines={1}
         >
           {title}
         </Text>
         {subtitle ? (
           <Text
-            className="text-xs text-muted-foreground mt-0.5"
+            className="text-meta text-muted-foreground mt-0.5"
             numberOfLines={1}
           >
             {subtitle}
@@ -72,10 +70,10 @@ export function ContextualHeader({ title, subtitle, badge, rightActions, globalA
             disabled={!badge.onPress}
             accessibilityRole={badge.onPress ? "button" : "text"}
             accessibilityLabel={badge.label}
-            className="rounded-full px-2.5 py-1"
+            className="rounded-pill px-2.5 py-1"
             style={{ backgroundColor: badgeColors.bg }}
           >
-            <Text className="text-xs font-semibold" style={{ color: badgeColors.text }}>
+            <Text className="text-meta font-semibold" style={{ color: badgeColors.text }}>
               {badge.label}
             </Text>
           </Pressable>
@@ -94,11 +92,11 @@ export function ContextualHeader({ title, subtitle, badge, rightActions, globalA
             <Ionicons
               name={action.icon}
               size={20}
-              color={action.color ?? colors.textSecondary}
+              color={action.color ?? theme.mutedForeground}
             />
           </Pressable>
         ))}
-        {globalActions && <HeaderGlobalActions color={colors.textSecondary} />}
+        {globalActions && <HeaderGlobalActions color={theme.mutedForeground} />}
       </View>
     </View>
   );

@@ -168,7 +168,7 @@ export function MoneyEventPanel({
           {meta.tag}
         </Text>
       </View>
-      <Text className="text-sm text-muted-foreground mt-2">{detail}</Text>
+      <Text className="text-meta text-muted-foreground mt-2">{detail}</Text>
 
       <View className="mt-3">
         <Button title={meta.primaryAction} onPress={primary} loading={busy} />

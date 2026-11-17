@@ -1,7 +1,7 @@
+import { tint } from "@/constants/brand";
 import { View, Pressable } from "react-native";
 import { Badge, Text } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { DuplicateGroup } from "@/services/duplicate-detection";
@@ -34,7 +34,6 @@ export function DuplicateGroupCard({
   readOnly,
   onRestore,
 }: DuplicateGroupCardProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
 
   // Sort: latest first (the one to keep on auto-resolve)
@@ -48,23 +47,23 @@ export function DuplicateGroupCard({
   const danger = theme.danger;
 
   return (
-    <Rows className="mx-4 my-2.5 rounded-2xl bg-card border border-border overflow-hidden">
+    <Rows className="mx-4 my-2.5 rounded-card bg-card border border-border overflow-hidden">
       {/* ── Header ────────────────────────────────────────────────── */}
       <View className="px-4 pt-4 pb-3">
         <View className="flex-row items-center mb-2">
           <View
             className="w-8 h-8 rounded-full items-center justify-center mr-2.5"
-            style={{ backgroundColor: warn + "1A" }}
+            style={{ backgroundColor: tint(warn, 0.1) }}
           >
             <Ionicons name="copy-outline" size={16} color={warn} />
           </View>
-          <Text className="text-sm font-bold text-foreground">
+          <Text className="text-body font-bold text-foreground">
             Possible Duplicate
           </Text>
           <Badge label="#{index + 1}" color={warn} className="ml-auto" />
         </View>
         <Text
-          className="text-xs text-muted-foreground leading-5"
+          className="text-label text-muted-foreground leading-5"
           numberOfLines={3}
         >
           {group.reason}
@@ -96,7 +95,7 @@ export function DuplicateGroupCard({
               {/* Lane indicator — keep vs reject */}
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: (isFirst ? success : danger) + "14" }}
+                style={{ backgroundColor: tint(isFirst ? success : danger, 0.08) }}
               >
                 <Ionicons
                   name={isFirst ? "shield-checkmark-outline" : "close-outline"}
@@ -114,20 +113,20 @@ export function DuplicateGroupCard({
               >
                 <View className="flex-row items-center justify-between">
                   <Text
-                    className="text-sm font-semibold text-foreground flex-1 mr-2"
+                    className="text-body font-semibold text-foreground flex-1 mr-2"
                     numberOfLines={1}
                   >
                     {expense.description ?? expense.merchant_name ?? "No details"}
                   </Text>
-                  <Text className="text-sm font-bold text-foreground shrink-0">
+                  <Text className="text-body font-bold text-foreground shrink-0">
                     {formatAmount(expense.amount)}
                   </Text>
                 </View>
                 <View className="flex-row items-center mt-1">
-                  <Text className="text-xs text-faint-foreground">
+                  <Text className="text-label text-faint-foreground">
                     {formatDateForDisplay(expense.date)}
                   </Text>
-                  <View className="w-1 h-1 rounded-full mx-1.5" style={{ backgroundColor: colors.textSecondary + "66" }} />
+                  <View className="w-1 h-1 rounded-full mx-1.5" style={{ backgroundColor: tint(theme.mutedForeground, 0.4) }} />
                   <View
                     className="px-1.5 py-0.5 rounded-full"
                     style={{ backgroundColor: `${statusColor}14` }}
@@ -147,7 +146,7 @@ export function DuplicateGroupCard({
                 <Pressable
                   onPress={() => onRejectDuplicate(expense.id)}
                   className="w-9 h-9 rounded-full items-center justify-center"
-                  style={{ backgroundColor: danger + "14" }}
+                  style={{ backgroundColor: tint(danger, 0.08) }}
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel="Reject this duplicate"
@@ -165,13 +164,13 @@ export function DuplicateGroupCard({
         <View className="flex-row px-4 py-3 border-t border-border">
           <Pressable
             onPress={() => onRestore?.(group)}
-            className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
-            style={{ backgroundColor: warn + "14" }}
+            className="flex-1 flex-row items-center justify-center py-2.5 rounded-control"
+            style={{ backgroundColor: tint(warn, 0.08) }}
             accessibilityRole="button"
             accessibilityLabel="Restore this group for re-review"
           >
             <Ionicons name="refresh-outline" size={16} color={warn} />
-            <Text className="text-xs font-semibold ml-1.5" style={{ color: warn }}>
+            <Text className="text-label font-semibold ml-1.5" style={{ color: warn }}>
               Restore for re-review
             </Text>
           </Pressable>
@@ -180,25 +179,25 @@ export function DuplicateGroupCard({
         <View className="flex-row px-4 py-3 border-t border-border gap-2">
           <Pressable
             onPress={() => onKeepBoth?.(group)}
-            className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
-            style={{ backgroundColor: success + "14" }}
+            className="flex-1 flex-row items-center justify-center py-2.5 rounded-control"
+            style={{ backgroundColor: tint(success, 0.08) }}
             accessibilityRole="button"
             accessibilityLabel="Keep both - not duplicates"
           >
             <Ionicons name="checkmark-circle-outline" size={16} color={success} />
-            <Text className="text-xs font-semibold ml-1.5" style={{ color: success }}>
+            <Text className="text-label font-semibold ml-1.5" style={{ color: success }}>
               Keep both
             </Text>
           </Pressable>
           <Pressable
             onPress={() => onAutoResolve?.(group)}
-            className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl"
-            style={{ backgroundColor: danger + "14" }}
+            className="flex-1 flex-row items-center justify-center py-2.5 rounded-control"
+            style={{ backgroundColor: tint(danger, 0.08) }}
             accessibilityRole="button"
             accessibilityLabel="Auto-resolve: keep latest, reject duplicates"
           >
             <Ionicons name="flash-outline" size={16} color={danger} />
-            <Text className="text-xs font-semibold ml-1.5" style={{ color: danger }}>
+            <Text className="text-label font-semibold ml-1.5" style={{ color: danger }}>
               Auto-resolve
             </Text>
           </Pressable>

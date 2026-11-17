@@ -234,6 +234,7 @@ export default function SmartRulesListScreen() {
 
   const tools = useListTools<SmartRule>({
     screen: "smart_rules",
+    noun: { one: "rule", many: "rules" },
     rows: rules,
     fields: RULE_FIELDS,
     sorts: RULE_SORTS,

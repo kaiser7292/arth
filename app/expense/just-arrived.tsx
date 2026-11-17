@@ -123,10 +123,10 @@ export default function JustArrivedScreen() {
         {nothing ? (
           <View className="items-center py-10 px-6">
             <Ionicons name="checkmark-done-outline" size={44} color={theme.success} />
-            <Text className="text-lg font-semibold text-foreground mt-3">
+            <Text className="text-heading font-semibold text-foreground mt-3">
               {items.length > 0 ? "All done" : readButNotAdded ? "Nothing to review" : "Nothing new"}
             </Text>
-            <Text className="text-sm text-muted-foreground text-center mt-1 leading-5">
+            <Text className="text-meta text-muted-foreground text-center mt-1 leading-5">
               {items.length > 0
                 ? "Everything that came in has been reviewed."
                 : readButNotAdded
@@ -137,7 +137,7 @@ export default function JustArrivedScreen() {
             <Button title="Go to home" variant="outline" onPress={() => router.replace("/(tabs)")} className="mt-5" />
           </View>
         ) : (
-          <Text className="text-sm text-muted-foreground mb-3 leading-5">
+          <Text className="text-meta text-muted-foreground mb-3 leading-5">
             {arrival && arrival.read > 1 ? `${arrival.read} bank messages came in. ` : ""}
             Check what Arth read, then approve it. Nothing counts until you do.
           </Text>
@@ -152,15 +152,15 @@ export default function JustArrivedScreen() {
           return (
             <Card key={e.id} className="mb-3">
               <View className="flex-row items-center justify-between">
-                <Text className="text-2xl font-bold" style={{ color: credit ? theme.success : theme.foreground }}>
+                <Text className="text-title font-bold" style={{ color: credit ? theme.success : theme.foreground }}>
                   {credit ? "+" : ""}
                   {formatAmount(e.amount)}
                 </Text>
                 <View className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>From your bank</Text>
+                  <Text className="text-label font-medium" style={{ color: theme.primary }}>From your bank</Text>
                 </View>
               </View>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {credit ? "Received" : "Paid"} · {formatDate(e.date)}
                 {e.transaction_time && e.transaction_time !== "00:00:00" ? `, ${e.transaction_time.slice(0, 5)}` : ""}
               </Text>
@@ -192,15 +192,15 @@ export default function JustArrivedScreen() {
         {unreadable.map((m, i) => (
           <Card key={`${m.date}-${i}`} className="mb-3">
             <View className="flex-row items-center justify-between">
-              <Text className="text-base font-semibold text-foreground">{"Couldn't read this one"}</Text>
+              <Text className="text-body font-semibold text-foreground">{"Couldn't read this one"}</Text>
               <View className="rounded-full px-2.5 py-0.5" style={{ backgroundColor: theme.alpha("warning", 0.15) }}>
-                <Text className="text-xs font-medium" style={{ color: theme.warning }}>New format</Text>
+                <Text className="text-label font-medium" style={{ color: theme.warning }}>New format</Text>
               </View>
             </View>
-            <Text className="text-xs text-muted-foreground mt-2 rounded-md p-2" style={{ backgroundColor: theme.alpha("foreground", 0.04) }} numberOfLines={5}>
+            <Text className="text-label text-muted-foreground mt-2 rounded-control p-2" style={{ backgroundColor: theme.alpha("foreground", 0.04) }} numberOfLines={5}>
               {m.body}
             </Text>
-            <Text className="text-sm text-foreground mt-2 leading-5">
+            <Text className="text-meta text-foreground mt-2 leading-5">
               Show Arth where the amount and shop are, once. Messages like it are read by themselves after that.
             </Text>
             <Button
@@ -218,15 +218,15 @@ export default function JustArrivedScreen() {
         ))}
 
         {handled.length > 0 && !nothing && (
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-1">Already done</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-1">Already done</Text>
         )}
         {!nothing &&
           handled.map((e) => (
             <Pressable key={e.id} onPress={() => router.push(`/expense/${e.id}`)} className="flex-row justify-between py-2">
-              <Text className="text-sm text-foreground flex-1" numberOfLines={1}>
+              <Text className="text-meta text-foreground flex-1" numberOfLines={1}>
                 {transactionTitle(e, e.category_id ? categories.get(e.category_id)?.name : null)}
               </Text>
-              <Text className="text-sm text-muted-foreground ml-2">
+              <Text className="text-meta text-muted-foreground ml-2">
                 {formatAmount(e.amount)} · {e.status === "approved" ? "Approved" : "Rejected"}
               </Text>
             </Pressable>
@@ -239,8 +239,8 @@ export default function JustArrivedScreen() {
 function Row({ label, value, last }: { label: string; value: string; last?: boolean }) {
   return (
     <View className={`flex-row justify-between py-2 ${last ? "" : "border-b border-border"}`}>
-      <Text className="text-sm text-muted-foreground">{label}</Text>
-      <Text className="text-sm text-foreground ml-3 flex-1 text-right" numberOfLines={1}>{value}</Text>
+      <Text className="text-meta text-muted-foreground">{label}</Text>
+      <Text className="text-meta text-foreground ml-3 flex-1 text-right" numberOfLines={1}>{value}</Text>
     </View>
   );
 }

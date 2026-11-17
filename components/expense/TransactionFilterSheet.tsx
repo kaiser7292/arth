@@ -10,7 +10,8 @@ import {
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
-import { DateInput, Sheet, Text } from "@/components/ui";
+import { CheckRow, Chip, ChipWrap, DateInput, RadioRow, SearchField, SectionTitle, Segmented, Sheet, Text } from "@/components/ui";
+import { FilterRailItem, FilterSheetFooter, FilterSheetHeader, applyLabelFor } from "@/components/ui/FilterSheetParts";
 import { useTheme } from "@/hooks/use-theme";
 import type { DatePreset, SavedFilterView } from "@/services/saved-filter-views";
 import { DATE_PRESET_LABELS, DATE_PRESET_ORDER } from "@/services/saved-filter-views";
@@ -133,6 +134,11 @@ interface TransactionFilterSheetProps {
   onApplyView: (view: SavedFilterView) => void;
   onDeleteView: (view: SavedFilterView) => void;
   onToggleDefaultView: (view: SavedFilterView) => void;
+  /**
+   * How many transactions the draft would show, for the Apply button ("Show 24 transactions").
+   * Null when it can't be counted; the button then says "Apply".
+   */
+  countFor?: (draft: TxFilterDraft) => Promise<number | null>;
 }
 
 /**
@@ -234,6 +240,23 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
   const counts = draftCounts(draft, defaultPreset);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
+  // What Apply would show. Debounced: typing an amount shouldn't run a query per keystroke.
+  const [matchCount, setMatchCount] = useState<number | null>(null);
+  const countFor = props.countFor;
+  useEffect(() => {
+    if (!visible || !countFor) return;
+    let live = true;
+    const t = setTimeout(() => {
+      countFor(draft)
+        .then((n) => live && setMatchCount(n))
+        .catch(() => live && setMatchCount(null));
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [visible, draft, countFor]);
+
   const clearAll = () =>
     setDraft((d) => ({
       ...d,
@@ -307,8 +330,13 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
         }}
         className={`px-4 pt-4 pb-5 ${last ? "" : "border-b border-border"}`}
       >
-        <Text className="text-body font-bold text-foreground">{f.title}</Text>
-        <Text className="text-xs text-muted-foreground mt-0.5 mb-3">{f.hint}</Text>
+        <SectionTitle
+          icon={f.icon}
+          title={f.title}
+          hint={counts[key] > 0 ? `${f.hint} · ${counts[key]} on` : f.hint}
+          active={counts[key] > 0}
+          className="mb-3"
+        />
         {children}
       </View>
     );
@@ -317,32 +345,7 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
   return (
     <Sheet visible={visible} onClose={onClose} maxHeightPct={88} draggable>
       <View style={{ height: sheetH, flexShrink: 1 }}>
-        {/* Header */}
-        <View className="flex-row items-center pl-5 pr-3 pb-2 border-b border-border" style={{ minHeight: 52 }}>
-          <Text className="flex-1 text-xl font-bold text-foreground">Filters</Text>
-          <Pressable
-            onPress={clearAll}
-            disabled={total === 0}
-            hitSlop={6}
-            className="px-3 justify-center"
-            style={{ minHeight: 44 }}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: total === 0 }}
-          >
-            <Text className="text-sm font-semibold" style={{ color: total === 0 ? theme.mutedForeground : accent }}>
-              Clear all
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={onClose}
-            className="items-center justify-center rounded-full ml-1"
-            style={{ width: 40, height: 40, backgroundColor: theme.alpha("foreground", 0.06) }}
-            accessibilityRole="button"
-            accessibilityLabel="Close filters"
-          >
-            <Ionicons name="close" size={18} color={theme.foreground} />
-          </Pressable>
-        </View>
+        <FilterSheetHeader onClear={clearAll} clearDisabled={total === 0} onClose={onClose} />
 
         {/* 20 / 80 */}
         <View className="flex-1 flex-row" style={{ minHeight: 0 }}>
@@ -354,55 +357,20 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
             showsVerticalScrollIndicator={false}
             accessibilityRole="tablist"
           >
-            {fields.map((f) => {
-              const on = active === f.key;
-              const n = counts[f.key];
-              return (
-                <Pressable
-                  key={f.key}
-                  onPress={() => jump(f.key)}
-                  onLayout={(e) => {
-                    railY.current[f.key] = { y: e.nativeEvent.layout.y, h: e.nativeEvent.layout.height };
-                  }}
-                  className="items-center py-2"
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected: on }}
-                  accessibilityLabel={n > 0 ? `${f.title}, ${n} on` : f.title}
-                >
-                  <View
-                    className="items-center justify-center"
-                    style={{ width: 44, height: 32, borderRadius: 16, backgroundColor: on ? tint : "transparent" }}
-                  >
-                    <Ionicons name={f.icon} size={19} color={on ? accent : theme.mutedForeground} />
-                    {n > 0 && (
-                      <View
-                        className="absolute items-center justify-center"
-                        style={{
-                          top: -4,
-                          right: -2,
-                          minWidth: 17,
-                          height: 17,
-                          paddingHorizontal: 4,
-                          borderRadius: 9,
-                          backgroundColor: accent,
-                          borderWidth: 2,
-                          borderColor: theme.card,
-                        }}
-                      >
-                        <Text style={{ fontSize: 9, fontWeight: "700", color: theme.primaryForeground }}>{n}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text
-                    className="text-center mt-1"
-                    numberOfLines={1}
-                    style={{ fontSize: 11, fontWeight: on ? "700" : "500", color: on ? theme.foreground : theme.mutedForeground }}
-                  >
-                    {f.label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {fields.map((f) => (
+              <FilterRailItem
+                key={f.key}
+                label={f.label}
+                title={f.title}
+                icon={f.icon}
+                count={counts[f.key]}
+                on={active === f.key}
+                onPress={() => jump(f.key)}
+                onLayout={(e) => {
+                  railY.current[f.key] = { y: e.nativeEvent.layout.y, h: e.nativeEvent.layout.height };
+                }}
+              />
+            ))}
           </ScrollView>
 
           <ScrollView
@@ -459,7 +427,7 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
               "category",
               <>
                 {(isCredit ? props.creditKinds : props.categories).length > 8 && (
-                  <SearchBox value={catQuery} onChange={setCatQuery} placeholder={isCredit ? "Search types" : "Search categories"} />
+                  <SearchField className="mb-2" value={catQuery} onChangeText={setCatQuery} placeholder={isCredit ? "Search types" : "Search categories"} accessibilityLabel={isCredit ? "Search types" : "Search categories"} />
                 )}
                 {catList.map((c) => (
                   <CheckRow
@@ -541,12 +509,12 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
             {section(
               "merchant",
               <>
-                <SearchBox value={merchantQuery} onChange={setMerchantQuery} placeholder={isCredit ? "Search names" : "Search merchants"} />
+                <SearchField className="mb-2" value={merchantQuery} onChangeText={setMerchantQuery} placeholder={isCredit ? "Search names" : "Search merchants"} accessibilityLabel={isCredit ? "Search names" : "Search merchants"} />
                 {merchantShown.map((m) => (
                   <CheckRow key={m.id} label={m.label} on={draft.merchantNames.includes(m.id)} onPress={() => toggleIn("merchantNames", m.id)} />
                 ))}
                 {merchantMatches.length > merchantShown.length && (
-                  <Text className="text-xs text-muted-foreground mt-2">
+                  <Text className="text-meta text-muted-foreground mt-2">
                     {merchantMatches.length - merchantShown.length} more. Search to find them.
                   </Text>
                 )}
@@ -598,7 +566,7 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
 
             {section(
               "views",
-              <View className="rounded-xl border border-border overflow-hidden">
+              <View className="rounded-control border border-border overflow-hidden">
                 {props.savedViews.map((v, i) => {
                   const isActive = props.activeViewId === v.id;
                   const isDefault = props.defaultViewId === v.id;
@@ -611,7 +579,7 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
                         accessibilityRole="button"
                         accessibilityLabel={`Apply ${v.name}`}
                       >
-                        <Text className="flex-1 text-sm" numberOfLines={1} style={{ color: isActive ? accent : theme.foreground, fontWeight: isActive ? "700" : "500" }}>
+                        <Text className={`flex-1 text-body ${isActive ? "font-bold" : "font-medium"}`} numberOfLines={1} style={{ color: isActive ? accent : theme.foreground }}>
                           {v.name}
                         </Text>
                       </Pressable>
@@ -643,163 +611,16 @@ export function TransactionFilterSheet(props: TransactionFilterSheetProps) {
           </ScrollView>
         </View>
 
-        {/* Footer */}
-        <View className="flex-row px-4 pt-3 border-t border-border" style={{ gap: 10 }}>
-          <Pressable
-            onPress={onClose}
-            className="items-center justify-center rounded-2xl border border-border px-5"
-            style={{ height: 48 }}
-            accessibilityRole="button"
-          >
-            <Text className="text-body font-semibold text-foreground">Cancel</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              onApply(draft);
-              onClose();
-            }}
-            className="flex-1 items-center justify-center rounded-2xl"
-            style={{ height: 48, backgroundColor: accent }}
-            accessibilityRole="button"
-          >
-            <Text className="text-body font-bold" style={{ color: theme.primaryForeground }}>
-              {total === 0 ? "Show all transactions" : `Apply ${total} ${total === 1 ? "filter" : "filters"}`}
-            </Text>
-          </Pressable>
-        </View>
+        <FilterSheetFooter
+          onCancel={onClose}
+          onApply={() => {
+            onApply(draft);
+            onClose();
+          }}
+          applyLabel={applyLabelFor(countFor ? matchCount : null, total)}
+        />
       </View>
     </Sheet>
-  );
-}
-
-function ChipWrap({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <View className={`flex-row flex-wrap ${className}`} style={{ gap: 8 }}>
-      {children}
-    </View>
-  );
-}
-
-function Chip({ label, on, onPress, dot }: { label: string; on: boolean; onPress: () => void; dot?: string }) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center rounded-full border px-3.5"
-      style={{
-        height: 36,
-        borderColor: on ? theme.primary : theme.border,
-        backgroundColor: on ? theme.alpha("primary", 0.1) : theme.card,
-      }}
-      accessibilityRole="button"
-      accessibilityState={{ selected: on }}
-    >
-      {dot ? <View className="rounded-full mr-1.5" style={{ width: 8, height: 8, backgroundColor: dot }} /> : null}
-      <Text className="text-meta font-semibold" style={{ color: on ? theme.primary : theme.foreground }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-function RadioRow({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
-  const theme = useTheme();
-  return (
-    <Pressable onPress={onPress} className="flex-row items-center" style={{ minHeight: 44, gap: 12 }} accessibilityRole="radio" accessibilityState={{ checked: on }}>
-      <View
-        className="items-center justify-center rounded-full"
-        style={{ width: 20, height: 20, borderWidth: 2, borderColor: on ? theme.primary : theme.alpha("foreground", 0.3) }}
-      >
-        {on && <View className="rounded-full" style={{ width: 10, height: 10, backgroundColor: theme.primary }} />}
-      </View>
-      <Text className="flex-1 text-sm font-medium text-foreground">{label}</Text>
-    </Pressable>
-  );
-}
-
-function CheckRow({ label, sub, on, onPress, color }: { label: string; sub?: string; on: boolean; onPress: () => void; color?: string }) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center"
-      style={{ minHeight: sub ? 52 : 44, gap: 12 }}
-      accessibilityRole="checkbox"
-      accessibilityState={{ checked: on }}
-    >
-      <View
-        className="items-center justify-center rounded-md"
-        style={{
-          width: 20,
-          height: 20,
-          backgroundColor: on ? theme.primary : "transparent",
-          borderWidth: on ? 0 : 2,
-          borderColor: theme.alpha("foreground", 0.3),
-        }}
-      >
-        {on && <Ionicons name="checkmark" size={14} color={theme.primaryForeground} />}
-      </View>
-      {color ? <View className="rounded-full" style={{ width: 8, height: 8, marginLeft: -4, backgroundColor: color }} /> : null}
-      <View className="flex-1">
-        <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
-          {label}
-        </Text>
-        {sub ? <Text className="text-xs text-muted-foreground mt-0.5">{sub}</Text> : null}
-      </View>
-    </Pressable>
-  );
-}
-
-function Segmented({ options, value, onChange }: { options: { value: string; label: string }[]; value: string; onChange: (v: string) => void }) {
-  const theme = useTheme();
-  return (
-    <View className="flex-row rounded-xl p-1" style={{ gap: 4, backgroundColor: theme.alpha("foreground", 0.06) }}>
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <Pressable
-            key={o.value || "any"}
-            onPress={() => onChange(o.value)}
-            className="flex-1 items-center justify-center rounded-lg px-1"
-            style={{
-              height: 38,
-              backgroundColor: on ? theme.card : "transparent",
-              elevation: on ? 1 : 0,
-            }}
-            accessibilityRole="button"
-            accessibilityState={{ selected: on }}
-          >
-            <Text className="text-meta font-semibold text-center" numberOfLines={1} style={{ color: on ? theme.primary : theme.mutedForeground }}>
-              {o.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-function SearchBox({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) {
-  const theme = useTheme();
-  return (
-    <View className="flex-row items-center rounded-xl border border-border px-3 mb-2" style={{ height: 42 }}>
-      <Ionicons name="search" size={16} color={theme.mutedForeground} />
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor={theme.mutedForeground}
-        className="flex-1 text-sm text-foreground ml-2"
-        style={{ paddingVertical: 0 }}
-        autoCorrect={false}
-        accessibilityLabel={placeholder}
-      />
-      {value ? (
-        <Pressable onPress={() => onChange("")} hitSlop={8} accessibilityLabel="Clear search">
-          <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
-        </Pressable>
-      ) : null}
-    </View>
   );
 }
 
@@ -807,16 +628,16 @@ function AmountBox({ label, placeholder, value, onChange }: { label: string; pla
   const theme = useTheme();
   return (
     <View className="flex-1">
-      <Text className="text-xs font-semibold text-muted-foreground mb-1.5">{label}</Text>
-      <View className="flex-row items-center rounded-xl border border-border px-3" style={{ height: 44 }}>
-        <Text className="text-sm text-muted-foreground mr-1">₹</Text>
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">{label}</Text>
+      <View className="flex-row items-center rounded-control border border-border px-3" style={{ height: 44 }}>
+        <Text className="text-body text-muted-foreground mr-1">₹</Text>
         <TextInput
           value={value}
           onChangeText={(t) => onChange(t.replace(/[^0-9.]/g, ""))}
           placeholder={placeholder}
           placeholderTextColor={theme.mutedForeground}
           keyboardType="decimal-pad"
-          className="flex-1 text-sm text-foreground"
+          className="flex-1 text-body text-foreground"
           style={{ paddingVertical: 0 }}
           maxLength={12}
           accessibilityLabel={`${label} amount`}

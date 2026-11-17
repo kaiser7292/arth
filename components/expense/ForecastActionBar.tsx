@@ -1,7 +1,6 @@
 import { View, Pressable } from "react-native";
 import { Text } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 
 
@@ -28,7 +27,6 @@ export function ForecastActionBar({
   onRepaymentPaid,
   onPaidExternally,
 }: ForecastActionBarProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const alert = useAlert();
 
@@ -101,7 +99,7 @@ export function ForecastActionBar({
           className={pill}
           style={{ backgroundColor: theme.primary }}
         >
-          <Text className="text-xs font-semibold text-primary-foreground">
+          <Text className="text-label font-semibold text-primary-foreground">
             {isRepayment ? "Pay" : "Paid"}
           </Text>
         </Pressable>
@@ -111,9 +109,9 @@ export function ForecastActionBar({
             accessibilityLabel="Realise now"
             accessibilityRole="button"
             className={`${pill} border`}
-            style={{ borderColor: colors.border }}
+            style={{ borderColor: theme.border }}
           >
-            <Text className="text-xs font-semibold text-muted-foreground">Realise</Text>
+            <Text className="text-label font-semibold text-muted-foreground">Realise</Text>
           </Pressable>
         )}
         {onPaidExternally && (
@@ -122,9 +120,9 @@ export function ForecastActionBar({
             accessibilityLabel="Paid externally"
             accessibilityRole="button"
             className={`${pill} border`}
-            style={{ borderColor: colors.border }}
+            style={{ borderColor: theme.border }}
           >
-            <Text className="text-xs font-semibold text-muted-foreground">
+            <Text className="text-label font-semibold text-muted-foreground">
               {isRepayment ? "Paid elsewhere" : "Elsewhere"}
             </Text>
           </Pressable>
@@ -137,7 +135,7 @@ export function ForecastActionBar({
           hitSlop={6}
           className="w-8 h-8 rounded-pill items-center justify-center"
         >
-          <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
+          <Ionicons name="trash-outline" size={16} color={theme.mutedForeground} />
         </Pressable>
       </View>
     );
@@ -152,7 +150,7 @@ export function ForecastActionBar({
         className="flex-1 items-center py-2"
       >
         <Ionicons name="checkmark-circle-outline" size={20} color={theme.success} />
-        <Text className="text-xs font-medium text-success mt-1">
+        <Text className="text-label font-medium text-success mt-1">
           {isRepayment ? "Pay Bill" : "Mark as paid"}
         </Text>
       </Pressable>
@@ -164,8 +162,8 @@ export function ForecastActionBar({
           accessibilityRole="button"
           className="flex-1 items-center py-2"
         >
-          <Ionicons name="exit-outline" size={20} color={colors.textSecondary} />
-          <Text className="text-xs font-medium mt-1" style={{ color: colors.textSecondary }}>
+          <Ionicons name="exit-outline" size={20} color={theme.mutedForeground} />
+          <Text className="text-label font-medium mt-1" style={{ color: theme.mutedForeground }}>
             Paid externally
           </Text>
         </Pressable>
@@ -176,8 +174,8 @@ export function ForecastActionBar({
           accessibilityRole="button"
           className="flex-1 items-center py-2"
         >
-          <Ionicons name="arrow-forward-circle-outline" size={20} color={colors.blue} />
-          <Text className="text-xs font-medium mt-1" style={{ color: theme.primary }}>
+          <Ionicons name="arrow-forward-circle-outline" size={20} color={theme.primary} />
+          <Text className="text-label font-medium mt-1" style={{ color: theme.primary }}>
             Realise now
           </Text>
         </Pressable>
@@ -190,7 +188,7 @@ export function ForecastActionBar({
         className="flex-1 items-center py-2"
       >
         <Ionicons name="trash-outline" size={20} color={theme.danger} />
-        <Text className="text-xs font-medium text-danger mt-1">
+        <Text className="text-label font-medium text-danger mt-1">
           Delete
         </Text>
       </Pressable>

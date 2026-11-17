@@ -25,6 +25,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "sort_order",
     "is_active",
     "is_unavoidable",
+    "parent_id", // 095: the category this sits under, NULL for top level
   ] as const,
 
   payment_modes: [

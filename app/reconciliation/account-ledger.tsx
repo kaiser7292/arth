@@ -1,16 +1,17 @@
+import { tint } from "@/constants/brand";
 import { isPartOn } from "@/services/customise";
 import { creditLook } from "@/services/expense-types";
 import { useListTools } from "@/hooks/use-list-tools";
 import { transactionDayLabel } from "@/utils/day-label";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, DateInput, FABMenu, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Badge, Button, Card, Chip, DateInput, FABMenu, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, SectionTitle, Sheet, Text } from "@/components/ui";
+import { defaultEntryDate } from "@/utils/ledger-dates";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TRANSFER_COLOR } from "@/constants/semantic-colors";
 
 import { useAlert } from "@/hooks/use-alert";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import {
     adjustAccountAvailable,
@@ -127,7 +128,6 @@ export default function AccountLedgerScreen() {
     transferId?: string;
     filterMode?: string;
   }>();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   // Theme-aware status colors (migrated from flat STATUS_COLORS in v14.8.0).
   const scrollRef = useRef<ScrollView>(null);
@@ -234,6 +234,7 @@ export default function AccountLedgerScreen() {
   );
   const tools = useListTools<LedgerEntry>({
     screen: "account_ledger",
+    noun: { one: "transaction", many: "transactions" },
     rows: ledgerRowsIn,
     fields: ledgerFields,
     search: ledgerSearch,
@@ -553,9 +554,6 @@ const loadData = useCallback(async () => {
     setCreditDescription(entry.description);
     setCreditDate(entry.date);
     setShowAddCredit(true);
-    // Scroll to top so the edit form is immediately visible, not hidden below
-    // the transactions list.
-    setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
   }, []);
 
   const handleCancelCreditForm = useCallback(() => {
@@ -819,14 +817,14 @@ const loadData = useCallback(async () => {
                 })}
                 className="flex-1 flex-row items-center justify-center"
               >
-                <Ionicons name="checkmark-done-outline" size={14} color={colors.textSecondary} />
+                <Ionicons name="checkmark-done-outline" size={14} color={theme.mutedForeground} />
                 <Text className="text-label font-semibold text-muted-foreground ml-1.5">
                   Reconcile
                 </Text>
               </Pressable>
               {isPartOn("vault") && (
               <>
-              <View className="w-px" style={{ backgroundColor: colors.border }} />
+              <View className="w-px" style={{ backgroundColor: theme.border }} />
               <Pressable
                 onPress={async () => {
                   try {
@@ -845,7 +843,7 @@ const loadData = useCallback(async () => {
                 }}
                 className="flex-1 flex-row items-center justify-center"
               >
-                <Ionicons name="lock-closed-outline" size={14} color={colors.textSecondary} />
+                <Ionicons name="lock-closed-outline" size={14} color={theme.mutedForeground} />
                 <Text className="text-label font-semibold text-muted-foreground ml-1.5">
                   Credentials
                 </Text>
@@ -858,97 +856,78 @@ const loadData = useCallback(async () => {
           {/* Inline forms render above the transactions list so edit/add
               actions are visible without scrolling past the full ledger. */}
 
-          {/* Credit form (inline, for add or edit) */}
-          {showAddCredit && (
-            <Card className="mx-4 mt-4">
-              <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                {editingCreditId ? "Edit Credit" : "Add Manual Credit"}
-              </Text>
+          {/* Credit form (add or edit), in a sheet so it never pushes the ledger down */}
+          <Sheet visible={showAddCredit} onClose={handleCancelCreditForm}>
+            <View className="px-5 pb-4">
+              <SectionTitle
+                icon="arrow-down-outline"
+                title={editingCreditId ? "Edit credit" : "Add a credit"}
+                hint="Money into this account"
+                className="mb-4"
+              />
               <Input
-                placeholder="Amount"
+                label="Amount"
+                placeholder="0"
                 formula
                 value={creditAmount}
                 onChangeText={setCreditAmount}
                 containerClassName="mb-3"
               />
-              <TextInput
-                className="border border-border rounded-lg px-3 py-2.5 mb-3 text-meta text-foreground"
-                placeholder="Description (e.g. Salary, UPI received)"
-                placeholderTextColor={colors.textSecondary}
+              <Input
+                label="Note"
+                placeholder="e.g. Salary, UPI received"
                 maxLength={200}
                 value={creditDescription}
                 onChangeText={setCreditDescription}
+                containerClassName="mb-3"
               />
               <DateInput
                 label="Date"
                 value={creditDate || todayIso()}
                 onChange={setCreditDate}
-                containerClassName="mb-3"
+                containerClassName="mb-4"
               />
-              <View className="flex-row">
-                <Pressable
-                  onPress={handleCancelCreditForm}
-                  className="flex-1 py-2.5 rounded-lg items-center mr-2 border border-border"
-                >
-                  <Text className="text-meta font-semibold text-muted-foreground">Cancel</Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleSaveCreditForm}
-                  className="flex-1 py-2.5 rounded-lg items-center"
-                  style={{ backgroundColor: theme.primary }}
-                >
-                  <Text className="text-meta font-semibold text-primary-foreground">{editingCreditId ? "Save" : "Add credit"}</Text>
-                </Pressable>
+              <View className="flex-row" style={{ gap: 10 }}>
+                <Button title="Cancel" variant="outline" onPress={handleCancelCreditForm} />
+                <Button title={editingCreditId ? "Save" : "Add credit"} onPress={handleSaveCreditForm} className="flex-1" />
               </View>
-            </Card>
-          )}
+            </View>
+          </Sheet>
 
-          {/* Adjust Available inline form */}
-          {showAdjust && (
-            <Card className="mx-4 mt-4 mb-2">
-              <Text className="text-meta font-semibold text-foreground mb-1">
-                Adjust available balance
-              </Text>
-              <Text className="text-label text-muted-foreground mb-3">
-                Current closing: {formatAmount(closing)}. Enter the actual available and we'll add a single adjustment entry dated today.
-              </Text>
-              <Text className="text-label font-medium text-muted-foreground mb-1">Actual available</Text>
+          {/* Adjust balance, in a sheet */}
+          <Sheet visible={showAdjust} onClose={() => { setShowAdjust(false); setAdjustActual(""); }}>
+            <View className="px-5 pb-4">
+              <SectionTitle
+                icon="swap-vertical-outline"
+                title="Adjust available balance"
+                hint={`Now ${formatAmount(closing)}. One adjustment entry, dated today.`}
+                className="mb-4"
+              />
               <Input
+                label="Actual available"
                 value={adjustActual}
                 onChangeText={setAdjustActual}
                 placeholder="e.g. 1,55,000"
                 formula
                 containerClassName="mb-3"
               />
-              <Text className="text-label font-medium text-muted-foreground mb-1">Reason (optional)</Text>
-              <TextInput
+              <Input
+                label="Reason (optional)"
                 value={adjustDescription}
                 onChangeText={setAdjustDescription}
                 placeholder="e.g. Prepayment, untracked spend"
-                placeholderTextColor={colors.textSecondary}
-                className="border rounded-lg px-3 py-2.5 mb-3 text-meta text-foreground"
-                style={{ borderColor: colors.border }}
+                containerClassName="mb-4"
               />
-              <View className="flex-row">
-                <Button
-                  title="Cancel"
-                  onPress={() => { setShowAdjust(false); setAdjustActual(""); }}
-                  variant="outline"
-                  className="flex-1 mr-2 py-2.5"
-                />
-                <Button
-                  title="Confirm"
-                  onPress={handleSaveAdjustment}
-                  variant="primary"
-                  className="flex-1 py-2.5"
-                />
+              <View className="flex-row" style={{ gap: 10 }}>
+                <Button title="Cancel" variant="outline" onPress={() => { setShowAdjust(false); setAdjustActual(""); }} />
+                <Button title="Confirm" onPress={handleSaveAdjustment} className="flex-1" />
               </View>
-            </Card>
-          )}
+            </View>
+          </Sheet>
 
           {/* Filter banner — shown when opened with filterMode=transfers */}
           {filterMode === "transfers" && (
-            <View className="mx-4 mt-3 mb-1 flex-row items-center px-3 py-2 rounded-lg" style={{ backgroundColor: TRANSFER_COLOR + "18" }}>
+            <View className="mx-4 mt-3 mb-1 flex-row items-center px-3 py-2 rounded-control" style={{ backgroundColor: tint(TRANSFER_COLOR, 0.09) }}>
               <Ionicons name="swap-horizontal-outline" size={14} color={TRANSFER_COLOR} />
               <Text className="ml-2 text-label font-medium" style={{ color: TRANSFER_COLOR }}>
                 Showing transfers only
@@ -975,7 +954,8 @@ const loadData = useCallback(async () => {
             const entry = row.item;
             const isTransfer = entry.type === "transfer_in" || entry.type === "transfer_out";
             const isDebitSide = entry.type === "debit" || entry.type === "transfer_out";
-            const entryColor = isDebitSide ? theme.danger : theme.success;
+            // Money tones: spending is ink, money in is green (red is for over budget only).
+            const entryColor = isDebitSide ? theme.foreground : theme.success;
             const transferColor = TRANSFER_COLOR;
             const isReclassified = entry.reclassifiedAsTransfer === true;
             // When the ledger is opened via a cross-link (e.g. "From transfer"
@@ -1057,14 +1037,14 @@ const loadData = useCallback(async () => {
                       : undefined
                 }
               >
-                <View className="flex-row items-center mx-4 py-3 border-b border-border">
-                  {/* Icon */}
+                <View className="flex-row items-start mx-4 py-3 border-b border-border">
+                  {/* Icon tile, as on every transaction row */}
                   <View
-                    className="w-8 h-8 rounded-full items-center justify-center mr-3"
+                    className="w-10 h-10 rounded-control items-center justify-center mr-3"
                     style={{
                       backgroundColor: isTransfer
-                        ? transferColor + "14"
-                        : (entry.creditType?.color ?? entryColor) + "14",
+                        ? tint(transferColor, 0.12)
+                        : tint(entry.creditType?.color ?? (isDebitSide ? theme.mutedForeground : entryColor), 0.12),
                     }}
                   >
                     <Ionicons
@@ -1079,8 +1059,8 @@ const loadData = useCallback(async () => {
                               ? "arrow-up-outline"
                               : "arrow-down-outline"
                       }
-                      size={14}
-                      color={isTransfer ? transferColor : (entry.creditType?.color ?? entryColor)}
+                      size={20}
+                      color={isTransfer ? transferColor : (entry.creditType?.color ?? (isDebitSide ? theme.mutedForeground : entryColor))}
                     />
                   </View>
 
@@ -1088,65 +1068,47 @@ const loadData = useCallback(async () => {
                   <View className="flex-1">
                     <View className="flex-row items-center">
                       <Text
-                        className="text-meta text-foreground"
+                        className="text-body font-semibold text-foreground"
                         numberOfLines={1}
                         style={{ flex: 1 }}
                       >
                         {entry.description}
                       </Text>
                       {isReclassified && (
-                        <Badge label="Transfer" color={transferColor} className="ml-2" />
+                        <Chip variant="status" tone="transfer" label="Transfer" className="ml-2" />
                       )}
                     </View>
                     {isTransfer && entry.counterAccountName && (
-                      <Text className="text-label mt-0.5" style={{ color: transferColor }}>
+                      <Text className="text-meta mt-0.5" style={{ color: transferColor }}>
                         {entry.type === "transfer_in" ? "From" : "To"} {entry.counterAccountName}
                       </Text>
                     )}
                     {/* Wraps: a row can have more tags than fit beside the amount. */}
-                    <View className="flex-row flex-wrap items-center mt-0.5" style={{ columnGap: 6, rowGap: 4 }}>
-                      <Text className="text-label text-muted-foreground">
+                    <View className="flex-row flex-wrap items-center mt-1" style={{ columnGap: 6, rowGap: 4 }}>
+                      <Text className="text-meta text-muted-foreground">
                         {formatEntryDate(entry.date)}
                       </Text>
                       {poolSiblings.length > 1 && entry.cardLast4 && (
-                        <Text className="text-label text-faint-foreground">
-                          · {"••••"} {entry.cardLast4}
+                        <Text className="text-meta text-muted-foreground">
+                          · {"••"}{entry.cardLast4}
                         </Text>
                       )}
                       {(entry.source === "sms_auto" || (isTransfer && !!entry.rawSourceText)) && (
-                        <View className="px-1 py-0.5 rounded bg-primary/15">
-                          <Text className="text-label font-semibold text-primary">SMS</Text>
-                        </View>
+                        <Chip variant="status" tone="primary" label="SMS" />
                       )}
-                      {/* A Hisaab credit's own tag below already says what it is. */}
-                      {!entry.isRefund && !isTransfer && !(entry.type === "credit" && entry.linkedHisaabPersonName) && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: entryColor + "14" }}>
-                          <Text className="text-label font-semibold" style={{ color: entryColor }}>
-                            {entry.isAdjustment ? "ADJUSTMENT" : entry.type === "credit" ? (entry.creditType?.name.toUpperCase() ?? "CREDIT") : "EXPENSE"}
-                          </Text>
-                        </View>
+                      {/* What kind of row: an expense needs no word; a Hisaab credit's own chip below says it. */}
+                      {!entry.isRefund && !isTransfer && !(entry.type === "credit" && entry.linkedHisaabPersonName) && (entry.isAdjustment || entry.type === "credit") && (
+                        entry.isAdjustment ? (
+                          <Chip variant="status" tone="neutral" label="Adjustment" />
+                        ) : (
+                          <Chip variant="category" color={entry.creditType?.color ?? theme.success} label={entry.creditType?.name ?? "Credit"} />
+                        )
                       )}
-                      {entry.isRefund && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: theme.success + "14" }}>
-                          <Text className="text-label font-semibold" style={{ color: theme.success }}>REFUND</Text>
-                        </View>
-                      )}
-                      {isTransfer && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: transferColor + "14" }}>
-                          <Text className="text-label font-semibold" style={{ color: transferColor }}>TRANSFER</Text>
-                        </View>
-                      )}
-                      {isTransfer && entry.linkedExpenseId && (
-                        <View className="px-1 py-0.5 rounded bg-warning/15">
-                          <Text className="text-label font-semibold text-warning">RECLASSIFIED</Text>
-                        </View>
-                      )}
+                      {entry.isRefund && <Chip variant="status" tone="success" label="Refund" />}
+                      {isTransfer && <Chip variant="status" tone="transfer" label="Transfer" />}
+                      {isTransfer && entry.linkedExpenseId && <Chip variant="status" tone="warning" label="Reclassified" />}
                       {entry.type === "credit" && entry.linkedHisaabPersonName && (
-                        <View className="px-1 py-0.5 rounded" style={{ backgroundColor: theme.alpha("primary", 0.1), maxWidth: "100%" }}>
-                          <Text className="text-label font-semibold" style={{ color: theme.primary }} numberOfLines={1}>
-                            HISAAB · {entry.linkedHisaabPersonName.toUpperCase()}
-                          </Text>
-                        </View>
+                        <Chip variant="status" tone="primary" label={`Hisaab · ${entry.linkedHisaabPersonName}`} />
                       )}
                     </View>
                   </View>
@@ -1161,12 +1123,12 @@ const loadData = useCallback(async () => {
                     <Money
                       value={isDebitSide ? -entry.amount : entry.amount}
                       showPlus={!isDebitSide}
-                      className="text-meta font-bold"
+                      className="text-body font-bold"
                       style={{ color: isTransfer ? transferColor : entryColor }}
                     />
                     {entry.splitPersonName && (
                       <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1} style={{ maxWidth: 130 }}>
-                        Split w/ {entry.splitPersonName}
+                        Split with {entry.splitPersonName}
                       </Text>
                     )}
                   </View>
@@ -1202,7 +1164,7 @@ const loadData = useCallback(async () => {
                     || (entry.type === "credit" && !!entry.linkedHisaabPersonId)
                     || (isTransfer && !!entry.rawSourceText)
                     || (isTransfer && !!entry.linkedExpenseId)) && (
-                    <Ionicons name="chevron-forward" size={12} color={colors.textSecondary} className="ml-1" />
+                    <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} className="ml-1" />
                   )}
                 </View>
               </Pressable>
@@ -1213,7 +1175,7 @@ const loadData = useCallback(async () => {
           {/* Empty state */}
           {!guarded.failed && filteredEntries.length === 0 && (
             <View className="items-center py-12">
-              <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
+              <Ionicons name="receipt-outline" size={40} color={theme.mutedForeground} />
               <Text className="text-meta text-muted-foreground mt-3">
                 {tools.narrowed ? "Nothing matches" : "No transactions this month"}
               </Text>
@@ -1233,7 +1195,7 @@ const loadData = useCallback(async () => {
               <Text className="text-meta ml-3 flex-1" style={{ color: theme.danger }}>
                 Clear all ledger data
               </Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
             </Pressable>
           </View>
         </ScrollView>
@@ -1258,7 +1220,7 @@ const loadData = useCallback(async () => {
                 params: {
                   type: "credit",
                   prefillAccountId: accountId,
-                  prefillDate: today >= startDate && today <= endDate ? today : startDate,
+                  prefillDate: defaultEntryDate(today, startDate, endDate),
                 },
               });
             },
@@ -1275,7 +1237,7 @@ const loadData = useCallback(async () => {
                 params: {
                   type: "transfer",
                   prefillAccountId: accountId,
-                  prefillDate: today >= startDate && today <= endDate ? today : startDate,
+                  prefillDate: defaultEntryDate(today, startDate, endDate),
                 },
               });
             },
@@ -1286,7 +1248,6 @@ const loadData = useCallback(async () => {
             color: theme.warning,
             onPress: () => {
               setShowAdjust(true);
-              setTimeout(() => scrollRef.current?.scrollTo({ y: 0, animated: true }), 50);
             },
           },
         ] satisfies FABMenuItem[]}
@@ -1321,7 +1282,7 @@ const loadData = useCallback(async () => {
             <Pressable
               onPress={(e) => e.stopPropagation()}
               style={{
-                backgroundColor: colors.surface,
+                backgroundColor: theme.card,
                 borderRadius: 16,
                 padding: 20,
                 maxWidth: 480,
@@ -1330,10 +1291,10 @@ const loadData = useCallback(async () => {
             >
               <View className="flex-row items-start justify-between mb-3">
                 <View className="flex-1 mr-3">
-                  <Text className="text-body font-bold" style={{ color: colors.text }}>
+                  <Text className="text-body font-bold" style={{ color: theme.foreground }}>
                     Source SMS
                   </Text>
-                  <Text className="text-label mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={2}>
+                  <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }} numberOfLines={2}>
                     {sourceSmsModal.description}
                   </Text>
                 </View>
@@ -1342,42 +1303,42 @@ const loadData = useCallback(async () => {
                   hitSlop={12}
                   accessibilityLabel="Close"
                 >
-                  <Ionicons name="close" size={22} color={colors.textSecondary} />
+                  <Ionicons name="close" size={22} color={theme.mutedForeground} />
                 </Pressable>
               </View>
 
               {sourceSmsModal.address && (
                 <View className="mb-3">
-                  <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: theme.mutedForeground }}>
                     Sender
                   </Text>
-                  <Text className="text-label" style={{ color: colors.text }}>
+                  <Text className="text-label" style={{ color: theme.foreground }}>
                     {sourceSmsModal.address}
                   </Text>
                 </View>
               )}
 
-              <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: colors.textSecondary }}>
+              <Text className="text-label font-semibold uppercase tracking-wider mb-1" style={{ color: theme.mutedForeground }}>
                 Body
               </Text>
               <ScrollView
                 style={{
                   maxHeight: 280,
-                  backgroundColor: colors.background,
+                  backgroundColor: theme.background,
                   borderRadius: 8,
                   padding: 10,
                 }}
               >
                 <Text
                   className="text-label"
-                  style={{ color: colors.text, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
+                  style={{ color: theme.foreground, fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace" }}
                   selectable
                 >
                   {sourceSmsModal.body}
                 </Text>
               </ScrollView>
 
-              <Text className="text-label mt-3" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mt-3" style={{ color: theme.mutedForeground }}>
                 This SMS originally came in as a credit or expense and was reclassified as a transfer.
               </Text>
             </Pressable>

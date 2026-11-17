@@ -25,6 +25,18 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { ReviewQueueCard } from "@/components/home/ReviewQueueCard";
 import { TYPE } from "@/constants/design-tokens";
+import {
+  ActionRow,
+  CheckRow,
+  Chip,
+  ChipWrap,
+  FieldRow,
+  MoneyChip,
+  RadioRow,
+  SearchField,
+  SectionTitle,
+  Segmented,
+} from "@/components/ui";
 
 const ROLES = [
   "background", "card", "foreground", "mutedForeground", "faintForeground",
@@ -278,6 +290,43 @@ export default function Gallery() {
             <FilterChip label="Committed" onPress={() => {}} />
             <FilterChip label="Credits" onPress={() => {}} />
           </View>
+        </Section>
+
+        <Section title="Transactions parts" note="The shared parts every list, sheet and form uses (docs/TRANSACTIONS_DESIGN_SYSTEM_PLAN.md).">
+          <SearchField size="lg" value="" onChangeText={() => {}} />
+          <ChipWrap className="mt-3">
+            <Chip label="Last 30 days" onPress={() => {}} />
+            <Chip label="This month" on onPress={() => {}} />
+            <Chip variant="removable" label="UPI" onPress={() => {}} />
+          </ChipWrap>
+          <ChipWrap className="mt-3">
+            <Chip variant="category" icon="cart-outline" color="#B45309" label="Groceries" />
+            <Chip variant="add" label="Add category" onPress={() => {}} />
+            <Chip variant="status" tone="warning" label="Needs review" />
+            <Chip variant="status" tone="transfer" label="Transfer" />
+          </ChipWrap>
+          <ChipWrap className="mt-3">
+            <MoneyChip amount={42180} tone="out" />
+            <MoneyChip amount={96400} tone="in" />
+            <MoneyChip amount={10000} tone="moved" />
+            <MoneyChip amount={61900} tone="over" />
+          </ChipWrap>
+          <SectionTitle className="mt-4" icon="card-outline" title="Paid by" hint="Select any · 1 on" active />
+          <CheckRow label="UPI" on onPress={() => {}} />
+          <CheckRow label="Card" sub="HDFC ··1093" on={false} onPress={() => {}} />
+          <RadioRow label="Newest first" on onPress={() => {}} />
+          <Segmented className="mt-2" options={[{ value: "", label: "Any" }, { value: "p", label: "Needs review" }, { value: "a", label: "Approved" }]} value="" onChange={() => {}} />
+          <ActionRow
+            className="mt-4"
+            items={[
+              { key: "edit", label: "Edit", icon: "create-outline", onPress: () => {} },
+              { key: "split", label: "Split", icon: "git-branch-outline", onPress: () => {} },
+              { key: "refund", label: "Refund", icon: "return-down-back-outline", onPress: () => {} },
+              { key: "more", label: "More", icon: "ellipsis-horizontal", onPress: () => {} },
+            ]}
+          />
+          <FieldRow divider={false} label="Account" value="Savings ··4821" onPress={() => {}} />
+          <FieldRow label="Paid by" value="UPI" />
         </Section>
 
         <Section title="Review strip" note="One kind of item vs several - the total only earns a line when there is something to total.">

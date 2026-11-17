@@ -46,6 +46,7 @@ export {
   getExpenseById,
   getExpensesByIds,
   getExpensesPaginated,
+  countFilteredExpenses,
   getFilteredExpenseSummary,
   getFilteredMonthTotals,
   getPreviousPeriodTotal,

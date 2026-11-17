@@ -707,6 +707,19 @@ export async function restoreFromData(
       await backfillCreditKinds(db);
       await reconcileSettlementKinds(db);
 
+      // Post-restore: sub-categories (migration 095). A backup from before 095 has no parent_id,
+      // so every category comes back top-level, which is right. One from after it is kept as is,
+      // except a sub-category whose parent didn't come back, or whose parent is itself a
+      // sub-category (one level only): those move up rather than point at nothing.
+      try {
+        await db.runAsync(
+          `UPDATE categories SET parent_id = NULL
+            WHERE parent_id IS NOT NULL
+              AND (parent_id = id
+                OR parent_id NOT IN (SELECT id FROM categories WHERE parent_id IS NULL))`,
+        );
+      } catch { /* older schema without parent_id */ }
+
       // Post-restore: Phase 2 investment-account conversion (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
       // section 4). A backup taken before this shipped still has account_type='demat'/'pension'
       // rows — restoring it reintroduces the legacy shape into an already-migrated schema, exactly

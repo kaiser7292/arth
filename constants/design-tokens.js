@@ -74,8 +74,10 @@ const SEMANTIC = {
  * Type scale. Replaces the 269 arbitrary `text-[Npx]` values and the unused display/title/headline
  * scale that shipped in tailwind.config with zero adoption.
  *
- * `label` (11.5px) is the floor — nothing below it ships. The old codebase had 221 uses under 12px,
- * including 6 at 8px.
+ * `label` (12px) is the floor — nothing below it ships. The old codebase had 221 uses under 12px,
+ * including 6 at 8px. It was 11px until the transactions design system (Nov 2026): rail labels,
+ * badges and section labels at 11px read as cramped, and one step of 1px on the smallest size only
+ * does not tip dense rows into wrapping the way the old text-xs/text-sm bump did.
  */
 const TYPE = {
   hero: ["36px", { lineHeight: "40px", letterSpacing: "-0.03em" }],
@@ -84,7 +86,7 @@ const TYPE = {
   heading: ["17px", { lineHeight: "24px", letterSpacing: "-0.01em" }],
   body: ["15px", { lineHeight: "21px" }],
   meta: ["13px", { lineHeight: "17px" }],
-  label: ["11px", { lineHeight: "14px" }],
+  label: ["12px", { lineHeight: "16px" }],
 };
 
 /**
@@ -155,6 +157,25 @@ const DATA = {
   series: ["15 118 110", "180 83 9", "139 92 246", "37 99 235", "219 39 119", "5 150 105"],
 };
 
+/**
+ * Money tones. Which colour an amount gets depends on which way the money went, not on whether it
+ * is "bad". Spending is the normal case, so it is plain ink: a list where every month's spending is
+ * red reads as an alarm and the one real alarm (over budget) gets lost in it.
+ *
+ *   out    money spent        ink on a faint neutral fill
+ *   in     money received     success
+ *   moved  between own accounts  the transfer purple (DATA.transfer)
+ *   over   over budget, failed  danger - the ONLY place red is used for money
+ *
+ * `fg` and `fill` name a semantic role, or "transfer" for the data colour. `fillAlpha` is the tint
+ * behind a MoneyChip. Resolved in JS by `moneyTone()` in components/ui/money-tone.ts.
+ */
+const MONEY = {
+  out: { fg: "foreground", fill: "foreground", fillAlpha: 0.06 },
+  in: { fg: "success", fill: "success", fillAlpha: 0.1 },
+  moved: { fg: "transfer", fill: "transfer", fillAlpha: 0.1 },
+  over: { fg: "danger", fill: "danger", fillAlpha: 0.08 },
+};
 
 /**
  * COMPONENT RECIPES - the one place to change how the app looks.
@@ -203,10 +224,34 @@ const COMPONENTS = {
     hint: "text-label mt-1 ml-1",
     error: "text-label text-danger mt-1",
   },
+  /**
+   * One chip, several jobs (components/ui/Chip.tsx):
+   *   choice   a filter or option you turn on and off - 36px tap target
+   *   inline   sits inside a row: a category, a status, an applied filter - 24px
+   *   add      the dashed "+ Add category" prompt, inline size
+   */
   chip: {
-    base: "px-3 py-1.5 rounded-full",
-    label: "text-meta",
+    choice: { base: "flex-row items-center h-9 px-3.5 rounded-pill", label: "text-meta font-semibold", icon: 14 },
+    inline: { base: "flex-row items-center self-start h-6 px-2 rounded-pill", label: "text-label font-semibold", icon: 12 },
+    add: "border border-dashed",
+    gap: "mr-2 mb-2",
   },
+  /** CheckRow / RadioRow: one option per line in a sheet. */
+  optionRow: { base: "flex-row items-center py-2.5", minHeight: 44, label: "text-body text-foreground", sub: "text-meta text-muted-foreground", mark: 20 },
+  segmented: { base: "flex-row rounded-control p-1", item: "flex-1 items-center justify-center rounded-control py-2", label: "text-meta font-semibold" },
+  /** Section title with its icon: filter-sheet sections, form groups, detail cards. */
+  sectionTitle: { base: "flex-row items-center", iconBox: "w-8 h-8 rounded-control items-center justify-center mr-2.5", icon: 17, title: "text-heading font-bold text-foreground", hint: "text-meta text-muted-foreground" },
+  /** The row of round action buttons under a transaction's hero. */
+  /** Four equal tiles: a white card each, a tinted circle, the label under it. */
+  actionRow: { base: "flex-row", button: "flex-1 items-center rounded-card border border-border bg-card py-2.5", circle: "w-9 h-9 rounded-pill items-center justify-center mb-1.5", icon: 18, label: "text-label font-semibold text-foreground" },
+  moneyChip: { base: "flex-row items-center h-[26px] px-2.5 rounded-pill", label: "text-meta font-semibold", icon: 12 },
+  /** Label left, value right, inside a card. */
+  fieldRow: { base: "flex-row items-center py-3", label: "text-body text-muted-foreground", value: "text-body text-foreground" },
+  /** The small uppercase heading at the top of a detail card ("WHAT", "WHERE"). */
+  cardHeading: "text-label font-semibold uppercase tracking-wider text-muted-foreground pt-3 pb-1",
+  /** One item in a filter sheet's left-hand icon rail. */
+  rail: { item: "items-center px-0.5 py-2", pill: "w-12 h-8 rounded-pill items-center justify-center", icon: 20, label: "text-label text-center mt-1", badge: "absolute -top-1.5 -right-1 min-w-[18px] h-[18px] px-1 rounded-pill items-center justify-center" },
+  search: { base: "flex-row items-center rounded-control px-3 bg-card border border-border", minHeight: 40, minHeightLg: 44, input: "flex-1 ml-2 text-foreground", inputSize: "text-meta", inputSizeLg: "text-body" },
   badge: {
     sm: { pad: "px-2 py-0.5", label: "text-label font-semibold", icon: 10 },
     md: { pad: "px-2.5 py-1", label: "text-meta font-semibold", icon: 12 },
@@ -230,4 +275,4 @@ const COMPONENTS = {
   progress: { height: 8 },
 };
 
-module.exports = { teal, SEMANTIC, TYPE, SCALE_OVERRIDES, RADIUS, MOTION, DATA, COMPONENTS };
+module.exports = { teal, SEMANTIC, TYPE, SCALE_OVERRIDES, RADIUS, MOTION, DATA, MONEY, COMPONENTS };

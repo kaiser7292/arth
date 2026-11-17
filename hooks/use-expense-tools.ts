@@ -48,6 +48,7 @@ export function useExpenseTools({
 
   return useListTools<Expense>({
     screen,
+    noun: { one: "transaction", many: "transactions" },
     rows: expenses,
     fields,
     sort,

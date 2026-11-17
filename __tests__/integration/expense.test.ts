@@ -245,6 +245,7 @@ describe("getExpensesPaginated", () => {
       "user-1",
       "realized",
       "cat-1",
+      "cat-1", // again: its sub-categories (095)
       50,
       0,
     );
@@ -296,6 +297,7 @@ describe("getExpensesPaginated", () => {
       "2026-04-01",
       "2026-04-30",
       "cat-1",
+      "cat-1", // again: its sub-categories (095)
       "%food%",
       "%food%",
       50,
@@ -359,6 +361,7 @@ describe("getCategoryMonthlyTrend", () => {
       expect.stringContaining("GROUP BY"),
       "user-1",
       "cat-1",
+      "cat-1", // again: its sub-categories (095)
       expect.any(String),
       expect.any(String),
     );
@@ -402,6 +405,7 @@ describe("getCategoryMonthlyTrend", () => {
       expect.stringContaining("category_id = ?"),
       "user-1",
       "cat-food",
+      "cat-food", // again: its sub-categories (095)
       expect.stringMatching(/^\d{4}-\d{2}-01$/),
       expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
     );

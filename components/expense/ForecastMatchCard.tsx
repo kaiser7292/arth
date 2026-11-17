@@ -1,6 +1,5 @@
 
 import { Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import type { ForecastMatchPair } from "@/services/expense";
 
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
@@ -22,16 +21,15 @@ export function ForecastMatchCard({
   onAlreadyCaptured,
   onBothDifferent,
 }: ForecastMatchCardProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const { forecast, realized } = pair;
 
   return (
-    <Rows className="mx-4 my-2 rounded-xl bg-card border border-border overflow-hidden">
+    <Rows className="mx-4 my-2 rounded-control bg-card border border-border overflow-hidden">
       {/* Header */}
       <View className="flex-row items-center px-3 py-2 bg-warning/8">
         <Ionicons name="git-compare-outline" size={14} color={theme.warning} />
-        <Text className="text-xs font-semibold ml-1.5 uppercase tracking-wide" style={{ color: theme.warning }}>
+        <Text className="text-label font-semibold ml-1.5 uppercase tracking-wide" style={{ color: theme.warning }}>
           Possible Match
         </Text>
       </View>
@@ -42,24 +40,24 @@ export function ForecastMatchCard({
           <View className="px-1.5 py-0.5 rounded bg-warning/8 mr-2">
             <Text className="text-label font-bold" style={{ color: theme.warning }}>FORECAST</Text>
           </View>
-          <Text className="text-xs text-faint-foreground">
+          <Text className="text-label text-faint-foreground">
             Due {formatDateForDisplay(forecast.due_date ?? forecast.date)}
           </Text>
         </View>
         <Text
-          className="text-sm text-foreground"
+          className="text-meta text-foreground"
           numberOfLines={1}
         >
           {forecast.description || forecast.merchant_name || "Forecast expense"}
         </Text>
-        <Text className="text-base font-bold text-foreground mt-0.5">
+        <Text className="text-body font-bold text-foreground mt-0.5">
           {formatAmount(forecast.amount)}
         </Text>
       </View>
 
       {/* Match indicator */}
       <View className="items-center py-1">
-        <Ionicons name="swap-vertical" size={16} color={colors.textSecondary} />
+        <Ionicons name="swap-vertical" size={16} color={theme.mutedForeground} />
       </View>
 
       {/* Realized card */}
@@ -68,17 +66,17 @@ export function ForecastMatchCard({
           <View className="px-1.5 py-0.5 rounded mr-2" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
             <Text className="text-label font-bold" style={{ color: theme.primary }}>ACTUAL</Text>
           </View>
-          <Text className="text-xs text-faint-foreground">
+          <Text className="text-label text-faint-foreground">
             {formatDateForDisplay(realized.date)}
           </Text>
         </View>
         <Text
-          className="text-sm text-foreground"
+          className="text-meta text-foreground"
           numberOfLines={1}
         >
           {realized.description || realized.merchant_name || "Bank transaction"}
         </Text>
-        <Text className="text-base font-bold text-foreground mt-0.5">
+        <Text className="text-body font-bold text-foreground mt-0.5">
           {formatAmount(realized.amount)}
         </Text>
       </View>
@@ -87,32 +85,32 @@ export function ForecastMatchCard({
       <View className="flex-row px-2 py-2.5">
         <Pressable
           onPress={() => onRealize(forecast.id, realized.id)}
-          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-lg bg-success/8"
+          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-control bg-success/8"
         >
           <Ionicons name="checkmark-circle" size={16} color={theme.success} />
-          <Text className="text-xs font-semibold ml-1" style={{ color: theme.success }}>
+          <Text className="text-label font-semibold ml-1" style={{ color: theme.success }}>
             Realise
           </Text>
         </Pressable>
 
         <Pressable
           onPress={() => onAlreadyCaptured(forecast.id, realized.id)}
-          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-lg"
+          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-control"
           style={{ backgroundColor: theme.alpha("primary", 0.08) }}
         >
-          <Ionicons name="duplicate" size={16} color={colors.blue} />
-          <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>
+          <Ionicons name="duplicate" size={16} color={theme.primary} />
+          <Text className="text-label font-semibold ml-1" style={{ color: theme.primary }}>
             Already Captured
           </Text>
         </Pressable>
 
         <Pressable
           onPress={() => onBothDifferent(forecast.id, realized.id)}
-          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-lg"
-          style={{ backgroundColor: colors.textSecondary + '14' }}
+          className="flex-1 flex-row items-center justify-center py-2 mx-1 rounded-control"
+          style={{ backgroundColor: theme.mutedForeground + '14' }}
         >
-          <Ionicons name="git-branch" size={16} color={colors.textSecondary} />
-          <Text className="text-xs font-semibold ml-1" style={{ color: colors.textSecondary }}>
+          <Ionicons name="git-branch" size={16} color={theme.mutedForeground} />
+          <Text className="text-label font-semibold ml-1" style={{ color: theme.mutedForeground }}>
             Both Different
           </Text>
         </Pressable>

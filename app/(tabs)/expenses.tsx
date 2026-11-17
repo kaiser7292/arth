@@ -21,9 +21,8 @@ import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
 import { useRouter, useFocusEffect, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, useToast } from "@/components/ui";
+import { ContextualHeader, DateInput, EmptyState, FABMenu, GroupHeading, ListCapNote, ListToolbar, LoadFailed, Money, ScreenContainer, SkeletonList, SwipePager, Text, moneyTone, useToast } from "@/components/ui";
 import type { FABMenuItem, SwipePagerPage, ToolbarChip } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
@@ -32,6 +31,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { getDataVersion } from "@/services/settings";
 import {
   getExpensesPaginated,
+  countFilteredExpenses,
   getFilteredExpenseSummary,
   getFilteredMonthTotals,
   getPendingExpenseCount,
@@ -62,6 +62,7 @@ import type { Tag } from "@/services/tags";
 import { formatAmount } from "@/utils/expense-validation";
 import { ExpenseListRow } from "@/components/expense/ExpenseListRow";
 import { FilterDropdown } from "@/components/expense/FilterDropdown";
+import { CategoryPickerSheet } from "@/components/expense/catch-up/CategoryPickerSheet";
 import { TransactionFilterSheet, draftTotal, type TxFilterDraft } from "@/components/expense/TransactionFilterSheet";
 import { DrawerBody, DrawerEmpty, DrawerEnd, DrawerLoading, MonthDrawerHeader, type DrawerMode } from "@/components/expense/MonthDrawer";
 import { buildDrawerRows, monthBounds, orderMonths, summarizeByMonth, type DrawerRow, type MonthSummary } from "@/utils/month-drawers";
@@ -117,6 +118,39 @@ const NATURE_TABS: SwipePagerPage[] = [
   { key: "transfers", label: "Transfers" },
 ];
 
+/** The query a set of filters runs. One place, so the list and the sheet's count can't disagree. */
+function filtersFromDraft(
+  d: Omit<TxFilterDraft, "groupBy">,
+  filterNature: "realized" | "committed" | "credit" | "transfers" | "all",
+  search: string,
+) {
+  const { start, end } = resolveDatePreset(d.datePreset, d.customStart, d.customEnd);
+  const minN = parseFloat(d.minAmount);
+  const maxN = parseFloat(d.maxAmount);
+  const nature: "realized" | "credit" | "all" = filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "realized";
+  const segment = filterNature === "committed" ? ("committed" as const) : filterNature === "realized" ? ("spend" as const) : undefined;
+  return {
+    startDate: start,
+    endDate: end,
+    search: search.trim() || undefined,
+    categoryIds: d.categoryIds.length > 0 ? d.categoryIds : undefined,
+    creditKinds: d.creditKinds.length > 0 ? d.creditKinds : undefined,
+    paymentModeIds: d.paymentModeIds.length > 0 ? d.paymentModeIds : undefined,
+    accountIds: d.accountIds.length > 0 ? d.accountIds : undefined,
+    tagIds: d.tagIds.length > 0 ? d.tagIds : undefined,
+    merchantNames: d.merchantNames.length > 0 ? d.merchantNames : undefined,
+    refundedStatus: d.refundedStatus || undefined,
+    avoidability: d.avoidability || undefined,
+    ruleIds: d.ruleIds.length > 0 ? d.ruleIds : undefined,
+    status: d.status || undefined,
+    minAmount: Number.isFinite(minN) ? minN : undefined,
+    maxAmount: Number.isFinite(maxN) ? maxN : undefined,
+    sortBy: d.sortBy as ExpenseSortBy,
+    nature,
+    segment,
+  };
+}
+
 export default function ExpensesScreen() {
   const alert = useAlert();
   useCustomisation();
@@ -124,7 +158,6 @@ export default function ExpensesScreen() {
     (t) => (t.key !== "committed" || isPartOn("tx_committed")) && (t.key !== "transfers" || isPartOn("tx_transfers")),
   );
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const toast = useToast();
 
@@ -400,32 +433,28 @@ export default function ExpensesScreen() {
         }
 
         const offset = reset ? 0 : expensesLenRef.current;
-        const minN = parseFloat(minAmount);
-        const maxN = parseFloat(maxAmount);
-        const nature: "realized" | "credit" | "all" = filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "realized";
-        const segment = filterNature === "committed" ? "committed" as const
-          : filterNature === "realized" ? "spend" as const
-          : undefined;
-        const filters = {
-          startDate: filterStartDate,
-          endDate: filterEndDate,
-          search: debouncedSearch.trim() || undefined,
-          categoryIds: filterCategoryIds.length > 0 ? filterCategoryIds : undefined,
-          creditKinds: filterCreditKinds.length > 0 ? filterCreditKinds : undefined,
-          paymentModeIds: filterPaymentModeIds.length > 0 ? filterPaymentModeIds : undefined,
-          accountIds: filterAccountIds.length > 0 ? filterAccountIds : undefined,
-          tagIds: filterTagIds.length > 0 ? filterTagIds : undefined,
-          merchantNames: filterMerchantNames.length > 0 ? filterMerchantNames : undefined,
-          refundedStatus: filterRefundedStatus || undefined,
-          avoidability: filterAvoidability || undefined,
-          ruleIds: filterRuleIds.length > 0 ? filterRuleIds : undefined,
-          status: filterStatus || undefined,
-          minAmount: Number.isFinite(minN) ? minN : undefined,
-          maxAmount: Number.isFinite(maxN) ? maxN : undefined,
-          sortBy,
-          nature,
-          segment,
-        };
+        const filters = filtersFromDraft(
+          {
+            sortBy,
+            datePreset,
+            customStart: customStartDate,
+            customEnd: customEndDate,
+            categoryIds: filterCategoryIds,
+            creditKinds: filterCreditKinds,
+            minAmount,
+            maxAmount,
+            accountIds: filterAccountIds,
+            paymentModeIds: filterPaymentModeIds,
+            status: filterStatus,
+            tagIds: filterTagIds,
+            merchantNames: filterMerchantNames,
+            refundedStatus: filterRefundedStatus,
+            avoidability: filterAvoidability,
+            ruleIds: filterRuleIds,
+          },
+          filterNature,
+          debouncedSearch,
+        );
         lastFiltersRef.current = filters;
 
         if (drawerMode) {
@@ -502,7 +531,7 @@ export default function ExpensesScreen() {
         setLoading(false);
       }
     },
-    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything, drawerMode, minAmount, maxAmount, loadMonth],
+    [filterSignature, debouncedSearch, filterStartDate, filterEndDate, datePreset, customStartDate, customEndDate, filterCreditKinds, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything, drawerMode, minAmount, maxAmount, loadMonth],
   );
 
   // Load reference data once (skipped if already seeded from preload)
@@ -936,19 +965,21 @@ export default function ExpensesScreen() {
             }
             // manual transfers with no linked expense: all info is in the row, no drilldown
           }}
-          className="flex-row items-center px-4 py-3 border-b border-border"
+          className="flex-row items-start px-4 py-3 border-b border-border"
         >
-          <View className="flex-1">
-            <Text className="text-sm font-medium" style={{ color: colors.text }}>
+          <View className="w-10 h-10 rounded-control items-center justify-center mr-3" style={{ backgroundColor: moneyTone(theme, "moved").bg }}>
+            <Ionicons name="swap-horizontal" size={20} color={moneyTone(theme, "moved").fg} />
+          </View>
+          <View className="flex-1 mr-3">
+            <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
               {item.description || "Transfer"}
             </Text>
-            <Text className="text-xs text-muted-foreground">
+            <Text className="text-meta text-muted-foreground mt-1" numberOfLines={1}>
               {accountName} → {toAccountName}
             </Text>
-            <Text className="text-label text-faint-foreground">{item.date}</Text>
           </View>
           <View className="items-end">
-            <Text className="text-sm font-bold" style={{ color: theme.primary }}>
+            <Text className="text-body font-bold" style={{ color: moneyTone(theme, "moved").fg }}>
               {formatAmount(item.amount)}
             </Text>
             <Pressable
@@ -971,14 +1002,16 @@ export default function ExpensesScreen() {
               }}
               className="mt-1"
               hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel="Delete transfer"
             >
-              <Ionicons name="trash-outline" size={16} color={colors.textSecondary} />
+              <Ionicons name="trash-outline" size={16} color={theme.mutedForeground} />
             </Pressable>
           </View>
         </Pressable>
       );
     },
-    [accountMap, colors, alert, loadExpenses, router],
+    [accountMap, theme, alert, loadExpenses, router],
   );
 
   // Group expenses by date for display. Each entry is either a date header
@@ -1018,6 +1051,25 @@ export default function ExpensesScreen() {
     return rows;
   }, [expenses, grouping.groupBy, grouping.rows, rowAmount]);
 
+  // "+ Add category" on an untagged row: pick one in place, no trip to the detail page.
+  const [categoryFor, setCategoryFor] = useState<Expense | null>(null);
+  const pickCategoryInPlace = useCallback(
+    async (categoryId: string) => {
+      const target = categoryFor;
+      setCategoryFor(null);
+      if (!target) return;
+      await bulkSetCategory([target.id], categoryId);
+      const name = categoryMap.get(categoryId)?.name;
+      toast(name ? `Added to ${name}` : "Category added");
+      // A sub-category made in the picker isn't in the list yet.
+      if (!name) getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => {});
+      loadExpenses(true);
+    },
+    [categoryFor, categoryMap, toast, loadExpenses],
+  );
+  // Under a day heading the row doesn't repeat the date.
+  const hideRowDates = grouping.groupBy === "date" && (sortBy === "date_desc" || sortBy === "date_asc");
+
   const renderExpenseItem = useCallback(
     ({ item }: { item: DateGroupRow }) => {
       if (item._type === "header") {
@@ -1044,39 +1096,21 @@ export default function ExpensesScreen() {
       }
       const expense = item.expense;
       return (
-        <View className="flex-row items-center">
-          {bulkMode && (
-            <Pressable
-              onPress={() => handleItemPress(expense.id)}
-              className="pl-4 pr-1 py-3"
-            >
-              <View
-                className="w-5 h-5 rounded items-center justify-center"
-                style={{
-                  backgroundColor: selectedExpenseIds.has(expense.id) ? theme.primary : "transparent",
-                  borderWidth: selectedExpenseIds.has(expense.id) ? 0 : 1.5,
-                  borderColor: selectedExpenseIds.has(expense.id) ? theme.primary : colors.border,
-                }}
-              >
-                {selectedExpenseIds.has(expense.id) && <Ionicons name="checkmark" size={13} color="#FFFFFF" />}
-              </View>
-            </Pressable>
-          )}
-          <View className="flex-1">
-            <ExpenseListRow
-              item={expense}
-              categoryMap={categoryMap}
-              paymentModeMap={paymentModeMap}
-              accountMap={accountMap}
-              refundedMap={refundedMap}
-              onPress={handleItemPress}
-              onLongPress={handleLongPress}
-            />
-          </View>
-        </View>
+        <ExpenseListRow
+          item={expense}
+          categoryMap={categoryMap}
+          paymentModeMap={paymentModeMap}
+          accountMap={accountMap}
+          refundedMap={refundedMap}
+          onPress={handleItemPress}
+          onLongPress={handleLongPress}
+          selected={bulkMode && selectedExpenseIds.has(expense.id)}
+          hideDate={hideRowDates}
+          onAddCategory={bulkMode ? undefined : setCategoryFor}
+        />
       );
     },
-    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, colors],
+    [categoryMap, paymentModeMap, accountMap, refundedMap, handleItemPress, handleLongPress, bulkMode, selectedExpenseIds, hideRowDates],
   );
 
   // ── Month drawers ──
@@ -1231,6 +1265,18 @@ export default function ExpensesScreen() {
   };
   const appliedCount = draftTotal(currentDraft, DEFAULT_PRESET);
 
+  // The filter sheet's "Show 24 transactions": same query as the list, counted.
+  const countForDraft = useCallback(
+    async (d: TxFilterDraft): Promise<number | null> => {
+      if (filterNature === "transfers") {
+        const { start, end } = resolveDatePreset(d.datePreset, d.customStart, d.customEnd);
+        return (await getTransfersForUser(DEFAULT_USER_ID, start || "", end || "")).length;
+      }
+      return countFilteredExpenses(DEFAULT_USER_ID, filtersFromDraft(d, filterNature, debouncedSearch));
+    },
+    [filterNature, debouncedSearch],
+  );
+
   const applyDraft = (d: TxFilterDraft) => {
     if (d.sortBy !== sortBy) chooseSort(d.sortBy as ExpenseSortBy);
     if (filterNature === "transfers") setTransferGroupBy(d.groupBy as TransferGroupBy);
@@ -1338,7 +1384,7 @@ export default function ExpensesScreen() {
         <Text className="text-meta font-semibold text-foreground">{DATE_PRESET_LABELS[datePreset]}</Text>
         <Ionicons name="chevron-down" size={14} color={theme.foreground} />
       </Pressable>
-      <Text className="text-xs text-muted-foreground flex-shrink" numberOfLines={1}>{rangeLabel}</Text>
+      <Text className="text-meta text-muted-foreground flex-shrink" numberOfLines={1}>{rangeLabel}</Text>
     </View>
   );
 
@@ -1375,23 +1421,25 @@ export default function ExpensesScreen() {
               onPress={applyNLSearch}
               accessibilityLabel="Apply smart search"
               accessibilityRole="button"
-              className="ml-2 px-2 py-1 rounded-md"
+              className="ml-2 px-2.5 py-1 rounded-pill"
               style={{ backgroundColor: theme.primary }}
             >
-              <Text className="text-xs font-semibold text-primary-foreground">Apply</Text>
+              <Text className="text-label font-semibold text-primary-foreground">Apply</Text>
             </Pressable>
           ) : isSpeechRecognitionAvailable ? (
             <Pressable onPress={startVoiceSearch} accessibilityLabel="Voice search" accessibilityRole="button" className="ml-2 p-1">
-              <Ionicons name="mic-outline" size={18} color={colors.textSecondary} />
+              <Ionicons name="mic-outline" size={18} color={theme.mutedForeground} />
             </Pressable>
           ) : null,
         }}
-        filter={{ onPress: () => setFilterSheet({ open: true }), activeCount: appliedCount, showCount: true }}
+        filter={{ onPress: () => setFilterSheet({ open: true }), activeCount: appliedCount - (filterNature !== "transfers" && sortBy !== "date_desc" ? 1 : 0), showCount: true }}
         sort={filterNature === "transfers" ? undefined : {
           value: sortBy,
           defaultValue: "date_desc",
           options: EXPENSE_SORT_OPTIONS,
           onChange: chooseSort,
+          // Sort and group are the first sections of the filter sheet.
+          inSheet: true,
         }}
         chips={toolbarChips}
         onClearAll={() => {
@@ -1411,21 +1459,31 @@ export default function ExpensesScreen() {
             value={saveViewName}
             onChangeText={setSaveViewName}
             placeholder="View name..."
-            placeholderTextColor={colors.tabIconDefault}
+            placeholderTextColor={theme.mutedForeground}
             autoFocus
             maxLength={30}
             onSubmitEditing={confirmSaveView}
             returnKeyType="done"
-            className="flex-1 text-sm text-foreground bg-card rounded-lg px-3 py-2 mr-2"
+            className="flex-1 text-body text-foreground bg-card border border-border rounded-control px-3 py-2.5 mr-2"
           />
-          <Pressable onPress={confirmSaveView} className="px-3 py-2 rounded-lg" style={{ backgroundColor: theme.primary }}>
-            <Text className="text-xs font-medium text-primary-foreground">Save</Text>
+          <Pressable onPress={confirmSaveView} className="px-4 py-2.5 rounded-pill" style={{ backgroundColor: theme.primary }} accessibilityRole="button">
+            <Text className="text-meta font-semibold text-primary-foreground">Save</Text>
           </Pressable>
-          <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2">
-            <Ionicons name="close" size={18} color={colors.textSecondary} />
+          <Pressable onPress={() => setShowSaveViewInput(false)} className="ml-2" hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel saving view">
+            <Ionicons name="close" size={18} color={theme.mutedForeground} />
           </Pressable>
         </View>
       )}
+
+      <CategoryPickerSheet
+        visible={categoryFor != null}
+        categories={categories}
+        selectedId={null}
+        onSelect={pickCategoryInPlace}
+        onClose={() => setCategoryFor(null)}
+        merchantName={categoryFor?.merchant_name}
+        allowCreate
+      />
 
       <TransactionFilterSheet
         visible={filterSheet.open}
@@ -1457,6 +1515,7 @@ export default function ExpensesScreen() {
         onApplyView={applyFilterView}
         onDeleteView={(v) => handleDeleteView(v.id, v.name)}
         onToggleDefaultView={(v) => handleSetDefault(v.id)}
+        countFor={countForDraft}
       />
 
       {/* Nature tabs + transaction list */}
@@ -1509,16 +1568,16 @@ export default function ExpensesScreen() {
                   ListHeaderComponent={
                     transfers.length > 0 ? (
                       <>
-                      <View className="mx-4 my-2 p-4 rounded-xl bg-card">
+                      <View className="mx-4 my-2 p-4 rounded-card bg-card">
                         <View className="flex-row items-center justify-between">
-                          <Text className="text-sm font-medium text-muted-foreground">
+                          <Text className="text-meta font-medium text-muted-foreground">
                             Total transfers
                           </Text>
-                          <Text className="text-lg font-bold" style={{ color: TRANSFER_COLOR }}>
+                          <Text className="text-heading font-bold" style={{ color: TRANSFER_COLOR }}>
                             {formatAmount(transfers.reduce((sum, t) => sum + t.amount, 0))}
                           </Text>
                         </View>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
+                        <Text className="text-meta text-muted-foreground mt-0.5">
                           {transfers.length} {transfers.length === 1 ? "transfer" : "transfers"}
                         </Text>
                       </View>
@@ -1711,16 +1770,16 @@ export default function ExpensesScreen() {
       {bulkPickerType === "date" && (
         <View className="absolute left-0 right-0 bottom-0 top-0 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.4)", zIndex: 100 }}>
           <Pressable className="flex-1" onPress={() => setBulkPickerType(null)} />
-          <View className="rounded-t-2xl px-4 pt-4 pb-8" style={{ backgroundColor: colors.background }}>
-            <Text className="text-sm font-semibold text-foreground mb-3">Set date</Text>
+          <View className="rounded-t-sheet px-4 pt-4 pb-8" style={{ backgroundColor: theme.card }}>
+            <Text className="text-heading font-bold text-foreground mb-3">Set date</Text>
             <DateInput
               label=""
               value=""
               onChange={(date) => { if (date) handleBulkApply("date", date); }}
               maximumDate={null}
             />
-            <Pressable onPress={() => setBulkPickerType(null)} className="mt-3">
-              <Text className="text-xs text-center" style={{ color: theme.primary }}>Cancel</Text>
+            <Pressable onPress={() => setBulkPickerType(null)} className="mt-3 py-2" accessibilityRole="button">
+              <Text className="text-body font-semibold text-center" style={{ color: theme.primary }}>Cancel</Text>
             </Pressable>
           </View>
         </View>

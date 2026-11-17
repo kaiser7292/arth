@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ComponentProps } from "react";
-import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
+import { FullScreenFilter, applySortGroup, sortGroupSections } from "@/components/expense/FullScreenFilter";
 import type { ListToolbarProps, ToolbarChip, ToolbarChoice } from "@/components/ui";
 import { useGroupBy } from "@/hooks/use-group-by";
 import {
@@ -43,6 +43,7 @@ export function useListTools<T>({
   noGrouping = true,
   amountOf,
   extraFilter,
+  noun,
 }: {
   screen: string;
   rows: readonly T[];
@@ -58,6 +59,8 @@ export function useListTools<T>({
   noGrouping?: boolean;
   amountOf?: (row: T) => number;
   extraFilter?: ExtraFilter;
+  /** What the rows are called, for the filter sheet's "Show 24 merchants". */
+  noun?: { one: string; many: string };
 }) {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Record<string, string[]>>({});
@@ -115,19 +118,23 @@ export function useListTools<T>({
       ? { value: sortBy, defaultValue: firstSort, options: sorts.map((s) => ({ value: s.id, label: s.label })), onChange: setSortBy }
       : undefined);
 
+  const groupChoice: ToolbarChoice<string> | undefined =
+    groupIds.length > 1
+      ? {
+          value: groupBy,
+          defaultValue: defaultGroup,
+          options: groupIds.map((id) => ({ value: id, label: id === NONE ? "None" : (groupFields.find((f) => f.id === id)?.label ?? id) })),
+          onChange: setGroupBy,
+        }
+      : undefined;
+  // Sort, filter and group are set in one sheet, the same on every list (and as on Transactions).
+  const hasSheet = filterFields.length > 0 || !!extraFilter || !!sortChoice || !!groupChoice;
+
   const toolbar: ListToolbarProps<string, string> = {
     search: search ? { value: query, onChangeText: setQuery, placeholder: searchPlaceholder } : undefined,
-    filter: filterFields.length > 0 || extraFilter ? { onPress: () => setFilterOpen(true), activeCount } : undefined,
-    sort: sortChoice,
-    group:
-      groupIds.length > 1
-        ? {
-            value: groupBy,
-            defaultValue: defaultGroup,
-            options: groupIds.map((id) => ({ value: id, label: id === NONE ? "None" : (groupFields.find((f) => f.id === id)?.label ?? id) })),
-            onChange: setGroupBy,
-          }
-        : undefined,
+    filter: hasSheet ? { onPress: () => setFilterOpen(true), activeCount } : undefined,
+    sort: sortChoice ? { ...sortChoice, inSheet: true } : undefined,
+    group: groupChoice ? { ...groupChoice, inSheet: true } : undefined,
     chips,
     onClearAll: clearFilters,
   };
@@ -136,6 +143,7 @@ export function useListTools<T>({
     <FullScreenFilter
       visible
       sections={[
+        ...sortGroupSections(sortChoice, groupChoice),
         ...(extraFilter?.sections ?? []),
         ...filterFields.map((f) => ({
           key: f.id,
@@ -147,11 +155,26 @@ export function useListTools<T>({
         })),
       ]}
       onApply={(selections) => {
+        applySortGroup(selections, sortChoice, groupChoice);
         setFilters(Object.fromEntries(filterFields.map((f) => [f.id, selections[f.id] ?? []])));
         extraFilter?.onApply(selections);
       }}
-      onReset={clearFilters}
+      onReset={() => {
+        clearFilters();
+        if (sortChoice) sortChoice.onChange(sortChoice.defaultValue);
+        if (groupChoice) groupChoice.onChange(groupChoice.defaultValue);
+      }}
       onClose={() => setFilterOpen(false)}
+      noun={noun}
+      countFor={(selections) => {
+        // A screen's own filters (a date range that decides what is loaded) can't be counted here.
+        const extraChanged = (extraFilter?.sections ?? []).some(
+          (s) => (selections[s.key] ?? []).join("|") !== s.selectedIds.join("|"),
+        );
+        if (extraChanged) return null;
+        const own = Object.fromEntries(filterFields.map((f) => [f.id, selections[f.id] ?? []]));
+        return filterRows(rows, fields, own, query, search).length;
+      }}
     />
   ) : null;
 

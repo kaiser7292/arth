@@ -47,7 +47,8 @@ export default function BudgetConfigScreen() {
       ]);
 
       const budgetMap = new Map(budgets.map((b) => [b.category_id, b]));
-      const merged: BudgetRow[] = categories.map((cat) => {
+      // Budgets go on top-level categories (sub-categories count toward their parent).
+      const merged: BudgetRow[] = categories.filter((cat) => !cat.parent_id).map((cat) => {
         const budget = budgetMap.get(cat.id) ?? null;
         return {
           category: cat,

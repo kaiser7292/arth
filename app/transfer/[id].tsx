@@ -3,8 +3,7 @@ import { View, ScrollView, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, ScreenContainer, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ActionRow, EmptyState, FieldRow, ScreenContainer, SectionTitle, Text, moneyTone } from "@/components/ui";
 import { useAlert } from "@/hooks/use-alert";
 
 import { formatAmount } from "@/utils/format";
@@ -30,7 +29,6 @@ function accountLabel(acct: FinancialAccount | undefined): string {
 export default function TransferDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const alert = useAlert();
 
@@ -94,92 +92,52 @@ export default function TransferDetailScreen() {
         options={{
           title: "Transfer",
           headerBackTitle: "Back",
-          headerRight: () => (
-            <Pressable onPress={handleDelete} hitSlop={8}>
-              <Ionicons name="trash-outline" size={20} color={theme.danger} />
-            </Pressable>
-          ),
         }}
       />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
         {transfer ? (
           <>
-            {/* Amount card */}
-            <Card className="mx-4 mt-3 mb-2">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Amount
+            {/* Hero: icon, what, the amount in the moved tone, one meta line */}
+            <View className="px-4 pt-5 pb-4 items-center">
+              <View className="w-14 h-14 rounded-card items-center justify-center mb-3" style={{ backgroundColor: moneyTone(theme, "moved").bg }}>
+                <Ionicons name="swap-horizontal" size={26} color={moneyTone(theme, "moved").fg} />
+              </View>
+              <Text className="text-heading font-semibold text-foreground text-center" numberOfLines={2}>
+                {transfer.description || "Transfer"}
               </Text>
-              <Text className="text-2xl font-bold" style={{ color: theme.primary }}>
+              <Text className="text-hero font-bold mt-2" style={{ color: moneyTone(theme, "moved").fg }}>
                 {formatAmount(transfer.amount)}
               </Text>
-              <Text className="text-xs text-muted-foreground mt-1">
-                {formatDate(transfer.date)}
-              </Text>
-            </Card>
-
-            {/* From → To card */}
-            <Card className="mx-4 mb-2">
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Accounts
-              </Text>
-              <View className="flex-row items-center">
-                <View className="flex-1">
-                  <Text className="text-label text-faint-foreground uppercase tracking-wider mb-0.5">
-                    From
-                  </Text>
-                  <Text className="text-sm font-semibold text-foreground">
-                    {accountLabel(fromAcct)}
-                  </Text>
-                  {fromAcct?.bank_name && (
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      {fromAcct.bank_name}
-                    </Text>
-                  )}
-                </View>
-                <Ionicons name="arrow-forward" size={20} color={colors.textSecondary} style={{ marginHorizontal: 12 }} />
-                <View className="flex-1">
-                  <Text className="text-label text-faint-foreground uppercase tracking-wider mb-0.5">
-                    To
-                  </Text>
-                  <Text className="text-sm font-semibold text-foreground">
-                    {accountLabel(toAcct)}
-                  </Text>
-                  {toAcct?.bank_name && (
-                    <Text className="text-xs text-muted-foreground mt-0.5">
-                      {toAcct.bank_name}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            </Card>
-
-            {/* Description card */}
-            {transfer.description ? (
-              <Card className="mx-4 mb-2">
-                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                  Note
-                </Text>
-                <Text className="text-sm text-foreground">
-                  {transfer.description}
-                </Text>
-              </Card>
-            ) : null}
-
-            {/* Source badge */}
-            <View className="mx-4 mb-2">
-              <Text className="text-xs text-faint-foreground">
-                Source: {transfer.source === "sms_auto" ? "Auto-detected from SMS" : "Manual entry"}
+              <Text className="text-meta text-muted-foreground mt-1.5 text-center">
+                {formatDate(transfer.date)} · {transfer.source === "sms_auto" ? "From SMS" : "Added by you"}
               </Text>
             </View>
+
+            <ActionRow
+              className="mx-4 mb-1"
+              items={[
+                { key: "from", label: "From ledger", icon: "business-outline", onPress: () => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: transfer.from_account_id } }) },
+                { key: "to", label: "To ledger", icon: "enter-outline", onPress: () => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: transfer.to_account_id } }) },
+                { key: "delete", label: "Delete", icon: "trash-outline", onPress: handleDelete, danger: true },
+              ]}
+            />
+
+            <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pt-4 pb-1">
+              <SectionTitle icon="swap-horizontal-outline" title="Where it moved" className="mb-2" />
+              <FieldRow divider={false} label="From" value={fromAcct ? `${accountLabel(fromAcct)}${fromAcct.bank_name ? ` · ${fromAcct.bank_name}` : ""}` : "Unknown account"} />
+              <FieldRow label="To" value={toAcct ? `${accountLabel(toAcct)}${toAcct.bank_name ? ` · ${toAcct.bank_name}` : ""}` : "Unknown account"} />
+            </View>
+
+            {transfer.description ? (
+              <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pt-4 pb-1">
+                <SectionTitle icon="pricetags-outline" title="What" className="mb-2" />
+                <FieldRow divider={false} label="Note" value={transfer.description} multiline />
+              </View>
+            ) : null}
           </>
         ) : (
-          <View className="items-center py-16">
-            <Ionicons name="swap-horizontal-outline" size={40} color={colors.textSecondary} />
-            <Text className="text-sm text-muted-foreground mt-3">
-              Transfer not found
-            </Text>
-          </View>
+          <EmptyState icon="swap-horizontal-outline" title="Transfer not found" subtitle="It may have been deleted." />
         )}
       </ScrollView>
     </ScreenContainer>

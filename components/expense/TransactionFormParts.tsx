@@ -6,10 +6,14 @@ import { Chevron } from "@/components/motion/Chevron";
 import { Collapse } from "@/components/motion/Collapse";
 import { timing } from "@/components/motion/motion";
 
-import { Button, Text } from "@/components/ui";
+import { Button, Text, moneyTone } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
+import { RADIUS } from "@/constants/design-tokens";
 import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, PICKABLE_CREDIT_KINDS, type CreditKind } from "@/services/expense-types";
 import { formatDateForStorage } from "@/utils/expense-validation";
+
+/** The sliding pill sits 4px inside a rounded-control track, so its corner is a little tighter. */
+const INNER_RADIUS = parseInt(RADIUS.control, 10) - 2;
 
 /** What the add/edit form is recording. Maps to nature 'realized' / 'credit', or an account transfer. */
 export type TransactionType = "spent" | "received" | "transfer";
@@ -20,10 +24,10 @@ export const TYPE_LABEL: Record<TransactionType, { noun: string; amountHint: str
   transfer: { noun: "transfer", amountHint: "Between your accounts" },
 };
 
-/** Tone per type: red-ish for money out, green for money in, primary for transfers. */
+/** Money tone per type: ink for money out (spending is normal, not an alarm), green for in, purple for moved. */
 export function useTypeColor(type: TransactionType): string {
   const theme = useTheme();
-  return type === "spent" ? theme.danger : type === "received" ? theme.success : theme.primary;
+  return moneyTone(theme, type === "spent" ? "out" : type === "received" ? "in" : "moved").fg;
 }
 
 /** Spent · Received · Transfer. */
@@ -61,7 +65,7 @@ export function TransactionTypeSwitch({
   const pill = useAnimatedStyle(() => ({ left: left.value, opacity: placed.value }));
   return (
     <View
-      className="flex-row rounded-xl p-1 mb-4"
+      className="flex-row rounded-control p-1 mb-4"
       style={{ backgroundColor: theme.alpha("foreground", 0.06) }}
       onLayout={(e) => {
         const w = e.nativeEvent.layout.width;
@@ -70,22 +74,22 @@ export function TransactionTypeSwitch({
     >
       <Animated.View
         pointerEvents="none"
-        style={[{ position: "absolute", top: 4, bottom: 4, width: segment, borderRadius: 8, backgroundColor: theme.card }, pill]}
+        style={[{ position: "absolute", top: 4, bottom: 4, width: segment, borderRadius: INNER_RADIUS, backgroundColor: theme.card }, pill]}
       />
       {shown
         .map((o) => {
           const selected = o.t === value;
-          const tone = o.t === "spent" ? theme.danger : o.t === "received" ? theme.success : theme.primary;
+          const tone = moneyTone(theme, o.t === "spent" ? "out" : o.t === "received" ? "in" : "moved").fg;
           return (
             <Pressable
               key={o.t}
               onPress={() => onChange(o.t)}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
-              className="flex-1 items-center py-2 rounded-lg"
+              className="flex-1 items-center py-2 rounded-control"
             >
               <Text
-                className={`text-sm ${selected ? "font-semibold" : "font-medium"}`}
+                className={`text-body ${selected ? "font-semibold" : "font-medium"}`}
                 style={{ color: selected ? tone : theme.mutedForeground }}
               >
                 {o.label}
@@ -108,7 +112,7 @@ export function CreditKindChips({
   const theme = useTheme();
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-muted-foreground mb-2">Type</Text>
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">Type</Text>
       <View className="flex-row flex-wrap gap-2">
         {PICKABLE_CREDIT_KINDS.map((k) => {
           const selected = k === value;
@@ -131,7 +135,7 @@ export function CreditKindChips({
                 color={selected ? theme.success : CREDIT_KIND_LOOKS[k].color}
                 style={{ marginRight: 5 }}
               />
-              <Text className="text-sm" style={{ color: selected ? theme.success : theme.mutedForeground }}>
+              <Text className="text-meta" style={{ color: selected ? theme.success : theme.mutedForeground }}>
                 {CREDIT_KIND_LABELS[k]}
               </Text>
             </Pressable>
@@ -168,7 +172,7 @@ export function DateQuickChips({ date, onSetDate }: { date: string; onSetDate: (
                 : { borderColor: theme.border }
             }
           >
-            <Text className="text-sm" style={{ color: selected ? theme.primary : theme.mutedForeground }}>
+            <Text className="text-meta" style={{ color: selected ? theme.primary : theme.mutedForeground }}>
               {label}
             </Text>
           </Pressable>
@@ -197,10 +201,10 @@ export function MoreOptions({
         onPress={onToggle}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        className="flex-row items-center justify-between rounded-lg border border-border px-4 py-3"
+        className="flex-row items-center justify-between rounded-control border border-border px-4 py-3"
         style={{ backgroundColor: theme.alpha("foreground", 0.03) }}
       >
-        <Text className="text-sm text-muted-foreground flex-1" numberOfLines={1}>
+        <Text className="text-meta text-muted-foreground flex-1" numberOfLines={1}>
           More options{open ? "" : ` · ${summary}`}
         </Text>
         <Chevron open={open} size={18} color={theme.mutedForeground} />

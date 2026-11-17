@@ -3,7 +3,6 @@ import { Sheet, Text } from "@/components/ui";
 import { View, Pressable,  ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
 import {
@@ -36,7 +35,6 @@ export function InvestmentBucketPickerSheet({
   onPick,
   onClose,
 }: Props) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [buckets, setBuckets] = useState<InvestmentBucket[]>([]);
   const [loading, setLoading] = useState(true);
@@ -87,10 +85,10 @@ export function InvestmentBucketPickerSheet({
   return (
     <Sheet visible={visible} onClose={handleClose}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Mark as investment
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           Pick a bucket to credit this {formatAmount(expenseAmount)}. It won't count toward
           your budget; it counts toward your bucket goal.
         </Text>
@@ -98,14 +96,14 @@ export function InvestmentBucketPickerSheet({
 
       {loading ? (
         <View className="px-5 py-8 items-center">
-          <Text className="text-sm" style={{ color: colors.textSecondary }}>
+          <Text className="text-meta" style={{ color: theme.mutedForeground }}>
             Loading buckets…
           </Text>
         </View>
       ) : buckets.length === 0 ? (
         <View className="px-5 py-8 items-center">
-          <Ionicons name="wallet-outline" size={40} color={colors.textSecondary} />
-          <Text className="text-sm mt-3 text-center" style={{ color: colors.textSecondary }}>
+          <Ionicons name="wallet-outline" size={40} color={theme.mutedForeground} />
+          <Text className="text-meta mt-3 text-center" style={{ color: theme.mutedForeground }}>
             No active investment buckets. Create one from the Goals tab → Investment buckets.
           </Text>
         </View>
@@ -131,11 +129,11 @@ export function InvestmentBucketPickerSheet({
                 onPress={() => handlePick(b.id)}
                 accessibilityRole="button"
                 accessibilityLabel={`Credit ${b.name} bucket. ${formatAmount(b.current_contributed)} of ${formatAmount(b.annual_target)} so far.`}
-                className="py-3 px-4 rounded-xl mb-2"
+                className="py-3 px-4 rounded-control mb-2"
                 style={{
-                  backgroundColor: colors.surface,
+                  backgroundColor: theme.card,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: theme.border,
                 }}
               >
                 <View className="flex-row items-center mb-2">
@@ -151,24 +149,24 @@ export function InvestmentBucketPickerSheet({
                   </View>
                   <View className="flex-1">
                     <Text
-                      className="text-sm font-semibold"
-                      style={{ color: colors.text }}
+                      className="text-body font-semibold"
+                      style={{ color: theme.foreground }}
                     >
                       {b.name}
                     </Text>
-                    <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                    <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                       {fyLabel}
                       {isCurrent ? " · Current FY" : ""}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                  <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
                 </View>
                 {b.annual_target > 0 && (
                   <>
                     <View
                       style={{
                         height: 4,
-                        backgroundColor: colors.border,
+                        backgroundColor: theme.border,
                         borderRadius: 2,
                         overflow: "hidden",
                         marginTop: 4,
@@ -182,7 +180,7 @@ export function InvestmentBucketPickerSheet({
                         }}
                       />
                     </View>
-                    <Text className="text-xs mt-1" style={{ color: colors.textSecondary }}>
+                    <Text className="text-label mt-1" style={{ color: theme.mutedForeground }}>
                       {formatAmount(b.current_contributed)} of {formatAmount(b.annual_target)} ({progress.toFixed(0)}%)
                     </Text>
                   </>
@@ -198,10 +196,10 @@ export function InvestmentBucketPickerSheet({
           onPress={handleClose}
           accessibilityRole="button"
           accessibilityLabel="Cancel"
-          className="py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="py-3 rounded-control items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
             Cancel
           </Text>
         </Pressable>

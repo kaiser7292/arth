@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import { useState, useEffect, useCallback } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable,  FlatList } from "react-native";
@@ -12,7 +13,6 @@ import {
   isPensionLikeAccount,
   type InvestmentProduct,
 } from "@/services/investment-accounts";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
@@ -63,7 +63,6 @@ export function AccountPickerSheet({
   filterTypes = ["savings", "wallet"],
   excludeAccountId,
 }: AccountPickerSheetProps) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
   const [balances, setBalances] = useState<Record<string, number | null>>({});
@@ -110,16 +109,16 @@ export function AccountPickerSheet({
   return (
     <Sheet visible={visible} onClose={handleClose}>
       <Text
-        className="text-base font-bold px-5 pb-3"
-        style={{ color: colors.text }}
+        className="text-body font-bold px-5 pb-3"
+        style={{ color: theme.foreground }}
       >
         {title}
       </Text>
 
       {accounts.length === 0 ? (
         <View className="items-center py-8">
-          <Ionicons name="wallet-outline" size={36} color={colors.textSecondary} />
-          <Text className="text-sm mt-2" style={{ color: colors.textSecondary }}>
+          <Ionicons name="wallet-outline" size={36} color={theme.mutedForeground} />
+          <Text className="text-meta mt-2" style={{ color: theme.mutedForeground }}>
             No accounts found
           </Text>
         </View>
@@ -141,7 +140,7 @@ export function AccountPickerSheet({
             >
               <View
                 className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: theme.primary + "1A" }}
+                style={{ backgroundColor: tint(theme.primary, 0.1) }}
               >
                 <Ionicons
                   name={ACCOUNT_ICONS[resolvedType(item, investmentProducts)] ?? "wallet-outline"}
@@ -151,19 +150,19 @@ export function AccountPickerSheet({
               </View>
               <View className="flex-1">
                 <Text
-                  className="text-sm font-semibold"
-                  style={{ color: colors.text }}
+                  className="text-body font-semibold"
+                  style={{ color: theme.foreground }}
                 >
                   {getLabel(item)}
                 </Text>
-                <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                <Text className="text-label" style={{ color: theme.mutedForeground }}>
                   {withPickerBalance(
                     ACCOUNT_TYPE_LABELS[resolvedType(item, investmentProducts)] ?? item.account_type,
                     balances[item.id],
                   )}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
             </Pressable>
           )}
         />

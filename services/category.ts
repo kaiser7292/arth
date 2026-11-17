@@ -1,9 +1,10 @@
 import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
-import { DEFAULT_CATEGORIES } from "@/database/defaults/categories";
+import { DEFAULT_CATEGORIES, DEFAULT_SUBCATEGORIES } from "@/database/defaults/categories";
 import { iconForCategoryName } from "@/constants/category-icons";
 import { bumpDataVersion } from "@/services/settings";
 import { renameCategoryInMerchantRules } from "@/services/merchant-categories";
+import { parentProblem } from "@/utils/category-tree";
 
 export interface Category {
   id: string;
@@ -14,6 +15,8 @@ export interface Category {
   sort_order: number;
   is_active: number;
   is_unavoidable: number;
+  /** The category this sits under (migration 095); null for a top-level category. One level only. */
+  parent_id: string | null;
 }
 
 export interface CreateCategoryInput {
@@ -22,6 +25,8 @@ export interface CreateCategoryInput {
   icon?: string;
   color?: string;
   is_unavoidable?: 0 | 1;
+  /** Make it a sub-category of this top-level category. Takes the parent's icon and colour unless given. */
+  parent_id?: string | null;
 }
 
 export interface UpdateCategoryInput {
@@ -82,17 +87,26 @@ export async function createCategory(
   );
   const sortOrder = (maxRow?.max_order ?? -1) + 1;
 
+  // A sub-category sits under a top-level one, and looks like it unless told otherwise.
+  let parent: Category | null = null;
+  if (input.parent_id) {
+    parent = await getCategoryById(input.parent_id);
+    if (!parent) throw new Error("That category no longer exists.");
+    if (parent.parent_id) throw new Error("Sub-categories can't have sub-categories of their own.");
+  }
+
   await db.runAsync(
-    `INSERT INTO categories (id, user_id, name, icon, color, sort_order, is_unavoidable)
-     VALUES (?, ?, ?, ?, ?, ?, ?);`,
+    `INSERT INTO categories (id, user_id, name, icon, color, sort_order, is_unavoidable, parent_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
     id,
     input.user_id,
     input.name,
     // No icon given (AI setup, import, quick add): one that fits the name, not the generic "…".
-    input.icon ?? iconForCategoryName(input.name)?.icon ?? "ellipsis-horizontal-circle-outline",
-    input.color ?? iconForCategoryName(input.name)?.color ?? "#6B7280",
+    input.icon ?? parent?.icon ?? iconForCategoryName(input.name)?.icon ?? "ellipsis-horizontal-circle-outline",
+    input.color ?? parent?.color ?? iconForCategoryName(input.name)?.color ?? "#6B7280",
     sortOrder,
-    input.is_unavoidable ?? 0,
+    input.is_unavoidable ?? parent?.is_unavoidable ?? 0,
+    parent?.id ?? null,
   );
 
   bumpDataVersion();
@@ -152,12 +166,46 @@ export async function updateCategory(
   if (before && input.name && before.name !== input.name) {
     await renameCategoryInMerchantRules(before.name, input.name);
   }
+  // Hiding a main category moves its sub-categories up, as deleting one does: otherwise their
+  // spending would count toward a budget row that's no longer shown.
+  if (input.is_active === 0) {
+    await db.runAsync("UPDATE categories SET parent_id = NULL WHERE parent_id = ?;", id);
+  }
   bumpDataVersion();
+}
+
+/**
+ * Put a category under a top-level one, or back to the top (parentId null). One level only: throws
+ * when the new parent is itself a sub-category, or when this category has sub-categories.
+ */
+export async function setCategoryParent(id: string, parentId: string | null): Promise<void> {
+  const db = getDatabase();
+  if (parentId) {
+    const cat = await getCategoryById(id);
+    if (!cat) throw new Error("That category no longer exists.");
+    const siblings = await db.getAllAsync<Category>("SELECT * FROM categories WHERE user_id = ?;", cat.user_id);
+    const problem = parentProblem(id, parentId, siblings);
+    if (problem) throw new Error(problem);
+  }
+  await db.runAsync("UPDATE categories SET parent_id = ? WHERE id = ?;", parentId, id);
+  bumpDataVersion();
+}
+
+/** How many sub-categories sit under this one. */
+export async function getSubcategoryCount(id: string): Promise<number> {
+  const row = await getDatabase().getFirstAsync<{ n: number }>(
+    "SELECT COUNT(*) as n FROM categories WHERE parent_id = ? AND is_active = 1;",
+    id,
+  );
+  return row?.n ?? 0;
 }
 
 /**
  * Soft-delete a category (set is_active = 0).
  * Returns the count of expenses linked to this category.
+ *
+ * Its sub-categories move up to the top level, so they stay usable and keep their transactions.
+ * (Deleting them too would hide spending the owner never asked to hide.)
  */
 export async function deleteCategory(id: string): Promise<number> {
   const db = getDatabase();
@@ -174,6 +222,7 @@ export async function deleteCategory(id: string): Promise<number> {
     "UPDATE categories SET is_active = 0 WHERE id = ?;",
     id,
   );
+  await db.runAsync("UPDATE categories SET parent_id = NULL WHERE parent_id = ?;", id);
 
   bumpDataVersion();
   return linkedExpenses;
@@ -261,6 +310,8 @@ export async function hardDeleteCategory(id: string): Promise<boolean> {
     await db.runAsync("UPDATE hisaab_entries SET category_id = NULL WHERE category_id = ?;", id);
     await db.runAsync("DELETE FROM household_category_map WHERE local_category_id = ?;", id);
     await db.runAsync("UPDATE household_their_categories SET local_category_id = NULL WHERE local_category_id = ?;", id);
+    // Its sub-categories (095) move up to the top level rather than pointing at nothing.
+    await db.runAsync("UPDATE categories SET parent_id = NULL WHERE parent_id = ?;", id);
     await db.runAsync("DELETE FROM categories WHERE id = ?;", id);
   });
 
@@ -335,9 +386,10 @@ export async function seedDefaultCategories(userId: string): Promise<number> {
     return 0;
   }
 
+  let inserted = 0;
   await db.withTransactionAsync(async () => {
-    for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-      const cat = DEFAULT_CATEGORIES[i];
+    let order = 0;
+    for (const cat of DEFAULT_CATEGORIES) {
       const id = generateUUID();
       await db.runAsync(
         `INSERT INTO categories (id, user_id, name, icon, color, sort_order, is_unavoidable)
@@ -347,11 +399,50 @@ export async function seedDefaultCategories(userId: string): Promise<number> {
         cat.name,
         cat.icon,
         cat.color,
-        i,
+        order++,
         cat.is_unavoidable,
       );
+      inserted++;
+      // Its sub-categories (095), in the parent's look.
+      for (const sub of DEFAULT_SUBCATEGORIES[cat.name] ?? []) {
+        await db.runAsync(
+          `INSERT INTO categories (id, user_id, name, icon, color, sort_order, is_unavoidable, parent_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+          generateUUID(),
+          userId,
+          sub,
+          cat.icon,
+          cat.color,
+          order++,
+          cat.is_unavoidable,
+          id,
+        );
+        inserted++;
+      }
     }
   });
 
-  return DEFAULT_CATEGORIES.length;
+  return inserted;
+}
+
+/**
+ * The categories this merchant's past expenses were filed under, most used first. For the picker's
+ * "Used for this merchant before" row.
+ */
+export async function getRecentCategoriesForMerchant(userId: string, merchantName: string, limit = 3): Promise<string[]> {
+  const name = merchantName.trim();
+  if (!name) return [];
+  const rows = await getDatabase().getAllAsync<{ category_id: string }>(
+    `SELECT e.category_id FROM expenses e
+       JOIN categories c ON c.id = e.category_id AND c.is_active = 1
+      WHERE e.user_id = ? AND e.deleted_at IS NULL AND e.category_id IS NOT NULL
+        AND LOWER(TRIM(COALESCE(e.merchant_name, ''))) = LOWER(?)
+      GROUP BY e.category_id
+      ORDER BY COUNT(*) DESC, MAX(e.date) DESC
+      LIMIT ?;`,
+    userId,
+    name,
+    limit,
+  );
+  return rows.map((r) => r.category_id);
 }

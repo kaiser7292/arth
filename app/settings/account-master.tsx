@@ -145,6 +145,7 @@ export default function AccountMasterScreen() {
   );
   const tools = useListTools<AccountWithModes>({
     screen: "account_master",
+    noun: { one: "account", many: "accounts" },
     rows: accounts,
     fields: accountFields,
     search: accountSearch,

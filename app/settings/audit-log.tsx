@@ -1,7 +1,8 @@
-import { Button, DateInput, ListToolbar, ScreenContainer, Sheet, Text } from "@/components/ui";
+import { Button, Chip, DateInput, EmptyState, ListToolbar, RadioRow, ScreenContainer, Sheet, Text, moneyTone } from "@/components/ui";
+import { DrawerBody, DrawerEnd, DrawerHeader } from "@/components/expense/MonthDrawer";
+import { tint } from "@/constants/brand";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import {
     getAuditLog,
@@ -17,7 +18,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, SectionList, View } from "react-native";
 import { useTheme, type Theme } from "@/hooks/use-theme";
-import { FullScreenFilter } from "@/components/expense/FullScreenFilter";
+import { FullScreenFilter, applySortGroup, sortGroupSections } from "@/components/expense/FullScreenFilter";
 import { isoDate } from "@/utils/local-date";
 import { LoadingState } from "@/components/ui";
 
@@ -100,30 +101,21 @@ function AuditDatesSheet({ visible, scope, from, to, onChoose, onClose }: {
   }, [visible, scope, from, to]);
   const wrongWay = !!fromDate && !!toDate && fromDate > toDate;
 
-  const option = (label: string, selected: boolean, onPress: () => void, last = false) => (
-    <Pressable
-      key={label}
-      onPress={onPress}
-      className={`flex-row items-center justify-between py-3 ${last ? "" : "border-b border-border"}`}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-    >
-      <Text className="text-sm text-foreground" style={selected ? { color: theme.primary, fontWeight: "600" } : undefined}>{label}</Text>
-      {selected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
-    </Pressable>
+  const option = (label: string, selected: boolean, onPress: () => void) => (
+    <RadioRow key={label} label={label} on={selected} onPress={onPress} />
   );
 
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View className="px-4 pb-4">
-        <Text className="text-base font-semibold text-foreground mb-2">Dates</Text>
+        <Text className="text-heading font-bold text-foreground mb-2">Dates</Text>
         {DATE_SCOPES.map((o) => option(`Last ${o.label}`, scope === o.key && !customOpen, () => onChoose(o.key, from, to)))}
-        {option("Custom range", customOpen, () => setCustomOpen(true), true)}
+        {option("Custom range", customOpen, () => setCustomOpen(true))}
         {customOpen && (
           <View className="mt-2">
             <DateInput label="From" value={fromDate} onChange={setFromDate} />
             <DateInput label="To" value={toDate} onChange={setToDate} />
-            {wrongWay && <Text className="text-xs text-danger mb-2">&apos;From&apos; must be before &apos;To&apos;</Text>}
+            {wrongWay && <Text className="text-meta text-danger mb-2">&apos;From&apos; must be before &apos;To&apos;</Text>}
             <Button
               title="Apply"
               disabled={!fromDate || !toDate || wrongWay}
@@ -270,7 +262,6 @@ function groupEntriesByDate(entries: AuditLogEntry[]): EntrySection[] {
 
 export default function AuditLogScreen() {
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
 
   const [scope, setScope] = useState<DateScope>("7d");
@@ -395,90 +386,65 @@ export default function AuditLogScreen() {
   const renderItem = useCallback(
     ({ item }: { item: AuditLogEntry }) => {
       const color = actionColor(item.actionType, theme);
+      const amountTone = moneyTone(theme, item.objectType === "credit" ? "in" : item.objectType === "transfer" ? "moved" : "out");
+      const meta = [OBJECT_OPTIONS.find((o) => o.key === item.objectType)?.label.replace(/s$/, ""), item.date, item.accountLabel]
+        .filter(Boolean)
+        .join(" · ");
       return (
-        <Pressable
-          onPress={() => handleOpen(item)}
-          disabled={!item.navigable}
-          className="flex-row items-center mx-4 py-3 border-b border-border"
-          style={{ opacity: item.navigable ? 1 : 0.7 }}
-        >
-          <View
-            className="w-9 h-9 rounded-full items-center justify-center mr-3"
-            style={{ backgroundColor: color + "14" }}
+        <DrawerBody>
+          <Pressable
+            onPress={() => handleOpen(item)}
+            disabled={!item.navigable}
+            className="flex-row items-start px-4 py-3 border-t border-border"
+            accessibilityRole={item.navigable ? "button" : undefined}
           >
-            <Ionicons name={actionIcon(item.actionType)} size={18} color={color} />
-          </View>
-          <View className="flex-1">
-            <Text
-              className="text-sm font-semibold text-foreground"
-              numberOfLines={1}
-            >
-              {item.description}
-            </Text>
-            {/* First metadata line: action badge + SMS tag + type icon + transaction date */}
-            <View className="flex-row items-center flex-wrap mt-0.5 gap-y-1">
-              <View
-                className="px-1.5 py-0.5 rounded mr-1.5"
-                style={{ backgroundColor: color + "14" }}
-              >
-                <Text className="text-label font-semibold" style={{ color }}>
-                  {actionLabel(item.actionType).toUpperCase()}
+            <View className="w-10 h-10 rounded-control items-center justify-center mr-3" style={{ backgroundColor: tint(color, 0.12) }}>
+              <Ionicons name={actionIcon(item.actionType)} size={20} color={color} />
+            </View>
+            <View className="flex-1" style={{ minWidth: 0 }}>
+              <View className="flex-row items-start">
+                <Text className="flex-1 text-body font-semibold text-foreground mr-3" numberOfLines={1}>
+                  {item.description}
+                </Text>
+                <Text className="text-body font-bold" style={{ color: amountTone.fg }}>
+                  {formatAmount(item.amount)}
                 </Text>
               </View>
-              {item.sourceType === "sms" && (
-                <View className="px-1 py-0.5 rounded bg-primary/15 mr-1.5">
-                  <Text className="text-label font-semibold text-primary">SMS</Text>
+              {/* What happened, where it came from, what it was */}
+              <View className="flex-row flex-wrap items-center mt-1" style={{ gap: 6 }}>
+                <Chip variant="category" label={actionLabel(item.actionType)} color={color} />
+                {item.sourceType === "sms" && <Chip variant="status" tone="primary" label="SMS" />}
+                <Ionicons name={objectIcon(item.objectType)} size={12} color={theme.mutedForeground} />
+                <Text className="text-meta text-muted-foreground shrink" numberOfLines={1}>{meta}</Text>
+              </View>
+              {item.actionTimestamp && (
+                <Text className="text-label text-faint-foreground mt-1">{formatActionTimestamp(item.actionTimestamp)}</Text>
+              )}
+              {item.editDetails && (
+                <View className="mt-2 px-3 py-2 rounded-control" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
+                  <Text className="text-meta text-muted-foreground">
+                    {item.editDetails.fieldLabel}: <Text className="line-through">{item.editDetails.oldValue ?? "empty"}</Text> → <Text className="font-semibold text-foreground">{item.editDetails.newValue ?? "empty"}</Text>
+                  </Text>
                 </View>
               )}
-              <Ionicons
-                name={objectIcon(item.objectType)}
-                size={10}
-                color={colors.textSecondary}
-              />
-              <Text className="text-label text-muted-foreground ml-1">
-                {item.date}
-              </Text>
             </View>
-            {/* Second metadata line: account label + action timestamp — own row so they never overflow */}
-            {(item.accountLabel || item.actionTimestamp) && (
-              <View className="flex-row items-center mt-0.5 flex-wrap gap-y-0.5">
-                {item.accountLabel && (
-                  <Text
-                    className="text-label text-faint-foreground mr-1.5"
-                    numberOfLines={1}
-                    style={{ flexShrink: 1 }}
-                  >
-                    {item.accountLabel}
-                  </Text>
-                )}
-                {item.actionTimestamp && (
-                  <Text className="text-label text-faint-foreground">
-                    {item.accountLabel ? "· " : ""}{formatActionTimestamp(item.actionTimestamp)}
-                  </Text>
-                )}
-              </View>
+            {item.navigable && (
+              <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} style={{ marginLeft: 6, marginTop: 2 }} />
             )}
-            {item.editDetails && (
-              <View className="mt-1.5 px-2 py-1.5 rounded bg-card">
-                <Text className="text-label text-muted-foreground">
-                  {item.editDetails.fieldLabel}: <Text className="line-through">{item.editDetails.oldValue ?? "empty"}</Text> → <Text className="font-medium text-foreground">{item.editDetails.newValue ?? "empty"}</Text>
-                </Text>
-              </View>
-            )}
-          </View>
-          <View className="items-end ml-2">
-            <Text className="text-sm font-bold" style={{ color }}>
-              {formatAmount(item.amount)}
-            </Text>
-          </View>
-          {item.navigable && (
-            <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} className="ml-1" />
-          )}
-        </Pressable>
+          </Pressable>
+        </DrawerBody>
       );
     },
-    [colors.textSecondary, handleOpen, theme],
+    [handleOpen, theme],
   );
+
+  // Sort lives in the filter sheet with the filters, as on every list.
+  const orderChoice = {
+    value: order,
+    defaultValue: "newest",
+    options: [{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }],
+    onChange: (v: string) => setOrder(v as "newest" | "oldest"),
+  };
 
   return (
     <ScreenContainer padTop={false}>
@@ -486,12 +452,7 @@ export default function AuditLogScreen() {
         search={{ value: searchRaw, onChangeText: setSearchRaw, placeholder: "Search merchant, account…" }}
         dates={{ onPress: () => setDatesOpen(true), active: scope !== "7d" }}
         filter={{ onPress: () => setShowFilters(true), activeCount: sources.size + objects.size + actions.size }}
-        sort={{
-          value: order,
-          defaultValue: "newest",
-          options: [{ value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }],
-          onChange: setOrder,
-        }}
+        sort={{ ...orderChoice, inSheet: true }}
         chips={[
           ...(scope !== "7d"
             ? [{
@@ -525,18 +486,24 @@ export default function AuditLogScreen() {
       />
 
       <FullScreenFilter
+        noun={{ one: "change", many: "changes" }}
         visible={showFilters}
         sections={[
-          { key: "source", label: "Source", type: "multi", options: SOURCE_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(sources) },
-          { key: "object", label: "Type", type: "multi", options: OBJECT_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(objects) },
-          { key: "action", label: "Action", type: "multi", options: ACTION_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(actions), searchable: true },
+          ...sortGroupSections(orderChoice),
+          { key: "source", label: "Source", icon: "chatbubble-outline", type: "multi", options: SOURCE_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(sources) },
+          { key: "object", label: "Type", icon: "shapes-outline", type: "multi", options: OBJECT_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(objects) },
+          { key: "action", label: "Action", icon: "pulse-outline", type: "multi", options: ACTION_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(actions), searchable: true },
         ]}
         onApply={(selections) => {
+          applySortGroup(selections, orderChoice);
           setSources(new Set((selections.source ?? []) as AuditSourceType[]));
           setObjects(new Set((selections.object ?? []) as AuditObjectType[]));
           setActions(new Set((selections.action ?? []) as AuditActionType[]));
         }}
-        onReset={clearAll}
+        onReset={() => {
+          clearAll();
+          setOrder("newest");
+        }}
         onClose={() => setShowFilters(false)}
       />
 
@@ -544,59 +511,36 @@ export default function AuditLogScreen() {
       {loading ? (
         <LoadingState message="Loading audit log…" />
       ) : entries.length === 0 ? (
-        <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="list-outline" size={48} color={colors.textSecondary} />
-          <Text
-            className="text-lg font-medium mt-4"
-            style={{ color: colors.text }}
-          >
-            Nothing here
-          </Text>
-          <Text
-            className="text-sm text-center mt-2"
-            style={{ color: colors.textSecondary }}
-          >
-            {hasFilters
+        <EmptyState
+          icon="list-outline"
+          title="Nothing here"
+          subtitle={
+            hasFilters
               ? "No records match these filters. Try clearing them or widening the date scope."
-              : "No actions recorded in this window."}
-          </Text>
-        </View>
+              : "No actions recorded in this window."
+          }
+        />
       ) : (
         <SectionList
           sections={sections}
           renderItem={renderItem}
           keyExtractor={(item, idx) => `${item.objectType}:${item.id}:${item.actionType}:${idx}`}
           renderSectionHeader={({ section }) => {
-            const isCollapsed = isSectionCollapsed(section.title);
+            const open = !isSectionCollapsed(section.title);
             const count = (allSections.find((s) => s.title === section.title)?.data.length) ?? 0;
             return (
-              <Pressable
-                onPress={() => toggleSection(section.title)}
-                className="mx-4 mt-3 mb-1 flex-row items-center py-1.5"
-              >
-                <Ionicons
-                  name={isCollapsed ? "chevron-forward" : "chevron-down"}
-                  size={14}
-                  color={colors.textSecondary}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  className="text-label font-semibold uppercase"
-                  style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
-                  numberOfLines={1}
-                >
-                  {section.title}
-                </Text>
-                <Text className="text-label ml-1.5" style={{ color: colors.textSecondary }}>
-                  ({count})
-                </Text>
-                <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />
-              </Pressable>
+              <DrawerHeader
+                title={section.title}
+                subtitle={`${count} ${count === 1 ? "change" : "changes"}`}
+                open={open}
+                onToggle={() => toggleSection(section.title)}
+              />
             );
           }}
+          renderSectionFooter={({ section }) => (isSectionCollapsed(section.title) ? null : <DrawerEnd />)}
           ListHeaderComponent={
             <View className="mx-4 mt-3 mb-1">
-              <Text className="text-xs" style={{ color: colors.textSecondary }}>
+              <Text className="text-meta text-muted-foreground">
                 Showing {entries.length} {entries.length === 1 ? "event" : "events"}
                 {entries.length >= 500 ? " (capped at 500 - narrow the date range for more)" : ""}
               </Text>

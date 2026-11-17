@@ -198,13 +198,13 @@ describe("merchant categories", () => {
   it("renaming a category carries its rules; a missing category is flagged", async () => {
     const before = await countMerchantRulesForCategory("Food");
     expect(before).toBeGreaterThan(5);
-    await updateCategory(await catId("Food"), { name: "Eating out" });
-    expect(await countMerchantRulesForCategory("Eating out")).toBe(before);
-    expect((await categorizeByMerchant(U, "zomato")).categoryId).toBe(await catId("Eating out"));
+    await updateCategory(await catId("Food"), { name: "Dining & drinks" });
+    expect(await countMerchantRulesForCategory("Dining & drinks")).toBe(before);
+    expect((await categorizeByMerchant(U, "zomato")).categoryId).toBe(await catId("Dining & drinks"));
 
-    await updateCategory(await catId("Eating out"), { is_active: 0 });
+    await updateCategory(await catId("Dining & drinks"), { is_active: 0 });
     expect((await rule("swiggy")).categoryMissing).toBe(true);
-    await moveMerchantRules("Eating out", "Dining");
+    await moveMerchantRules("Dining & drinks", "Dining");
     expect(await rule("swiggy")).toMatchObject({ categoryName: "Dining", categoryMissing: false });
   });
 });

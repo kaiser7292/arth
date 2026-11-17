@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { Pop } from "@/components/motion/Pop";
 
@@ -18,6 +19,7 @@ import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { Rows } from "@/components/ui/Rows";
+import { buildCategoryTree, categoryPath } from "@/utils/category-tree";
 
 // ---------------------------------------------------------------------------
 // Searchable Picker List — shared helper for all pickers
@@ -45,7 +47,7 @@ export function SearchablePickerList({
   searchPlaceholder?: string;
 }) {
   const [query, setQuery] = useState("");
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const filtered = useMemo(() => {
@@ -55,20 +57,20 @@ export function SearchablePickerList({
   }, [items, query]);
 
   return (
-    <Rows className="mt-2 rounded-lg border border-border bg-card overflow-hidden">
+    <Rows className="mt-2 rounded-control border border-border bg-card overflow-hidden">
       {items.length > 5 && (
         <View className="flex-row items-center px-3 py-2 border-b border-border">
-          <Ionicons name="search" size={14} color={colors.textSecondary} />
+          <Ionicons name="search" size={14} color={theme.mutedForeground} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder={searchPlaceholder}
-            placeholderTextColor={colors.tabIconDefault}
-            className="flex-1 ml-2 text-sm text-foreground"
+            placeholderTextColor={theme.faintForeground}
+            className="flex-1 ml-2 text-meta text-foreground"
           />
           {query !== "" && (
             <Pressable onPress={() => setQuery("")}>
-              <Ionicons name="close-circle" size={14} color={colors.textSecondary} />
+              <Ionicons name="close-circle" size={14} color={theme.mutedForeground} />
             </Pressable>
           )}
         </View>
@@ -80,8 +82,8 @@ export function SearchablePickerList({
             className="flex-row items-center px-4 py-3 border-b border-border"
             style={selectedId === null ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
-            <Ionicons name="remove-circle-outline" size={18} color={colors.textSecondary} />
-            <Text className="ml-3 text-sm text-faint-foreground">None</Text>
+            <Ionicons name="remove-circle-outline" size={18} color={theme.mutedForeground} />
+            <Text className="ml-3 text-meta text-faint-foreground">None</Text>
           </Pressable>
         )}
         {filtered.map((item) => (
@@ -92,21 +94,21 @@ export function SearchablePickerList({
             style={selectedId === item.id ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
             {item.color && (
-              <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: item.color + "14" }}>
+              <View className="w-6 h-6 rounded-full items-center justify-center mr-2" style={{ backgroundColor: tint(item.color, 0.08) }}>
                 {item.icon && <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={14} color={item.color} />}
               </View>
             )}
             <View className="flex-1">
-              <Text className="text-sm text-foreground">{item.label}</Text>
+              <Text className="text-meta text-foreground">{item.label}</Text>
               {item.subtitle && <Text className="text-label text-muted-foreground">{item.subtitle}</Text>}
             </View>
             {selectedId === item.id && (
-              <Pop><Ionicons name="checkmark" size={16} color={colors.blue} /></Pop>
+              <Pop><Ionicons name="checkmark" size={16} color={theme.primary} /></Pop>
             )}
           </Pressable>
         ))}
         {filtered.length === 0 && query !== "" && (
-          <Text className="text-xs text-faint-foreground text-center py-4">No matches</Text>
+          <Text className="text-label text-faint-foreground text-center py-4">No matches</Text>
         )}
       </ScrollView>
     </Rows>
@@ -151,7 +153,7 @@ export function AccountPicker({
   label = "Account",
   placeholder = "Select account (optional)",
 }: AccountPickerProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const router = useRouter();
 
@@ -163,14 +165,14 @@ export function AccountPicker({
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-muted-foreground mb-2">
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
         {label}
       </Text>
       {accounts.length > 0 ? (
         <>
           <Pressable
             onPress={onToggle}
-            className={`flex-row items-center rounded-lg border px-4 py-3 ${
+            className={`flex-row items-center rounded-control border px-4 py-3 ${
               selectedAccount
                 ? ""
                 : "border-border bg-card"
@@ -179,16 +181,16 @@ export function AccountPicker({
           >
             {selectedAccount ? (
               <>
-                <Ionicons name="business-outline" size={18} color={colors.blue} />
-                <Text className="flex-1 ml-3 text-base text-foreground">
+                <Ionicons name="business-outline" size={18} color={theme.primary} />
+                <Text className="flex-1 ml-3 text-body text-foreground">
                   {selectedAccount.account_label ??
                     `${selectedAccount.bank_name} ****${selectedAccount.account_identifier}`}
                 </Text>
               </>
             ) : (
               <>
-                <Ionicons name="business-outline" size={18} color={colors.textSecondary} />
-                <Text className="flex-1 ml-3 text-base text-faint-foreground">
+                <Ionicons name="business-outline" size={18} color={theme.mutedForeground} />
+                <Text className="flex-1 ml-3 text-body text-faint-foreground">
                   {placeholder}
                 </Text>
               </>
@@ -196,7 +198,7 @@ export function AccountPicker({
             <Ionicons
               name={showAccounts ? "chevron-up" : "chevron-down"}
               size={18}
-              color={colors.textSecondary}
+              color={theme.mutedForeground}
             />
           </Pressable>
           {showAccounts && (
@@ -219,13 +221,13 @@ export function AccountPicker({
       ) : (
         <Pressable
           onPress={() => router.push("/settings/account-add")}
-          className="flex-row items-center rounded-lg border border-dashed border-border bg-card px-4 py-3"
+          className="flex-row items-center rounded-control border border-dashed border-border bg-card px-4 py-3"
         >
-          <Ionicons name="add-circle-outline" size={18} color={colors.textSecondary} />
-          <Text className="flex-1 ml-3 text-sm text-faint-foreground">
+          <Ionicons name="add-circle-outline" size={18} color={theme.mutedForeground} />
+          <Text className="flex-1 ml-3 text-meta text-faint-foreground">
             No accounts yet - tap to add one
           </Text>
-          <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
         </Pressable>
       )}
     </View>
@@ -255,45 +257,45 @@ export function DateSelector({
   onCloseDatePicker,
   dateError,
 }: DateSelectorProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const [showCalendar, setShowCalendar] = useState(false);
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-muted-foreground mb-2">
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
         Date
       </Text>
       <View className="flex-row items-center">
         <Pressable
           onPress={() => onDateShift(-1)}
-          className="w-10 h-10 rounded-lg bg-card items-center justify-center"
+          className="w-10 h-10 rounded-control bg-card items-center justify-center"
         >
-          <Ionicons name="chevron-back" size={20} color={colors.textSecondary} />
+          <Ionicons name="chevron-back" size={20} color={theme.mutedForeground} />
         </Pressable>
         <Pressable
           onPress={onToggleDatePicker}
-          className="flex-1 mx-2 py-2 px-4 rounded-lg border border-border bg-card items-center"
+          className="flex-1 mx-2 py-2 px-4 rounded-control border border-border bg-card items-center"
         >
-          <Text className="text-base font-medium text-foreground">
+          <Text className="text-body font-medium text-foreground">
             {formatDateForDisplay(date)}
           </Text>
-          <Text className="text-xs text-muted-foreground">
+          <Text className="text-label text-muted-foreground">
             {date}
           </Text>
         </Pressable>
         <Pressable
           onPress={() => onDateShift(1)}
-          className="w-10 h-10 rounded-lg bg-card items-center justify-center"
+          className="w-10 h-10 rounded-control bg-card items-center justify-center"
         >
-          <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={20} color={theme.mutedForeground} />
         </Pressable>
         <Pressable
           onPress={() => setShowCalendar(true)}
-          className="ml-2 w-10 h-10 rounded-lg items-center justify-center border"
+          className="ml-2 w-10 h-10 rounded-control items-center justify-center border"
           style={{ backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.alpha("primary", 0.25) }}
         >
-          <Ionicons name="calendar-outline" size={20} color={colors.blue} />
+          <Ionicons name="calendar-outline" size={20} color={theme.primary} />
         </Pressable>
       </View>
       {/* Quick date buttons */}
@@ -304,14 +306,14 @@ export function DateSelector({
               onSetDate(formatDateForStorage(new Date()));
               onCloseDatePicker();
             }}
-            className={`flex-1 py-2 rounded-lg mr-2 items-center ${
+            className={`flex-1 py-2 rounded-control mr-2 items-center ${
               date === formatDateForStorage(new Date())
                 ? ""
                 : "bg-card"
             }`}
             style={date === formatDateForStorage(new Date()) ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
           >
-            <Text className="text-sm font-medium text-muted-foreground">
+            <Text className="text-meta font-semibold text-muted-foreground">
               Today
             </Text>
           </Pressable>
@@ -322,16 +324,16 @@ export function DateSelector({
               onSetDate(formatDateForStorage(yesterday));
               onCloseDatePicker();
             }}
-            className="flex-1 py-2 rounded-lg items-center bg-card"
+            className="flex-1 py-2 rounded-control items-center bg-card"
           >
-            <Text className="text-sm font-medium text-muted-foreground">
+            <Text className="text-meta font-semibold text-muted-foreground">
               Yesterday
             </Text>
           </Pressable>
         </View>
       )}
       {dateError && (
-        <Text className="text-xs text-danger mt-1">{dateError}</Text>
+        <Text className="text-label text-danger mt-1">{dateError}</Text>
       )}
       <CalendarModal
         visible={showCalendar}
@@ -373,17 +375,17 @@ export function CategoryPicker({
   allowNone = false,
   hint,
 }: CategoryPickerProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-muted-foreground mb-2">
-        Category{hint ? <Text className="text-xs text-faint-foreground"> · {hint}</Text> : null}
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
+        Category{hint ? <Text className="text-label text-faint-foreground"> · {hint}</Text> : null}
       </Text>
       <Pressable
         onPress={onToggle}
-        className={`flex-row items-center rounded-lg border px-4 py-3 ${
+        className={`flex-row items-center rounded-control border px-4 py-3 ${
           selectedCategory
             ? ""
             : "border-border bg-card"
@@ -394,7 +396,7 @@ export function CategoryPicker({
           <>
             <View
               className="w-7 h-7 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: selectedCategory.color + "14" }}
+              style={{ backgroundColor: tint(selectedCategory.color, 0.08) }}
             >
               <Ionicons
                 name={selectedCategory.icon as keyof typeof Ionicons.glyphMap}
@@ -402,14 +404,14 @@ export function CategoryPicker({
                 color={selectedCategory.color}
               />
             </View>
-            <Text className="flex-1 text-base text-foreground">
-              {selectedCategory.name}
+            <Text className="flex-1 text-body text-foreground">
+              {categoryPath(selectedCategory, new Map(categories.map((c) => [c.id, c])))}
             </Text>
           </>
         ) : (
           <>
-            <Ionicons name="pricetags-outline" size={18} color={colors.textSecondary} />
-            <Text className="flex-1 ml-3 text-base text-faint-foreground">
+            <Ionicons name="pricetags-outline" size={18} color={theme.mutedForeground} />
+            <Text className="flex-1 ml-3 text-body text-faint-foreground">
               Select category
             </Text>
           </>
@@ -417,17 +419,16 @@ export function CategoryPicker({
         <Ionicons
           name={showCategories ? "chevron-up" : "chevron-down"}
           size={18}
-          color={colors.textSecondary}
+          color={theme.mutedForeground}
         />
       </Pressable>
       {showCategories && (
         <SearchablePickerList
-          items={categories.map((cat) => ({
-            id: cat.id,
-            label: cat.name,
-            icon: cat.icon,
-            color: cat.color,
-          }))}
+          // Each category followed by its sub-categories (095); search finds a sub-category by its parent too.
+          items={buildCategoryTree(categories).flatMap(({ parent, children }) => [
+            { id: parent.id, label: parent.name, icon: parent.icon, color: parent.color },
+            ...children.map((c) => ({ id: c.id, label: `  ${c.name}`, subtitle: `In ${parent.name}`, icon: c.icon, color: c.color })),
+          ])}
           selectedId={categoryId}
           onSelect={onSelect}
           allowNone={allowNone}
@@ -462,17 +463,17 @@ export function PaymentModePicker({
   onSelect,
   allowNone = false,
 }: PaymentModePickerProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-muted-foreground mb-2">
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
         Payment Mode
       </Text>
       <Pressable
         onPress={onToggle}
-        className={`flex-row items-center rounded-lg border px-4 py-3 ${
+        className={`flex-row items-center rounded-control border px-4 py-3 ${
           selectedPaymentMode
             ? ""
             : "border-border bg-card"
@@ -484,19 +485,19 @@ export function PaymentModePicker({
             <Ionicons
               name={TYPE_ICONS[selectedPaymentMode.type as PaymentModeType]}
               size={18}
-              color={colors.blue}
+              color={theme.primary}
             />
-            <Text className="flex-1 ml-3 text-base text-foreground">
+            <Text className="flex-1 ml-3 text-body text-foreground">
               {selectedPaymentMode.name}
             </Text>
-            <Text className="text-xs text-muted-foreground">
+            <Text className="text-label text-muted-foreground">
               {PAYMENT_MODE_TYPE_LABELS[selectedPaymentMode.type as PaymentModeType]}
             </Text>
           </>
         ) : (
           <>
-            <Ionicons name="card-outline" size={18} color={colors.textSecondary} />
-            <Text className="flex-1 ml-3 text-base text-faint-foreground">
+            <Ionicons name="card-outline" size={18} color={theme.mutedForeground} />
+            <Text className="flex-1 ml-3 text-body text-faint-foreground">
               Select payment mode
             </Text>
           </>
@@ -504,7 +505,7 @@ export function PaymentModePicker({
         <Ionicons
           name={showPaymentModes ? "chevron-up" : "chevron-down"}
           size={18}
-          color={colors.textSecondary}
+          color={theme.mutedForeground}
           style={{ marginLeft: 8 }}
         />
       </Pressable>
@@ -551,7 +552,7 @@ export function MerchantPicker({
   label = "Merchant",
   placeholder = "e.g., Amazon, Swiggy (optional)",
 }: MerchantPickerProps) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
 
   // Filter suggestions based on current input
@@ -563,10 +564,10 @@ export function MerchantPicker({
 
   return (
     <View className="mb-4">
-      <Text className="text-sm font-medium text-muted-foreground mb-2">
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
         {label}
       </Text>
-      <View className="flex-row items-center rounded-lg border border-border bg-card overflow-hidden">
+      <View className="flex-row items-center rounded-control border border-border bg-card overflow-hidden">
         <View className="flex-1 px-4 py-2">
           <TextInput
             value={value}
@@ -575,9 +576,9 @@ export function MerchantPicker({
               if (!showSuggestions && text.length > 0) onToggleSuggestions();
             }}
             placeholder={placeholder}
-            placeholderTextColor={colors.tabIconDefault}
+            placeholderTextColor={theme.faintForeground}
             maxLength={100}
-            className="text-base text-foreground"
+            className="text-body text-foreground"
             onFocus={() => {
               if (merchantNames.length > 0) onToggleSuggestions();
             }}
@@ -591,13 +592,13 @@ export function MerchantPicker({
             <Ionicons
               name={showSuggestions ? "chevron-up" : "chevron-down"}
               size={18}
-              color={colors.textSecondary}
+              color={theme.mutedForeground}
             />
           </Pressable>
         )}
       </View>
       {showSuggestions && filtered.length > 0 && (
-        <Rows className="mt-1 rounded-lg border border-border bg-card overflow-hidden max-h-48">
+        <Rows className="mt-1 rounded-control border border-border bg-card overflow-hidden max-h-48">
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
             {filtered.slice(0, 20).map((name) => (
               <Pressable
@@ -609,15 +610,15 @@ export function MerchantPicker({
                 className="flex-row items-center px-4 py-3 border-b border-border"
                 style={value.toLowerCase() === name.toLowerCase() ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
               >
-                <Ionicons name="storefront-outline" size={16} color={colors.textSecondary} />
+                <Ionicons name="storefront-outline" size={16} color={theme.mutedForeground} />
                 <Text
-                  className="flex-1 ml-3 text-sm text-foreground"
+                  className="flex-1 ml-3 text-meta text-foreground"
                   numberOfLines={1}
                 >
                   {name}
                 </Text>
                 {value.toLowerCase() === name.toLowerCase() && (
-                  <Pop><Ionicons name="checkmark" size={16} color={colors.blue} /></Pop>
+                  <Pop><Ionicons name="checkmark" size={16} color={theme.primary} /></Pop>
                 )}
               </Pressable>
             ))}
@@ -644,7 +645,7 @@ export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendTogglePro
     <View className="mb-6">
       <Pressable
         onPress={onToggle}
-        className="flex-row items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
+        className="flex-row items-center justify-between rounded-control border border-border bg-card px-4 py-3"
       >
         <View className="flex-row items-center">
           <Ionicons
@@ -653,10 +654,10 @@ export function RightSpendToggle({ isRightSpend, onToggle }: RightSpendTogglePro
             color={isUnavoidable ? theme.primary : theme.warning}
           />
           <View className="ml-3">
-            <Text className="text-base font-medium text-foreground">
+            <Text className="text-body font-medium text-foreground">
               {isUnavoidable ? "Unavoidable" : "Discretionary"}
             </Text>
-            <Text className="text-xs text-muted-foreground">
+            <Text className="text-label text-muted-foreground">
               {isUnavoidable
                 ? "This expense was necessary"
                 : "This could have been avoided"}

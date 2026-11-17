@@ -68,7 +68,7 @@ export default function LedgerScreen() {
     toDate?: string;
   }>();
   const router = useRouter();
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const [person, setPerson] = useState<HisaabPerson | null>(null);
@@ -343,6 +343,7 @@ export default function LedgerScreen() {
   );
   const tools = useListTools<HisaabEntry>({
     screen: "hisaab_ledger",
+    noun: { one: "entry", many: "entries" },
     rows: entries,
     fields,
     search: hisaabSearch,
@@ -396,7 +397,7 @@ export default function LedgerScreen() {
           >
             <View className="px-4 py-4">
               <Card title="Record Settlement" className="mb-4">
-                <Text className="text-sm text-muted-foreground mb-3">
+                <Text className="text-meta text-muted-foreground mb-3">
                   Current balance:{" "}
                   <Text
                     className={`font-bold ${balance >= 0 ? "text-success" : "text-danger"}`}
@@ -430,18 +431,18 @@ export default function LedgerScreen() {
                 />
 
                 {/* Optional: which account received the money */}
-                <Text className="text-xs font-medium text-muted-foreground mb-1">
+                <Text className="text-label font-medium text-muted-foreground mb-1">
                   Received in (optional)
                 </Text>
                 <Pressable
                   onPress={() => setShowSettleAccountPicker(true)}
-                  className="flex-row items-center border rounded-lg px-3 py-2.5 mb-4"
-                  style={{ borderColor: colors.border }}
+                  className="flex-row items-center border rounded-control px-3 py-2.5 mb-4"
+                  style={{ borderColor: theme.border }}
                 >
-                  <Ionicons name="wallet-outline" size={16} color={settleAccountId ? theme.primary : colors.textSecondary} />
+                  <Ionicons name="wallet-outline" size={16} color={settleAccountId ? theme.primary : theme.mutedForeground} />
                   <Text
-                    className="flex-1 text-sm ml-2"
-                    style={{ color: settleAccountId ? colors.text : colors.textSecondary }}
+                    className="flex-1 text-meta ml-2"
+                    style={{ color: settleAccountId ? theme.foreground : theme.mutedForeground }}
                   >
                     {settleAccountLabel || "No account - external payment"}
                   </Text>
@@ -450,11 +451,11 @@ export default function LedgerScreen() {
                       onPress={() => { setSettleAccountId(null); setSettleAccountLabel(""); }}
                       hitSlop={8}
                     >
-                      <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+                      <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
                     </Pressable>
                   )}
                   {!settleAccountId && (
-                    <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+                    <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
                   )}
                 </Pressable>
 
@@ -516,13 +517,13 @@ export default function LedgerScreen() {
                 className="mb-4"
               >
                 {/* Type selector */}
-                <Text className="text-xs font-medium text-muted-foreground mb-2">
+                <Text className="text-label font-medium text-muted-foreground mb-2">
                   Type
                 </Text>
                 <View className="flex-row mb-3">
                   <Pressable
                     onPress={() => setFormType("debit")}
-                    className={`flex-1 py-2 rounded-l-lg items-center border ${
+                    className={`flex-1 py-2 rounded-l-control items-center border ${
                       formType === "debit"
                         ? "bg-danger/8"
                         : "bg-transparent border-border"
@@ -530,7 +531,7 @@ export default function LedgerScreen() {
                     style={formType === "debit" ? { borderColor: theme.danger } : undefined}
                   >
                     <Text
-                      className={`text-sm font-medium ${
+                      className={`text-body font-medium ${
                         formType === "debit"
                           ? "text-danger"
                           : "text-muted-foreground"
@@ -541,7 +542,7 @@ export default function LedgerScreen() {
                   </Pressable>
                   <Pressable
                     onPress={() => setFormType("credit")}
-                    className={`flex-1 py-2 rounded-r-lg items-center border border-l-0 ${
+                    className={`flex-1 py-2 rounded-r-control items-center border border-l-0 ${
                       formType === "credit"
                         ? "bg-success/8"
                         : "bg-transparent border-border"
@@ -549,7 +550,7 @@ export default function LedgerScreen() {
                     style={formType === "credit" ? { borderColor: theme.success } : undefined}
                   >
                     <Text
-                      className={`text-sm font-medium ${
+                      className={`text-body font-medium ${
                         formType === "credit"
                           ? "text-success"
                           : "text-muted-foreground"
@@ -621,16 +622,16 @@ export default function LedgerScreen() {
           {/* Balance Header */}
           <Card className="mb-4">
             <View className="items-center py-2">
-              <Text className="text-xs text-muted-foreground mb-1">
+              <Text className="text-label text-muted-foreground mb-1">
                 {personName || person?.name}
               </Text>
               <Text
-                className={`text-2xl font-bold ${isPositive ? "text-success" : "text-danger"}`}
+                className={`text-title font-bold ${isPositive ? "text-success" : "text-danger"}`}
               >
                 {isPositive ? "+" : ""}
                 {formatAmount(balance)}
               </Text>
-              <Text className="text-sm text-muted-foreground mt-1">
+              <Text className="text-meta text-muted-foreground mt-1">
                 {balance === 0
                   ? "All settled up"
                   : isPositive
@@ -648,9 +649,9 @@ export default function LedgerScreen() {
                   <Ionicons
                     name="checkmark-circle-outline"
                     size={14}
-                    color={colors.blue}
+                    color={theme.primary}
                   />
-                  <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
+                  <Text className="text-label font-medium ml-1" style={{ color: theme.primary }}>
                     Settle
                   </Text>
                 </Pressable>
@@ -662,9 +663,9 @@ export default function LedgerScreen() {
                   <Ionicons
                     name="download-outline"
                     size={14}
-                    color={colors.blue}
+                    color={theme.primary}
                   />
-                  <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
+                  <Text className="text-label font-medium ml-1" style={{ color: theme.primary }}>
                     Export
                   </Text>
                 </Pressable>
@@ -673,9 +674,9 @@ export default function LedgerScreen() {
                     <Ionicons
                       name="call-outline"
                       size={14}
-                      color={colors.textSecondary}
+                      color={theme.mutedForeground}
                     />
-                    <Text className="text-xs text-muted-foreground ml-1">
+                    <Text className="text-label text-muted-foreground ml-1">
                       {person.phone}
                     </Text>
                   </View>
@@ -700,22 +701,22 @@ export default function LedgerScreen() {
             const openIsPositive = openingBalance >= 0;
             const closeIsPositive = closingBalance >= 0;
             const netChange = closingBalance - openingBalance;
-            const netColor = netChange === 0 ? colors.textSecondary : netChange > 0 ? theme.success : theme.danger;
+            const netColor = netChange === 0 ? theme.mutedForeground : netChange > 0 ? theme.success : theme.danger;
             return (
               <Card className="mb-3">
                 <Text
                   className="text-label font-semibold uppercase tracking-wider mb-2"
-                  style={{ color: colors.textSecondary }}
+                  style={{ color: theme.mutedForeground }}
                 >
                   {appliedFrom} → {appliedTo}
                 </Text>
                 {/* Opening */}
                 <View className="flex-row items-center justify-between py-1">
-                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label" style={{ color: theme.mutedForeground }}>
                     Opening balance
                   </Text>
                   <Text
-                    className="text-sm font-semibold"
+                    className="text-body font-semibold"
                     style={{ color: openIsPositive ? theme.success : theme.danger }}
                   >
                     {openIsPositive ? "+" : ""}
@@ -725,58 +726,58 @@ export default function LedgerScreen() {
                 {/* Activity */}
                 {rangeDebits > 0 && (
                   <View className="flex-row items-center justify-between py-0.5">
-                    <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                    <Text className="text-label" style={{ color: theme.mutedForeground }}>
                       They owed (debits)
                     </Text>
-                    <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
+                    <Text className="text-label font-semibold" style={{ color: theme.danger }}>
                       +{formatAmount(rangeDebits)}
                     </Text>
                   </View>
                 )}
                 {rangeCredits > 0 && (
                   <View className="flex-row items-center justify-between py-0.5">
-                    <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                    <Text className="text-label" style={{ color: theme.mutedForeground }}>
                       They paid (credits)
                     </Text>
-                    <Text className="text-xs font-semibold" style={{ color: theme.success }}>
+                    <Text className="text-label font-semibold" style={{ color: theme.success }}>
                       −{formatAmount(rangeCredits)}
                     </Text>
                   </View>
                 )}
                 {rangeSettlements > 0 && (
                   <View className="flex-row items-center justify-between py-0.5">
-                    <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                    <Text className="text-label" style={{ color: theme.mutedForeground }}>
                       Settlements
                     </Text>
-                    <Text className="text-xs font-semibold" style={{ color: theme.success }}>
+                    <Text className="text-label font-semibold" style={{ color: theme.success }}>
                       −{formatAmount(rangeSettlements)}
                     </Text>
                   </View>
                 )}
                 {/* Net change */}
                 <View className="flex-row items-center justify-between py-1 mt-1 pt-2 border-t border-border">
-                  <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label font-semibold" style={{ color: theme.mutedForeground }}>
                     Net change in range
                   </Text>
-                  <Text className="text-sm font-semibold" style={{ color: netColor }}>
+                  <Text className="text-body font-semibold" style={{ color: netColor }}>
                     {netChange > 0 ? "+" : ""}
                     {formatAmount(netChange)}
                   </Text>
                 </View>
                 {/* Closing */}
                 <View className="flex-row items-center justify-between py-1 mt-1">
-                  <Text className="text-xs font-bold" style={{ color: colors.text }}>
+                  <Text className="text-label font-bold" style={{ color: theme.foreground }}>
                     Closing balance
                   </Text>
                   <Text
-                    className="text-base font-bold"
+                    className="text-body font-bold"
                     style={{ color: closeIsPositive ? theme.success : theme.danger }}
                   >
                     {closeIsPositive ? "+" : ""}
                     {formatAmount(closingBalance)}
                   </Text>
                 </View>
-                <Text className="text-label mt-1" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-1" style={{ color: theme.mutedForeground }}>
                   {closeIsPositive
                     ? "They owe you as of filter end."
                     : closingBalance < 0
@@ -791,7 +792,7 @@ export default function LedgerScreen() {
 
           {/* Entry count */}
           {sortedEntries.length > 0 && (
-            <Text className="text-xs text-faint-foreground mb-2">
+            <Text className="text-label text-faint-foreground mb-2">
               {sortedEntries.length} {sortedEntries.length === 1 ? "entry" : "entries"}
               {filterActive ? " (filtered)" : ""}
             </Text>
@@ -803,11 +804,11 @@ export default function LedgerScreen() {
           ) : sortedEntries.length === 0 ? (
             <Card className="mb-4">
               <View className="items-center py-4">
-                <Ionicons name="document-text-outline" size={48} color={colors.textSecondary} />
-                <Text className="text-base font-medium text-foreground mt-2">
+                <Ionicons name="document-text-outline" size={48} color={theme.mutedForeground} />
+                <Text className="text-body font-medium text-foreground mt-2">
                   {tools.narrowed && entries.length > 0 ? "Nothing matches" : filterActive ? "No entries in this range" : "No entries yet"}
                 </Text>
-                <Text className="text-sm text-muted-foreground mt-1 text-center">
+                <Text className="text-meta text-muted-foreground mt-1 text-center">
                   {tools.narrowed && entries.length > 0 ? "Try another name, amount or filter" : filterActive ? "Try a different date range" : "Add a debit or credit to start tracking"}
                 </Text>
               </View>
@@ -851,7 +852,7 @@ export default function LedgerScreen() {
           )}
 
           {sortedEntries.length > 0 && (
-            <Text className="text-xs text-faint-foreground text-center mt-2">
+            <Text className="text-label text-faint-foreground text-center mt-2">
               Tap to view/edit. Long-press to delete.
             </Text>
           )}
@@ -909,7 +910,7 @@ function EntryCard({
   categoryMap?: Map<string, string>;
   accountMap?: Map<string, string>;
 }) {
-  const { colors, colorScheme } = useColorScheme();
+  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const isDebit = entry.type === "debit";
   const isSettlement = entry.type === "settlement";
@@ -949,7 +950,7 @@ function EntryCard({
           {/* Description + date */}
           <View className="flex-1">
             <Text
-              className="text-sm font-medium text-foreground"
+              className="text-body font-medium text-foreground"
               numberOfLines={1}
             >
               {transactionTitle(entry, categoryName, label)}
@@ -960,7 +961,7 @@ function EntryCard({
               </Text>
             ) : null}
             <View className="flex-row items-center">
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-label text-muted-foreground">
                 {entry.date}
                 {isSettlement && " · Settlement"}
                 {entry.status !== "confirmed" &&
@@ -976,7 +977,7 @@ function EntryCard({
                   style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                   hitSlop={4}
                 >
-                  <Ionicons name="receipt-outline" size={10} color={colors.blue} />
+                  <Ionicons name="receipt-outline" size={10} color={theme.primary} />
                   <Text className="text-label font-medium ml-0.5" style={{ color: theme.primary }}>
                     {linkedType ?? "Transaction"}
                   </Text>
@@ -986,7 +987,7 @@ function EntryCard({
           </View>
 
           {/* Amount */}
-          <Text className={`text-sm font-bold`} style={{ color }}>
+          <Text className={`text-body font-bold`} style={{ color }}>
             {prefix}
             {formatAmount(entry.amount)}
           </Text>

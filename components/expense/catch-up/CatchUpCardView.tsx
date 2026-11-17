@@ -1,3 +1,4 @@
+import { tint } from "@/constants/brand";
 import { isPartOn } from "@/services/customise";
 import { CREDIT_KIND_LABELS, PICKABLE_CREDIT_KINDS, creditKindOf, creditLook, type CreditKind } from "@/services/expense-types";
 import { updateExpense } from "@/services/expense";
@@ -124,7 +125,7 @@ export function CatchUpCardView({
       <View className="flex-row items-center justify-center mb-3">
         <Ionicons name={eventMeta?.icon ?? meta.icon} size={14} color={kindColor} />
         <Text
-          className="text-xs font-semibold uppercase tracking-wider ml-1.5"
+          className="text-label font-semibold uppercase tracking-wider ml-1.5"
           style={{ color: kindColor }}
         >
           {kindLabel}
@@ -258,14 +259,14 @@ function SingleExpenseBody({
           showPlus={isCredit}
           className={`text-title font-bold text-center ${isCredit ? "text-success" : "text-foreground"}`}
         />
-        <Text className="text-base font-bold text-foreground text-center mt-1" numberOfLines={2}>
+        <Text className="text-body font-bold text-foreground text-center mt-1" numberOfLines={2}>
           {title(expense)}
         </Text>
-        <Text className="text-sm text-muted-foreground text-center mt-1">
+        <Text className="text-meta text-muted-foreground text-center mt-1">
           {[account, formatDateForDisplay(expense.date)].filter(Boolean).join(" · ")}
         </Text>
         {isSplit && (
-          <Text className="text-sm text-muted-foreground text-center mt-1">
+          <Text className="text-meta text-muted-foreground text-center mt-1">
             Your share {formatAmount(expense.amount)}
           </Text>
         )}
@@ -281,7 +282,7 @@ function SingleExpenseBody({
         style={{
           minHeight: 40,
           borderColor: category ? category.color : theme.border,
-          backgroundColor: category ? category.color + "14" : "transparent",
+          backgroundColor: category ? tint(category.color, 0.08) : "transparent",
         }}
         accessibilityRole="button"
         accessibilityLabel={category ? `Category ${category.name}, tap to change` : "Choose a category"}
@@ -292,7 +293,7 @@ function SingleExpenseBody({
           color={category?.color ?? theme.mutedForeground}
         />
         <Text
-          className="text-sm font-semibold ml-1.5"
+          className="text-body font-semibold ml-1.5"
           style={{ color: category?.color ?? theme.mutedForeground }}
         >
           {category?.name ?? "Choose category"}
@@ -347,8 +348,8 @@ function SingleExpenseBody({
       {canSplit && splitOnCard && (
         <Sheet visible={editingSplit} onClose={onCancelSplit}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}>
-            <Text className="text-base font-bold text-foreground">Split {formatAmount(total)}</Text>
-            <Text className="text-sm text-muted-foreground mt-0.5" numberOfLines={1}>{title(expense)}</Text>
+            <Text className="text-body font-bold text-foreground">Split {formatAmount(total)}</Text>
+            <Text className="text-meta text-muted-foreground mt-0.5" numberOfLines={1}>{title(expense)}</Text>
             <SplitPanel
               expense={expense}
               total={total}
@@ -388,7 +389,7 @@ function SingleExpenseBody({
             size={16}
             color={theme.primary}
           />
-          <Text className="text-sm font-medium ml-1.5 flex-shrink" style={{ color: theme.primary }} numberOfLines={2}>
+          <Text className="text-body font-medium ml-1.5 flex-shrink" style={{ color: theme.primary }} numberOfLines={2}>
             {showDescriptionText ? description : description ? "Edit description" : "Add description"}
           </Text>
         </Pressable>
@@ -451,8 +452,8 @@ function DescriptionBar({
             paddingBottom: keyboardUp ? 8 : insets.bottom + 8,
           }}
         >
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Description</Text>
-          <View className="flex-row items-center rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">Description</Text>
+          <View className="flex-row items-center rounded-control border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
             <TextInput
               value={value}
               onChangeText={onChangeText}
@@ -462,7 +463,7 @@ function DescriptionBar({
               maxLength={200}
               returnKeyType="done"
               onSubmitEditing={onSave}
-              className="flex-1 text-sm text-foreground py-2"
+              className="flex-1 text-meta text-foreground py-2"
               accessibilityLabel="Description"
             />
             {saving ? (
@@ -538,8 +539,8 @@ function SplitPanel({
   };
 
   return (
-    <View className="mt-3 rounded-lg border px-3 py-3" style={{ borderColor: theme.primary }}>
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Split with</Text>
+    <View className="mt-3 rounded-control border px-3 py-3" style={{ borderColor: theme.primary }}>
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">Split with</Text>
       <View className="flex-row flex-wrap" style={{ gap: 8 }}>
         {persons.map((p) => (
           <ChoiceChip key={p.id} label={p.name} selected={p.id === personId} onPress={() => setPersonId(p.id)} />
@@ -547,7 +548,7 @@ function SplitPanel({
         {!addingPerson && <ChoiceChip label="New person" icon="add" selected={false} onPress={() => setAddingPerson(true)} />}
       </View>
       {addingPerson && (
-        <View className="flex-row items-center mt-2 rounded-lg border border-border px-3" style={{ minHeight: 44 }}>
+        <View className="flex-row items-center mt-2 rounded-control border border-border px-3" style={{ minHeight: 44 }}>
           <TextInput
             value={newName}
             onChangeText={setNewName}
@@ -557,14 +558,14 @@ function SplitPanel({
             maxLength={60}
             returnKeyType="done"
             onSubmitEditing={() => void addPerson()}
-            className="flex-1 text-sm text-foreground py-2"
+            className="flex-1 text-meta text-foreground py-2"
             accessibilityLabel="New person's name"
           />
           {savingPerson ? (
             <ActivityIndicator size="small" color={theme.primary} />
           ) : (
             <Pressable onPress={() => void addPerson()} hitSlop={8} accessibilityRole="button">
-              <Text className="text-sm font-semibold" style={{ color: newName.trim() ? theme.primary : theme.mutedForeground }}>
+              <Text className="text-body font-semibold" style={{ color: newName.trim() ? theme.primary : theme.mutedForeground }}>
                 Add
               </Text>
             </Pressable>
@@ -572,34 +573,34 @@ function SplitPanel({
         </View>
       )}
 
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-2">How</Text>
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-2">How</Text>
       <View className="flex-row flex-wrap" style={{ gap: 8 }}>
         {INLINE_SPLIT_MODES.map((m) => (
           <ChoiceChip key={m.mode} label={m.label} selected={m.mode === mode} onPress={() => setMode(m.mode)} />
         ))}
       </View>
       {mode === "exact" && (
-        <View className="flex-row items-center mt-2 rounded-lg border border-border px-3" style={{ minHeight: 44 }}>
-          <Text className="text-sm text-muted-foreground mr-1">{"\u20B9"}</Text>
+        <View className="flex-row items-center mt-2 rounded-control border border-border px-3" style={{ minHeight: 44 }}>
+          <Text className="text-meta text-muted-foreground mr-1">{"\u20B9"}</Text>
           <FormulaTextInput
             value={exact}
             onChangeText={setExact}
             placeholder="How much do they owe?"
             placeholderTextColor={theme.mutedForeground}
             keyboardType="decimal-pad"
-            className="flex-1 text-sm text-foreground py-2"
+            className="flex-1 text-meta text-foreground py-2"
             accessibilityLabel="Amount they owe"
           />
         </View>
       )}
 
       {preview ? (
-        <Text className="text-sm text-foreground mt-3">
+        <Text className="text-meta text-foreground mt-3">
           Your share {formatAmount(preview.myBudgetAmount)} · {person?.name ?? "They"} owes{" "}
           {formatAmount(preview.hisaabAmount)}
         </Text>
       ) : mode === "exact" && exactValue > total ? (
-        <Text className="text-sm mt-3" style={{ color: theme.danger }}>
+        <Text className="text-meta mt-3" style={{ color: theme.danger }}>
           That is more than the {formatAmount(total)} paid.
         </Text>
       ) : null}
@@ -620,7 +621,7 @@ function SplitPanel({
           style={{ minHeight: 40 }}
           accessibilityRole="button"
         >
-          <Text className="text-sm font-medium" style={{ color: theme.danger }}>Remove split</Text>
+          <Text className="text-body font-medium" style={{ color: theme.danger }}>Remove split</Text>
         </Pressable>
       )}
     </View>
@@ -654,7 +655,7 @@ function ChoiceChip({
       accessibilityState={{ selected }}
     >
       {icon ? <Ionicons name={icon} size={16} color={color} style={{ marginRight: 4 }} /> : null}
-      <Text className="text-sm font-semibold flex-shrink" style={{ color }} numberOfLines={1}>
+      <Text className="text-body font-semibold flex-shrink" style={{ color }} numberOfLines={1}>
         {label}
       </Text>
     </Pressable>
@@ -686,7 +687,7 @@ function FieldChip({
       accessibilityLabel={accessibilityLabel}
     >
       <Ionicons name={icon} size={16} color={color} />
-      <Text className="text-sm font-semibold ml-1.5 flex-shrink" style={{ color }} numberOfLines={1}>
+      <Text className="text-body font-semibold ml-1.5 flex-shrink" style={{ color }} numberOfLines={1}>
         {text}
       </Text>
       <Ionicons name="chevron-down" size={14} color={color} style={{ marginLeft: 4 }} />
@@ -709,16 +710,16 @@ function MiniRow({
   const date = expense.nature === "forecast" && expense.due_date ? `Due ${formatDateForDisplay(expense.due_date)}` : formatDateForDisplay(expense.date);
   const account = accountText(accountMap, expense.account_id);
   return (
-    <View className="rounded-xl px-4 py-3 mb-2" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
+    <View className="rounded-control px-4 py-3 mb-2" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
       <Text className="text-label font-bold uppercase" style={{ color: labelColor }}>{label}</Text>
       <View className="flex-row items-center justify-between mt-1">
         <View className="flex-1 mr-3">
-          <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>{title(expense)}</Text>
-          <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
+          <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{title(expense)}</Text>
+          <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
             {[account, date].filter(Boolean).join(" · ")}
           </Text>
         </View>
-        <Money value={expense.amount} className="text-sm font-bold text-foreground" />
+        <Money value={expense.amount} className="text-body font-bold text-foreground" />
       </View>
     </View>
   );
@@ -735,12 +736,12 @@ function MatchBody({
   const { forecast, realized } = card.pair;
   return (
     <View>
-      <Text className="text-base font-bold text-foreground text-center mb-3">
+      <Text className="text-body font-bold text-foreground text-center mb-3">
         Is this the payment you were expecting?
       </Text>
       <MiniRow expense={forecast} label="Expected" labelColor={theme.warning} accountMap={accountMap} />
       <MiniRow expense={realized} label="Actual (from SMS)" labelColor={theme.primary} accountMap={accountMap} />
-      <Text className="text-xs text-muted-foreground text-center mt-2">
+      <Text className="text-label text-muted-foreground text-center mt-2">
         Swipe right if it's the same payment. The forecast is marked paid and the SMS copy is dropped.
       </Text>
     </View>
@@ -758,10 +759,10 @@ function DuplicateBody({
   const { keep, reject } = splitDuplicateGroup(card.group);
   return (
     <View>
-      <Text className="text-base font-bold text-foreground text-center mb-1">
+      <Text className="text-body font-bold text-foreground text-center mb-1">
         These look like the same transaction
       </Text>
-      <Text className="text-xs text-muted-foreground text-center mb-4">{card.group.reason}</Text>
+      <Text className="text-label text-muted-foreground text-center mb-4">{card.group.reason}</Text>
       <MiniRow expense={keep} label="Keep (newest)" labelColor={theme.success} accountMap={accountMap} />
       {reject.map((e) => (
         <MiniRow key={e.id} expense={e} label="Reject" labelColor={theme.danger} accountMap={accountMap} />
@@ -798,8 +799,8 @@ function MerchantField({
 
   return (
     <View className="mt-3">
-      <Text className="text-xs text-muted-foreground mb-1">{title}</Text>
-      <View className="flex-row items-center rounded-lg border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
+      <Text className="text-label text-muted-foreground mb-1">{title}</Text>
+      <View className="flex-row items-center rounded-control border px-3" style={{ borderColor: theme.primary, minHeight: 44 }}>
         <Ionicons name="storefront-outline" size={16} color={theme.mutedForeground} />
         <TextInput
           value={text}
@@ -810,7 +811,7 @@ function MerchantField({
           maxLength={100}
           returnKeyType="done"
           onSubmitEditing={() => onSave(text)}
-          className="flex-1 text-sm text-foreground py-2 ml-2"
+          className="flex-1 text-meta text-foreground py-2 ml-2"
           accessibilityLabel={title}
         />
         <Pressable onPress={onCancel} hitSlop={8} accessibilityRole="button" accessibilityLabel="Cancel">
@@ -831,12 +832,12 @@ function MerchantField({
               accessibilityLabel={`Use ${m}`}
             >
               <Ionicons name="time-outline" size={12} color={theme.mutedForeground} />
-              <Text className="text-xs text-foreground ml-1" numberOfLines={1}>{m}</Text>
+              <Text className="text-label text-foreground ml-1" numberOfLines={1}>{m}</Text>
             </Pressable>
           ))}
           {q.length > 0 && !exact && (
             <Pressable onPress={() => onSave(text)} className="rounded-full px-3 py-1.5" accessibilityRole="button">
-              <Text className="text-xs font-medium" style={{ color: theme.primary }}>Use "{text.trim()}"</Text>
+              <Text className="text-label font-medium" style={{ color: theme.primary }}>Use "{text.trim()}"</Text>
             </Pressable>
           )}
         </View>
@@ -857,12 +858,12 @@ function CreditTypeChip({ expense }: { expense: Expense }) {
         onPress={() => setOpen(true)}
         disabled={kind === "settlement"}
         className="flex-row items-center px-4 rounded-full border"
-        style={{ minHeight: 40, borderColor: look.color, backgroundColor: look.color + "14" }}
+        style={{ minHeight: 40, borderColor: look.color, backgroundColor: tint(look.color, 0.08) }}
         accessibilityRole="button"
         accessibilityLabel={kind === "settlement" ? `Type ${look.name}` : `Type ${look.name}, tap to change`}
       >
         <Ionicons name={look.icon as keyof typeof Ionicons.glyphMap} size={16} color={look.color} />
-        <Text className="text-sm font-semibold ml-1.5" style={{ color: look.color }}>{look.name}</Text>
+        <Text className="text-body font-semibold ml-1.5" style={{ color: look.color }}>{look.name}</Text>
         {kind !== "settlement" && <Ionicons name="chevron-down" size={14} color={look.color} style={{ marginLeft: 4 }} />}
       </Pressable>
       <SelectSheet<CreditKind>

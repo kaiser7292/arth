@@ -3,7 +3,6 @@ import { Sheet, Text } from "@/components/ui";
 import { View, Pressable,  ScrollView, TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { formatAmount } from "@/utils/format";
 import { getDatabase } from "@/database";
@@ -51,7 +50,6 @@ interface Props {
  * Shows recent realized expenses with search, single-select.
  */
 export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClose }: Props) {
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [query, setQuery] = useState("");
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
@@ -114,33 +112,34 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
 
       {/* Header */}
       <View className="px-5 pb-2">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Which expense was refunded?
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           This {formatAmount(creditAmount)} credit will reduce that expense's effective spend.
         </Text>
       </View>
 
       {/* Search */}
       <View
-        className="mx-5 mb-3 flex-row items-center rounded-xl px-3 bg-card"
-        style={{ borderWidth: 1, borderColor: colors.border }}
+        className="mx-5 mb-3 flex-row items-center rounded-control px-3 bg-card"
+        style={{ borderWidth: 1, borderColor: theme.border }}
       >
-        <Ionicons name="search-outline" size={16} color={colors.textSecondary} style={{ marginRight: 8 }} />
+        <Ionicons name="search-outline" size={16} color={theme.mutedForeground} style={{ marginRight: 8 }} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Search by merchant or description…"
-          placeholderTextColor={colors.textSecondary}
-          style={{ flex: 1, paddingVertical: 10, fontSize: 14, color: colors.text }}
+          placeholderTextColor={theme.mutedForeground}
+          className="text-body"
+          style={{ flex: 1, paddingVertical: 10, color: theme.foreground }}
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
         />
         {query.length > 0 && (
           <Pressable onPress={() => setQuery("")} hitSlop={8}>
-            <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+            <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
           </Pressable>
         )}
       </View>
@@ -150,8 +149,8 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
         <LoadingState rows={3} />
       ) : expenses.length === 0 ? (
         <View className="items-center justify-center py-10 px-5">
-          <Ionicons name="receipt-outline" size={40} color={colors.textSecondary} />
-          <Text className="text-sm mt-3 text-center" style={{ color: colors.textSecondary }}>
+          <Ionicons name="receipt-outline" size={40} color={theme.mutedForeground} />
+          <Text className="text-meta mt-3 text-center" style={{ color: theme.mutedForeground }}>
             {query.length > 0 ? "No expenses match your search." : "No expenses found."}
           </Text>
         </View>
@@ -171,11 +170,11 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
                 onPress={() => handlePick(exp)}
                 accessibilityRole="button"
                 accessibilityLabel={`Link refund to ${label}, ${formatAmount(exp.amount)}`}
-                className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                className="flex-row items-center py-3 px-4 rounded-control mb-2"
                 style={{
-                  backgroundColor: colors.surface,
+                  backgroundColor: theme.card,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: theme.border,
                 }}
               >
                 <View
@@ -186,20 +185,20 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
                 </View>
                 <View className="flex-1 mr-2">
                   <Text
-                    className="text-sm font-semibold"
-                    style={{ color: colors.text }}
+                    className="text-body font-semibold"
+                    style={{ color: theme.foreground }}
                     numberOfLines={1}
                   >
                     {label}
                   </Text>
-                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }} numberOfLines={1}>
+                  <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }} numberOfLines={1}>
                     {sub}  ·  {exp.date}
                   </Text>
                 </View>
-                <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                   {formatAmount(exp.amount)}
                 </Text>
-                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} style={{ marginLeft: 4 }} />
+                <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
               </Pressable>
             );
           })}
@@ -212,10 +211,10 @@ export function RefundExpensePickerSheet({ visible, creditAmount, onPick, onClos
           onPress={handleClose}
           accessibilityRole="button"
           accessibilityLabel="Cancel"
-          className="py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="py-3 rounded-control items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
             Cancel
           </Text>
         </Pressable>

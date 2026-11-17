@@ -10,7 +10,8 @@ import { recordEdits } from "@/services/expense-edit-history";
 import { logger } from "@/utils/logger";
 
 export interface BulkUpdateFields {
-  category_id?: string;
+  /** null clears it (Undo on "Add category"). */
+  category_id?: string | null;
   payment_mode_id?: string;
   account_id?: string;
   merchant_name?: string;
@@ -28,7 +29,7 @@ export async function bulkUpdateExpenses(
 
   const db = getDatabase();
   const setClauses: string[] = [];
-  const params: (string | number)[] = [];
+  const params: (string | number | null)[] = [];
 
   if (fields.category_id !== undefined) {
     setClauses.push("category_id = ?");

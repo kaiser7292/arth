@@ -55,7 +55,7 @@ export function CreditSalaryMonth({
 
   return (
     <Card className={className}>
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Income counts for</Text>
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">Income counts for</Text>
       <View className="flex-row" style={{ gap: 8 }}>
         {options.map((m) => {
           const on = m === selected;
@@ -66,18 +66,18 @@ export function CreditSalaryMonth({
                 setPicking(false);
                 void choose(m);
               }}
-              className="flex-1 py-2 rounded-lg items-center border"
+              className="flex-1 py-2 rounded-control items-center border"
               style={{ borderColor: on ? theme.primary : theme.border, backgroundColor: on ? theme.alpha("primary", 0.1) : "transparent" }}
               accessibilityRole="radio"
               accessibilityState={{ checked: on }}
             >
-              <Text className="text-xs font-medium" style={{ color: on ? theme.primary : theme.mutedForeground }}>{formatMonthLabel(m)}</Text>
+              <Text className="text-label font-medium" style={{ color: on ? theme.primary : theme.mutedForeground }}>{formatMonthLabel(m)}</Text>
             </Pressable>
           );
         })}
       </View>
       <Pressable onPress={() => setPicking((v) => !v)} hitSlop={8} className="mt-2.5" accessibilityRole="button">
-        <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+        <Text className="text-label font-medium" style={{ color: theme.primary }}>
           {elsewhere ? `Counts for ${formatMonthLabel(selected, "long")} · change` : "Another month"}
         </Text>
       </Pressable>
