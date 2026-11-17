@@ -1,16 +1,22 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
 import { useAlert } from "@/hooks/use-alert";
 import {
+  Stack,
   useLocalSearchParams,
   useFocusEffect,
   useRouter,
 } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, DateInput, FAB, Input, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, Chip, DateInput, FAB, Input, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, SectionTitle, Text } from "@/components/ui";
+import { Statement } from "@/components/ui/LinkRow";
+import { FormFooter, FormGroup } from "@/components/ui/FormParts";
+import { tint } from "@/constants/brand";
+import { todayIso } from "@/utils/local-date";
+import { describeBucketDelete } from "@/utils/bucket-delete-text";
 import {
   getYearlyPlanByFY,
   getInvestmentBuckets,
@@ -31,7 +37,6 @@ import type { LifeMilestone } from "@/services/life-milestone";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { getFYStartMonth, getDataVersion } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 
 import { getFinancialCockpit, type FinancialCockpitData } from "@/services/financial-cockpit";
@@ -44,9 +49,8 @@ type ViewMode = "buckets" | "add_bucket";
 export default function InvestmentBucketsScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors } = useColorScheme();
   const theme = useTheme();
-  const { fy } = useLocalSearchParams<{ fy?: string }>();
+  const { fy, edit } = useLocalSearchParams<{ fy?: string; edit?: string }>();
   const startMonth = getFYStartMonth();
   const initialFY = fy ? parseInt(fy, 10) : getCurrentFY(startMonth);
   const [selectedFY, setSelectedFY] = useState(initialFY);
@@ -403,6 +407,18 @@ export default function InvestmentBucketsScreen() {
       ? Math.min((totalContributed / totalTarget) * 100, 100)
       : 0;
 
+  // Arriving from a bucket's Edit pill: open its form once the list has loaded.
+  const editOpened = useRef<string | null>(null);
+  useEffect(() => {
+    if (!loaded || !edit || editOpened.current === edit) return;
+    const b = buckets.find((x) => x.id === edit);
+    if (b) {
+      editOpened.current = edit;
+      handleEditBucket(b);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, edit, buckets]);
+
   // ─── Loading / No Plan ───────────────────────────────────
 
   if (!loaded) {
@@ -419,64 +435,42 @@ export default function InvestmentBucketsScreen() {
   // ─── Add/Edit Bucket Form ────────────────────────────────
 
   if (viewMode === "add_bucket") {
+    const total = parseFloat(newBucketTarget);
+    const monthly = newBucketDate && !isNaN(total) ? goalMonthlyNeeded(total, goalMilestone?.current_saved ?? 0, newBucketDate) : null;
     return (
       <ScreenContainer padTop={false}>
+        <Stack.Screen options={{ title: editingBucketId ? "Edit bucket" : "Add bucket" }} />
         {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-        <KeyboardAvoidingView
-          behavior="padding"
-          className="flex-1"
-        >
-          <ScrollView
-            className="flex-1"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          >
-            <View className="px-4 py-4">
-              <Card
-                title={
-                  editingBucketId ? "Edit Bucket" : "Add Investment Bucket"
-                }
-                className="mb-4"
-              >
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+            <View className="px-4 py-4" style={{ gap: 12 }}>
+              <FormGroup icon="pie-chart-outline" title="The bucket" hint={`For ${fyLabel}`}>
+                <Input label="Name" value={newBucketName} onChangeText={setNewBucketName} placeholder="e.g. Emergency fund + FD" maxLength={50} />
                 <Input
-                  label="Bucket Name"
-                  value={newBucketName}
-                  onChangeText={setNewBucketName}
-                  placeholder="e.g. Emergency Fund + FD"
-                  maxLength={50}
-                  containerClassName="mb-3"
-                />
-                <Input
-                  label={newBucketDate ? "Total Target (Rs)" : "Annual Target (Rs)"}
+                  label={newBucketDate ? "Total target" : "Target for the year"}
+                  prefix="₹"
                   value={newBucketTarget}
                   onChangeText={setNewBucketTarget}
                   keyboardType="numeric"
                   formula
-                  placeholder="e.g. 420000"
-                  containerClassName="mb-3"
+                  placeholder="420000"
                 />
                 <DateInput
-                  label="Target Date (optional)"
+                  label="Target date (optional)"
                   value={newBucketDate}
                   onChange={setNewBucketDate}
                   minimumDate={new Date()}
                   maximumDate={null}
-                  containerClassName="mb-3"
                 />
                 {newBucketDate ? (
-                  <View className="mb-4">
-                    {(() => {
-                      const total = parseFloat(newBucketTarget);
-                      const monthly = isNaN(total) ? null : goalMonthlyNeeded(total, goalMilestone?.current_saved ?? 0, newBucketDate);
-                      if (monthly === null) return null;
-                      return (
-                        <Text className="text-xs mb-2" style={{ color: theme.primary }}>
-                          {monthly > 0
-                            ? `${formatAmount(Math.ceil(monthly))} a month gets you there by ${dateLabel(newBucketDate)}`
-                            : "You've already saved this much"}
-                        </Text>
-                      );
-                    })()}
+                  <View style={{ gap: 6 }}>
+                    {monthly !== null && (
+                      <Text className="text-meta" style={{ color: theme.primary }}>
+                        {monthly > 0
+                          ? `${formatAmount(Math.ceil(monthly))} a month gets you there by ${dateLabel(newBucketDate)}`
+                          : "You've already saved this much"}
+                      </Text>
+                    )}
                     <Pressable
                       onPress={() => {
                         setNewBucketDate("");
@@ -485,79 +479,28 @@ export default function InvestmentBucketsScreen() {
                       }}
                       hitSlop={8}
                       accessibilityRole="button"
+                      className="self-start"
                     >
-                      <Text className="text-xs font-medium" style={{ color: colors.blue }}>Remove date</Text>
+                      <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
+                        Remove date
+                      </Text>
                     </Pressable>
                   </View>
                 ) : (
-                <View className="mb-4">
-                  <Text className="text-xs font-medium text-muted-foreground mb-1.5">
-                    Link to Life Milestone (optional)
-                  </Text>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                  >
-                    <Pressable
-                      onPress={() => setSelectedMilestoneId(null)}
-                      className="mr-2 px-3 py-2 rounded-lg border"
-                      style={{
-                        borderColor: selectedMilestoneId === null ? colors.blue : theme.border,
-                        backgroundColor: selectedMilestoneId === null ? theme.alpha("primary", 0.08) : "transparent",
-                      }}
-                    >
-                      <Text
-                        className="text-xs font-medium"
-                        style={{
-                          color: selectedMilestoneId === null ? colors.blue : theme.mutedForeground,
-                        }}
-                      >
-                        None
-                      </Text>
-                    </Pressable>
-                    {milestones.map((ms) => (
-                      <Pressable
-                        key={ms.id}
-                        onPress={() => setSelectedMilestoneId(ms.id)}
-                        className="mr-2 px-3 py-2 rounded-lg border"
-                        style={{
-                          borderColor: selectedMilestoneId === ms.id ? colors.blue : theme.border,
-                          backgroundColor: selectedMilestoneId === ms.id ? theme.alpha("primary", 0.08) : "transparent",
-                        }}
-                      >
-                        <Text
-                          className="text-xs font-medium"
-                          style={{
-                            color: selectedMilestoneId === ms.id ? colors.blue : theme.mutedForeground,
-                          }}
-                          numberOfLines={1}
-                        >
-                          {ms.name}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </ScrollView>
-                </View>
+                  <View>
+                    <Text className="text-label font-semibold text-muted-foreground mb-1.5">Link to a life milestone (optional)</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      <Chip label="None" on={selectedMilestoneId === null} onPress={() => setSelectedMilestoneId(null)} />
+                      {milestones.map((ms) => (
+                        <Chip key={ms.id} label={ms.name} on={selectedMilestoneId === ms.id} onPress={() => setSelectedMilestoneId(ms.id)} />
+                      ))}
+                    </ScrollView>
+                  </View>
                 )}
-
-                <View className="flex-row">
-                  <View className="flex-1 mr-2">
-                    <Button
-                      title="Cancel"
-                      variant="outline"
-                      onPress={resetBucketForm}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Button
-                      title={editingBucketId ? "Update" : "Add Bucket"}
-                      onPress={handleAddBucket}
-                    />
-                  </View>
-                </View>
-              </Card>
+              </FormGroup>
             </View>
           </ScrollView>
+          <FormFooter primary={editingBucketId ? "Save bucket" : "Add bucket"} onPrimary={handleAddBucket} onCancel={resetBucketForm} />
         </KeyboardAvoidingView>
       </ScreenContainer>
     );
@@ -565,375 +508,278 @@ export default function InvestmentBucketsScreen() {
 
   // ─── Main Bucket List ────────────────────────────────────
 
+  const monthsGone = cockpit ? 12 - cockpit.monthsRemaining : null;
+  const breathing = cockpit?.waterfall.breathingRoomMonthly ?? 0;
+
   return (
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 80 }}
-      >
-        <View className="px-4 pb-4">
-          {/* FY Picker */}
-          <PeriodNavigator
-            mode="fy"
-            value={selectedFY}
-            onChange={setSelectedFY}
-            variant="inline"
-          />
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
+        <View className="px-4 pb-4" style={{ gap: 12 }}>
+          <PeriodNavigator mode="fy" value={selectedFY} onChange={setSelectedFY} variant="inline" />
 
-          {/* Copy-Forward Prompt */}
+          {/* Copy last year's plan into this empty year */}
           {buckets.length === 0 && prevYearBuckets.length > 0 && (
-            <Card className="mb-4">
-              <View className="items-center py-2">
-                <Ionicons name="copy-outline" size={28} color={colors.blue} />
-                <Text className="text-base font-semibold text-foreground mt-2">
-                  No buckets for {fyLabel}
-                </Text>
-                <Text className="text-sm text-muted-foreground mt-1 text-center">
-                  You have {prevYearBuckets.length} bucket{prevYearBuckets.length > 1 ? "s" : ""} from FY {getFYLabel(selectedFY - 1, startMonth)}.
-                </Text>
-
-                {!showHikeInput ? (
-                  <>
-                    {/* Previous year buckets preview */}
-                    <View className="w-full mt-3 mb-3">
-                      {prevYearBuckets.map((b) => (
-                        <View key={b.id} className="flex-row items-center justify-between py-1.5 border-b border-border">
-                          <Text className="text-sm text-foreground flex-1 mr-2" numberOfLines={1}>
-                            {b.name}
-                          </Text>
-                          <Text className="text-sm font-semibold text-foreground">
-                            {formatAmount(b.annual_target)}
-                          </Text>
-                        </View>
-                      ))}
+            <Card>
+              <SectionTitle
+                icon="copy-outline"
+                active
+                title={`No buckets for ${fyLabel}`}
+                hint={`${prevYearBuckets.length} ${prevYearBuckets.length > 1 ? "buckets" : "bucket"} in ${getFYLabel(selectedFY - 1, startMonth)}`}
+              />
+              {!showHikeInput ? (
+                <>
+                  <View className="mt-2">
+                    {prevYearBuckets.map((b, i) => (
+                      <View key={b.id} className={`flex-row items-center justify-between py-2 ${i > 0 ? "border-t border-border" : ""}`}>
+                        <Text className="text-body text-foreground flex-1 mr-2" numberOfLines={1}>
+                          {b.name}
+                        </Text>
+                        <Text className="text-body font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                          {formatAmount(b.annual_target)}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <View className="flex-row mt-3" style={{ gap: 8 }}>
+                    <View className="flex-1">
+                      <Button title="Copy as is" variant="outline" onPress={handleCopyAsIs} loading={copying} disabled={copying} />
                     </View>
-
-                    <View className="flex-row w-full gap-2">
-                      <View className="flex-1">
-                        <Button
-                          title="Copy as is"
-                          variant="outline"
-                          onPress={handleCopyAsIs}
-                          loading={copying}
-                          disabled={copying}
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <Button
-                          title="Copy with hike"
-                          onPress={() => setShowHikeInput(true)}
-                          disabled={copying}
-                        />
-                      </View>
-                    </View>
-                  </>
-                ) : (
-                  <View className="w-full mt-3">
-                    {/* Uniform hike shortcut */}
-                    <View className="flex-row items-end gap-2 mb-3">
-                      <View className="flex-1">
-                        <Input
-                          label="Set all Hike %"
-                          value={uniformHike}
-                          onChangeText={setUniformHike}
-                          keyboardType="numeric"
-                          placeholder="e.g. 10"
-                        />
-                      </View>
-                      <View className="mb-0.5">
-                        <Button title="Set all" variant="outline" onPress={handleApplyUniformHike} />
-                      </View>
-                    </View>
-
-                    {/* Per-bucket hike inputs */}
-                    {prevYearBuckets.map((b) => {
-                      const hikeStr = bucketHikes[b.id] ?? "";
-                      const hike = hikeStr ? parseFloat(hikeStr) : 0;
-                      const newTarget = isNaN(hike) ? b.annual_target : Math.round(b.annual_target * (1 + hike / 100));
-                      return (
-                        <View key={b.id} className="flex-row items-center py-2 border-b border-border">
-                          <View className="flex-1 mr-2">
-                            <Text className="text-sm text-foreground" numberOfLines={1}>
-                              {b.name}
-                            </Text>
-                            <Text className="text-xs text-muted-foreground">
-                              {formatAmount(b.annual_target)} → <Text className="font-semibold" style={{ color: theme.primary }}>{formatAmount(newTarget)}</Text>
-                            </Text>
-                          </View>
-                          <View className="w-20">
-                            <Input
-                              value={hikeStr}
-                              onChangeText={(v: string) => setBucketHikes((prev) => ({ ...prev, [b.id]: v }))}
-                              keyboardType="numeric"
-                              placeholder="%"
-                            />
-                          </View>
-                        </View>
-                      );
-                    })}
-
-                    {/* Totals preview */}
-                    <View className="mt-2 mb-3">
-                      <Text className="text-xs text-muted-foreground">
-                        Previous total: {formatAmount(prevYearBuckets.reduce((s, b) => s + b.annual_target, 0))}
-                      </Text>
-                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
-                        New total: {formatAmount(prevYearBuckets.reduce((s, b) => {
-                          const h = bucketHikes[b.id] ? parseFloat(bucketHikes[b.id]) : 0;
-                          return s + Math.round(b.annual_target * (1 + (isNaN(h) ? 0 : h) / 100));
-                        }, 0))}
-                      </Text>
-                    </View>
-
-                    <View className="flex-row gap-2">
-                      <View className="flex-1">
-                        <Button title="Cancel" variant="outline" onPress={() => { setShowHikeInput(false); setUniformHike(""); setBucketHikes({}); }} disabled={copying} />
-                      </View>
-                      <View className="flex-1">
-                        <Button title="Apply and save" onPress={handleCopyWithHike} loading={copying} disabled={copying} />
-                      </View>
+                    <View className="flex-1">
+                      <Button title="Copy with hike" onPress={() => setShowHikeInput(true)} disabled={copying} />
                     </View>
                   </View>
-                )}
-              </View>
+                </>
+              ) : (
+                <View className="mt-3" style={{ gap: 8 }}>
+                  <View className="flex-row items-end" style={{ gap: 8 }}>
+                    <Input
+                      label="Set all hike"
+                      suffix="%"
+                      value={uniformHike}
+                      onChangeText={setUniformHike}
+                      keyboardType="numeric"
+                      placeholder="10"
+                      containerClassName="flex-1"
+                    />
+                    <Button title="Set all" variant="outline" onPress={handleApplyUniformHike} />
+                  </View>
+                  {prevYearBuckets.map((b) => {
+                    const hikeStr = bucketHikes[b.id] ?? "";
+                    const hike = hikeStr ? parseFloat(hikeStr) : 0;
+                    const newTarget = isNaN(hike) ? b.annual_target : Math.round(b.annual_target * (1 + hike / 100));
+                    return (
+                      <View key={b.id} className="flex-row items-center py-2 border-t border-border">
+                        <View className="flex-1 mr-2">
+                          <Text className="text-body text-foreground" numberOfLines={1}>
+                            {b.name}
+                          </Text>
+                          <Text className="text-meta text-muted-foreground">
+                            {formatAmount(b.annual_target)} →{" "}
+                            <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
+                              {formatAmount(newTarget)}
+                            </Text>
+                          </Text>
+                        </View>
+                        <View style={{ width: 92 }}>
+                          <Input
+                            value={hikeStr}
+                            onChangeText={(v: string) => setBucketHikes((prev) => ({ ...prev, [b.id]: v }))}
+                            keyboardType="numeric"
+                            suffix="%"
+                            accessibilityLabel={`Hike for ${b.name}`}
+                          />
+                        </View>
+                      </View>
+                    );
+                  })}
+                  <View className="border-t border-border pt-2">
+                    <Statement
+                      lines={[{ label: "Last year's total", amount: formatAmount(prevYearBuckets.reduce((s, b) => s + b.annual_target, 0)) }]}
+                      total={{
+                        label: "New total",
+                        color: theme.primary,
+                        amount: formatAmount(
+                          prevYearBuckets.reduce((s, b) => {
+                            const h = bucketHikes[b.id] ? parseFloat(bucketHikes[b.id]) : 0;
+                            return s + Math.round(b.annual_target * (1 + (isNaN(h) ? 0 : h) / 100));
+                          }, 0),
+                        ),
+                      }}
+                    />
+                  </View>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <View className="flex-1">
+                      <Button
+                        title="Cancel"
+                        variant="outline"
+                        onPress={() => {
+                          setShowHikeInput(false);
+                          setUniformHike("");
+                          setBucketHikes({});
+                        }}
+                        disabled={copying}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Button title="Apply and save" onPress={handleCopyWithHike} loading={copying} disabled={copying} />
+                    </View>
+                  </View>
+                </View>
+              )}
             </Card>
           )}
 
-          {/* Overall Summary */}
-          <Card className="mb-4">
-            <View className="flex-row mb-3">
-              <View className="flex-1">
-                <Text className="text-xs text-muted-foreground">
-                  Total Goal
-                </Text>
-                <Text className="text-base font-bold text-foreground">
-                  {formatAmount(totalTarget)}
-                </Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-xs text-muted-foreground">
-                  Invested
-                </Text>
-                <Text className="text-base font-bold text-success">
+          {/* Overall: put in this year, of the target */}
+          <Card>
+            <View className="flex-row items-end justify-between">
+              <View>
+                <Text className="text-meta text-muted-foreground">Put in this year</Text>
+                <Text className="text-hero font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }} numberOfLines={1}>
                   {formatAmount(totalContributed)}
                 </Text>
               </View>
-              <View className="flex-1">
-                <Text className="text-xs text-muted-foreground">
-                  Remaining
-                </Text>
-                <Text className="text-base font-bold text-danger">
-                  {formatAmount(totalRemaining)}
+              <View className="items-end">
+                <Text className="text-meta text-muted-foreground">of {formatAmount(totalTarget)}</Text>
+                <Text className="text-meta text-muted-foreground">
+                  {buckets.length} {buckets.length === 1 ? "bucket" : "buckets"}
                 </Text>
               </View>
             </View>
-
-            {/* Overall progress */}
-            <ProgressBar value={(overallPct) / 100} color={theme.primary} height={12} animated={false} />
-            <Text className="text-xs text-muted-foreground mt-1 text-right">
-              {overallPct.toFixed(1)}% of annual investment goal
-            </Text>
-
-            {/* Surplus summary */}
-            {cockpit && cockpit.waterfall.breathingRoomMonthly !== 0 && (
+            {totalTarget > 0 && (
+              <View className="mt-3" style={{ gap: 6 }}>
+                <ProgressBar value={overallPct / 100} color={theme.data.transfer} height={8} animated={false} />
+                <Text className="text-meta text-muted-foreground">
+                  {formatAmount(totalRemaining)} still to put in{monthsGone != null ? ` · ${monthsGone} of 12 months gone` : ""}
+                </Text>
+              </View>
+            )}
+            {cockpit && breathing !== 0 && (
               <View
-                className="mt-3 py-2 px-3 rounded-lg"
-                style={{
-                  backgroundColor: (cockpit.waterfall.breathingRoomMonthly > 0 ? "#14B8A6" : theme.danger) + "0A",
-                }}
+                className="mt-3 py-2 px-3 rounded-control"
+                style={{ backgroundColor: breathing > 0 ? theme.alpha("success", 0.08) : theme.alpha("danger", 0.08) }}
               >
-                <Text className="text-xs text-muted-foreground text-center">
-                  {cockpit.waterfall.breathingRoomMonthly > 0
-                    ? `Surplus supports ${Math.min(999, Math.round((cockpit.waterfall.breathingRoomMonthly / (totalRemaining > 0 && cockpit.monthsRemaining > 0 ? totalRemaining / cockpit.monthsRemaining : 1)) * 100))}% of remaining investment commitments`
-                    : "Warning: No surplus available for investments"
-                  }
+                <Text className="text-meta text-foreground">
+                  {breathing > 0
+                    ? `Your monthly surplus covers ${Math.min(
+                        999,
+                        Math.round(
+                          (breathing / (totalRemaining > 0 && cockpit.monthsRemaining > 0 ? totalRemaining / cockpit.monthsRemaining : 1)) * 100,
+                        ),
+                      )}% of what's still to put in`
+                    : "No surplus left for investments this year"}
                 </Text>
               </View>
             )}
           </Card>
 
-          {/* Bucket List */}
           {buckets.length === 0 ? (
-            <Card className="mb-4">
+            <Card>
               <View className="items-center py-4">
-                <Ionicons name="pie-chart-outline" size={48} color={colors.textSecondary} />
-                <Text className="text-base font-medium text-foreground mt-2">
-                  No investment buckets
-                </Text>
-                <Text className="text-sm text-muted-foreground mt-1 text-center px-4">
-                  Add your first bucket to start tracking investments
-                </Text>
+                <Ionicons name="pie-chart-outline" size={48} color={theme.faintForeground} />
+                <Text className="text-body font-semibold text-foreground mt-2">No investment buckets</Text>
+                <Text className="text-meta text-muted-foreground mt-1 text-center px-4">Add your first bucket to start tracking investments</Text>
               </View>
             </Card>
           ) : (
-            buckets.map((bucket) => {
-              const left = Math.max(
-                bucket.annual_target - bucket.current_contributed,
-                0,
-              );
-              const pct =
-                bucket.annual_target > 0
-                  ? Math.min(
-                      (bucket.current_contributed / bucket.annual_target) * 100,
-                      100,
-                    )
-                  : 0;
-              const isComplete =
-                bucket.current_contributed >= bucket.annual_target;
-
+            buckets.map((bucket, i) => {
+              const left = Math.max(bucket.annual_target - bucket.current_contributed, 0);
+              const pct = bucket.annual_target > 0 ? Math.min((bucket.current_contributed / bucket.annual_target) * 100, 100) : 0;
+              const isComplete = bucket.current_contributed >= bucket.annual_target;
+              const bs = cockpit?.buckets.find((b) => b.id === bucket.id);
+              const goal = goalBehind(bucket);
+              const passed = !!goal?.target_date && goal.target_date < todayIso() && !isComplete;
+              const color = isComplete ? theme.success : theme.data.series[(i + 2) % theme.data.series.length];
+              const tag: { label: string; tone: "success" | "warning" | "primary" } | null = isComplete
+                ? { label: "Done", tone: "success" }
+                : passed
+                  ? { label: "Date passed", tone: "warning" }
+                  : bs?.paceStatus === "behind"
+                    ? { label: "Behind", tone: "warning" }
+                    : bs
+                      ? { label: bs.paceStatus === "ahead" ? "Ahead" : "On pace", tone: "success" }
+                      : null;
+              const sub = bucket.linked_milestone_id
+                ? goalLine(bucket) ?? `Linked to ${milestones.find((m) => m.id === bucket.linked_milestone_id)?.name ?? "a milestone"}`
+                : bucket.annual_target > 0
+                  ? `${formatAmount(Math.round(bucket.annual_target / 12))} a month`
+                  : "No target yet";
               return (
                 <Pressable
                   key={bucket.id}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/goals/investment-detail",
-                      params: { bucketId: bucket.id },
-                    })
-                  }
+                  onPress={() => router.push({ pathname: "/goals/investment-detail", params: { bucketId: bucket.id } })}
                   onLongPress={() => handleBucketActions(bucket)}
+                  className="rounded-card bg-card border border-border px-4 py-3.5"
+                  style={{ gap: 10 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${bucket.name}${tag ? `, ${tag.label}` : ""}`}
+                  accessibilityHint="Long-press to reset or delete"
                 >
-                  <Card className="mb-3">
-                    <View className="flex-row items-center justify-between mb-2">
-                      <View className="flex-row items-center flex-1">
-                        <View
-                          className="w-7 h-7 rounded-full items-center justify-center mr-2"
-                          style={{
-                            backgroundColor: isComplete
-                              ? theme.alpha("success", 0.08)
-                              : theme.alpha("primary", 0.08),
-                          }}
-                        >
-                          <Ionicons
-                            name={
-                              isComplete
-                                ? "checkmark-circle"
-                                : "wallet-outline"
-                            }
-                            size={16}
-                            color={isComplete ? theme.success : colors.blue}
-                          />
-                        </View>
-                        <View className="flex-1">
-                          <Text
-                            className="text-sm font-medium text-foreground"
-                            numberOfLines={1}
-                          >
-                            {bucket.name}
-                          </Text>
-                          {bucket.linked_milestone_id && (
-                            <View className="flex-row items-center mt-0.5">
-                              <Ionicons
-                                name="link-outline"
-                                size={10}
-                                color={colors.textSecondary}
-                              />
-                              <Text className="text-xs text-muted-foreground ml-1" numberOfLines={1}>
-                                {goalLine(bucket) ?? milestones.find((m) => m.id === bucket.linked_milestone_id)?.name ?? "Linked milestone"}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      </View>
-                      <Pressable
-                        onPress={() => handleEditBucket(bucket)}
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name="create-outline"
-                          size={16}
-                          color={colors.blue}
-                        />
-                      </Pressable>
+                  <View className="flex-row items-center" style={{ gap: 12 }}>
+                    <View className="w-10 h-10 rounded-control items-center justify-center" style={{ backgroundColor: tint(color, 0.1) }}>
+                      <Ionicons name={isComplete ? "checkmark-circle" : "wallet-outline"} size={19} color={color} />
                     </View>
-
-                    {/* Goal / Done / Left */}
-                    <View className="flex-row mb-2">
-                      <View className="flex-1">
-                        <Text className="text-xs text-muted-foreground">
-                          Goal
-                        </Text>
-                        <Text className="text-sm font-semibold text-foreground">
-                          {formatAmount(bucket.annual_target)}
-                        </Text>
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-xs text-muted-foreground">
-                          Done
-                        </Text>
-                        <Text className="text-sm font-semibold text-success">
-                          {formatAmount(bucket.current_contributed)}
-                        </Text>
-                      </View>
-                      <View className="flex-1">
-                        <Text className="text-xs text-muted-foreground">
-                          Left
-                        </Text>
-                        <Text className="text-sm font-semibold text-danger">
-                          {formatAmount(left)}
-                        </Text>
-                      </View>
+                    <View className="flex-1" style={{ minWidth: 0 }}>
+                      <Text className="text-body font-bold text-foreground" numberOfLines={1}>
+                        {bucket.name}
+                      </Text>
+                      <Text className="text-meta text-muted-foreground" numberOfLines={1}>
+                        {sub}
+                      </Text>
                     </View>
-
-                    {/* Progress bar */}
-                    <View className="h-2 rounded-full bg-border overflow-hidden">
-                      <View
-                        className="h-2 rounded-full"
-                        style={{
-                          width: `${pct}%`,
-                          backgroundColor: isComplete ? theme.success : colors.blue,
-                        }}
-                      />
-                    </View>
-                    <Text className="text-xs text-faint-foreground mt-1 text-right">
-                      {pct.toFixed(0)}%
+                    {tag && <Chip variant="status" tone={tag.tone} label={tag.label} />}
+                    <Pressable onPress={() => handleEditBucket(bucket)} hitSlop={8} className="p-1" accessibilityRole="button" accessibilityLabel={`Edit ${bucket.name}`}>
+                      <Ionicons name="create-outline" size={18} color={theme.mutedForeground} />
+                    </Pressable>
+                  </View>
+                  {bucket.annual_target > 0 && <ProgressBar value={pct / 100} color={color} height={6} animated={false} />}
+                  <View className="flex-row justify-between">
+                    <Text className="text-meta font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                      {formatAmount(bucket.current_contributed)}
+                      <Text className="text-meta text-muted-foreground"> of {formatAmount(bucket.annual_target)}</Text>
                     </Text>
-
-                    {/* Monthly needed (from cockpit) */}
-                    {cockpit && (() => {
-                      const bs = cockpit.buckets.find((b) => b.id === bucket.id);
-                      if (!bs || isComplete) return null;
-                      return (
-                        <View className="mt-2 pt-2 border-t border-border">
-                          <Text className="text-xs text-muted-foreground">
-                            {formatAmount(Math.round(bs.monthlyRequired))}/mo needed
-                          </Text>
-                        </View>
-                      );
-                    })()}
-                  </Card>
+                    <Text className="text-meta text-muted-foreground" numberOfLines={1}>
+                      {isComplete
+                        ? "Target reached"
+                        : bs && bs.monthlyRequired > 0
+                          ? `${formatAmount(Math.round(bs.monthlyRequired))} a month needed`
+                          : `${formatAmount(left)} left`}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })
           )}
 
+          {/* Plan the next year from this one: opens next FY, where the copy prompt waits. */}
           {buckets.length > 0 && (
-            <Text className="text-xs text-faint-foreground text-center mb-4">
-              Tap to view details. Long-press for reset/delete options.
-            </Text>
+            <Pressable
+              onPress={() => setSelectedFY(selectedFY + 1)}
+              className="flex-row items-center rounded-card border border-dashed px-4"
+              style={{ minHeight: 60, gap: 12, borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.04) }}
+              accessibilityRole="button"
+              accessibilityLabel={`Plan ${getFYLabel(selectedFY + 1, startMonth)} from this one`}
+            >
+              <View className="flex-1">
+                <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+                  Plan {getFYLabel(selectedFY + 1, startMonth)} from this one
+                </Text>
+                <Text className="text-meta text-muted-foreground">Copy as is, or with a yearly hike</Text>
+              </View>
+              <Text className="text-body font-bold" style={{ color: theme.primary }}>
+                Copy
+              </Text>
+            </Pressable>
+          )}
+
+          {buckets.length > 0 && (
+            <Text className="text-label text-faint-foreground text-center">Tap to open. Long-press to reset or delete.</Text>
           )}
         </View>
       </ScrollView>
 
-      {/* FAB: Add Bucket */}
-      <FAB icon="add" onPress={() => setViewMode("add_bucket")} />
+      <FAB icon="add" label="Bucket" onPress={() => setViewMode("add_bucket")} />
     </ScreenContainer>
   );
 }
 
-/** The delete confirmation: what goes, and what is only unlinked. */
-function describeBucketDelete(name: string, usage: InvestmentBucketUsage | null): string {
-  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-  const lines: string[] = [];
-  if (usage) {
-    if (usage.contributions > 0) lines.push(`• ${plural(usage.contributions, "contribution is", "contributions are")} deleted`);
-    if (usage.transfers > 0) lines.push(`• ${plural(usage.transfers, "transfer stays but loses", "transfers stay but lose")} this bucket`);
-    if (usage.linkedExpenses > 0)
-      lines.push(`• ${plural(usage.linkedExpenses, "linked payment counts", "linked payments count")} as spending again`);
-    if (usage.rules > 0) lines.push(`• ${plural(usage.rules, "smart rule stops", "smart rules stop")} linking payments to it`);
-    if (usage.fixedDeposits > 0) lines.push(`• ${plural(usage.fixedDeposits, "fixed deposit is", "fixed deposits are")} unassigned`);
-  }
-  const head = `Delete "${name}"? This cannot be undone.`;
-  return lines.length > 0 ? `${head}\n\n${lines.join("\n")}` : head;
-}

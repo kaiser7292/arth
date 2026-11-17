@@ -74,6 +74,8 @@ const FILES = [
   "components/ui/FormParts.tsx",
   "components/ui/FAB.tsx",
   "components/ui/Input.tsx",
+  "app/goals/investment-buckets.tsx",
+  "app/goals/investment-detail.tsx",
 ];
 
 const DIRS = ["components/expense", "components/expense/catch-up"];
