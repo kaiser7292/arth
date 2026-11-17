@@ -1,3 +1,4 @@
+import { useAddCategory } from "@/hooks/use-add-category";
 import { useTheme } from "@/hooks/use-theme";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
@@ -185,6 +186,10 @@ export default function InsightFilteredListScreen() {
     }
   }, [expenses, sortBy]);
 
+  // "+ Add category" on an untagged row picks one in place.
+
+  const addCategory = useAddCategory({ categories });
+
   const tools = useExpenseTools({
     screen: "insights_filtered",
     kind: "spend",
@@ -266,6 +271,7 @@ export default function InsightFilteredListScreen() {
           <>
           <ListToolbar {...tools.toolbar} />
           {tools.filterSheet}
+          {addCategory.sheet}
           <FlatList
             initialNumToRender={12}
             maxToRenderPerBatch={10}
@@ -287,6 +293,7 @@ export default function InsightFilteredListScreen() {
                 onLongPress={() => {}}
                 splitNote={splitNoteMap.get(row.item.id)}
                 hideDate={tools.groupBy === "date"}
+                onAddCategory={addCategory.open}
               />
             )}
             showsVerticalScrollIndicator={false}

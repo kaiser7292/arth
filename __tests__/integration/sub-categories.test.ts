@@ -36,6 +36,7 @@ import {
 } from "../../services/category";
 import { countFilteredExpenses, getExpenseTotalsByCategory, getExpenseIdsByCategory } from "../../services/expense";
 import { TABLE_SCHEMAS } from "../../database/TABLE_SCHEMAS";
+import { restoreFromData } from "../../services/backup";
 
 const U = DEFAULT_USER_ID;
 let n = 0;
@@ -121,5 +122,25 @@ describe("sub-categories", () => {
     addExpense(bills, 50);
     expect(await getRecentCategoriesForMerchant(U, "fresh mart")).toEqual([groceries, bills]);
     expect(await getRecentCategoriesForMerchant(U, "")).toEqual([]);
+  });
+
+  it("survives a backup and restore, and an old backup comes back flat", async () => {
+    const saved = mockDb.prepare("SELECT * FROM categories").all() as Record<string, unknown>[];
+    // A sub-category whose parent is a sub-category, and one whose parent is missing: both move up.
+    const broken = [
+      ...saved,
+      { ...saved[0], id: "deep", name: "Deep", parent_id: groceries },
+      { ...saved[0], id: "lost", name: "Lost", parent_id: "not-in-backup" },
+    ];
+    await restoreFromData({ categories: broken });
+    expect((await getCategoryById(groceries))?.parent_id).toBe(food);
+    expect((await getCategoryById(food))?.parent_id).toBeNull();
+    expect((await getCategoryById("deep"))?.parent_id).toBeNull();
+    expect((await getCategoryById("lost"))?.parent_id).toBeNull();
+
+    // A backup from before migration 095 has no parent_id at all.
+    const old = saved.map(({ parent_id: _drop, ...rest }) => rest);
+    await restoreFromData({ categories: old });
+    expect((await getCategoryById(groceries))?.parent_id).toBeNull();
   });
 });

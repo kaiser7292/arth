@@ -1,3 +1,4 @@
+import { useAddCategory } from "@/hooks/use-add-category";
 import { useTheme } from "@/hooks/use-theme";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
@@ -106,6 +107,10 @@ export default function BudgetTransactionsScreen() {
     () => new Map(accounts.map((a) => [a.id, a])),
     [accounts],
   );
+
+  // "+ Add category" on an untagged row picks one in place.
+
+  const addCategory = useAddCategory({ categories });
 
   const tools = useExpenseTools({
     screen: "budget_transactions",
@@ -329,6 +334,7 @@ export default function BudgetTransactionsScreen() {
           <>
           <ListToolbar {...tools.toolbar} />
           {tools.filterSheet}
+          {addCategory.sheet}
           <FlatList
             initialNumToRender={12}
             maxToRenderPerBatch={10}
@@ -351,6 +357,7 @@ export default function BudgetTransactionsScreen() {
                 onLongPress={handleLongPress}
                 selected={selecting && selected.has(row.item.id)}
                 hideDate={tools.groupBy === "date"}
+                onAddCategory={addCategory.open}
               />
             )}
             extraData={selecting ? selected : personMap}

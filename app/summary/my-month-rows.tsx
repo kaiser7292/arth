@@ -1,3 +1,4 @@
+import { useAddCategory } from "@/hooks/use-add-category";
 import { useCallback, useMemo, useState } from "react";
 import { Pressable, SectionList, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
@@ -116,6 +117,8 @@ export default function MyMonthRowsScreen() {
       amounts: [e.amount],
     };
   }, [categoryMap]);
+  // "+ Add category" on an untagged row picks one in place.
+  const addCategory = useAddCategory({ categories });
   const tools = useListTools<FigureRow>({
     screen: `my_month_${params.section}`,
     noun: { one: "transaction", many: "transactions" },
@@ -150,6 +153,7 @@ export default function MyMonthRowsScreen() {
           onPress={openExpense}
           onLongPress={noop}
           hideDate={tools.groupBy === "date"}
+          onAddCategory={addCategory.open}
         />
       );
     }
@@ -193,6 +197,7 @@ export default function MyMonthRowsScreen() {
         <>
         {allRows.length > 0 && <ListToolbar {...tools.toolbar} />}
         {tools.filterSheet}
+        {addCategory.sheet}
         <SectionList
           sections={sections}
           keyExtractor={(item, i) => `${item.kind === "expense" ? item.expense.id : item.transfer.id}-${i}`}
