@@ -137,8 +137,8 @@ export function YoYCumulativeChart({ monthLabels, current, base, currentLabel, b
         />
         {diff != null && (
           <View className="flex-row items-center pt-1.5 mt-0.5 border-t border-border">
-            <Text className="text-sm text-foreground flex-1">Difference</Text>
-            <Text className="text-sm font-semibold" style={{ color: diff <= 0 ? theme.success : theme.danger }}>
+            <Text className="text-meta text-foreground flex-1">Difference</Text>
+            <Text className="text-body font-semibold" style={{ color: diff <= 0 ? theme.success : theme.danger }}>
               {diff > 0 ? "+" : diff < 0 ? "−" : ""}{formatAmount(Math.abs(diff))}
               {diffPct != null ? ` (${diffPct > 0 ? "+" : ""}${diffPct}%)` : ""}
             </Text>
@@ -154,8 +154,8 @@ function YearRow({ swatch, label, value }: { swatch: React.ReactNode; label: str
   return (
     <View className="flex-row items-center py-1">
       {swatch}
-      <Text className="text-sm text-foreground ml-2 flex-1">{label}</Text>
-      <Text className="text-sm text-foreground">{value != null ? formatAmount(value) : "—"}</Text>
+      <Text className="text-meta text-foreground ml-2 flex-1">{label}</Text>
+      <Text className="text-meta text-foreground">{value != null ? formatAmount(value) : "—"}</Text>
     </View>
   );
 }

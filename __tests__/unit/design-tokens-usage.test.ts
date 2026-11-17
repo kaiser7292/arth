@@ -79,6 +79,15 @@ const FILES = [
   "app/goals/balance-sheet.tsx",
   "components/goals/NetWorthTrendCard.tsx",
   "components/goals/HisaabNetWorthSheet.tsx",
+  "app/goals/salary-calculator.tsx",
+  "components/goals/SalaryInputForm.tsx",
+  "components/goals/DeductionsSection.tsx",
+  "components/goals/TaxBreakdown.tsx",
+  "components/goals/SalarySummary.tsx",
+  "components/goals/OtherIncomeSection.tsx",
+  "components/goals/BusinessIncomeSection.tsx",
+  "components/goals/SalaryChecks.tsx",
+  "components/goals/salary-helpers.tsx",
 ];
 
 const DIRS = ["components/expense", "components/expense/catch-up"];

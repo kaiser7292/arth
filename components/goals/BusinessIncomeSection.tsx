@@ -29,11 +29,11 @@ export function InlineNote({
   const theme = useTheme();
   return (
     <View
-      className={`flex-row items-start px-3 py-2.5 rounded-lg ${className}`}
+      className={`flex-row items-start px-3 py-2.5 rounded-control ${className}`}
       style={{ backgroundColor: theme.alpha(tone, 0.08) }}
     >
       <Ionicons name={icon} size={16} color={theme[tone]} />
-      <Text className="text-xs text-muted-foreground ml-2 flex-1">{children}</Text>
+      <Text className="text-label text-muted-foreground ml-2 flex-1">{children}</Text>
     </View>
   );
 }
@@ -142,7 +142,7 @@ export function BusinessInputs({
           />
         </View>
       </View>
-      <Text className="text-xs text-faint-foreground mt-2">
+      <Text className="text-label text-faint-foreground mt-2">
         Digital = UPI, bank transfer, cheque or card. TDS is usually 10% on professional fees and
         1–2% on contracts. GST is only used to read your bank credits correctly - it is never income.
       </Text>
@@ -192,15 +192,15 @@ export function BusinessResults({
     <>
       <Card className="mb-4">
         <View className="items-center py-2">
-          <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">
+          <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-1">
             Monthly In-Hand
           </Text>
-          <Text className="text-3xl font-bold text-success">{formatAmount(business.monthlyInHand)}</Text>
-          <Text className="text-sm text-muted-foreground mt-0.5">
+          <Text className="text-display font-bold text-success">{formatAmount(business.monthlyInHand)}</Text>
+          <Text className="text-meta text-muted-foreground mt-0.5">
             {formatAmount(business.annualInHand)} / year
           </Text>
           <View className="mt-2 px-3 py-1 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-            <Text className="text-xs" style={{ color: theme.primary }}>
+            <Text className="text-label" style={{ color: theme.primary }}>
               Best regime: {business.selectedRegime === "new" ? "New" : "Old"} Tax Regime
             </Text>
           </View>
@@ -268,7 +268,7 @@ export function AdvanceTaxCard({
 
       {plan.required && (
         <View className="mt-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
             Instalments
           </Text>
           {plan.instalments.map((inst) => {
@@ -278,17 +278,17 @@ export function AdvanceTaxCard({
                 <Ionicons
                   name={past ? "checkmark-circle-outline" : "calendar-outline"}
                   size={14}
-                  color={past ? colors.textSecondary : theme.primary}
+                  color={past ? theme.mutedForeground : theme.primary}
                 />
-                <Text className={`text-sm ml-2 flex-1 ${past ? "text-muted-foreground" : "text-foreground"}`}>
+                <Text className={`text-meta ml-2 flex-1 ${past ? "text-muted-foreground" : "text-foreground"}`}>
                   {formatDate(inst.dueDate)}
-                  <Text className="text-xs text-faint-foreground">  ({inst.cumulativePct}% by then)</Text>
+                  <Text className="text-label text-faint-foreground">  ({inst.cumulativePct}% by then)</Text>
                 </Text>
-                <Text className="text-sm font-medium text-foreground">{formatAmount(inst.amount)}</Text>
+                <Text className="text-body font-medium text-foreground">{formatAmount(inst.amount)}</Text>
               </View>
             );
           })}
-          <Text className="text-xs text-faint-foreground mt-1">
+          <Text className="text-label text-faint-foreground mt-1">
             {plan.instalments.length === 1
               ? "Presumptive scheme: the whole amount can be paid by 15 March. Late payment costs 1% a month interest."
               : "Late or short payment costs 1% a month interest."}
@@ -296,7 +296,7 @@ export function AdvanceTaxCard({
         </View>
       )}
 
-      {footnote ? <Text className="text-xs text-faint-foreground mt-2">{footnote}</Text> : null}
+      {footnote ? <Text className="text-label text-faint-foreground mt-2">{footnote}</Text> : null}
     </Card>
   );
 }
@@ -349,7 +349,7 @@ export function ReceiptsTracker({
 
   return (
     <Card title="Actual Receipts This Year" className="mb-4">
-      <Text className="text-xs text-muted-foreground mb-2">
+      <Text className="text-label text-muted-foreground mb-2">
         Pick the accounts your clients pay into. Arth adds up credits there (not refunds, transfers
         between your own accounts, or family settlements) and compares them with your estimate.
       </Text>
@@ -375,7 +375,7 @@ export function ReceiptsTracker({
           <BreakdownRow label="Receipts So Far (excl. GST, before TDS)" annual={receiptsSoFar} highlight />
           <BreakdownRow label={`Expected by Now (${Math.round(fyFraction * 100)}% of year)`} annual={expectedSoFar} />
           <View
-            className="flex-row items-center px-3 py-2 rounded-lg mt-2"
+            className="flex-row items-center px-3 py-2 rounded-control mt-2"
             style={{ backgroundColor: theme.alpha(ahead ? "success" : "warning", 0.08) }}
           >
             <Ionicons
@@ -383,7 +383,7 @@ export function ReceiptsTracker({
               size={16}
               color={ahead ? theme.success : theme.warning}
             />
-            <Text className="text-xs ml-2 flex-1" style={{ color: ahead ? theme.success : theme.warning }}>
+            <Text className="text-label ml-2 flex-1" style={{ color: ahead ? theme.success : theme.warning }}>
               {ahead ? "Ahead of" : "Behind"} your estimate by {formatAmount(Math.abs(gap))}
             </Text>
           </View>
@@ -400,7 +400,7 @@ export function ReceiptsTracker({
               </View>
             </View>
           ) : (
-            <Text className="text-xs text-faint-foreground mt-2">
+            <Text className="text-label text-faint-foreground mt-2">
               A full-year projection appears once about a month of the year has passed.
             </Text>
           )}

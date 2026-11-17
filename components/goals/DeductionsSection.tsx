@@ -45,7 +45,7 @@ export function OldRegimeDeductions({
         icon="document-text-outline"
       >
         <View className="pt-2">
-          <Text className="text-xs text-muted-foreground mb-2">
+          <Text className="text-label text-muted-foreground mb-2">
             These only affect the Old Tax Regime calculation.
           </Text>
           <Input
@@ -196,7 +196,7 @@ export function AdditionalIncome({
         icon="add-circle-outline"
         rightContent={
           additionalIncomeNet > 0 ? (
-            <Text className="text-xs font-medium text-success mr-2">
+            <Text className="text-label font-medium text-success mr-2">
               +{formatAmount(additionalIncomeNet)}
             </Text>
           ) : undefined
@@ -215,8 +215,8 @@ export function AdditionalIncome({
             containerClassName="mb-1"
           />
           {bonusTaxResult && bonusTaxResult.grossBonus > 0 && (
-            <View className="mb-3 px-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-              <Text className="text-xs text-muted-foreground">
+            <View className="mb-3 px-2 py-2 rounded-control" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+              <Text className="text-label text-muted-foreground">
                 {formatAmount(bonusTaxResult.grossBonus)} gross{" "}
                 <Text className="text-danger">
                   → Tax {formatAmount(bonusTaxResult.taxOnBonus)} ({bonusTaxResult.effectiveRate}%)
@@ -235,7 +235,7 @@ export function AdditionalIncome({
           )}
 
           {/* Capital Gains */}
-          <Text className="text-xs font-semibold text-muted-foreground mb-2">
+          <Text className="text-label font-semibold text-muted-foreground mb-2">
             Capital Gains (per asset type)
           </Text>
 
@@ -298,29 +298,29 @@ export function AdditionalIncome({
 
           {/* CG Tax Summary */}
           {capitalGainsTaxResult && capitalGainsTaxResult.items.length > 0 && (
-            <View className="mt-2 px-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+            <View className="mt-2 px-2 py-2 rounded-control" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
               {capitalGainsTaxResult.items.map((item) => (
                 <View key={item.label} className="flex-row items-center justify-between py-1">
-                  <Text className="text-xs text-muted-foreground flex-1">
+                  <Text className="text-label text-muted-foreground flex-1">
                     {item.label} ({item.rate})
                   </Text>
-                  <Text className="text-xs text-danger w-20 text-right">
+                  <Text className="text-label text-danger w-20 text-right">
                     <Money value={-item.tax} />
                   </Text>
-                  <Text className="text-xs font-medium text-foreground w-24 text-right">
+                  <Text className="text-label font-medium text-foreground w-24 text-right">
                     {formatAmount(item.net)}
                   </Text>
                 </View>
               ))}
               <View className="border-t border-border my-1" />
               <View className="flex-row items-center justify-between py-1">
-                <Text className="text-xs font-semibold text-foreground flex-1">
+                <Text className="text-label font-semibold text-foreground flex-1">
                   Total CG
                 </Text>
-                <Text className="text-xs font-semibold text-danger w-20 text-right">
+                <Text className="text-label font-semibold text-danger w-20 text-right">
                   <Money value={-capitalGainsTaxResult.totalTax} />
                 </Text>
-                <Text className="text-xs font-bold text-success w-24 text-right">
+                <Text className="text-label font-bold text-success w-24 text-right">
                   {formatAmount(capitalGainsTaxResult.totalNet)}
                 </Text>
               </View>

@@ -238,6 +238,48 @@ export function Statement({
   );
 }
 
+/**
+ * Tabs inside one scrolling screen (Income calculator's Salary / Deductions / Other / Tax): labels
+ * in a row with the teal underline under the chosen one. For tabs that are whole pages you swipe
+ * between, use SwipePager instead.
+ */
+export function UnderlineTabs<V extends string>({
+  tabs,
+  value,
+  onChange,
+}: {
+  tabs: { value: V; label: string }[];
+  value: V;
+  onChange: (v: V) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View className="flex-row border-b border-border" accessibilityRole="tablist">
+      {tabs.map((t) => {
+        const on = t.value === value;
+        return (
+          <Pressable
+            key={t.value}
+            onPress={() => onChange(t.value)}
+            className="flex-1 items-center justify-center"
+            style={{ height: 44 }}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={t.label}
+          >
+            <Text className="text-body font-semibold" style={{ color: on ? theme.foreground : theme.mutedForeground }} numberOfLines={1}>
+              {t.label}
+            </Text>
+            {on ? (
+              <View className="absolute bottom-0 rounded-pill" style={{ height: 3, width: "56%", backgroundColor: theme.primary }} />
+            ) : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 /** The small uppercase label above a group of cards ("PLAN", "TRACK"). */
 export function GroupLabel({ children, right }: { children: string; right?: ReactNode }) {
   return (

@@ -35,17 +35,17 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
   return (
     <Card className="mb-4">
       <View className="items-center py-2">
-        <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">
+        <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-1">
           Monthly In-Hand
         </Text>
-        <Text className="text-3xl font-bold text-success">
+        <Text className="text-display font-bold text-success">
           {formatAmount(effectiveMonthlyInHand)}
         </Text>
-        <Text className="text-sm text-muted-foreground mt-0.5">
+        <Text className="text-meta text-muted-foreground mt-0.5">
           {formatAmount(effectiveAnnualInHand)} / year
         </Text>
         <View className="mt-2 px-3 py-1 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-          <Text className="text-xs" style={{ color: theme.primary }}>
+          <Text className="text-label" style={{ color: theme.primary }}>
             Best regime:{" "}
             {calculation.selectedRegime === "new"
               ? "New"
@@ -57,7 +57,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
         {!hasManualCorrection && !showCorrectionInput && (
           <Pressable className="mt-2" onPress={() => setShowCorrectionInput(true)}>
             <Text
-              className="text-xs"
+              className="text-label"
               style={{ color: theme.primary }}
             >
               Not matching your payslip?
@@ -69,11 +69,11 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
           <View className="mt-3 w-full">
             {hasManualCorrection && (
               <View className="flex-row items-center justify-center mb-2">
-                <Text className="text-xs text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   Calculated: {formatAmount(calculation.monthlyInHand)}
                 </Text>
                 <Text
-                  className="text-xs font-semibold ml-1"
+                  className="text-label font-semibold ml-1"
                   style={{ color: correctionAmount > 0 ? theme.success : theme.danger }}
                 >
                   · Manual Correction: {correctionAmount > 0 ? "+" : ""}
@@ -99,7 +99,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
                 className="mt-1"
               >
                 <Text
-                  className="text-xs text-center"
+                  className="text-label text-center"
                   style={{ color: theme.primary }}
                 >
                   Reset to calculated
@@ -107,7 +107,7 @@ export function MonthlyInHandHero({ calculation, manualInHand, onManualInHandCha
               </Pressable>
             ) : (
               <Pressable onPress={() => setShowCorrectionInput(false)} className="mt-1">
-                <Text className="text-xs text-center text-muted-foreground">
+                <Text className="text-label text-center text-muted-foreground">
                   Cancel
                 </Text>
               </Pressable>
@@ -131,13 +131,13 @@ export function SalarySummary({ calculation }: { calculation: SalaryCalculation 
             <Ionicons
               name="calculator-outline"
               size={28}
-              color={colors.blue}
+              color={theme.data.series[3]}
             />
           </View>
-          <Text className="text-base font-medium text-foreground mb-1">
+          <Text className="text-body font-medium text-foreground mb-1">
             Enter your CTC
           </Text>
-          <Text className="text-sm text-muted-foreground text-center px-4">
+          <Text className="text-meta text-muted-foreground text-center px-4">
             Input your annual CTC above to see a full salary
             breakdown with tax calculations for both regimes.
           </Text>
@@ -269,21 +269,21 @@ export function SalaryFooter({
       {totalIncome > 0 && hasSalaryData && (
         <Card className="mb-4">
           <View className="items-center py-2">
-            <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">
+            <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-1">
               Total Annual Income
             </Text>
-            <Text className="text-3xl font-bold text-success">
+            <Text className="text-display font-bold text-success">
               {formatAmount(totalIncome)}
             </Text>
             <View className="mt-2">
               <View className="flex-row items-center justify-center">
-                <Text className="text-xs text-faint-foreground">
+                <Text className="text-label text-faint-foreground">
                   {primaryLabel}: {formatAmount(primaryAnnual)}
                 </Text>
               </View>
               {extraLines.map((l) => (
                 <View key={l.label} className="flex-row items-center justify-center mt-0.5">
-                  <Text className="text-xs text-faint-foreground">
+                  <Text className="text-label text-faint-foreground">
                     {l.amount > 0 ? "+" : "-"} {l.label}: {formatAmount(Math.abs(l.amount))} (net)
                   </Text>
                 </View>
@@ -308,14 +308,14 @@ export function SalaryFooter({
                 <Ionicons
                   name="trending-up-outline"
                   size={18}
-                  color={colors.blue}
+                  color={theme.data.series[3]}
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-medium text-foreground">
+                <Text className="text-body font-medium text-foreground">
                   Capital Gains Reference
                 </Text>
-                <Text className="text-xs text-muted-foreground">
+                <Text className="text-label text-muted-foreground">
                   Tax rates by asset class, holding period & FY
                 </Text>
               </View>
@@ -323,7 +323,7 @@ export function SalaryFooter({
             <Ionicons
               name="chevron-forward"
               size={16}
-              color={colors.textSecondary}
+              color={theme.mutedForeground}
             />
           </View>
         </Card>

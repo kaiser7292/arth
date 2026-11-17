@@ -25,10 +25,10 @@ export function Toggle({
   const theme = useTheme();
   return (
     <View className="mb-3">
-      <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
         {label}
       </Text>
-      <View className="flex-row rounded-lg border border-border overflow-hidden">
+      <View className="flex-row rounded-control border border-border overflow-hidden">
         {options.map((opt) => (
           <Pressable
             key={opt.value}
@@ -41,7 +41,7 @@ export function Toggle({
             style={value === opt.value ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
-              className={`text-sm font-medium ${
+              className={`text-body font-medium ${
                 value === opt.value
                   ? "text-primary-foreground"
                   : "text-muted-foreground"
@@ -71,24 +71,24 @@ export function StatePicker({
 
   return (
     <View className="mb-3">
-      <Text className="text-xs font-semibold text-muted-foreground mb-1.5">
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
         State (for Professional Tax)
       </Text>
       <Pressable
         onPress={() => setExpanded(!expanded)}
-        className="flex-row items-center justify-between rounded-lg border border-border bg-card px-3 py-3"
+        className="flex-row items-center justify-between rounded-control border border-border bg-card px-3 py-3"
       >
-        <Text className="text-base text-foreground">
+        <Text className="text-body text-foreground">
           {value ?? "Select state"}
         </Text>
         <Ionicons
           name={expanded ? "chevron-up" : "chevron-down"}
           size={18}
-          color={colors.textSecondary}
+          color={theme.mutedForeground}
         />
       </Pressable>
       {expanded && (
-        <Rows className="mt-1 rounded-lg border border-border bg-card max-h-48">
+        <Rows className="mt-1 rounded-control border border-border bg-card max-h-48">
           <ScrollView nestedScrollEnabled>
             {STATE_LIST.map((state) => (
               <Pressable
@@ -101,7 +101,7 @@ export function StatePicker({
                 style={value === state ? { backgroundColor: theme.alpha("primary", 0.08) } : undefined}
               >
                 <Text
-                  className={`text-sm ${
+                  className={`text-meta ${
                     value === state
                       ? "font-medium"
                       : "text-foreground"
@@ -135,7 +135,7 @@ export function BreakdownRow({
   return (
     <View className="flex-row items-center justify-between py-1.5">
       <Text
-        className={`text-sm flex-1 ${
+        className={`text-meta flex-1 ${
           highlight
             ? "font-bold text-foreground"
             : "text-muted-foreground"
@@ -144,7 +144,7 @@ export function BreakdownRow({
         {label}
       </Text>
       <Text
-        className={`text-sm text-right w-28 ${
+        className={`text-meta text-right w-28 ${
           highlight
             ? "font-bold text-foreground"
             : "font-medium text-foreground"
@@ -153,7 +153,7 @@ export function BreakdownRow({
         {formatAmount(annual)}
       </Text>
       {monthly !== undefined && (
-        <Text className="text-xs text-faint-foreground text-right w-24">
+        <Text className="text-label text-faint-foreground text-right w-24">
           {formatAmount(monthly)}/mo
         </Text>
       )}

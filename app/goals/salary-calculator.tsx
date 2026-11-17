@@ -1,5 +1,4 @@
 import { SalaryChecks } from "@/components/goals/SalaryChecks";
-import { SegmentedControl } from "@/components/motion";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -10,7 +9,8 @@ import { View, ScrollView, Pressable, KeyboardAvoidingView, Keyboard } from "rea
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, Input, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, Input, LoadingState, ScreenContainer, SectionTitle, Segmented, Text } from "@/components/ui";
+import { Statement, UnderlineTabs } from "@/components/ui/LinkRow";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
@@ -40,7 +40,7 @@ import { todayIso } from "@/utils/date";
 import { getFYStartMonth } from "@/services/settings";
 import { formatAmount } from "@/utils/expense-validation";
 import { formatDate } from "@/utils/date";
-import { Toggle, StatePicker } from "@/components/goals";
+import { StatePicker } from "@/components/goals";
 import { SalaryInputForm, type MonthlyOverrides } from "@/components/goals/SalaryInputForm";
 import { OldRegimeDeductions, AnnualDeductions, AdditionalIncome } from "@/components/goals/DeductionsSection";
 import { TaxBreakdown } from "@/components/goals/TaxBreakdown";
@@ -68,12 +68,15 @@ const num = (v: string) => parseFloat(v) || 0;
 
 // ─── Main Screen ──────────────────────────────────────────
 
+type CalcTab = "salary" | "business" | "deductions" | "other" | "tax";
+
 export default function SalaryCalculatorScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { colors } = useColorScheme();
   const theme = useTheme();
   const scrollRef = useRef<ScrollView>(null);
+  const [tab, setTab] = useState<CalcTab>("salary");
   const { planId, fy } = useLocalSearchParams<{ planId?: string; fy?: string }>();
   const startMonth = getFYStartMonth();
   const initialFY = fy ?? String(getCurrentFY(startMonth));
@@ -727,13 +730,84 @@ export default function SalaryCalculatorScreen() {
 
   const showOtherIncome = (kind === "ctc" && !!calculation) || (kind === "business" && !!business && hasSalaryData);
   const otherIncomeAdvanceTax = kind === "ctc" ? income.advanceTax : null;
+  const incomeTabLabel = incomeType === "business" ? "Business" : "Salary";
+
+  const payDayCard = hasSalaryData ? (
+    <Card className="mb-4">
+      <Input
+        label={kind === "business" ? "Usual payment day of the month" : "Salary credit day of the month"}
+        value={salaryCreditDay}
+        onChangeText={setSalaryCreditDay}
+        placeholder="25"
+        keyboardType="number-pad"
+        maxLength={2}
+      />
+      <Text className="text-meta text-muted-foreground mt-2">
+        Used for on-track checks. Until this date, the current month isn&apos;t counted as &quot;elapsed&quot; for investment and
+        milestone warnings, so there are no false alarms when you&apos;re paid later in the month.
+      </Text>
+      <View className="mt-4">
+        <Text className="text-label font-semibold text-muted-foreground mb-1.5">An income credit counts towards</Text>
+        <Segmented<string>
+          options={[
+            { value: "0", label: "Same month" },
+            { value: "1", label: "Next month" },
+            { value: "-1", label: "Previous" },
+          ]}
+          value={salaryMonthOffset}
+          onChange={setSalaryMonthOffset}
+        />
+        <Text className="text-meta text-muted-foreground mt-2">
+          {salaryMonthOffset === "1"
+            ? "Paid on 30 Oct, it counts for November."
+            : salaryMonthOffset === "-1"
+              ? "Paid on 1 Nov, it counts for October."
+              : "Paid on 30 Oct, it counts for October."}
+        </Text>
+      </View>
+    </Card>
+  ) : null;
+
+  const salaryFormProps = {
+    ctc,
+    onCtcChange: setCtc,
+    basicPct,
+    onBasicPctChange: setBasicPct,
+    hraPct,
+    onHraPctChange: setHraPct,
+    isMetro,
+    onIsMetroChange: setIsMetro,
+    epfMode,
+    onEpfModeChange: (v: string) => setEpfMode(v as "full_basic" | "restricted"),
+    epfInCTC,
+    onEpfInCTCChange: setEpfInCTC,
+    gratuityInCTC,
+    onGratuityInCTCChange: setGratuityInCTC,
+    vpfMonthly,
+    onVpfMonthlyChange: setVpfMonthly,
+    state,
+    onStateChange: setState,
+    profTax,
+    ctcMode,
+    onCtcModeChange: setCtcMode,
+    manualBasic,
+    onManualBasicChange: setManualBasic,
+    manualHra,
+    onManualHraChange: setManualHra,
+    manualSpecial,
+    onManualSpecialChange: setManualSpecial,
+    manualEmployerEPF,
+    onManualEmployerEPFChange: setManualEmployerEPF,
+    manualGratuity,
+    onManualGratuityChange: setManualGratuity,
+    directMonthly,
+    onDirectMonthlyChange: setDirectMonthly,
+    directAnnual,
+  };
 
   return (
     <ScreenContainer padTop={false}>
-      <KeyboardAvoidingView
-        behavior="padding"
-        className="flex-1"
-      >
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
         <ScrollView
           ref={scrollRef}
           className="flex-1"
@@ -741,57 +815,54 @@ export default function SalaryCalculatorScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: 40 }}
         >
-          <View className="px-4 py-4" style={{ opacity: loadingFY ? 0.5 : 1 }} pointerEvents={loadingFY ? "none" : "auto"}>
-            {/* ─── FY Picker ─────────────────────────── */}
-            <View className="flex-row items-center justify-between mb-4">
+          <View className="px-4 py-3" style={{ opacity: loadingFY ? 0.5 : 1 }} pointerEvents={loadingFY ? "none" : "auto"}>
+            {/* ─── Financial year ─────────────────────── */}
+            <View className="flex-row items-center justify-between mb-3">
               <Pressable
                 onPress={() => setSelectedFY(String(selectedFYNum - 1))}
                 disabled={loadingFY}
-                className="p-2 rounded-lg bg-card"
+                className="w-11 h-11 rounded-control border border-border bg-card items-center justify-center"
+                accessibilityRole="button"
+                accessibilityLabel="Previous financial year"
               >
-                <Ionicons name="chevron-back" size={18} color={colors.textSecondary} />
+                <Ionicons name="chevron-back" size={18} color={theme.mutedForeground} />
               </Pressable>
-              <View className="px-4 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                <Text className="text-sm font-bold" style={{ color: theme.primary }}>
+              <View className="px-4 h-9 rounded-pill justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                <Text className="text-body font-bold" style={{ color: theme.primary }}>
                   {fyLabel}
                 </Text>
               </View>
               <Pressable
                 onPress={() => setSelectedFY(String(selectedFYNum + 1))}
                 disabled={loadingFY}
-                className="p-2 rounded-lg bg-card"
+                className="w-11 h-11 rounded-control border border-border bg-card items-center justify-center"
+                accessibilityRole="button"
+                accessibilityLabel="Next financial year"
               >
-                <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
               </Pressable>
             </View>
 
-            {/* ─── Copy from Previous Year Prompt ─────── */}
+            {/* ─── Copy last year (only when this year is empty) ─── */}
             {showCopyPrompt && prevYearProfile && !existingProfile && (
               <Card className="mb-4">
-                <View className="flex-row items-center mb-3">
-                  <View className="w-9 h-9 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-                    <Ionicons name="copy-outline" size={18} color={colors.blue} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">
-                      No income data for {fyLabel}
-                    </Text>
-                    <Text className="text-xs text-muted-foreground">
-                      You have data from{" "}
-                      {getFYLabel(selectedFYNum - 1, startMonth)}
-                      {prevKind === "business" && prevAmount > 0
-                        ? ` (Receipts: ${formatAmount(prevAmount)})`
-                        : prevKind === "ctc" && prevAmount > 0
-                          ? ` (CTC: ${formatAmount(prevAmount)})`
-                          : prevKind === "direct" && prevYearProfile.computed_monthly_in_hand
-                            ? ` (${formatAmount(prevYearProfile.computed_monthly_in_hand)}/mo)`
-                            : ""}
-                    </Text>
-                  </View>
-                </View>
-
+                <SectionTitle
+                  icon="copy-outline"
+                  active
+                  title={`No income data for ${fyLabel}`}
+                  hint={`You have data from ${getFYLabel(selectedFYNum - 1, startMonth)}${
+                    prevKind === "business" && prevAmount > 0
+                      ? ` (receipts ${formatAmount(prevAmount)})`
+                      : prevKind === "ctc" && prevAmount > 0
+                        ? ` (CTC ${formatAmount(prevAmount)})`
+                        : prevKind === "direct" && prevYearProfile.computed_monthly_in_hand
+                          ? ` (${formatAmount(prevYearProfile.computed_monthly_in_hand)} a month)`
+                          : ""
+                  }`}
+                  className="mb-3"
+                />
                 {!showHikeInput ? (
-                  <View className="flex-row gap-2">
+                  <View className="flex-row" style={{ gap: 8 }}>
                     <View className="flex-1">
                       <Button
                         title="Copy as is"
@@ -803,39 +874,33 @@ export default function SalaryCalculatorScreen() {
                       />
                     </View>
                     <View className="flex-1">
-                      <Button
-                        title={prevKind === "business" ? "Copy with Growth %" : "Copy with hike %"}
-                        onPress={() => setShowHikeInput(true)}
-                      />
+                      <Button title={prevKind === "business" ? "Copy with growth" : "Copy with hike"} onPress={() => setShowHikeInput(true)} />
                     </View>
                   </View>
                 ) : (
-                  <View>
+                  <View style={{ gap: 8 }}>
                     <Input
-                      label={prevKind === "business" ? "Receipts Growth %" : "CTC Hike %"}
+                      label={prevKind === "business" ? "Receipts growth" : "CTC hike"}
+                      suffix="%"
                       value={hikePercent}
                       onChangeText={setHikePercent}
                       keyboardType="numeric"
-                      placeholder="e.g. 10"
-                      containerClassName="mb-2"
+                      placeholder="10"
                     />
-                    {(() => {
-                      const hike = num(hikePercent);
-                      const newAmount = Math.round(prevAmount * (1 + hike / 100));
-                      return prevAmount > 0 ? (
-                        <View className="flex-row justify-between mb-3 px-1">
-                          <Text className="text-xs text-muted-foreground">
-                            Previous {prevAmountLabel}:{" "}
-                            {formatAmount(prevAmount)}
-                          </Text>
-                          <Text className="text-xs font-semibold text-success">
-                            New: {formatAmount(newAmount)}
-                            {hike > 0 ? ` (+${hike}%)` : ""}
-                          </Text>
-                        </View>
-                      ) : null;
-                    })()}
-                    <View className="flex-row gap-2">
+                    {prevAmount > 0 && (
+                      <Statement
+                        lines={[
+                          { label: `Last year's ${prevAmountLabel}`, amount: formatAmount(prevAmount) },
+                          {
+                            label: `Hike ${num(hikePercent) || 0}%`,
+                            sign: "+",
+                            amount: formatAmount(Math.round(prevAmount * (num(hikePercent) / 100))),
+                          },
+                        ]}
+                        total={{ label: "New", amount: formatAmount(Math.round(prevAmount * (1 + num(hikePercent) / 100))) }}
+                      />
+                    )}
+                    <View className="flex-row" style={{ gap: 8 }}>
                       <View className="flex-1">
                         <Button
                           title="Cancel"
@@ -864,360 +929,33 @@ export default function SalaryCalculatorScreen() {
               </Card>
             )}
 
-            {/* ─── Draft Indicator ────────────────────── */}
             {isDraft && (
-              <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-lg bg-warning/8">
+              <View className="flex-row items-center mb-3 px-3 py-2.5 rounded-control" style={{ backgroundColor: theme.alpha("warning", 0.08), gap: 8 }}>
                 <Ionicons name="document-outline" size={16} color={theme.warning} />
-                <Text className="text-xs font-medium ml-2" style={{ color: theme.warning }}>
-                  Draft - not yet saved to your plan
-                </Text>
+                <Text className="text-meta font-semibold text-foreground">Draft · not yet saved to your plan</Text>
               </View>
             )}
 
-            {/* ─── Income Type + Mode Toggles ─────────── */}
-            <Toggle
-              label="Income Type"
+            {/* ─── Salaried or Business / freelance ─── */}
+            <Segmented<"salaried" | "business">
+              className="mb-3"
               options={[
-                { label: "Salaried", value: "salaried" },
-                { label: "Business / Freelance", value: "business" },
+                { value: "salaried", label: "Salaried" },
+                { value: "business", label: "Business / freelance" },
               ]}
               value={incomeType}
-              onChange={(v) => setIncomeType(v as "salaried" | "business")}
+              onChange={(v) => {
+                setIncomeType(v);
+                if (tab === "salary" || tab === "business") setTab(v === "business" ? "business" : "salary");
+              }}
             />
 
-            {incomeType === "salaried" && (
-              <Toggle
-                label="Input Mode"
-                options={[
-                  { label: "CTC to In-Hand", value: "ctc" },
-                  { label: "Direct Input", value: "direct" },
-                ]}
-                value={inputMode}
-                onChange={(v) => setInputMode(v as "ctc" | "direct")}
-              />
-            )}
-
-            {/* ════════════════════════════════════════════
-                 DIRECT INPUT MODE
-                ════════════════════════════════════════════ */}
-            {kind === "direct" && (
-              <>
-              <InlineNote>
-                All amounts here are considered post-tax. No tax rates will be applied.
-              </InlineNote>
-              <SalaryInputForm
-                inputMode="direct"
-                ctc={ctc}
-                onCtcChange={setCtc}
-                basicPct={basicPct}
-                onBasicPctChange={setBasicPct}
-                hraPct={hraPct}
-                onHraPctChange={setHraPct}
-                isMetro={isMetro}
-                onIsMetroChange={setIsMetro}
-                epfMode={epfMode}
-                onEpfModeChange={(v) => setEpfMode(v as "full_basic" | "restricted")}
-                epfInCTC={epfInCTC}
-                onEpfInCTCChange={setEpfInCTC}
-                gratuityInCTC={gratuityInCTC}
-                onGratuityInCTCChange={setGratuityInCTC}
-                vpfMonthly={vpfMonthly}
-                onVpfMonthlyChange={setVpfMonthly}
-                state={state}
-                onStateChange={setState}
-                profTax={profTax}
-                ctcMode={ctcMode}
-                onCtcModeChange={setCtcMode}
-                manualBasic={manualBasic}
-                onManualBasicChange={setManualBasic}
-                manualHra={manualHra}
-                onManualHraChange={setManualHra}
-                manualSpecial={manualSpecial}
-                onManualSpecialChange={setManualSpecial}
-                manualEmployerEPF={manualEmployerEPF}
-                onManualEmployerEPFChange={setManualEmployerEPF}
-                manualGratuity={manualGratuity}
-                onManualGratuityChange={setManualGratuity}
-                directMonthly={directMonthly}
-                onDirectMonthlyChange={setDirectMonthly}
-                directAnnual={directAnnual}
-                monthlyOverrides={monthlyOverrides}
-                onMonthlyOverridesChange={setMonthlyOverrides}
-                fyStartMonth={startMonth}
-              />
-              </>
-            )}
-
-            {/* ════════════════════════════════════════════
-                 CTC MODE
-                ════════════════════════════════════════════ */}
-            {kind === "ctc" && (
-              <>
-                {/* CTC Input + EPF & Settings */}
-                <SalaryInputForm
-                  inputMode="ctc"
-                  ctc={ctc}
-                  onCtcChange={setCtc}
-                  basicPct={basicPct}
-                  onBasicPctChange={setBasicPct}
-                  hraPct={hraPct}
-                  onHraPctChange={setHraPct}
-                  isMetro={isMetro}
-                  onIsMetroChange={setIsMetro}
-                  epfMode={epfMode}
-                  onEpfModeChange={(v) => setEpfMode(v as "full_basic" | "restricted")}
-                  epfInCTC={epfInCTC}
-                  onEpfInCTCChange={setEpfInCTC}
-                  gratuityInCTC={gratuityInCTC}
-                  onGratuityInCTCChange={setGratuityInCTC}
-                  vpfMonthly={vpfMonthly}
-                  onVpfMonthlyChange={setVpfMonthly}
-                  state={state}
-                  onStateChange={setState}
-                  profTax={profTax}
-                  ctcMode={ctcMode}
-                  onCtcModeChange={setCtcMode}
-                  manualBasic={manualBasic}
-                  onManualBasicChange={setManualBasic}
-                  manualHra={manualHra}
-                  onManualHraChange={setManualHra}
-                  manualSpecial={manualSpecial}
-                  onManualSpecialChange={setManualSpecial}
-                  manualEmployerEPF={manualEmployerEPF}
-                  onManualEmployerEPFChange={setManualEmployerEPF}
-                  manualGratuity={manualGratuity}
-                  onManualGratuityChange={setManualGratuity}
-                  directMonthly={directMonthly}
-                  onDirectMonthlyChange={setDirectMonthly}
-                  directAnnual={directAnnual}
-                  epfCeilingMonthly={getEpfMonthlyCeilingLabel(selectedFYNum)}
-                  basicBelowHalf={
-                    !!calculation &&
-                    calculation.ctcBreakdown.grossSalary > 0 &&
-                    calculation.ctcBreakdown.basic < calculation.ctcBreakdown.grossSalary * 0.5
-                  }
-                />
-
-                {/* Old Regime Deductions */}
-                <OldRegimeDeductions
-                  deductions80C={deductions80C}
-                  onDeductions80CChange={setDeductions80C}
-                  deductions80D={deductions80D}
-                  onDeductions80DChange={setDeductions80D}
-                  hraExemption={hraExemption}
-                  onHraExemptionChange={setHraExemption}
-                  homeLoan={homeLoan}
-                  onHomeLoanChange={setHomeLoan}
-                  otherDeductions={otherDeductions}
-                  onOtherDeductionsChange={setOtherDeductions}
-                />
-
-                {/* CTC Results (when calculation exists) */}
-                {calculation && (
-                  <>
-                    {/* CTC Breakdown + EPF Contributions */}
-                    <SalarySummary calculation={calculation} />
-
-                    {/* Tax Comparison + Regime Summary */}
-                    <TaxBreakdown calculation={calculation} />
-
-                    {/* Annual Deductions */}
-                    <AnnualDeductions calculation={calculation} />
-                  </>
-                )}
-
-                {/* Empty state (no CTC entered) */}
-                {!calculation && (
-                  <SalarySummary calculation={null} />
-                )}
-              </>
-            )}
-
-            {/* ════════════════════════════════════════════
-                 MONTHLY IN-HAND HERO (just above additional income)
-                ════════════════════════════════════════════ */}
+            {/* ─── Monthly in-hand and the regime that wins ─── */}
             {kind === "ctc" && calculation && (
               <MonthlyInHandHero calculation={calculation} manualInHand={manualInHand} onManualInHandChange={setManualInHand} />
             )}
 
-            {/* ════════════════════════════════════════════
-                 BUSINESS / FREELANCE MODE
-                ════════════════════════════════════════════ */}
-            {kind === "business" && (
-              <>
-                <Card className="mb-4">
-                  <View className="flex-row items-center mb-3">
-                    <View className="w-10 h-10 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-                      <Ionicons name="briefcase-outline" size={20} color={colors.blue} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-base font-bold text-foreground">
-                        Business / Freelance Income
-                      </Text>
-                      <Text className="text-xs text-muted-foreground">
-                        Your estimate for {fyLabel}
-                      </Text>
-                    </View>
-                  </View>
-                  <BusinessInputs {...businessInputProps} />
-                  <View className="mt-3">
-                    <StatePicker value={state} onChange={setState} />
-                    <View className="flex-row items-center px-1">
-                      <Ionicons name="information-circle-outline" size={14} color={colors.textSecondary} />
-                      <Text className="text-xs text-faint-foreground ml-1">
-                        Professional Tax: {formatAmount(profTax)}/year
-                      </Text>
-                    </View>
-                  </View>
-                </Card>
-
-                <OldRegimeDeductions
-                  deductions80C={deductions80C}
-                  onDeductions80CChange={setDeductions80C}
-                  deductions80D={deductions80D}
-                  onDeductions80DChange={setDeductions80D}
-                  hraExemption={hraExemption}
-                  onHraExemptionChange={setHraExemption}
-                  homeLoan={homeLoan}
-                  onHomeLoanChange={setHomeLoan}
-                  otherDeductions={otherDeductions}
-                  onOtherDeductionsChange={setOtherDeductions}
-                  showHra={false}
-                />
-
-                {business && hasSalaryData ? (
-                  <>
-                    <BusinessResults
-                      business={business}
-                      receipts={num(businessReceipts)}
-                      expenses={num(businessExpenses)}
-                    />
-                    <TaxBreakdown calculation={business} />
-                    {income.advanceTax && (
-                      <AdvanceTaxCard
-                        plan={income.advanceTax}
-                        footnote="Includes tax on rent and other income below. Tax on capital gains is paid in the instalment after the gain happens."
-                      />
-                    )}
-                    {receiptsTracker}
-                  </>
-                ) : (
-                  <Card className="mb-4">
-                    <View className="items-center py-6">
-                      <View className="w-14 h-14 rounded-full items-center justify-center mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-                        <Ionicons name="briefcase-outline" size={28} color={colors.blue} />
-                      </View>
-                      <Text className="text-base font-medium text-foreground mb-1">
-                        Enter your receipts
-                      </Text>
-                      <Text className="text-sm text-muted-foreground text-center px-4">
-                        Enter what you expect to bill this year to see your tax under both regimes,
-                        your advance tax dates and your monthly in-hand.
-                      </Text>
-                    </View>
-                  </Card>
-                )}
-              </>
-            )}
-
-            {/* ════════════════════════════════════════════
-                 OTHER INCOME: side business + rent (CTC + business)
-                ════════════════════════════════════════════ */}
-            {showOtherIncome && (
-              <OtherIncomeSection
-                allowSideBusiness={kind === "ctc"}
-                sideBusinessEnabled={sideBusinessEnabled}
-                onSideBusinessEnabledChange={setSideBusinessEnabled}
-                sideBusiness={businessInputProps}
-                rentalRent={rentalRent}
-                onRentalRentChange={setRentalRent}
-                rentalMunicipalTax={rentalMunicipalTax}
-                onRentalMunicipalTaxChange={setRentalMunicipalTax}
-                rentalLoanInterest={rentalLoanInterest}
-                onRentalLoanInterestChange={setRentalLoanInterest}
-                result={income.other}
-                primaryRegime={income.primaryRegime}
-              />
-            )}
-            {otherIncomeAdvanceTax && (
-              <AdvanceTaxCard
-                plan={otherIncomeAdvanceTax}
-                title="Advance Tax on Other Income"
-                footnote="Your employer deducts tax on your salary. Tax on other income is yours to pay during the year."
-              />
-            )}
-            {kind === "ctc" && receiptsTracker}
-
-            {/* ════════════════════════════════════════════
-                 ADDITIONAL INCOME (all modes, when data exists)
-                ════════════════════════════════════════════ */}
-            {hasSalaryData && (
-              <AdditionalIncome
-                expectedBonus={expectedBonus}
-                onExpectedBonusChange={setExpectedBonus}
-                bonusTaxResult={income.bonus}
-                cgEquityLtcg={cgEquityLtcg}
-                onCgEquityLtcgChange={setCgEquityLtcg}
-                cgEquityStcg={cgEquityStcg}
-                onCgEquityStcgChange={setCgEquityStcg}
-                cgDebt={cgDebt}
-                onCgDebtChange={setCgDebt}
-                cgFd={cgFd}
-                onCgFdChange={setCgFd}
-                cgGold={cgGold}
-                onCgGoldChange={setCgGold}
-                cgRealEstate={cgRealEstate}
-                onCgRealEstateChange={setCgRealEstate}
-                cgCrypto={cgCrypto}
-                onCgCryptoChange={setCgCrypto}
-                capitalGainsTaxResult={income.capitalGains}
-                additionalIncomeNet={(income.bonus?.netBonus ?? 0) + (income.capitalGains?.totalNet ?? 0)}
-                showBonus={kind !== "business"}
-              />
-            )}
-            {hasSalaryData && yearGains && yearGains.lines.length > 0 && <BrokerGainsCard gains={yearGains} />}
-
-            {/* ════════════════════════════════════════════
-                 PAY-DAY — day of month when income is credited
-                ════════════════════════════════════════════ */}
-            {hasSalaryData && (
-              <Card className="mb-4">
-                <Input
-                  label={kind === "business" ? "Usual Payment Day (1–31)" : "Salary Credit Day (1–31)"}
-                  value={salaryCreditDay}
-                  onChangeText={setSalaryCreditDay}
-                  placeholder="25"
-                  keyboardType="number-pad"
-                  maxLength={2}
-                />
-                <Text className="text-xs text-muted-foreground mt-2">
-                  Used for on-track checks. Until this date, the current month isn't counted as
-                  "elapsed" for investment/milestone warnings - avoids false alarms when you're
-                  paid later in the month.
-                </Text>
-                <View className="mt-4">
-                  <Text className="text-sm font-medium text-foreground mb-2">An income credit counts towards</Text>
-                  <SegmentedControl
-                    accessibilityLabel="Month an income credit counts towards"
-                    options={[
-                      { value: "0", label: "Same month" },
-                      { value: "1", label: "Next month" },
-                      { value: "-1", label: "Previous" },
-                    ]}
-                    value={salaryMonthOffset}
-                    onChange={setSalaryMonthOffset}
-                  />
-                  <Text className="text-xs text-muted-foreground mt-2">
-                    {salaryMonthOffset === "1"
-                      ? "Paid on 30 Oct, it counts for November."
-                      : salaryMonthOffset === "-1"
-                        ? "Paid on 1 Nov, it counts for October."
-                        : "Paid on 30 Oct, it counts for October."}
-                  </Text>
-                </View>
-              </Card>
-            )}
-
+            {/* ─── Salary checks: compare recent salary credits ─── */}
             {hasSalaryData && kind !== "business" && (
               <SalaryChecks
                 financialYear={selectedFY}
@@ -1228,9 +966,205 @@ export default function SalaryCalculatorScreen() {
               />
             )}
 
-            {/* ════════════════════════════════════════════
-                 GRAND TOTAL + CG REFERENCE + SAVE
-                ════════════════════════════════════════════ */}
+            <View className="mb-4">
+              <UnderlineTabs<CalcTab>
+                tabs={[
+                  { value: incomeType === "business" ? "business" : "salary", label: incomeTabLabel },
+                  { value: "deductions", label: "Deductions" },
+                  { value: "other", label: "Other" },
+                  { value: "tax", label: "Tax" },
+                ]}
+                value={tab === "salary" || tab === "business" ? (incomeType === "business" ? "business" : "salary") : tab}
+                onChange={setTab}
+              />
+            </View>
+
+            {/* ════════ SALARY TAB ════════ */}
+            {(tab === "salary" || tab === "business") && incomeType === "salaried" && (
+              <>
+                <Segmented<"ctc" | "direct">
+                  className="mb-3"
+                  options={[
+                    { value: "ctc", label: "CTC → in-hand" },
+                    { value: "direct", label: "I know my in-hand" },
+                  ]}
+                  value={inputMode}
+                  onChange={setInputMode}
+                />
+                {kind === "direct" && (
+                  <>
+                    <InlineNote>All amounts here are considered post-tax. No tax rates will be applied.</InlineNote>
+                    <SalaryInputForm
+                      inputMode="direct"
+                      {...salaryFormProps}
+                      monthlyOverrides={monthlyOverrides}
+                      onMonthlyOverridesChange={setMonthlyOverrides}
+                      fyStartMonth={startMonth}
+                    />
+                  </>
+                )}
+                {kind === "ctc" && (
+                  <>
+                    <SalaryInputForm
+                      inputMode="ctc"
+                      {...salaryFormProps}
+                      epfCeilingMonthly={getEpfMonthlyCeilingLabel(selectedFYNum)}
+                      basicBelowHalf={
+                        !!calculation &&
+                        calculation.ctcBreakdown.grossSalary > 0 &&
+                        calculation.ctcBreakdown.basic < calculation.ctcBreakdown.grossSalary * 0.5
+                      }
+                    />
+                    {/* CTC → in-hand breakdown + EPF contributions (empty state when no CTC yet) */}
+                    <SalarySummary calculation={calculation ?? null} />
+                  </>
+                )}
+                {payDayCard}
+              </>
+            )}
+
+            {/* ════════ BUSINESS TAB ════════ */}
+            {(tab === "salary" || tab === "business") && incomeType === "business" && (
+              <>
+                <Card className="mb-4">
+                  <SectionTitle icon="briefcase-outline" title="Business / freelance income" hint={`Your estimate for ${fyLabel}`} className="mb-3" />
+                  <BusinessInputs {...businessInputProps} />
+                  <View className="mt-3">
+                    <StatePicker value={state} onChange={setState} />
+                    <View className="flex-row items-center px-1" style={{ gap: 4 }}>
+                      <Ionicons name="information-circle-outline" size={14} color={theme.mutedForeground} />
+                      <Text className="text-meta text-muted-foreground">Professional tax: {formatAmount(profTax)} a year</Text>
+                    </View>
+                  </View>
+                </Card>
+                {business && hasSalaryData ? (
+                  <>
+                    <BusinessResults business={business} receipts={num(businessReceipts)} expenses={num(businessExpenses)} />
+                    {income.advanceTax && (
+                      <AdvanceTaxCard
+                        plan={income.advanceTax}
+                        footnote="Includes tax on rent and other income. Tax on capital gains is paid in the instalment after the gain happens."
+                      />
+                    )}
+                    {receiptsTracker}
+                  </>
+                ) : (
+                  <Card className="mb-4">
+                    <View className="items-center py-6">
+                      <View className="w-14 h-14 rounded-card items-center justify-center mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+                        <Ionicons name="briefcase-outline" size={28} color={theme.primary} />
+                      </View>
+                      <Text className="text-body font-semibold text-foreground mb-1">Enter your receipts</Text>
+                      <Text className="text-meta text-muted-foreground text-center px-4">
+                        Enter what you expect to bill this year to see your tax under both regimes, your advance tax dates and your
+                        monthly in-hand.
+                      </Text>
+                    </View>
+                  </Card>
+                )}
+                {payDayCard}
+              </>
+            )}
+
+            {/* ════════ DEDUCTIONS TAB ════════ */}
+            {tab === "deductions" && kind === "direct" && (
+              <Text className="text-meta text-muted-foreground text-center py-6">
+                You entered your in-hand pay directly, so deductions don&apos;t change it. Switch to CTC → in-hand to use them.
+              </Text>
+            )}
+            {tab === "deductions" && kind !== "direct" && (
+              <>
+                <OldRegimeDeductions
+                  deductions80C={deductions80C}
+                  onDeductions80CChange={setDeductions80C}
+                  deductions80D={deductions80D}
+                  onDeductions80DChange={setDeductions80D}
+                  hraExemption={hraExemption}
+                  onHraExemptionChange={setHraExemption}
+                  homeLoan={homeLoan}
+                  onHomeLoanChange={setHomeLoan}
+                  otherDeductions={otherDeductions}
+                  onOtherDeductionsChange={setOtherDeductions}
+                  showHra={kind !== "business"}
+                />
+                {kind === "ctc" && calculation && <AnnualDeductions calculation={calculation} />}
+              </>
+            )}
+
+            {/* ════════ OTHER TAB ════════ */}
+            {tab === "other" && (
+              <>
+                {showOtherIncome && (
+                  <OtherIncomeSection
+                    allowSideBusiness={kind === "ctc"}
+                    sideBusinessEnabled={sideBusinessEnabled}
+                    onSideBusinessEnabledChange={setSideBusinessEnabled}
+                    sideBusiness={businessInputProps}
+                    rentalRent={rentalRent}
+                    onRentalRentChange={setRentalRent}
+                    rentalMunicipalTax={rentalMunicipalTax}
+                    onRentalMunicipalTaxChange={setRentalMunicipalTax}
+                    rentalLoanInterest={rentalLoanInterest}
+                    onRentalLoanInterestChange={setRentalLoanInterest}
+                    result={income.other}
+                    primaryRegime={income.primaryRegime}
+                  />
+                )}
+                {otherIncomeAdvanceTax && (
+                  <AdvanceTaxCard
+                    plan={otherIncomeAdvanceTax}
+                    title="Advance tax on other income"
+                    footnote="Your employer deducts tax on your salary. Tax on other income is yours to pay during the year."
+                  />
+                )}
+                {kind === "ctc" && receiptsTracker}
+                {hasSalaryData ? (
+                  <AdditionalIncome
+                    expectedBonus={expectedBonus}
+                    onExpectedBonusChange={setExpectedBonus}
+                    bonusTaxResult={income.bonus}
+                    cgEquityLtcg={cgEquityLtcg}
+                    onCgEquityLtcgChange={setCgEquityLtcg}
+                    cgEquityStcg={cgEquityStcg}
+                    onCgEquityStcgChange={setCgEquityStcg}
+                    cgDebt={cgDebt}
+                    onCgDebtChange={setCgDebt}
+                    cgFd={cgFd}
+                    onCgFdChange={setCgFd}
+                    cgGold={cgGold}
+                    onCgGoldChange={setCgGold}
+                    cgRealEstate={cgRealEstate}
+                    onCgRealEstateChange={setCgRealEstate}
+                    cgCrypto={cgCrypto}
+                    onCgCryptoChange={setCgCrypto}
+                    capitalGainsTaxResult={income.capitalGains}
+                    additionalIncomeNet={(income.bonus?.netBonus ?? 0) + (income.capitalGains?.totalNet ?? 0)}
+                    showBonus={kind !== "business"}
+                  />
+                ) : (
+                  <Text className="text-meta text-muted-foreground text-center py-6">
+                    Fill in your {incomeTabLabel.toLowerCase()} first: bonus, capital gains, rent and side income build on it.
+                  </Text>
+                )}
+                {hasSalaryData && yearGains && yearGains.lines.length > 0 && <BrokerGainsCard gains={yearGains} />}
+              </>
+            )}
+
+            {/* ════════ TAX TAB ════════ */}
+            {tab === "tax" &&
+              (kind === "ctc" && calculation ? (
+                <TaxBreakdown calculation={calculation} />
+              ) : kind === "business" && business && hasSalaryData ? (
+                <TaxBreakdown calculation={business} />
+              ) : (
+                <Text className="text-meta text-muted-foreground text-center py-6">
+                  {kind === "direct"
+                    ? "You entered your in-hand pay directly, so no tax is worked out. Switch to CTC → in-hand to compare regimes."
+                    : `Fill in your ${incomeTabLabel.toLowerCase()} to compare the new and old regimes.`}
+                </Text>
+              ))}
+
+            {/* ─── Grand total, capital gains reference, Save draft / Save ─── */}
             <SalaryFooter
               primaryLabel={kind === "business" ? "Business" : "Salary"}
               primaryAnnual={income.primaryAnnualInHand}
@@ -1261,14 +1195,14 @@ function BrokerGainsCard({ gains }: { gains: YearGains }) {
   const signed = (n: number) => `${n < 0 ? "−" : ""}${formatAmount(Math.abs(n))}`;
   const Row = ({ label, value }: { label: string; value: number }) => (
     <View className="flex-row justify-between py-0.5">
-      <Text className="text-xs text-muted-foreground">{label}</Text>
-      <Text className="text-xs font-semibold" style={{ color: value < 0 ? theme.danger : theme.foreground }}>{signed(value)}</Text>
+      <Text className="text-label text-muted-foreground">{label}</Text>
+      <Text className="text-label font-semibold" style={{ color: value < 0 ? theme.danger : theme.foreground }}>{signed(value)}</Text>
     </View>
   );
   return (
     <Card className="mt-3">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">From your demat accounts</Text>
-      <Text className="text-xs text-muted-foreground mt-1 mb-2">
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">From your demat accounts</Text>
+      <Text className="text-label text-muted-foreground mt-1 mb-2">
         Included in the capital gains tax above, on top of anything you typed in.
       </Text>
       {gains.lines.map((l) => (
@@ -1279,7 +1213,7 @@ function BrokerGainsCard({ gains }: { gains: YearGains }) {
           accessibilityRole="link"
         >
           <View className="flex-row items-center mb-1">
-            <Text className="text-sm font-semibold text-foreground flex-1" numberOfLines={1}>{l.name}</Text>
+            <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>{l.name}</Text>
             <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.alpha(l.source === "report" ? "primary" : "warning", 0.14) }}>
               <Text className="text-label font-medium" style={{ color: l.source === "report" ? theme.primary : theme.warning }}>
                 {l.source === "report" ? "From broker report" : "Calculated"}
@@ -1291,7 +1225,7 @@ function BrokerGainsCard({ gains }: { gains: YearGains }) {
           {l.crypto !== 0 && <Row label="Crypto" value={l.crypto} />}
           {l.otherIncome !== 0 && <Row label="Intraday and F&O (not in the tax above)" value={l.otherIncome} />}
           {(l.needsCheck > 0 || l.unmatched > 0) && (
-            <Text className="text-xs mt-1" style={{ color: theme.warning }}>
+            <Text className="text-label mt-1" style={{ color: theme.warning }}>
               {l.needsCheck > 0 ? `${l.needsCheck} to check. ` : ""}
               {l.unmatched > 0 ? `${l.unmatched} sales have no buy on record, so aren't counted.` : ""}
             </Text>
@@ -1299,12 +1233,12 @@ function BrokerGainsCard({ gains }: { gains: YearGains }) {
         </Pressable>
       ))}
       {gains.hasCalculated && (
-        <Text className="text-xs mt-2" style={{ color: theme.warning }}>
+        <Text className="text-label mt-2" style={{ color: theme.warning }}>
           Includes calculated figures. Upload the final report to confirm them.
         </Text>
       )}
       {gains.input.cryptoTds > 0 && (
-        <Text className="text-xs text-muted-foreground mt-2">
+        <Text className="text-label text-muted-foreground mt-2">
           {`Crypto exchanges deduct 1% TDS when you sell, about ${formatAmount(gains.input.cryptoTds)} here. It counts towards your tax: claim it when you file. A crypto loss can't be set off against any gain.`}
         </Text>
       )}
