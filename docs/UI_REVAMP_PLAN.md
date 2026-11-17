@@ -196,7 +196,7 @@ Each commit passed `npm run typecheck` and `npx jest` (2,938 tests). Not checked
 | 1. Goals | Done: Goals tab, Yearly plan, Milestones (+ form), Loan detail, Add loan, Buckets (+ form), Bucket detail, Net worth, Income calculator; drill-ins and loan sub-screens restyled | 19ee715, a71e2aa, d487774, 12694eb, 324df07, f9526a9 |
 | 2. Hisaab | Done: People (+ form), Person ledger, Settle | e81d846 |
 | 3. Budget | Done: Overview (hero, tiles, More numbers fold, categories), drill-down Edit budget pill; Spending split and Summary restyled | 7f42110 |
-| 4. Account ledger + settings | Not started | |
+| 4. Account ledger + settings | Partly: ledger statement header + name/gear → Account settings, Open ledger on Account settings (fb87863). Still to do: the Account settings board layout (per-type fields) and the Accounts list board (sort / group, banners, Ignored) | fb87863 |
 | 5. Insights, Vault, Simulator, Investments | Not started | |
 | 6. Add / edit transaction | Not started | |
 | 7. Settings | Not started | |
