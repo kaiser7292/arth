@@ -92,6 +92,8 @@ const FILES = [
   "app/(tabs)/budget.tsx",
   "components/budget/SpendingSplitPage.tsx",
   "components/budget/MonthlySummaryPage.tsx",
+  "app/settings/account-master.tsx",
+  "app/settings/account-add.tsx",
 ];
 
 const DIRS = ["components/expense", "components/expense/catch-up"];

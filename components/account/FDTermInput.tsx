@@ -3,7 +3,7 @@ import { Pressable, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { FilterChip, Input, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 import { addFDTerm, fdTermBetween, formatFDTerm } from "@/services/investment-engine";
 import { formatDate } from "@/utils/date";
 
@@ -26,7 +26,7 @@ const toInt = (s: string) => {
  * other one is worked out and shown underneath.
  */
 export function FDTermInput({ startDate, value, onChange, className }: FDTermInputProps) {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [mode, setMode] = useState<"date" | "term">("date");
   const [years, setYears] = useState("");
   const [months, setMonths] = useState("");
@@ -76,10 +76,10 @@ export function FDTermInput({ startDate, value, onChange, className }: FDTermInp
           className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
           accessibilityRole="button"
         >
-          <Text className="text-meta" style={{ color: value ? colors.text : colors.textSecondary }}>
+          <Text className="text-meta" style={{ color: value ? theme.foreground : theme.mutedForeground }}>
             {value ? formatDate(value) : "Select maturity date"}
           </Text>
-          <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={18} color={theme.mutedForeground} />
         </Pressable>
       ) : (
         <View className="flex-row gap-2">

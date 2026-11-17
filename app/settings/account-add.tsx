@@ -221,7 +221,7 @@ export default function AccountAddScreen() {
               <Pressable
                 key={t}
                 onPress={() => setAccountType(t)}
-                className={`px-4 py-3 rounded-lg mr-2 mb-2 border ${
+                className={`px-4 py-3 rounded-control mr-2 mb-2 border ${
                   accountType === t
                     ? ""
                     : "bg-card border-transparent"
@@ -236,7 +236,7 @@ export default function AccountAddScreen() {
                 }
               >
                 <Text
-                  className={`text-sm ${
+                  className={`text-meta ${
                     accountType === t
                       ? "font-medium"
                       : "text-muted-foreground"

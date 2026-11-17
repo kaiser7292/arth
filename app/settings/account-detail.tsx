@@ -6,7 +6,7 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { LinkRow } from "@/components/ui/LinkRow";
 import { useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, DateInput, Input, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, DateInput, Input, PeriodNavigator, ScreenContainer, Text, Chip, SectionTitle } from "@/components/ui";
 import { BalanceSourceCard } from "@/components/account/BalanceSourceCard";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
@@ -573,14 +573,15 @@ export default function AccountDetailScreen() {
                   color={theme.data.series[3]}
                 />
               </View>
-              <View>
-                <Text className="text-body font-bold text-foreground">
+              <View className="flex-1">
+                <Text className="text-heading font-bold text-foreground" numberOfLines={1}>
                   {account.bank_name}
                 </Text>
-                <Text className="text-label text-muted-foreground">
-                  ****{account.account_identifier}
+                <Text className="text-meta text-muted-foreground">
+                  ····{account.account_identifier}
                 </Text>
               </View>
+              <Chip variant="status" tone={account.closed_at ? "neutral" : "success"} label={account.closed_at ? "Closed" : "Open"} />
             </View>
 
             {/* Account type picker — hidden for loans (switching type would
@@ -594,7 +595,7 @@ export default function AccountDetailScreen() {
             {account.account_type !== "loan" && account.account_type !== "investment" && (
               <>
                 <Text className="text-label font-medium text-muted-foreground mb-2">
-                  Account Type
+                  Type
                 </Text>
                 <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
                   {ACCOUNT_TYPES.map((t) => {
@@ -640,7 +641,8 @@ export default function AccountDetailScreen() {
 
           {/* Financial details — credit cards only */}
           {accountType === "credit_card" && (
-            <Card className="mb-3" title="Financial Details">
+            <Card className="mb-3">
+            <SectionTitle icon="card-outline" title="Card details" hint="Limit, due date and what's due" className="mb-3" />
               <Input
                 label="Credit Limit"
                 value={creditLimitValue}
@@ -702,7 +704,8 @@ export default function AccountDetailScreen() {
 
           {/* v15.5: Savings min-balance alert (savings only) */}
           {accountType === "savings" && (
-            <Card className="mb-3" title="Minimum Balance Alert">
+            <Card className="mb-3">
+            <SectionTitle icon="notifications-outline" title="Minimum balance alert" hint="Leave blank or 0 to turn it off" className="mb-3" />
               <Input
                 label="Minimum Balance (₹)"
                 value={minBalanceValue}
@@ -856,7 +859,8 @@ export default function AccountDetailScreen() {
           {/* Fixed deposit already completed — its full properties, editable
               until the schedule materialises at maturity. */}
           {investmentProduct && investmentProduct.valuation === "contract" && !isFDIncomplete(investmentProduct) && (
-            <Card className="mb-3" title="Fixed Deposit">
+            <Card className="mb-3">
+            <SectionTitle icon="lock-closed-outline" title="Fixed deposit" hint="Principal, rate and maturity" className="mb-3" />
               <View className="flex-row justify-between mb-1.5">
                 <Text className="text-label text-muted-foreground">Principal</Text>
                 <Text className="text-body font-semibold text-foreground">
@@ -914,7 +918,8 @@ export default function AccountDetailScreen() {
               everything relevant — principal, rate, maturity; the ledger's
               opening/expenses/credits breakdown doesn't map to how a user
               thinks about a deposit). v17.5.10 extends the earlier loan/demat guard. */}
-          {!isDematAccount && !isFDAccount && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3" title="Monthly Balance Ledger">
+          {!isDematAccount && !isFDAccount && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3">
+            <SectionTitle icon="calendar-outline" title="Balance" hint="Where the ledger starts counting, month by month" className="mb-3" />
             {!seeded ? (
               <View>
                 <Text className="text-label text-muted-foreground mb-3">
@@ -1076,7 +1081,8 @@ export default function AccountDetailScreen() {
 
           {/* UPI IDs — a payment picture showing one of these picks this account. */}
           {(accountType === "savings" || accountType === "credit_card" || accountType === "wallet") && !isDematAccount && !isFDAccount && (
-            <Card className="mb-3" title="UPI IDs">
+            <Card className="mb-3">
+            <SectionTitle icon="at-outline" title="UPI IDs" hint="A payment picture showing one of these picks this account" className="mb-3" />
               <Text className="text-label text-muted-foreground mb-2">
                 Your UPI IDs on this account. A payment picture showing one of them picks this account by itself.
               </Text>
@@ -1132,7 +1138,8 @@ export default function AccountDetailScreen() {
 
           {/* Payment Modes — hidden for loans (loans aren't payment instruments)
               and demat/FD (investment accounts don't route expenses). v17.5.10. */}
-          {accountType !== "loan" && !isDematAccount && !isFDAccount && <Card className="mb-3" title="Linked Payment Modes">
+          {accountType !== "loan" && !isDematAccount && !isFDAccount && <Card className="mb-3">
+            <SectionTitle icon="wallet-outline" title="Linked payment modes" hint="Spends paid this way land in this account" className="mb-3" />
             {allModes.length > 0 ? (
               allModes.map((mode) => {
                 const isLinked = linkedModeIds.has(mode.id);
@@ -1176,34 +1183,18 @@ export default function AccountDetailScreen() {
             </View>
           )}
 
-          {/* Danger zone */}
-          <Card className="mb-3">
+          {/* Close / reopen, ignore messages, remove */}
+          <View className="rounded-card bg-card border border-border overflow-hidden mb-3">
             {account.closed_at ? (
-              <Pressable onPress={handleReopen} className="flex-row items-center justify-center py-1">
-                <Ionicons name="refresh-outline" size={18} color={theme.data.series[3]} />
-                <Text className="text-body font-medium ml-2" style={{ color: theme.data.series[3] }}>Reopen account</Text>
-              </Pressable>
+              <LinkRow divider={false} icon="refresh-outline" color={theme.primary} title="Reopen account" sub="Track it again from today" onPress={handleReopen} />
             ) : (
-              <Pressable onPress={handleClose} className="flex-row items-center justify-center py-1">
-                <Ionicons name="lock-closed-outline" size={18} color={theme.danger} />
-                <Text className="text-body font-medium ml-2" style={{ color: theme.danger }}>Close account</Text>
-              </Pressable>
+              <LinkRow divider={false} icon="lock-closed-outline" title="Close account" sub="Keeps its history; reopen any time" onPress={handleClose} />
             )}
             {!account.closed_at && account.account_identifier && (
-              <View className="border-t border-border mt-3 pt-3">
-                <Pressable onPress={handleIgnore} className="flex-row items-center justify-center py-1">
-                  <Ionicons name="eye-off-outline" size={18} color={theme.warning} />
-                  <Text className="text-body font-medium ml-2" style={{ color: theme.warning }}>Ignore this account's messages</Text>
-                </Pressable>
-              </View>
+              <LinkRow icon="eye-off-outline" title="Ignore this account's messages" sub="Bank messages for it are skipped" onPress={handleIgnore} />
             )}
-            <View className="border-t border-border mt-3 pt-3">
-              <Pressable onPress={handleDelete} className="flex-row items-center justify-center py-1">
-                <Ionicons name="trash-outline" size={16} color={theme.mutedForeground} />
-                <Text className="text-meta ml-2 text-muted-foreground">Remove account</Text>
-              </Pressable>
-            </View>
-          </Card>
+            <LinkRow icon="trash-outline" color={theme.danger} danger title="Remove account" onPress={handleDelete} />
+          </View>
           </View>
         </ScrollView>
       </ScreenContainer>

@@ -3,7 +3,8 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, FAB, GroupHeading, ListToolbar, ScreenContainer, Text } from "@/components/ui";
+import { Chip, FAB, GroupHeading, ListToolbar, ScreenContainer, Text } from "@/components/ui";
+import { tint } from "@/constants/brand";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -154,7 +155,7 @@ export default function AccountMasterScreen() {
   });
   const filteredAccounts = tools.rows;
 
-  const renderAccount = (item: AccountWithModes) => {
+  const renderAccount = (item: AccountWithModes, divider = false) => {
     const { account, linkedModes } = item;
     // dematSummaries is already the alias-aware set (getDematAccountsWithSummary
     // includes Phase-2-converted investment+valuation='market' accounts too —
@@ -209,182 +210,156 @@ export default function AccountMasterScreen() {
       });
     };
 
+    const typeKey = resolvedType(account);
+    const color = theme.data.accountType[typeKey] ?? theme.data.series[3];
     return (
       <Pressable
         key={account.id}
         onPress={handleTap}
-        className="mb-2"
+        className={`flex-row items-center px-3.5 ${divider ? "border-t border-border" : ""}`}
+        style={{ minHeight: 64, gap: 12, opacity: account.closed_at ? 0.7 : 1 }}
+        accessibilityRole="button"
+        accessibilityLabel={`${displayName}, ${account.closed_at ? "closed" : "open"}`}
       >
-        <Card>
-          <View className="flex-row items-center">
-            <View
-              className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-            >
-              <Ionicons
-                name={ACCOUNT_TYPE_ICONS[resolvedType(account)] ?? "help-outline"}
-                size={20}
-                color={theme.data.series[3]}
-              />
-            </View>
-            <View className="flex-1 mr-2">
-              <Text
-                className="text-body font-semibold text-foreground"
-                numberOfLines={1}
-              >
-                {displayName}
-              </Text>
-              <Text className="text-label text-muted-foreground mt-0.5">
-                {subtitleParts.join(" · ")}
-              </Text>
-            </View>
-            {/* Open or closed at a glance. */}
-            <View
-              className="px-2 py-0.5 rounded-full mr-2"
-              style={{ backgroundColor: theme.alpha(account.closed_at ? "mutedForeground" : "success", 0.14) }}
-              accessibilityLabel={account.closed_at ? "Closed" : "Open"}
-            >
-              <Text
-                className="text-label font-semibold"
-                style={{ color: account.closed_at ? theme.mutedForeground : theme.success }}
-              >
-                {account.closed_at ? "Closed" : "Open"}
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
-          </View>
-        </Card>
+        <View className="w-9 h-9 rounded-control items-center justify-center" style={{ backgroundColor: tint(color, 0.1) }}>
+          <Ionicons name={ACCOUNT_TYPE_ICONS[typeKey] ?? "help-outline"} size={17} color={color} />
+        </View>
+        <View className="flex-1" style={{ minWidth: 0 }}>
+          <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+            {displayName}
+          </Text>
+          <Text className="text-meta text-muted-foreground" numberOfLines={1}>
+            {account.account_type === "loan" ? `${subtitleParts.join(" · ")} · opens loan details` : subtitleParts.join(" · ")}
+          </Text>
+        </View>
+        {/* Open or closed at a glance. */}
+        <Chip variant="status" tone={account.closed_at ? "neutral" : "success"} label={account.closed_at ? "Closed" : "Open"} />
       </Pressable>
     );
   };
 
   const isEmpty = filteredAccounts.length === 0;
 
+  // One card per group: the rows between two headings sit together.
+  const blocks: { heading: (typeof tools.grouped)[number] | null; rows: AccountWithModes[] }[] = [];
+  for (const row of tools.grouped) {
+    if (row.type === "heading") blocks.push({ heading: row, rows: [] });
+    else {
+      if (blocks.length === 0) blocks.push({ heading: null, rows: [] });
+      blocks[blocks.length - 1].rows.push(row.item);
+    }
+  }
+
+  const banner = (icon: keyof typeof Ionicons.glyphMap, fg: string, bg: string, title: string, sub: string, onPress: () => void) => (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center rounded-card px-3.5 py-3 mb-3"
+      style={{ backgroundColor: bg, gap: 12 }}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${sub}`}
+    >
+      <Ionicons name={icon} size={20} color={fg} />
+      <View className="flex-1">
+        <Text className="text-body font-semibold text-foreground">{title}</Text>
+        <Text className="text-meta text-muted-foreground">{sub}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+    </Pressable>
+  );
+
   return (
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-      <View className="px-4 flex-1">
-      {duplicateGroups > 0 && (
-        <Pressable onPress={() => router.push("/settings/duplicate-accounts")} accessibilityRole="button" className="mb-3">
-          <Card>
-            <View className="flex-row items-center">
-              <Ionicons name="copy-outline" size={18} color={theme.warning} />
-              <View className="flex-1 ml-2">
-                <Text className="text-body font-semibold text-foreground">
-                  {duplicateGroups} account{duplicateGroups === 1 ? " looks" : "s look"} recorded twice
-                </Text>
-                <Text className="text-label text-muted-foreground mt-0.5">Same bank and same last digits. Review and merge them.</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
-            </View>
-          </Card>
-        </Pressable>
-      )}
+      <View className="flex-1">
+        <ListToolbar {...tools.toolbar} />
+        {tools.filterSheet}
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96, paddingHorizontal: 16, paddingTop: 4 }}>
+          {duplicateGroups > 0 &&
+            banner(
+              "copy-outline",
+              theme.warning,
+              theme.alpha("warning", 0.08),
+              `${duplicateGroups} account${duplicateGroups === 1 ? " looks" : "s look"} recorded twice`,
+              "Same bank and last digits · review and merge",
+              () => router.push("/settings/duplicate-accounts"),
+            )}
+          {transferFixes > 0 &&
+            banner(
+              "swap-horizontal-outline",
+              theme.data.transfer,
+              tint(theme.data.transfer, 0.08),
+              `${transferFixes} payment${transferFixes === 1 ? "" : "s"} between your accounts counted as spending`,
+              "Make them transfers",
+              () => router.push("/settings/transfer-review"),
+            )}
 
-      {transferFixes > 0 && (
-        <Pressable onPress={() => router.push("/settings/transfer-review")} accessibilityRole="button" className="mb-3">
-          <Card>
-            <View className="flex-row items-center">
-              <Ionicons name="swap-horizontal-outline" size={18} color={theme.warning} />
-              <View className="flex-1 ml-2">
-                <Text className="text-body font-semibold text-foreground">
-                  {transferFixes} payment{transferFixes === 1 ? "" : "s"} between your accounts
-                </Text>
-                <Text className="text-label text-muted-foreground mt-0.5">Counted as spending. Make them transfers.</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
-            </View>
-          </Card>
-        </Pressable>
-      )}
-
-      {/* Info card */}
-      <Card className="mb-3">
-        <View className="flex-row items-center">
-          <Ionicons
-            name="information-circle-outline"
-            size={18}
-            color={theme.mutedForeground}
-          />
-          <Text className="text-label text-muted-foreground ml-2 flex-1">
-            Tap an account to view details, edit financial data, and manage
-            linked payment modes.
+          <Text className="text-meta text-muted-foreground px-1 mb-2">
+            {filteredAccounts.length}
+            {filteredAccounts.length !== accounts.length ? ` of ${accounts.length}` : ""} {filteredAccounts.length === 1 ? "account" : "accounts"} · tap one
+            for its details, money settings and payment modes
           </Text>
-        </View>
-      </Card>
 
-      <ListToolbar {...tools.toolbar} inset={false} />
-      {tools.filterSheet}
-
-      {/* Count */}
-      <Text className="text-meta text-muted-foreground px-1 mb-2">
-        {filteredAccounts.length}
-        {filteredAccounts.length !== accounts.length ? ` of ${accounts.length}` : ""}
-        {" "}
-        {filteredAccounts.length === 1 ? "account" : "accounts"}
-      </Text>
-
-      {/* Account list */}
-      {isEmpty ? (
-        <View className="items-center py-16">
-          <Ionicons name="business-outline" size={48} color={theme.mutedForeground} />
-          <Text className="text-heading font-medium text-foreground mt-4">
-            {accounts.length > 0 ? "Nothing matches" : "No accounts yet"}
-          </Text>
-          <Text className="text-meta text-muted-foreground mt-1 text-center px-8">
-            {accounts.length > 0
-              ? "Try another search or filter."
-              : "Tap + to add an account. Supports savings, credit cards, loans, wallets, and demat accounts."}
-          </Text>
-        </View>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 80 }}
-        >
-          {tools.grouped.map((row) =>
-            row.type === "heading" ? <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} /> : renderAccount(row.item),
-          )}
-          {ignoredAccounts.length > 0 && (
-            <View className="mt-4">
-              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">
-                Ignored · {ignoredAccounts.length}
+          {isEmpty ? (
+            <View className="items-center py-16">
+              <Ionicons name="business-outline" size={48} color={theme.faintForeground} />
+              <Text className="text-heading font-semibold text-foreground mt-4">{accounts.length > 0 ? "Nothing matches" : "No accounts yet"}</Text>
+              <Text className="text-meta text-muted-foreground mt-1 text-center px-8">
+                {accounts.length > 0
+                  ? "Try another search or filter."
+                  : "Tap + Account to add one. Supports savings, credit cards, loans, wallets, and demat accounts."}
               </Text>
-              <Card>
+            </View>
+          ) : (
+            blocks.map((b, bi) => (
+              <View key={b.heading && b.heading.type === "heading" ? `g-${b.heading.key}` : `b-${bi}`} className="mb-3">
+                {b.heading && b.heading.type === "heading" && (
+                  <GroupHeading
+                    label={b.heading.label}
+                    count={b.heading.count}
+                    total={0}
+                    inset={false}
+                    open={b.heading.open}
+                    onToggle={b.heading.onToggle}
+                    noun={b.heading.noun}
+                  />
+                )}
+                {b.rows.length > 0 && (
+                  <View className="rounded-card bg-card border border-border overflow-hidden">{b.rows.map((r, i) => renderAccount(r, i > 0))}</View>
+                )}
+              </View>
+            ))
+          )}
+
+          {ignoredAccounts.length > 0 && (
+            <View className="mt-1">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-1 mb-2">Ignored · {ignoredAccounts.length}</Text>
+              <View className="rounded-card bg-card border border-border overflow-hidden">
                 {ignoredAccounts.map((a, i) => (
-                  <View key={a.id} className={`flex-row items-center py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
-                    <Ionicons name="eye-off-outline" size={18} color={theme.mutedForeground} />
-                    <View className="flex-1 ml-3">
-                      <Text className="text-body font-medium text-foreground">{a.name} ····{a.digits.slice(-4)}</Text>
-                      <Text className="text-label text-muted-foreground mt-0.5">Its messages are skipped</Text>
+                  <View key={a.id} className={`flex-row items-center px-3.5 ${i > 0 ? "border-t border-border" : ""}`} style={{ minHeight: 60, gap: 12 }}>
+                    <View className="flex-1">
+                      <Text className="text-body font-semibold text-foreground">
+                        {a.name} ····{a.digits.slice(-4)}
+                      </Text>
+                      <Text className="text-meta text-muted-foreground">Its messages are skipped</Text>
                     </View>
-                    <Pressable
+                    <Chip
+                      label="Track again"
+                      on
                       onPress={async () => {
                         await keepAccount(a.id);
                         setIgnoredAccounts((list) => list.filter((x) => x.id !== a.id));
                         loadData();
                       }}
-                      className="rounded-full px-4 items-center justify-center"
-                      style={{ height: 40, backgroundColor: theme.alpha("primary", 0.1) }}
-                      accessibilityRole="button"
-                    >
-                      <Text className="text-body font-semibold" style={{ color: theme.primary }}>Track again</Text>
-                    </Pressable>
+                    />
                   </View>
                 ))}
-              </Card>
+              </View>
             </View>
           )}
         </ScrollView>
-      )}
       </View>
 
-      {/* FAB — Add account */}
-      <FAB
-        icon="add"
-        onPress={() => router.push("/settings/account-add")}
-        accessibilityLabel="Add new account"
-      />
+      <FAB icon="add" label="Account" onPress={() => router.push("/settings/account-add")} accessibilityLabel="Add new account" />
     </ScreenContainer>
   );
 }
