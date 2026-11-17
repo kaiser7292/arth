@@ -54,6 +54,7 @@ const FILES = [
   "components/ui/MoneyChip.tsx",
   "components/ui/FieldRow.tsx",
   "components/ui/FilterSheetParts.tsx",
+  "components/expense/PickerSheet.tsx",
   // UI revamp (docs/UI_REVAMP_PLAN.md)
   "components/ui/LinkRow.tsx",
   "app/(tabs)/goals.tsx",

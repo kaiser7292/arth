@@ -20,6 +20,8 @@ import { Pressable, ScrollView, Switch, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { Rows } from "@/components/ui/Rows";
 import { buildCategoryTree, categoryPath } from "@/utils/category-tree";
+import { PickerSheet, type PickerSheetSection } from "./PickerSheet";
+import type { MerchantUsage } from "@/services/picker-usage";
 
 // ---------------------------------------------------------------------------
 // Searchable Picker List — shared helper for all pickers
@@ -129,6 +131,8 @@ interface AccountPickerProps {
   /** Field label — "Paid from", "Into account", "From", "To". Defaults to "Account". */
   label?: string;
   placeholder?: string;
+  /** Small note next to the label, e.g. "From merchant". */
+  hint?: string | null;
 }
 
 // Every account type, not just spending ones: the same picker chooses both sides of a transfer.
@@ -142,6 +146,14 @@ const PICKER_TYPE_LABEL: Record<string, string> = {
   investment: "Investment",
   pension: "Pension",
 };
+/** The picker's groups: Savings / Cards / Wallets, then everything else. */
+const ACCOUNT_GROUP: Record<string, { key: string; title: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  savings: { key: "savings", title: "Savings", icon: "business-outline" },
+  bank: { key: "savings", title: "Savings", icon: "business-outline" },
+  credit_card: { key: "cards", title: "Cards", icon: "card-outline" },
+  wallet: { key: "wallets", title: "Wallets", icon: "phone-portrait-outline" },
+};
+const OTHER_GROUP = { key: "other", title: "Other accounts", icon: "wallet-outline" as keyof typeof Ionicons.glyphMap };
 
 export function AccountPicker({
   accounts,
@@ -152,71 +164,62 @@ export function AccountPicker({
   onSelect,
   label = "Account",
   placeholder = "Select account (optional)",
+  hint,
 }: AccountPickerProps) {
-  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const router = useRouter();
-
-  const accentStyles = useMemo(() => ({
-    selectedBorder: { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) },
-    highlightBg: { backgroundColor: theme.alpha("primary", 0.1) },
-  }), [colorScheme]);
   const balances = useAccountBalances(accounts, showAccounts);
+
+  const sections = useMemo<PickerSheetSection[]>(() => {
+    const order = ["savings", "cards", "wallets", "other"];
+    const by = new Map<string, PickerSheetSection>();
+    for (const acct of accounts) {
+      const g = ACCOUNT_GROUP[acct.account_type] ?? OTHER_GROUP;
+      if (!by.has(g.key)) by.set(g.key, { key: g.key, title: g.title, items: [] });
+      by.get(g.key)!.items.push({
+        id: acct.id,
+        label: acct.account_label ?? `${acct.bank_name} ····${acct.account_identifier}`,
+        sub: withPickerBalance(`${PICKER_TYPE_LABEL[acct.account_type] ?? "Account"} · ${acct.bank_name}`, balances[acct.id]),
+        icon: g.icon,
+        color: theme.data.accountType[acct.account_type] ?? theme.primary,
+      });
+    }
+    return order.filter((k) => by.has(k)).map((k) => by.get(k)!);
+  }, [accounts, balances, theme]);
 
   return (
     <View className="mb-4">
       <Text className="text-label font-semibold text-muted-foreground mb-1.5">
         {label}
+        {hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
       </Text>
       {accounts.length > 0 ? (
         <>
-          <Pressable
+          <FieldButton
+            icon="business-outline"
+            on={!!selectedAccount}
+            text={selectedAccount ? selectedAccount.account_label ?? `${selectedAccount.bank_name} ····${selectedAccount.account_identifier}` : placeholder}
             onPress={onToggle}
-            className={`flex-row items-center rounded-control border px-4 py-3 ${
-              selectedAccount
-                ? ""
-                : "border-border bg-card"
-            }`}
-            style={selectedAccount ? accentStyles.selectedBorder : undefined}
-          >
-            {selectedAccount ? (
-              <>
-                <Ionicons name="business-outline" size={18} color={theme.primary} />
-                <Text className="flex-1 ml-3 text-body text-foreground">
-                  {selectedAccount.account_label ??
-                    `${selectedAccount.bank_name} ****${selectedAccount.account_identifier}`}
-                </Text>
-              </>
-            ) : (
-              <>
-                <Ionicons name="business-outline" size={18} color={theme.mutedForeground} />
-                <Text className="flex-1 ml-3 text-body text-faint-foreground">
-                  {placeholder}
-                </Text>
-              </>
-            )}
-            <Ionicons
-              name={showAccounts ? "chevron-up" : "chevron-down"}
-              size={18}
-              color={theme.mutedForeground}
-            />
-          </Pressable>
-          {showAccounts && (
-            <SearchablePickerList
-              items={accounts.map((acct) => ({
-                id: acct.id,
-                label: acct.account_label ?? `${acct.bank_name} ****${acct.account_identifier}`,
-                subtitle: withPickerBalance(
-                  `${PICKER_TYPE_LABEL[acct.account_type] ?? "Account"} · ${acct.bank_name}`,
-                  balances[acct.id],
-                ),
-              }))}
-              selectedId={accountId}
-              onSelect={onSelect}
-              allowNone
-              searchPlaceholder="Search accounts..."
-            />
-          )}
+            accessibilityLabel={`${label}${selectedAccount ? `, ${selectedAccount.account_label ?? selectedAccount.bank_name}` : ""}`}
+          />
+          <PickerSheet
+            visible={showAccounts}
+            onClose={onToggle}
+            title={label}
+            sections={sections}
+            selectedId={accountId}
+            onSelect={(id) => onSelect(id)}
+            allowNone
+            noneLabel="No account"
+            searchPlaceholder="Search accounts"
+            filters={sections.length > 1 ? sections.map((s) => ({ key: s.key, label: s.title ?? s.key })) : undefined}
+            onAdd={() => {
+              onToggle();
+              router.push("/settings/account-add");
+            }}
+            addLabel={(t) => `Add an account “${t}”`}
+            noun={{ one: "account", many: "accounts" }}
+          />
         </>
       ) : (
         <Pressable
@@ -224,13 +227,53 @@ export function AccountPicker({
           className="flex-row items-center rounded-control border border-dashed border-border bg-card px-4 py-3"
         >
           <Ionicons name="add-circle-outline" size={18} color={theme.mutedForeground} />
-          <Text className="flex-1 ml-3 text-meta text-faint-foreground">
-            No accounts yet - tap to add one
-          </Text>
+          <Text className="flex-1 ml-3 text-meta text-faint-foreground">No accounts yet - tap to add one</Text>
           <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
         </Pressable>
       )}
     </View>
+  );
+}
+
+/** The closed field: what's picked (or the placeholder) and a chevron. Tapping opens the sheet. */
+function FieldButton({
+  icon,
+  on,
+  text,
+  onPress,
+  accessibilityLabel,
+  leading,
+  right,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  on: boolean;
+  text: string;
+  onPress: () => void;
+  accessibilityLabel: string;
+  leading?: React.ReactNode;
+  right?: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-row items-center rounded-control border px-4"
+      style={{
+        minHeight: 48,
+        gap: 12,
+        borderColor: on ? theme.primary : theme.border,
+        backgroundColor: on ? theme.alpha("primary", 0.08) : theme.card,
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+    >
+      {leading ?? <Ionicons name={icon} size={18} color={on ? theme.primary : theme.mutedForeground} />}
+      <Text className={`flex-1 text-body ${on ? "text-foreground" : "text-faint-foreground"}`} numberOfLines={1}>
+        {text}
+      </Text>
+      {right ? <Text className="text-label text-muted-foreground">{right}</Text> : null}
+      <Ionicons name="chevron-down" size={18} color={theme.mutedForeground} />
+    </Pressable>
   );
 }
 
@@ -361,8 +404,10 @@ interface CategoryPickerProps {
   onSelect: (catId: string | null) => void;
   /** When true, shows a "None" option to clear selection (used in edit mode) */
   allowNone?: boolean;
-  /** Small note next to the label, e.g. "suggested from Swiggy". */
+  /** Small note next to the label, e.g. "From merchant". */
   hint?: string | null;
+  /** The category usually used with the merchant picked, shown on top. */
+  usualId?: string | null;
 }
 
 export function CategoryPicker({
@@ -374,67 +419,61 @@ export function CategoryPicker({
   onSelect,
   allowNone = false,
   hint,
+  usualId,
 }: CategoryPickerProps) {
-  const { colorScheme } = useColorScheme();
-  const theme = useTheme();
+  const router = useRouter();
+  const sections = useMemo<PickerSheetSection[]>(() => {
+    const out: PickerSheetSection[] = [];
+    const usual = usualId ? categories.find((c) => c.id === usualId) : undefined;
+    if (usual) out.push({ key: "usual", title: "Usually for this merchant", items: [{ id: usual.id, label: usual.name, icon: usual.icon as keyof typeof Ionicons.glyphMap, color: usual.color }] });
+    // Each main category, then its sub-categories (095); search finds a sub-category by its parent too.
+    for (const { parent, children } of buildCategoryTree(categories)) {
+      out.push({
+        key: parent.id,
+        items: [
+          { id: parent.id, label: parent.name, icon: parent.icon as keyof typeof Ionicons.glyphMap, color: parent.color, sub: children.length ? `${children.length} sub-categories` : undefined },
+          ...children.map((c) => ({ id: c.id, label: c.name, sub: `In ${parent.name}`, keywords: parent.name, icon: c.icon as keyof typeof Ionicons.glyphMap, color: c.color, indent: true })),
+        ],
+      });
+    }
+    return out;
+  }, [categories, usualId]);
 
   return (
     <View className="mb-4">
       <Text className="text-label font-semibold text-muted-foreground mb-1.5">
-        Category{hint ? <Text className="text-label text-faint-foreground"> · {hint}</Text> : null}
+        Category{hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
       </Text>
-      <Pressable
+      <FieldButton
+        icon="pricetags-outline"
+        on={!!selectedCategory}
+        text={selectedCategory ? categoryPath(selectedCategory, new Map(categories.map((c) => [c.id, c]))) : "Select category"}
         onPress={onToggle}
-        className={`flex-row items-center rounded-control border px-4 py-3 ${
-          selectedCategory
-            ? ""
-            : "border-border bg-card"
-        }`}
-        style={selectedCategory ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
-      >
-        {selectedCategory ? (
-          <>
-            <View
-              className="w-7 h-7 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: tint(selectedCategory.color, 0.08) }}
-            >
-              <Ionicons
-                name={selectedCategory.icon as keyof typeof Ionicons.glyphMap}
-                size={16}
-                color={selectedCategory.color}
-              />
+        accessibilityLabel={`Category${selectedCategory ? `, ${selectedCategory.name}` : ""}`}
+        leading={
+          selectedCategory ? (
+            <View className="w-7 h-7 rounded-control items-center justify-center" style={{ backgroundColor: tint(selectedCategory.color, 0.1) }}>
+              <Ionicons name={selectedCategory.icon as keyof typeof Ionicons.glyphMap} size={15} color={selectedCategory.color} />
             </View>
-            <Text className="flex-1 text-body text-foreground">
-              {categoryPath(selectedCategory, new Map(categories.map((c) => [c.id, c])))}
-            </Text>
-          </>
-        ) : (
-          <>
-            <Ionicons name="pricetags-outline" size={18} color={theme.mutedForeground} />
-            <Text className="flex-1 ml-3 text-body text-faint-foreground">
-              Select category
-            </Text>
-          </>
-        )}
-        <Ionicons
-          name={showCategories ? "chevron-up" : "chevron-down"}
-          size={18}
-          color={theme.mutedForeground}
-        />
-      </Pressable>
-      {showCategories && (
-        <SearchablePickerList
-          // Each category followed by its sub-categories (095); search finds a sub-category by its parent too.
-          items={buildCategoryTree(categories).flatMap(({ parent, children }) => [
-            { id: parent.id, label: parent.name, icon: parent.icon, color: parent.color },
-            ...children.map((c) => ({ id: c.id, label: `  ${c.name}`, subtitle: `In ${parent.name}`, icon: c.icon, color: c.color })),
-          ])}
-          selectedId={categoryId}
-          onSelect={onSelect}
-          allowNone={allowNone}
-          searchPlaceholder="Search categories..."
-        />
-      )}
+          ) : undefined
+        }
+      />
+      <PickerSheet
+        visible={showCategories}
+        onClose={onToggle}
+        title="Category"
+        sections={sections}
+        selectedId={categoryId}
+        onSelect={(id) => onSelect(id)}
+        allowNone={allowNone}
+        searchPlaceholder="Search categories and sub-categories"
+        onAdd={() => {
+          onToggle();
+          router.push("/settings/category-edit");
+        }}
+        addLabel={(t) => `Add a category “${t}”`}
+        noun={{ one: "category", many: "categories" }}
+      />
     </View>
   );
 }
@@ -452,6 +491,9 @@ interface PaymentModePickerProps {
   onSelect: (pmId: string | null) => void;
   /** When true, shows a "None" option to clear selection (used in edit mode) */
   allowNone?: boolean;
+  /** How often each mode is used, for "Most used" on top. */
+  usage?: Map<string, number>;
+  hint?: string | null;
 }
 
 export function PaymentModePicker({
@@ -462,72 +504,60 @@ export function PaymentModePicker({
   onToggle,
   onSelect,
   allowNone = false,
+  usage,
+  hint,
 }: PaymentModePickerProps) {
-  const { colorScheme } = useColorScheme();
-  const theme = useTheme();
+  const router = useRouter();
+  const sections = useMemo<PickerSheetSection[]>(() => {
+    const item = (pm: PaymentMode) => ({
+      id: pm.id,
+      label: pm.name,
+      sub: PAYMENT_MODE_TYPE_LABELS[pm.type as PaymentModeType],
+      icon: TYPE_ICONS[pm.type as PaymentModeType],
+      right: usage?.get(pm.id) ? `${usage.get(pm.id)}×` : undefined,
+    });
+    const used = usage ? [...paymentModes].filter((p) => (usage.get(p.id) ?? 0) > 0).sort((a, b) => (usage.get(b.id) ?? 0) - (usage.get(a.id) ?? 0)) : [];
+    const out: PickerSheetSection[] = [];
+    if (used.length > 0) out.push({ key: "used", title: "Most used", items: used.slice(0, 5).map(item) });
+    out.push({ key: "all", title: used.length > 0 ? "All payment modes" : undefined, items: paymentModes.map(item) });
+    return out;
+  }, [paymentModes, usage]);
 
   return (
     <View className="mb-4">
       <Text className="text-label font-semibold text-muted-foreground mb-1.5">
-        Payment Mode
+        Payment mode{hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
       </Text>
-      <Pressable
+      <FieldButton
+        icon={selectedPaymentMode ? TYPE_ICONS[selectedPaymentMode.type as PaymentModeType] : "card-outline"}
+        on={!!selectedPaymentMode}
+        text={selectedPaymentMode ? selectedPaymentMode.name : "Select payment mode"}
+        right={selectedPaymentMode ? PAYMENT_MODE_TYPE_LABELS[selectedPaymentMode.type as PaymentModeType] : undefined}
         onPress={onToggle}
-        className={`flex-row items-center rounded-control border px-4 py-3 ${
-          selectedPaymentMode
-            ? ""
-            : "border-border bg-card"
-        }`}
-        style={selectedPaymentMode ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.1) } : undefined}
-      >
-        {selectedPaymentMode ? (
-          <>
-            <Ionicons
-              name={TYPE_ICONS[selectedPaymentMode.type as PaymentModeType]}
-              size={18}
-              color={theme.primary}
-            />
-            <Text className="flex-1 ml-3 text-body text-foreground">
-              {selectedPaymentMode.name}
-            </Text>
-            <Text className="text-label text-muted-foreground">
-              {PAYMENT_MODE_TYPE_LABELS[selectedPaymentMode.type as PaymentModeType]}
-            </Text>
-          </>
-        ) : (
-          <>
-            <Ionicons name="card-outline" size={18} color={theme.mutedForeground} />
-            <Text className="flex-1 ml-3 text-body text-faint-foreground">
-              Select payment mode
-            </Text>
-          </>
-        )}
-        <Ionicons
-          name={showPaymentModes ? "chevron-up" : "chevron-down"}
-          size={18}
-          color={theme.mutedForeground}
-          style={{ marginLeft: 8 }}
-        />
-      </Pressable>
-      {showPaymentModes && (
-        <SearchablePickerList
-          items={paymentModes.map((pm) => ({
-            id: pm.id,
-            label: pm.name,
-            subtitle: PAYMENT_MODE_TYPE_LABELS[pm.type as PaymentModeType],
-          }))}
-          selectedId={paymentModeId}
-          onSelect={onSelect}
-          allowNone={allowNone}
-          searchPlaceholder="Search payment modes..."
-        />
-      )}
+        accessibilityLabel={`Payment mode${selectedPaymentMode ? `, ${selectedPaymentMode.name}` : ""}`}
+      />
+      <PickerSheet
+        visible={showPaymentModes}
+        onClose={onToggle}
+        title="Payment mode"
+        sections={sections}
+        selectedId={paymentModeId}
+        onSelect={(id) => onSelect(id)}
+        allowNone={allowNone}
+        searchPlaceholder="Search payment modes"
+        onAdd={() => {
+          onToggle();
+          router.push("/settings/payment-mode-edit");
+        }}
+        addLabel={(t) => `Add a payment mode “${t}”`}
+        noun={{ one: "payment mode", many: "payment modes" }}
+      />
     </View>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Merchant Picker (autocomplete text input + suggestions dropdown)
+// Merchant Picker (searchable sheet: recent, most used, "+ Add <typed name>")
 // ---------------------------------------------------------------------------
 
 interface MerchantPickerProps {
@@ -540,6 +570,12 @@ interface MerchantPickerProps {
   /** Field label — "Paid to", "Received from". Defaults to "Merchant". */
   label?: string;
   placeholder?: string;
+  /** Recent and most-used merchants with their usual category / mode, from services/picker-usage. */
+  usage?: { recent: MerchantUsage[]; mostUsed: MerchantUsage[] };
+  /** "Food · UPI · 14×" for a merchant's row. */
+  describe?: (u: MerchantUsage) => string;
+  /** Picked a merchant that has a usual category / account / mode: the form fills them. */
+  onPickUsage?: (u: MerchantUsage) => void;
 }
 
 export function MerchantPicker({
@@ -551,80 +587,70 @@ export function MerchantPicker({
   onCloseSuggestions,
   label = "Merchant",
   placeholder = "e.g., Amazon, Swiggy (optional)",
+  usage,
+  describe,
+  onPickUsage,
 }: MerchantPickerProps) {
-  const { colorScheme } = useColorScheme();
   const theme = useTheme();
+  const byName = useMemo(() => {
+    const m = new Map<string, MerchantUsage>();
+    for (const u of usage?.mostUsed ?? []) m.set(u.name.toLowerCase(), u);
+    return m;
+  }, [usage]);
 
-  // Filter suggestions based on current input
-  const filtered = value.trim().length > 0
-    ? merchantNames.filter((n) =>
-        n.toLowerCase().includes(value.trim().toLowerCase()),
-      )
-    : merchantNames;
+  const sections = useMemo<PickerSheetSection[]>(() => {
+    const row = (u: MerchantUsage) => ({ id: u.name, label: u.name, sub: describe ? describe(u) : `${u.count}×`, icon: "storefront-outline" as const });
+    const out: PickerSheetSection[] = [];
+    if (usage && usage.recent.length > 0) out.push({ key: "recent", title: "Recent", items: usage.recent.slice(0, 5).map(row) });
+    if (usage && usage.mostUsed.length > 0) out.push({ key: "most", title: "Most used", items: usage.mostUsed.slice(0, 30).map(row) });
+    // Every other known name (message names, older merchants).
+    const listed = new Set([...(usage?.mostUsed ?? []).map((u) => u.name.toLowerCase())]);
+    const rest = merchantNames.filter((n) => !listed.has(n.toLowerCase()));
+    if (rest.length > 0)
+      out.push({ key: "all", title: usage ? "All merchants" : undefined, items: rest.map((n) => ({ id: n, label: n, icon: "storefront-outline" as const })) });
+    return out;
+  }, [usage, merchantNames, describe]);
 
   return (
     <View className="mb-4">
-      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
-        {label}
-      </Text>
-      <View className="flex-row items-center rounded-control border border-border bg-card overflow-hidden">
-        <View className="flex-1 px-4 py-2">
-          <TextInput
-            value={value}
-            onChangeText={(text) => {
-              onChangeText(text);
-              if (!showSuggestions && text.length > 0) onToggleSuggestions();
-            }}
-            placeholder={placeholder}
-            placeholderTextColor={theme.faintForeground}
-            maxLength={100}
-            className="text-body text-foreground"
-            onFocus={() => {
-              if (merchantNames.length > 0) onToggleSuggestions();
-            }}
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">{label}</Text>
+      <View className="flex-row items-center" style={{ gap: 8 }}>
+        <View className="flex-1">
+          <FieldButton
+            icon="storefront-outline"
+            on={value.trim() !== ""}
+            text={value.trim() !== "" ? value : placeholder}
+            onPress={onToggleSuggestions}
+            accessibilityLabel={`${label}${value ? `, ${value}` : ""}`}
           />
         </View>
-        {merchantNames.length > 0 && (
-          <Pressable
-            onPress={onToggleSuggestions}
-            className="px-3 py-3"
-          >
-            <Ionicons
-              name={showSuggestions ? "chevron-up" : "chevron-down"}
-              size={18}
-              color={theme.mutedForeground}
-            />
+        {value.trim() !== "" && (
+          <Pressable onPress={() => onChangeText("")} hitSlop={8} className="p-1" accessibilityRole="button" accessibilityLabel={`Clear ${label}`}>
+            <Ionicons name="close-circle" size={20} color={theme.mutedForeground} />
           </Pressable>
         )}
       </View>
-      {showSuggestions && filtered.length > 0 && (
-        <Rows className="mt-1 rounded-control border border-border bg-card overflow-hidden max-h-48">
-          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
-            {filtered.slice(0, 20).map((name) => (
-              <Pressable
-                key={name}
-                onPress={() => {
-                  onChangeText(name);
-                  onCloseSuggestions();
-                }}
-                className="flex-row items-center px-4 py-3 border-b border-border"
-                style={value.toLowerCase() === name.toLowerCase() ? { backgroundColor: theme.alpha("primary", 0.1) } : undefined}
-              >
-                <Ionicons name="storefront-outline" size={16} color={theme.mutedForeground} />
-                <Text
-                  className="flex-1 ml-3 text-meta text-foreground"
-                  numberOfLines={1}
-                >
-                  {name}
-                </Text>
-                {value.toLowerCase() === name.toLowerCase() && (
-                  <Pop><Ionicons name="checkmark" size={16} color={theme.primary} /></Pop>
-                )}
-              </Pressable>
-            ))}
-          </ScrollView>
-        </Rows>
-      )}
+      <PickerSheet
+        visible={showSuggestions}
+        onClose={onCloseSuggestions}
+        title={label}
+        sections={sections}
+        selectedId={value.trim() || null}
+        onSelect={(id) => {
+          const name = id ?? "";
+          onChangeText(name);
+          onCloseSuggestions();
+          const u = byName.get(name.toLowerCase());
+          if (u && onPickUsage) onPickUsage(u);
+        }}
+        searchPlaceholder="Search or type a name"
+        onAdd={(typed) => {
+          onChangeText(typed);
+          onCloseSuggestions();
+        }}
+        addLabel={(t) => `Use “${t}”`}
+        noun={{ one: "merchant", many: "merchants" }}
+      />
     </View>
   );
 }
