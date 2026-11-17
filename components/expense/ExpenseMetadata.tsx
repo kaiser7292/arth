@@ -1,4 +1,5 @@
-import { FieldRow, SectionTitle, Text } from "@/components/ui";
+import { FieldRow, Text } from "@/components/ui";
+import { COMPONENTS } from "@/constants/design-tokens";
 import type { Expense } from "@/services/expense";
 
 import { formatDisplayDate as formatDate } from "@/utils/date";
@@ -11,8 +12,8 @@ import { useTheme } from "@/hooks/use-theme";
 
 const SOURCE_LABELS: Record<string, string> = {
   manual: "Added by you",
-  sms_auto: "Read from an SMS",
-  email_auto: "Read from an email",
+  sms_auto: "Bank SMS",
+  email_auto: "Email",
 };
 
 function formatTimestamp(iso: string): string {
@@ -38,12 +39,11 @@ interface ExpenseMetadataProps {
 }
 
 /**
- * The Source card: how this transaction got here. The details and the bank's message are folded
- * away; anything a rule or reminder did to it stays visible above the fold.
+ * Where this transaction came from: a SOURCE card (how it got here, what a rule or reminder did to
+ * it), then the bank's own message as its own card, folded until tapped.
  */
 export default function ExpenseMetadata({ expense, children }: ExpenseMetadataProps) {
   const theme = useTheme();
-  const [expanded, setExpanded] = useState(false);
   const [showRawSms, setShowRawSms] = useState(false);
   const router = useRouter();
 
@@ -51,71 +51,58 @@ export default function ExpenseMetadata({ expense, children }: ExpenseMetadataPr
   const hasRawSms = expense.raw_source_text != null;
 
   return (
-    <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pt-4 pb-1">
-      <Pressable
-        onPress={() => setExpanded(!expanded)}
-        accessibilityRole="button"
-        accessibilityState={{ expanded }}
-        className="pb-3"
-      >
-        <SectionTitle
-          icon={expense.source === "sms_auto" ? "chatbubble-outline" : "information-circle-outline"}
-          title="Source"
-          hint={SOURCE_LABELS[expense.source] ?? expense.source}
-          right={<Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />}
+    <>
+      <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pb-1">
+        <Text className={COMPONENTS.cardHeading} accessibilityRole="header">Source</Text>
+        <FieldRow divider={false} label="From" value={SOURCE_LABELS[expense.source] ?? expense.source} />
+        <FieldRow
+          label="Kind"
+          value={
+            expense.nature === "forecast" && expense.due_date
+              ? `Forecast, due ${formatDate(expense.due_date)}`
+              : expense.nature === "forecast"
+                ? "Forecast"
+                : expense.nature === "credit"
+                  ? "Money in"
+                  : "Spent"
+          }
         />
-      </Pressable>
-
-      {children}
-
-      {expanded && (
-        <View>
+        <FieldRow label="Added" value={formatTimestamp(expense.created_at)} />
+        {hasRefund && (
           <FieldRow
-            label="Kind"
-            value={
-              expense.nature === "forecast" && expense.due_date
-                ? `Forecast, due ${formatDate(expense.due_date)}`
-                : expense.nature === "forecast"
-                  ? "Forecast"
-                  : expense.nature === "credit"
-                    ? "Money in"
-                    : "Spent"
-            }
+            label="Refund of"
+            value="View original expense"
+            valueColor={theme.primary}
+            onPress={() => router.push(`/expense/${expense.refund_of_expense_id}`)}
           />
-          <FieldRow label="Added" value={formatTimestamp(expense.created_at)} />
-          {hasRefund && (
-            <FieldRow
-              label="Refund of"
-              value="View original expense"
-              valueColor={theme.primary}
-              onPress={() => router.push(`/expense/${expense.refund_of_expense_id}`)}
-            />
-          )}
-          {hasRawSms && (
-            <View className="border-t border-border py-3">
-              <Pressable
-                onPress={() => setShowRawSms(!showRawSms)}
-                className="flex-row items-center justify-between"
-                style={{ minHeight: 32 }}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: showRawSms }}
-              >
-                <Text className="text-meta text-muted-foreground">Original bank message</Text>
-                <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
-                  {showRawSms ? "Hide" : "Tap to show"}
-                </Text>
-              </Pressable>
-              {showRawSms && (
-                <View className="mt-2 p-3 rounded-control" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
-                  <Text className="text-meta text-muted-foreground" selectable>
-                    {expense.raw_source_text}
-                  </Text>
-                </View>
-              )}
+        )}
+        {children}
+      </View>
+
+      {hasRawSms && (
+        <Pressable
+          onPress={() => setShowRawSms(!showRawSms)}
+          className="mx-4 mt-3 rounded-card bg-card border border-border px-4 py-3"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showRawSms }}
+          accessibilityLabel="Original bank message"
+        >
+          <View className="flex-row items-center" style={{ minHeight: 28 }}>
+            <View className="flex-1">
+              <Text className="text-body font-semibold text-foreground">Original bank message</Text>
+              <Text className="text-meta text-muted-foreground">{showRawSms ? "Tap to hide" : "Tap to show"}</Text>
+            </View>
+            <Ionicons name={showRawSms ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />
+          </View>
+          {showRawSms && (
+            <View className="mt-3 p-3 rounded-control" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
+              <Text className="text-meta text-muted-foreground" selectable>
+                {expense.raw_source_text}
+              </Text>
             </View>
           )}
-        </View>
+        </Pressable>
       )}
-    </View>
+    </>
   );
 }

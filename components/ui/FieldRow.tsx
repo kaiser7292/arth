@@ -55,7 +55,7 @@ export function FieldRow({
   const cls = `${multiline ? "py-3" : F.base} ${divider ? "border-t border-border" : ""}`;
   if (!onPress) {
     return (
-      <View className={cls} style={{ minHeight: 44 }} accessibilityLabel={accessibilityLabel}>
+      <View className={cls} style={{ minHeight: 48 }} accessibilityLabel={accessibilityLabel}>
         {content}
       </View>
     );
@@ -64,7 +64,7 @@ export function FieldRow({
     <Pressable
       onPress={onPress}
       className={cls}
-      style={{ minHeight: 44 }}
+      style={{ minHeight: 48 }}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? (value ? `${label}, ${value}` : label)}
     >

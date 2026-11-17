@@ -16,14 +16,14 @@ export interface ActionRowItem {
 }
 
 /**
- * Up to four round buttons with a label under each - the most likely next steps for a
- * transaction. Anything else goes behind the last one, "More".
+ * Up to four equal tiles, each a tinted circle with its label under it - the most likely next
+ * steps for a transaction. Anything else goes behind the last one, "More".
  */
 export function ActionRow({ items, className = "" }: { items: ActionRowItem[]; className?: string }) {
   const theme = useTheme();
   const A = COMPONENTS.actionRow;
   return (
-    <View className={`${A.base} ${className}`}>
+    <View className={`${A.base} ${className}`} style={{ gap: 8 }}>
       {items.slice(0, 4).map((it) => {
         const fg = it.primary ? theme.primaryForeground : it.danger ? theme.danger : theme.primary;
         const bg = it.primary ? theme.primary : it.danger ? theme.alpha("danger", 0.1) : theme.alpha("primary", 0.1);
@@ -33,7 +33,7 @@ export function ActionRow({ items, className = "" }: { items: ActionRowItem[]; c
             onPress={it.onPress}
             disabled={it.disabled}
             className={A.button}
-            style={{ opacity: it.disabled ? 0.5 : 1, minHeight: 72 }}
+            style={{ opacity: it.disabled ? 0.5 : 1, minHeight: 72, borderColor: it.primary ? theme.primary : undefined }}
             accessibilityRole="button"
             accessibilityLabel={it.label}
             accessibilityState={{ disabled: !!it.disabled }}

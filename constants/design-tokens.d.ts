@@ -65,6 +65,7 @@ export declare const COMPONENTS: {
   actionRow: { base: string; button: string; circle: string; icon: number; label: string };
   moneyChip: { base: string; label: string; icon: number };
   fieldRow: { base: string; label: string; value: string };
+  cardHeading: string;
   rail: { item: string; pill: string; icon: number; label: string; badge: string };
   search: { base: string; minHeight: number; minHeightLg: number; input: string; inputSize: string; inputSizeLg: string };
   badge: {

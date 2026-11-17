@@ -242,10 +242,13 @@ const COMPONENTS = {
   /** Section title with its icon: filter-sheet sections, form groups, detail cards. */
   sectionTitle: { base: "flex-row items-center", iconBox: "w-8 h-8 rounded-control items-center justify-center mr-2.5", icon: 17, title: "text-heading font-bold text-foreground", hint: "text-meta text-muted-foreground" },
   /** The row of round action buttons under a transaction's hero. */
-  actionRow: { base: "flex-row justify-around", button: "items-center flex-1", circle: "w-12 h-12 rounded-pill items-center justify-center mb-1.5", icon: 20, label: "text-label font-semibold text-foreground" },
+  /** Four equal tiles: a white card each, a tinted circle, the label under it. */
+  actionRow: { base: "flex-row", button: "flex-1 items-center rounded-card border border-border bg-card py-2.5", circle: "w-9 h-9 rounded-pill items-center justify-center mb-1.5", icon: 18, label: "text-label font-semibold text-foreground" },
   moneyChip: { base: "flex-row items-center h-[26px] px-2.5 rounded-pill", label: "text-meta font-semibold", icon: 12 },
   /** Label left, value right, inside a card. */
-  fieldRow: { base: "flex-row items-center py-3", label: "text-meta text-muted-foreground", value: "text-body text-foreground" },
+  fieldRow: { base: "flex-row items-center py-3", label: "text-body text-muted-foreground", value: "text-body text-foreground" },
+  /** The small uppercase heading at the top of a detail card ("WHAT", "WHERE"). */
+  cardHeading: "text-label font-semibold uppercase tracking-wider text-muted-foreground pt-3 pb-1",
   /** One item in a filter sheet's left-hand icon rail. */
   rail: { item: "items-center px-0.5 py-2", pill: "w-12 h-8 rounded-pill items-center justify-center", icon: 20, label: "text-label text-center mt-1", badge: "absolute -top-1.5 -right-1 min-w-[18px] h-[18px] px-1 rounded-pill items-center justify-center" },
   search: { base: "flex-row items-center rounded-control px-3 bg-card border border-border", minHeight: 40, minHeightLg: 44, input: "flex-1 ml-2 text-foreground", inputSize: "text-meta", inputSizeLg: "text-body" },

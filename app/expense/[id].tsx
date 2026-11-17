@@ -41,6 +41,7 @@ import { SplitEditSheet } from "@/components/expense/SplitEditSheet";
 import { TagPicker } from "@/components/expense/TagPicker";
 import { ActionRow, Button, Chip, FieldRow, Input, LoadingState, ScreenContainer, SectionTitle, Sheet, Text, useToast, type ActionRowItem } from "@/components/ui";
 import { categoryPath } from "@/utils/category-tree";
+import { COMPONENTS } from "@/constants/design-tokens";
 import { MoreActionsSheet, type MoreActionGroup } from "@/components/expense/MoreActionsSheet";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { TYPE_ICONS } from "@/constants/icons";
@@ -1738,31 +1739,34 @@ export default function ExpenseDetailScreen() {
   };
   const duplicate = () => router.push({ pathname: "/expense/add", params: { copyFromExpenseId: expense.id } });
   const more: ActionRowItem = { key: "more", label: "More", icon: "ellipsis-horizontal", onPress: () => setMoreOpen(true) };
-  const edit: ActionRowItem = { key: "edit", label: "Edit", icon: "create-outline", onPress: handleEdit };
+  const repeat: ActionRowItem | false = expense.nature === "realized" && (recurringRule
+    ? { key: "reminder", label: "Stop repeat", icon: "pause-circle-outline", onPress: handleStopRecurring }
+    : { key: "reminder", label: "Repeat", icon: "repeat-outline", onPress: () => setRecurringSheetVisible(true) });
+  const duplicateAction: ActionRowItem = { key: "duplicate", label: "Duplicate", icon: "copy-outline", onPress: duplicate };
 
   const primary: (ActionRowItem | false)[] =
     expense.status === "pending_review" && !transfer
       ? [
           { key: "approve", label: "Approve", icon: "checkmark", onPress: handleApprove, primary: true },
           { key: "reject", label: "Reject", icon: "close", onPress: handleReject, danger: true },
-          edit,
+          canSplit ? { key: "split", label: "Split", icon: "people-outline", onPress: () => setShowSplitEdit(true) } : canDuplicate && duplicateAction,
           more,
         ]
       : transfer
-        ? [edit, !fdProduct && { key: "undo-transfer", label: "Undo transfer", icon: "arrow-undo-outline", onPress: handleUndoTransfer }, more]
+        ? [!fdProduct && { key: "undo-transfer", label: "Undo transfer", icon: "arrow-undo-outline", onPress: handleUndoTransfer }, canDuplicate && duplicateAction, more]
         : expense.nature === "credit"
           ? [
-              edit,
               canTagRefund && { key: "link-refund", label: "Link refund", icon: "return-up-back-outline", onPress: () => setRefundExpensePickerVisible(true) },
               canCreditTransfer && { key: "credit-transfer", label: isCC ? "Bill payment" : "Transfer", icon: "swap-horizontal-outline", onPress: () => setCreditTransferPickerVisible(true) },
+              duplicateAction,
               more,
             ]
           : expense.nature === "forecast"
-            ? [edit, { key: "delete", label: "Delete", icon: "trash-outline", onPress: handleDelete, danger: true }, more]
+            ? [{ key: "delete", label: "Delete", icon: "trash-outline", onPress: handleDelete, danger: true }, more]
             : [
-                edit,
                 canSplit && { key: "split", label: splitView ? "Edit split" : "Split", icon: "people-outline", onPress: () => setShowSplitEdit(true) },
                 canRecordRefund && { key: "refund", label: "Refund", icon: "return-down-back-outline", onPress: () => setRefundTargetSheetVisible(true) },
+                repeat,
                 more,
               ];
   const primaryActions = primary.filter((a): a is ActionRowItem => !!a);
@@ -1776,7 +1780,7 @@ export default function ExpenseDetailScreen() {
       items: [
         { key: "tags", label: "Tags", hint: "Add or change tags", icon: "pricetag-outline", onPress: scrollTagsIntoView },
         { key: "rule", label: "Apply a smart rule", hint: "Run one of your rules on this", icon: "flash-outline", onPress: openRulePicker },
-        ...(expense.nature === "realized"
+        ...(expense.nature === "realized" && !inRow.has("reminder")
           ? [
               recurringRule
                 ? { key: "reminder", label: "Stop reminder", hint: `Reminds ${recurringRule.frequency}${recurringRule.end_date ? ` · until ${recurringRule.end_date}` : ""}`, icon: "pause-circle-outline" as const, onPress: handleStopRecurring }
@@ -1821,7 +1825,7 @@ export default function ExpenseDetailScreen() {
       title: "Copy and remove",
       icon: "copy-outline",
       items: [
-        ...(canDuplicate ? [{ key: "duplicate", label: "Duplicate", hint: expense.nature === "credit" ? "Start a new credit filled in from this one" : "Start a new expense filled in from this one", icon: "copy-outline" as const, onPress: duplicate }] : []),
+        ...(canDuplicate && !inRow.has("duplicate") ? [{ key: "duplicate", label: "Duplicate", hint: expense.nature === "credit" ? "Start a new credit filled in from this one" : "Start a new expense filled in from this one", icon: "copy-outline" as const, onPress: duplicate }] : []),
         ...(!inRow.has("delete") ? [{ key: "delete", label: "Delete", hint: "Moves it to the recycle bin for 30 days", icon: "trash-outline" as const, onPress: handleDelete, danger: true }] : []),
       ],
     },
@@ -1859,8 +1863,14 @@ export default function ExpenseDetailScreen() {
               <Text className="text-body font-medium" style={{ color: theme.primary }}>Cancel</Text>
             </Pressable>
           ) : (
-            <Pressable onPress={() => setMoreOpen(true)} className="p-2 -mr-2" hitSlop={6} accessibilityRole="button" accessibilityLabel="More actions">
-              <Ionicons name="ellipsis-horizontal" size={22} color={theme.foreground} />
+            <Pressable
+              onPress={handleEdit}
+              className="rounded-pill border border-border bg-card px-3.5 justify-center"
+              style={{ height: 36 }}
+              accessibilityRole="button"
+              accessibilityLabel="Edit"
+            >
+              <Text className="text-meta font-semibold text-foreground">Edit</Text>
             </Pressable>
           )}
         </View>
@@ -2409,8 +2419,8 @@ export default function ExpenseDetailScreen() {
               })()}
 
               {/* 2. What and Where */}
-              <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pt-4 pb-1">
-                <SectionTitle icon="pricetags-outline" title="What" className="mb-2" />
+              <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pb-1">
+                <Text className={COMPONENTS.cardHeading} accessibilityRole="header">What</Text>
                 <FieldRow
                   divider={false}
                   label={expense.nature === "credit" ? "Type" : "Category"}
@@ -2428,11 +2438,29 @@ export default function ExpenseDetailScreen() {
                 {expense.nature !== "credit" && (
                   <FieldRow label="Spend" value={expense.is_right_spend !== 0 ? "Unavoidable" : "Discretionary"} />
                 )}
+                <View className="py-3 border-t border-border" ref={tagsSectionRef} collapsable={false}>
+                  <Text className={`${COMPONENTS.fieldRow.label} mb-2`}>Tags</Text>
+                  <TagPicker
+                    expenseId={expense.id}
+                    onOpen={() => {
+                      setTagPickerOpen(true);
+                      /*
+                        Bring the Tags section to the top of the viewport, not the bottom of the
+                        form. This was scrollToEnd, but Tags is followed by several more sections
+                        on this screen (forecast actions, group legs, investment link, danger
+                        zone), so ending up at the end scrolled far past the picker that just
+                        opened - the "form goes up way too much" report.
+                      */
+                      scrollTagsIntoView();
+                    }}
+                    onClose={() => setTagPickerOpen(false)}
+                  />
+                </View>
                 {expense.description ? <FieldRow label="Note" value={expense.description} multiline /> : null}
               </View>
 
-              <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pt-4 pb-1">
-                <SectionTitle icon="business-outline" title="Where" className="mb-2" />
+              <View className="mx-4 mt-3 rounded-card bg-card border border-border px-4 pb-1">
+                <Text className={COMPONENTS.cardHeading} accessibilityRole="header">Where</Text>
                 <FieldRow
                   divider={false}
                   label="Account"
@@ -2487,28 +2515,6 @@ export default function ExpenseDetailScreen() {
                   <HouseholdShareLink householdRef={expense.household_ref} />
                 </View>
               ) : null}
-
-              {/* 4b. Tags */}
-              <View className="mx-4 mt-3" ref={tagsSectionRef} collapsable={false}>
-                <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                  Tags
-                </Text>
-                <TagPicker
-                  expenseId={expense.id}
-                  onOpen={() => {
-                    setTagPickerOpen(true);
-                    /*
-                      Bring the Tags section to the top of the viewport, not the bottom of the
-                      form. This was scrollToEnd, but Tags is followed by several more sections
-                      on this screen (forecast actions, group legs, investment link, danger
-                      zone), so ending up at the end scrolled far past the picker that just
-                      opened - the "form goes up way too much" report.
-                    */
-                    scrollTagsIntoView();
-                  }}
-                  onClose={() => setTagPickerOpen(false)}
-                />
-              </View>
 
               {/* 4c. Forecast Actions (only for forecasts) */}
               {expense.nature === "forecast" && (
