@@ -294,6 +294,21 @@ export default function CategoriesScreen() {
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadCategories} />}
       <FlatList
+        ListHeaderComponent={
+          <Pressable
+            onPress={() => router.push("/settings/category-organise")}
+            className="mx-4 mt-3 mb-2 flex-row items-center rounded-card border border-border bg-card px-4 py-3"
+            accessibilityRole="button"
+            accessibilityLabel="Organise categories into main and sub-categories"
+          >
+            <Ionicons name="git-merge-outline" size={20} color={theme.primary} />
+            <View className="flex-1 ml-3">
+              <Text className="text-body font-semibold text-foreground">Organise into sub-categories</Text>
+              <Text className="text-meta text-muted-foreground">See suggestions; nothing changes until you apply</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} />
+          </Pressable>
+        }
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}

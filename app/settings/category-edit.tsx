@@ -248,6 +248,12 @@ export default function CategoryEditScreen() {
       alert("Error", "Category name is required.");
       return;
     }
+    // Merchant rules file transactions by category name, so two categories can't share one.
+    const clash = allCategories.find((c) => c.id !== id && c.name.trim().toLowerCase() === name.trim().toLowerCase());
+    if (clash) {
+      alert("Name already used", `"${clash.name}" is already a category. Pick another name.`);
+      return;
+    }
 
     setLoading(true);
     try {

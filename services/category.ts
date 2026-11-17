@@ -1,6 +1,6 @@
 import { getDatabase } from "@/database";
 import { generateUUID } from "@/utils/uuid";
-import { DEFAULT_CATEGORIES } from "@/database/defaults/categories";
+import { DEFAULT_CATEGORIES, DEFAULT_SUBCATEGORIES } from "@/database/defaults/categories";
 import { iconForCategoryName } from "@/constants/category-icons";
 import { bumpDataVersion } from "@/services/settings";
 import { renameCategoryInMerchantRules } from "@/services/merchant-categories";
@@ -386,9 +386,10 @@ export async function seedDefaultCategories(userId: string): Promise<number> {
     return 0;
   }
 
+  let inserted = 0;
   await db.withTransactionAsync(async () => {
-    for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-      const cat = DEFAULT_CATEGORIES[i];
+    let order = 0;
+    for (const cat of DEFAULT_CATEGORIES) {
       const id = generateUUID();
       await db.runAsync(
         `INSERT INTO categories (id, user_id, name, icon, color, sort_order, is_unavoidable)
@@ -398,13 +399,30 @@ export async function seedDefaultCategories(userId: string): Promise<number> {
         cat.name,
         cat.icon,
         cat.color,
-        i,
+        order++,
         cat.is_unavoidable,
       );
+      inserted++;
+      // Its sub-categories (095), in the parent's look.
+      for (const sub of DEFAULT_SUBCATEGORIES[cat.name] ?? []) {
+        await db.runAsync(
+          `INSERT INTO categories (id, user_id, name, icon, color, sort_order, is_unavoidable, parent_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+          generateUUID(),
+          userId,
+          sub,
+          cat.icon,
+          cat.color,
+          order++,
+          cat.is_unavoidable,
+          id,
+        );
+        inserted++;
+      }
     }
   });
 
-  return DEFAULT_CATEGORIES.length;
+  return inserted;
 }
 
 /**

@@ -3,7 +3,7 @@
  * Mock the database module to test CRUD logic without a real SQLite instance.
  */
 
-import { DEFAULT_CATEGORIES } from "../../database/defaults/categories";
+import { DEFAULT_CATEGORIES, DEFAULT_SUBCATEGORIES } from "../../database/defaults/categories";
 
 // Track all SQL operations
 let executedRuns: { sql: string; params: unknown[] }[] = [];
@@ -161,18 +161,21 @@ describe("deleteCategory", () => {
 });
 
 describe("seedDefaultCategories", () => {
-  it("seeds 13 categories when user has none", async () => {
+  it("seeds 13 main categories and their sub-categories when user has none", async () => {
     mockRows["SELECT COUNT(*) as count FROM categories WHERE user_id = ?;"] = [
       { count: 0 },
     ];
 
     const count = await seedDefaultCategories("user-1");
 
-    expect(count).toBe(13);
+    const subs = Object.values(DEFAULT_SUBCATEGORIES).flat().length;
+    expect(count).toBe(13 + subs);
     const inserts = executedRuns.filter((r) =>
       r.sql.includes("INSERT INTO categories"),
     );
-    expect(inserts.length).toBe(13);
+    expect(inserts.length).toBe(13 + subs);
+    // Sub-categories carry their parent's id (migration 095).
+    expect(inserts.filter((r) => r.sql.includes("parent_id")).length).toBe(subs);
 
     // Verify first category matches template
     expect(inserts[0].params).toContain("user-1");
@@ -196,6 +199,13 @@ describe("seedDefaultCategories", () => {
 describe("DEFAULT_CATEGORIES", () => {
   it("has exactly 13 categories", () => {
     expect(DEFAULT_CATEGORIES.length).toBe(13);
+  });
+
+  it("every sub-category default sits under a real default, and no name repeats", () => {
+    const mains = new Set(DEFAULT_CATEGORIES.map((c) => c.name));
+    const all = [...mains, ...Object.values(DEFAULT_SUBCATEGORIES).flat()].map((n) => n.toLowerCase());
+    for (const parent of Object.keys(DEFAULT_SUBCATEGORIES)) expect(mains.has(parent)).toBe(true);
+    expect(new Set(all).size).toBe(all.length);
   });
 
   it("all categories have required fields", () => {

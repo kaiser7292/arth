@@ -37,6 +37,7 @@ import {
 import { countFilteredExpenses, getExpenseTotalsByCategory, getExpenseIdsByCategory } from "../../services/expense";
 import { TABLE_SCHEMAS } from "../../database/TABLE_SCHEMAS";
 import { restoreFromData } from "../../services/backup";
+import { applyOrganiseSuggestions, getOrganiseSuggestions } from "../../services/category-organise";
 
 const U = DEFAULT_USER_ID;
 let n = 0;
@@ -142,5 +143,26 @@ describe("sub-categories", () => {
     const old = saved.map(({ parent_id: _drop, ...rest }) => rest);
     await restoreFromData({ categories: old });
     expect((await getCategoryById(groceries))?.parent_id).toBeNull();
+  });
+
+  it("suggests organising an existing set, and changes nothing until applied", async () => {
+    const petrol = await createCategory({ user_id: U, name: "Petrol" });
+    const car = await createCategory({ user_id: U, name: "Car & Vehicles" });
+    addExpense(petrol, 400, "HP Pump");
+    const list = await getOrganiseSuggestions(U);
+    const move = list.find((s) => s.kind === "move" && s.categoryId === petrol);
+    expect(move).toMatchObject({ parentId: car, transactions: 1 });
+    // Fuel is covered by the Petrol move, so it isn't offered as a new one too.
+    expect(list.some((s) => s.kind === "add" && s.parentId === car && s.name === "Fuel")).toBe(false);
+    expect(list.some((s) => s.kind === "add" && s.parentId === food && s.name === "Eating out")).toBe(true);
+    expect((await getCategoryById(petrol))?.parent_id).toBeNull();
+
+    await applyOrganiseSuggestions(U, list.filter((s) => s.key === move!.key || (s.kind === "add" && s.name === "Eating out")));
+    expect((await getCategoryById(petrol))?.parent_id).toBe(car);
+    const eatingOut = mockDb.prepare("SELECT parent_id FROM categories WHERE name = 'Eating out'").get() as { parent_id: string };
+    expect(eatingOut.parent_id).toBe(food);
+    // Its spending now counts toward Car & Vehicles.
+    const totals = new Map((await getExpenseTotalsByCategory(U, "2026-11-01", "2026-11-30")).map((r) => [r.category_id, r.total]));
+    expect(totals.get(car)).toBe(400);
   });
 });
