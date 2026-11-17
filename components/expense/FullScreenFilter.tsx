@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ScrollView, View, useWindowDimensions } from "react-native";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  ScrollView,
+  View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from "react-native";
 import type Ionicons from "@expo/vector-icons/Ionicons";
 import { CheckRow, DateInput, RadioRow, SearchField, SectionTitle, Sheet, Text } from "@/components/ui";
 import {
@@ -86,72 +93,68 @@ interface FullScreenFilterProps {
 }
 
 /**
- * The filter sheet for every list that isn't the Transactions tab: the same frame as
- * TransactionFilterSheet (icon rail, section title with its icon, Cancel / Apply) showing one
- * section at a time. Name kept for its callers; it is now a bottom sheet, not a full-screen modal.
+ * The filter sheet for every list that isn't the Transactions tab, working exactly like
+ * TransactionFilterSheet: split 20 / 80, an icon rail on the left and EVERY section in one
+ * scrolling column on the right. Tapping a rail item scrolls to its section; scrolling moves the
+ * rail's highlight with you. Name kept for its callers; it is a bottom sheet, not a full-screen modal.
  */
 export function FullScreenFilter({ visible, sections, onApply, onReset, onClose, countFor, noun }: FullScreenFilterProps) {
   const theme = useTheme();
   const { height: winH } = useWindowDimensions();
 
-  // Opens on a filter, not on a section like saved views.
-  // Opens on the first real filter: not sort or group, not a section like saved views.
-  const firstSection =
-    (sections.find((s) => s.type !== "custom" && s.key !== SORT_KEY && s.key !== GROUP_KEY) ??
-      sections.find((s) => s.type !== "custom") ??
-      sections[0])?.key ?? "";
-  const [activeSection, setActiveSection] = useState(firstSection);
+  const firstKey = sections[0]?.key ?? "";
+  const [active, setActive] = useState(firstKey);
   const [localSelections, setLocalSelections] = useState<Record<string, string[]>>(() => {
     const map: Record<string, string[]> = {};
     for (const s of sections) map[s.key] = [...s.selectedIds];
     return map;
   });
-  const [searchQuery, setSearchQuery] = useState("");
+  // Each searchable section has its own search box.
+  const [queries, setQueries] = useState<Record<string, string>>({});
 
-  // Each opening starts from what's applied.
+  const paneRef = useRef<ScrollView>(null);
+  const railRef = useRef<ScrollView>(null);
+  const sectionY = useRef<Record<string, number>>({});
+  const railY = useRef<Record<string, { y: number; h: number }>>({});
+  const [paneH, setPaneH] = useState(0);
+  const [railH, setRailH] = useState(0);
+  // While a tap-to-jump scroll is running, the scroll handler leaves the highlight alone.
+  const lockUntil = useRef(0);
+
+  // Each opening starts from what's applied, at the top.
   useEffect(() => {
     if (!visible) return;
     const map: Record<string, string[]> = {};
     for (const s of sections) map[s.key] = [...s.selectedIds];
     setLocalSelections(map);
-    setActiveSection(firstSection);
-    setSearchQuery("");
+    setQueries({});
+    setActive(firstKey);
     // Only on opening.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
-  const currentSection = sections.find((s) => s.key === activeSection);
-  const currentSelected = localSelections[activeSection] ?? [];
+  // Keep the highlighted rail item in view when the column scrolls far.
+  useEffect(() => {
+    const r = railY.current[active];
+    if (!r || railH === 0) return;
+    railRef.current?.scrollTo({ y: Math.max(0, r.y - railH / 2 + r.h / 2), animated: true });
+  }, [active, railH]);
 
-  const filteredOptions = useMemo(() => {
-    if (!currentSection) return [];
-    const q = searchQuery.trim().toLowerCase();
-    const matches = q ? currentSection.options.filter((o) => o.label.toLowerCase().includes(q)) : currentSection.options;
-    // Picked options stay visible even when the cap would hide them.
-    return [...matches.filter((o) => currentSelected.includes(o.id)), ...matches.filter((o) => !currentSelected.includes(o.id))];
-  }, [currentSection, searchQuery, currentSelected]);
-  const shownOptions = filteredOptions.slice(0, Math.max(LIST_CAP, currentSelected.length));
-
-  const toggle = (id: string) => {
+  const toggle = (section: FilterSection, id: string) => {
     setLocalSelections((prev) => {
-      const current = prev[activeSection] ?? [];
-      if (currentSection?.type === "single") {
-        return { ...prev, [activeSection]: current.includes(id) ? [] : [id] };
-      }
-      return {
-        ...prev,
-        [activeSection]: current.includes(id) ? current.filter((x) => x !== id) : [...current, id],
-      };
+      const current = prev[section.key] ?? [];
+      if (section.type === "single") return { ...prev, [section.key]: current.includes(id) ? [] : [id] };
+      return { ...prev, [section.key]: current.includes(id) ? current.filter((x) => x !== id) : [...current, id] };
     });
   };
 
-  const totalSelected = sections.reduce((sum, s) => sum + countOn(s, localSelections[s.key] ?? []), 0);
-
-  const setDate = (index: 0 | 1, value: string) =>
+  const setDate = (key: string, index: 0 | 1, value: string) =>
     setLocalSelections((prev) => {
-      const [from = "", to = ""] = prev[activeSection] ?? [];
-      return { ...prev, [activeSection]: index === 0 ? [value, to] : [from, value] };
+      const [from = "", to = ""] = prev[key] ?? [];
+      return { ...prev, [key]: index === 0 ? [value, to] : [from, value] };
     });
+
+  const totalSelected = sections.reduce((sum, s) => sum + countOn(s, localSelections[s.key] ?? []), 0);
 
   // One date on its own, or the wrong way round, can't be applied.
   const dateProblem = sections
@@ -177,10 +180,32 @@ export function FullScreenFilter({ visible, sections, onApply, onReset, onClose,
     onClose();
   };
 
+  const jump = (key: string) => {
+    setActive(key);
+    const y = sectionY.current[key];
+    if (y == null) return;
+    lockUntil.current = Date.now() + 650;
+    paneRef.current?.scrollTo({ y, animated: true });
+  };
+
+  const onPaneScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (Date.now() < lockUntil.current || sections.length === 0) return;
+    const { contentOffset, layoutMeasurement, contentSize } = e.nativeEvent;
+    const top = contentOffset.y;
+    let next = sections[0].key;
+    // Bottom of the column: the last section, even if it can't reach the top.
+    if (top + layoutMeasurement.height >= contentSize.height - 4) {
+      next = sections[sections.length - 1].key;
+    } else {
+      for (const s of sections) {
+        const y = sectionY.current[s.key];
+        if (y != null && y <= top + 32) next = s.key;
+      }
+    }
+    if (next !== active) setActive(next);
+  };
+
   const count = countFor ? countFor(localSelections) : null;
-  const Row = currentSection?.type === "single" ? RadioRow : CheckRow;
-  const currentCount = currentSection ? countOn(currentSection, currentSelected) : 0;
-  const hint = currentSection ? currentSection.hint ?? HINT[currentSection.type] : "";
 
   if (!visible) return null;
 
@@ -189,9 +214,12 @@ export function FullScreenFilter({ visible, sections, onApply, onReset, onClose,
       <View style={{ height: Math.round(winH * 0.8), flexShrink: 1 }}>
         <FilterSheetHeader onClear={handleReset} clearDisabled={totalSelected === 0} onClose={onClose} />
 
+        {/* 20 / 80 */}
         <View className="flex-1 flex-row" style={{ minHeight: 0 }}>
           <ScrollView
-            style={{ width: "22%", flexGrow: 0, backgroundColor: theme.alpha("foreground", 0.035) }}
+            ref={railRef}
+            onLayout={(e) => setRailH(e.nativeEvent.layout.height)}
+            style={{ width: "20%", flexGrow: 0, backgroundColor: theme.alpha("foreground", 0.035) }}
             contentContainerStyle={{ paddingVertical: 6 }}
             showsVerticalScrollIndicator={false}
             accessibilityRole="tablist"
@@ -202,70 +230,92 @@ export function FullScreenFilter({ visible, sections, onApply, onReset, onClose,
                 label={section.label}
                 icon={section.icon ?? iconForFilter(section.key, section.label)}
                 count={countOn(section, localSelections[section.key] ?? [])}
-                on={activeSection === section.key}
-                onPress={() => {
-                  setActiveSection(section.key);
-                  setSearchQuery("");
+                on={active === section.key}
+                onPress={() => jump(section.key)}
+                onLayout={(e) => {
+                  railY.current[section.key] = { y: e.nativeEvent.layout.y, h: e.nativeEvent.layout.height };
                 }}
               />
             ))}
           </ScrollView>
 
-          <View style={{ flex: 1 }}>
-            {currentSection && (
-              <SectionTitle
-                className="px-4 pt-4 pb-2"
-                icon={currentSection.icon ?? iconForFilter(currentSection.key, currentSection.label)}
-                title={currentSection.label}
-                hint={hint ? (currentCount > 0 ? `${hint} · ${currentCount} on` : hint) : undefined}
-                active={currentCount > 0}
-              />
-            )}
-            {currentSection?.type === "custom" && (
-              <ScrollView className="flex-1 px-4 pt-1" showsVerticalScrollIndicator={false}>
-                {currentSection.render?.()}
-              </ScrollView>
-            )}
-            {currentSection?.type === "dates" && (
-              <View className="px-4 pt-1">
-                <DateInput label="From" value={currentSelected[0] ?? ""} onChange={(v) => setDate(0, v)} />
-                <DateInput label="To" value={currentSelected[1] ?? ""} onChange={(v) => setDate(1, v)} />
-              </View>
-            )}
-            {currentSection?.type !== "custom" && currentSection?.type !== "dates" && (
-              <>
-                {currentSection?.searchable && currentSection.options.length > 6 && (
-                  <SearchField
-                    className="mx-4 mb-2"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder={`Search ${currentSection.label.toLowerCase()}`}
-                    accessibilityLabel={`Search ${currentSection.label}`}
+          <ScrollView
+            ref={paneRef}
+            style={{ flex: 1 }}
+            onLayout={(e) => setPaneH(e.nativeEvent.layout.height)}
+            onScroll={onPaneScroll}
+            scrollEventThrottle={32}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            // Room after the last section so every section can scroll up to the top.
+            contentContainerStyle={{ paddingBottom: Math.max(120, paneH * 0.55) }}
+          >
+            {sections.map((section, i) => {
+              const selected = localSelections[section.key] ?? [];
+              const n = countOn(section, selected);
+              const hint = section.hint ?? HINT[section.type];
+              const q = (queries[section.key] ?? "").trim().toLowerCase();
+              const matches = q ? section.options.filter((o) => o.label.toLowerCase().includes(q)) : section.options;
+              // Picked options stay visible even when the cap would hide them.
+              const ordered = [...matches.filter((o) => selected.includes(o.id)), ...matches.filter((o) => !selected.includes(o.id))];
+              const shown = ordered.slice(0, Math.max(LIST_CAP, selected.length));
+              const Row = section.type === "single" ? RadioRow : CheckRow;
+              return (
+                <View
+                  key={section.key}
+                  onLayout={(e: LayoutChangeEvent) => {
+                    sectionY.current[section.key] = e.nativeEvent.layout.y;
+                  }}
+                  className={`px-4 pt-4 pb-5 ${i === sections.length - 1 ? "" : "border-b border-border"}`}
+                >
+                  <SectionTitle
+                    icon={section.icon ?? iconForFilter(section.key, section.label)}
+                    title={section.label}
+                    hint={hint ? (n > 0 ? `${hint} · ${n} on` : hint) : undefined}
+                    active={n > 0}
+                    className="mb-3"
                   />
-                )}
-                <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                  {shownOptions.map((option) => (
-                    <Row
-                      key={option.id}
-                      label={option.label}
-                      color={option.color}
-                      on={currentSelected.includes(option.id)}
-                      onPress={() => toggle(option.id)}
-                    />
-                  ))}
-                  {filteredOptions.length > shownOptions.length && (
-                    <Text className="text-meta text-muted-foreground mt-2">
-                      {filteredOptions.length - shownOptions.length} more. Search to find them.
-                    </Text>
+                  {section.type === "custom" ? (
+                    section.render?.()
+                  ) : section.type === "dates" ? (
+                    <View>
+                      <DateInput label="From" value={selected[0] ?? ""} onChange={(v) => setDate(section.key, 0, v)} />
+                      <DateInput label="To" value={selected[1] ?? ""} onChange={(v) => setDate(section.key, 1, v)} />
+                    </View>
+                  ) : (
+                    <>
+                      {section.searchable && section.options.length > 6 && (
+                        <SearchField
+                          className="mb-2"
+                          value={queries[section.key] ?? ""}
+                          onChangeText={(t) => setQueries((prev) => ({ ...prev, [section.key]: t }))}
+                          placeholder={`Search ${section.label.toLowerCase()}`}
+                          accessibilityLabel={`Search ${section.label}`}
+                        />
+                      )}
+                      {shown.map((option) => (
+                        <Row
+                          key={option.id}
+                          label={option.label}
+                          color={option.color}
+                          on={selected.includes(option.id)}
+                          onPress={() => toggle(section, option.id)}
+                        />
+                      ))}
+                      {ordered.length > shown.length && (
+                        <Text className="text-meta text-muted-foreground mt-2">
+                          {ordered.length - shown.length} more. Search to find them.
+                        </Text>
+                      )}
+                      {ordered.length === 0 && (
+                        <Text className="text-meta text-muted-foreground my-2">{q ? "Nothing matches" : "Nothing to pick yet"}</Text>
+                      )}
+                    </>
                   )}
-                  {filteredOptions.length === 0 && (
-                    <Text className="text-meta text-muted-foreground text-center py-8">Nothing matches</Text>
-                  )}
-                  <View style={{ height: 20 }} />
-                </ScrollView>
-              </>
-            )}
-          </View>
+                </View>
+              );
+            })}
+          </ScrollView>
         </View>
 
         <FilterSheetFooter
