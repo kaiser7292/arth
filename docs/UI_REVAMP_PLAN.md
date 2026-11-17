@@ -179,9 +179,12 @@ Licences, iPhone messages, SMS disclosure.
 
 Anything listed here is kept as it is until answered.
 
+8. **Vault "Lock now".** The board has a Lock now button; the app has no separate vault lock (the app lock covers it). Add one, or leave it to the app lock?
+9. **Split person and credit kind pickers.** The four main pickers are on the new searchable sheet; the split-with-a-person sheet and the money-in kind chips keep their current (already list-based) look. Move them onto the same sheet too?
+
 1. ~~Goals tab, FY picker~~ Answered: add it. Done in bdbc0f3.
 2. ~~Net worth type switch~~ Answered: add it beside the periods. Done in bdbc0f3.
-3. ~~Settle "I paid them"~~ Answered: build it. Done in bdbc0f3: recorded as a "You paid" entry, no account picker. **Follow-up question:** when you paid them from one of your accounts, should Arth also record the money leaving that account (and as what: a transfer out, or an expense that does not count as spending)? Today it relies on the bank message or your own entry.
+3. ~~Settle "I paid them"~~ Answered: build it, and paying back counts as spending. Done in bdbc0f3 + 869096c: an approved expense (on the account it came from, if picked) linked to a You paid entry.
 4. **Goals tab, risk coverage and year in review.** Not on the board; both kept (Track and Analyse lists). Confirm that's where they belong.
 6. **Budget summary fold.** The Budget summary card could be folded shut from its own header before; it is now always open (it can still be hidden from the apps button). OK?
 7. **Budget drill-down, "By sub-category".** The board shows a by-sub-category split on a category's page. That breakdown doesn't exist yet; it's new work (sum the month by sub-category). Build it?
@@ -197,9 +200,9 @@ Each commit passed `npm run typecheck` and `npx jest` (2,938 tests). Not checked
 | 2. Hisaab | Done: People (+ form), Person ledger, Settle | e81d846 |
 | 3. Budget | Done: Overview (hero, tiles, More numbers fold, categories), drill-down Edit budget pill; Spending split and Summary restyled | 7f42110 |
 | 4. Account ledger + settings | Done: ledger statement + name/gear link, Open ledger, Accounts list, Account settings sections | fb87863, 29dd4eb |
-| 5. Insights, Vault, Simulator, Investments | Tokens done on every file, labelled add buttons. Investments already had every listed control (checked). Insights index, Vault and Simulator layouts not yet compared control-by-control with their boards | 943d5a4, 6c6359a |
-| 6. Add / edit transaction | Not started | |
-| 7. Settings | Tokens done on every screen (9a2d8bb); 55 guarded. Board layouts not started: Settings home (search, Needs a look), Categories Reorder mode, Merchants bulk bar, Recycle bin toolbar, templates flow, and the rest | 9a2d8bb |
-| 8. Restyle only | Tokens done (same commit as 7). Still off-token, to hand-fix: ai-lab, ai-suggestions, angel / kite / zebpay credential screens, sms-templates new / tag / unrecognised, clean-up, payment-mode-edit, account-detail (Stack header size), Settings home | 9a2d8bb |
+| 5. Insights, Vault, Simulator, Investments | Done: tokens, labelled add buttons, Vault kind chips + note, Simulator lowest balance + Safe tag; Insights and Investments already matched | 943d5a4, 6c6359a, 2a868b2 |
+| 6. Add / edit transaction | Done: searchable picker sheets (merchant, category, account, payment mode) with recents, groups, counts, + Add; a merchant fills its usual category / account / mode marked From merchant | d1dc972 |
+| 7. Settings | Done: home search + Needs a look, Categories Reorder mode, Recycle bin Select; every control the notes list checked present; all screens on the tokens | 9a2d8bb, d32748b, 387e2fb, 93654de |
+| 8. Restyle only | Done: on the tokens, layout unchanged; for the owner to review: Zerodha / Angel One / Zebpay connections, Household, AI setup / lab / suggestions, Voice, Help, Privacy, Licences, iPhone messages, SMS disclosure | 9a2d8bb, 93654de |
 
 Shared parts added on the way: `components/ui/LinkRow.tsx` (LinkRow, StatTile, GroupLabel, HeaderPill, Statement, UnderlineTabs), `components/ui/FormParts.tsx` (FormGroup, FoldGroup, FormFooter), Input `prefix` / `suffix`, FAB `label`. `scripts/codemod-revamp-tokens.js` does the mechanical token move (text and corner classes, hex alpha, legacy colours); multi-line template strings need a hand fix.
