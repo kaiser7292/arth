@@ -701,3 +701,16 @@ footer{background:var(--dark-bg);padding-block:24px}
 /* The info icon keeps its size when the note wraps on a phone. */
 .ios-note svg{flex:none;width:18px;height:18px}
 .hero-acts .play-badge{align-self:flex-start}
+
+/* ── Real app screens (4.52): a screenshot filling a phone frame ─────────── */
+.p-shot{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.scr-g{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;margin-top:40px}
+.scr-it{margin:0;display:flex;flex-direction:column;align-items:center;gap:16px}
+.scr-it .phone{max-width:240px}
+.scr-it figcaption{font-size:14px;line-height:1.5;color:var(--muted,#5D6B6F);max-width:260px;text-align:center}
+.scr-it figcaption b{color:var(--text,inherit);font-weight:600}
+@media(max-width:960px){.scr-g{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){
+  .scr-g{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:20px;padding-bottom:8px;margin-left:-16px;margin-right:-16px;padding-left:16px;padding-right:16px}
+  .scr-it{flex:0 0 72%;scroll-snap-align:center}
+}
