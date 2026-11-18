@@ -1015,6 +1015,33 @@ export default function SalaryCalculatorScreen() {
                         calculation.ctcBreakdown.basic < calculation.ctcBreakdown.grossSalary * 0.5
                       }
                     />
+                    {/* From CTC to in-hand, as a sum that adds up (board "Income calculator") */}
+                    {calculation && calculation.ctcBreakdown.annualCTC > 0 && (() => {
+                      const b = calculation.ctcBreakdown;
+                      const tax = (calculation.selectedRegime === "new" ? calculation.newRegimeTax : calculation.oldRegimeTax).totalTax;
+                      const epfOut = calculation.epf.totalDeducted;
+                      const pt = calculation.professionalTaxAnnual;
+                      const rest = Math.round(b.grossSalary - tax - epfOut - pt - calculation.annualInHand);
+                      const rs = (n: number) => formatAmount(Math.round(n));
+                      return (
+                        <Card className="mb-4">
+                          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">From CTC to in-hand · a year</Text>
+                          <Statement
+                            lines={[
+                              { label: "Annual CTC", amount: rs(b.annualCTC) },
+                              ...(b.employerEPF > 0 ? [{ label: "Employer EPF", sign: "−" as const, amount: rs(b.employerEPF) }] : []),
+                              ...(b.gratuity > 0 ? [{ label: "Gratuity", sign: "−" as const, amount: rs(b.gratuity) }] : []),
+                              { label: "= Gross salary", amount: rs(b.grossSalary) },
+                              { label: `Income tax (${calculation.selectedRegime === "new" ? "new" : "old"} regime)`, sign: "−" as const, amount: rs(tax) },
+                              ...(epfOut > 0 ? [{ label: calculation.epf.vpf > 0 ? "Your EPF and VPF" : "Your EPF", sign: "−" as const, amount: rs(epfOut) }] : []),
+                              ...(pt > 0 ? [{ label: "Professional tax", sign: "−" as const, amount: rs(pt) }] : []),
+                              ...(Math.abs(rest) >= 1 ? [{ label: "Other", sign: (rest > 0 ? "−" : "+") as "−" | "+", amount: rs(Math.abs(rest)) }] : []),
+                            ]}
+                            total={{ label: `In-hand a year · ${rs(calculation.monthlyInHand)} a month`, amount: rs(calculation.annualInHand), color: theme.success }}
+                          />
+                        </Card>
+                      );
+                    })()}
                     {/* CTC → in-hand breakdown + EPF contributions (empty state when no CTC yet) */}
                     <SalarySummary calculation={calculation ?? null} />
                   </>
