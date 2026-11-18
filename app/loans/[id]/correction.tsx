@@ -163,7 +163,7 @@ export default function CorrectionForm() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center">
-          <Text style={{ color: colors.textSecondary }}>Loading...</Text>
+          <Text style={{ color: theme.mutedForeground }}>Loading...</Text>
         </View>
       </ScreenContainer>
     );
@@ -175,7 +175,7 @@ export default function CorrectionForm() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
           <View className="px-4 pt-4 pb-8">
             <View className="mb-4">
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              <Text className="text-meta" style={{ color: theme.mutedForeground }}>
                 Override Arth's computed numbers when they don't match your bank's. The schedule regenerates from this date forward.
               </Text>
             </View>
@@ -183,21 +183,21 @@ export default function CorrectionForm() {
             <View className="gap-3 pb-4">
               <Pressable
                 onPress={() => setShowDatePicker(true)}
-                className="py-3 px-3 rounded-lg border flex-row items-center"
-                style={{ borderColor: colors.border }}
+                className="py-3 px-3 rounded-control border flex-row items-center"
+                style={{ borderColor: theme.border }}
               >
                 <View className="flex-1">
-                  <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label" style={{ color: theme.mutedForeground }}>
                     Effective Date
                   </Text>
                   <Text
-                    className="text-sm mt-1"
-                    style={{ color: effectiveDate ? colors.text : colors.textSecondary }}
+                    className="text-meta mt-1"
+                    style={{ color: effectiveDate ? theme.foreground : theme.mutedForeground }}
                   >
                     {effectiveDate ? formatDate(effectiveDate) : "Tap to pick"}
                   </Text>
                 </View>
-                <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+                <Ionicons name="calendar-outline" size={16} color={theme.mutedForeground} />
               </Pressable>
 
               <Input
@@ -208,7 +208,7 @@ export default function CorrectionForm() {
                 formula
                 placeholder="e.g. 500000"
               />
-              <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mb-3" style={{ color: theme.mutedForeground }}>
                 Arth's computed value: {formatMoney(Math.round(computedOutstanding))}
               </Text>
 
@@ -220,7 +220,7 @@ export default function CorrectionForm() {
                 formula
                 placeholder="e.g. 25000"
               />
-              <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mb-3" style={{ color: theme.mutedForeground }}>
                 Arth's computed value: {formatMoney(Math.round(loan.emi_amount))}
               </Text>
 
@@ -239,7 +239,7 @@ export default function CorrectionForm() {
                 keyboardType="decimal-pad"
                 placeholder={`Current: ${loan.interest_rate_pa}%`}
               />
-              <Text className="text-xs mb-3" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mb-3" style={{ color: theme.mutedForeground }}>
                 Fill this only if your bank changed the rate (floating-rate repricing).
               </Text>
 
@@ -254,10 +254,10 @@ export default function CorrectionForm() {
             {correctionId && (
               <Pressable
                 onPress={handleDeactivate}
-                className="mb-3 py-3 rounded-xl items-center"
+                className="mb-3 py-3 rounded-card items-center"
                 style={{ backgroundColor: theme.danger }}
               >
-                <Text className="text-sm font-medium text-white">Deactivate this correction</Text>
+                <Text className="text-body font-medium text-white">Deactivate this correction</Text>
               </Pressable>
             )}
 

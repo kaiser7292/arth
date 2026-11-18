@@ -10,14 +10,15 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { getDatabase } from "@/database";
 import { useBackOverride } from "@/hooks/use-back-override";
 import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, DateInput, FAB, GroupHeading, Input, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { ActionRow, Card, Chip, DateInput, GroupHeading, Input, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Segmented, Text, type ActionRowItem } from "@/components/ui";
+import { HeaderPill, Statement } from "@/components/ui/LinkRow";
+import { FormFooter, FormGroup } from "@/components/ui/FormParts";
 import { useListTools } from "@/hooks/use-list-tools";
 import { formatMonthLabel } from "@/utils/date";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { transactionTitle } from "@/utils/transaction-title";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useAlert } from "@/hooks/use-alert";
 
@@ -31,6 +32,7 @@ import {
   getPersonBalance,
   getPerson,
   recordSettlement,
+    recordPaidBack,
   enrichEntriesFromExpenses,
   getLinkedAccountIdsForEntries,
   getBalanceAsOfDate,
@@ -68,7 +70,6 @@ export default function LedgerScreen() {
     toDate?: string;
   }>();
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
   const theme = useTheme();
 
   const [person, setPerson] = useState<HisaabPerson | null>(null);
@@ -118,6 +119,8 @@ export default function LedgerScreen() {
 
   // Settlement form state
   const [settleAmount, setSettleAmount] = useState("");
+  /** Which way the money went: they paid you (a settlement), or you paid them (owner, Nov 2026). */
+  const [settleDirection, setSettleDirection] = useState<"received" | "paid">("received");
   const [settleDescription, setSettleDescription] = useState("");
   const [settleDate, setSettleDate] = useState(
     todayIso(),
@@ -244,13 +247,18 @@ export default function LedgerScreen() {
       return;
     }
 
-    await recordSettlement(
-      personId!,
-      amount,
-      settleDate,
-      settleDescription.trim() || undefined,
-      settleAccountId ?? undefined,
-    );
+    if (settleDirection === "paid") {
+      // Paying someone back is spending (owner, Nov 2026): an expense, on the account it came from.
+      await recordPaidBack(personId!, amount, settleDate, settleDescription.trim() || undefined, settleAccountId ?? undefined);
+    } else {
+      await recordSettlement(
+        personId!,
+        amount,
+        settleDate,
+        settleDescription.trim() || undefined,
+        settleAccountId ?? undefined,
+      );
+    }
 
     setSettleAmount("");
     setSettleDescription("");
@@ -383,116 +391,134 @@ export default function LedgerScreen() {
 
   // ─── Settlement Form ───────────────────────────────────
 
+  const name = personName || person?.name || "";
+  const firstName = name.split(" ")[0] || name;
+  const settleNum = parseFloat(settleAmount);
+  const accountPicker = (
+    <AccountPickerSheet
+      visible={showSettleAccountPicker}
+      onSelect={(id) => {
+        (async () => {
+          const accts = await getActiveAccounts(DEFAULT_USER_ID);
+          const acct = accts.find((a) => a.id === id);
+          setSettleAccountId(id);
+          setSettleAccountLabel(acct ? acct.account_label || `${acct.bank_name} ****${acct.account_identifier}` : "Selected");
+          setShowSettleAccountPicker(false);
+        })();
+      }}
+      onClose={() => setShowSettleAccountPicker(false)}
+      title={settleDirection === "paid" ? "Paid from which account?" : "Received in which account?"}
+      filterTypes={settleDirection === "paid" ? ["savings", "credit_card", "wallet"] : ["savings"]}
+    />
+  );
+
   if (viewMode === "settle") {
+    const full = Math.abs(balance);
     return (
       <ScreenContainer padTop={false}>
-        <KeyboardAvoidingView
-          behavior="padding"
-          className="flex-1"
-        >
-          <ScrollView
-            className="flex-1"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          >
-            <View className="px-4 py-4">
-              <Card title="Record Settlement" className="mb-4">
-                <Text className="text-meta text-muted-foreground mb-3">
-                  Current balance:{" "}
-                  <Text
-                    className={`font-bold ${balance >= 0 ? "text-success" : "text-danger"}`}
-                  >
-                    {formatAmount(Math.abs(balance))}
-                  </Text>{" "}
-                  {balance >= 0 ? "(they owe you)" : "(you owe them)"}
-                </Text>
+        <Stack.Screen options={{ title: `Settle with ${firstName}` }} />
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+            <View className="px-4 py-4" style={{ gap: 12 }}>
+              <FormGroup
+                icon="checkmark-done-outline"
+                title="Record a settlement"
+                hint={
+                  balance === 0
+                    ? "All settled up right now"
+                    : `${balance > 0 ? `${firstName} owes you` : `You owe ${firstName}`} ${formatAmount(full)}`
+                }
+              >
+                <Segmented<"received" | "paid">
+                  options={[
+                    { value: "received", label: `${firstName} paid me` },
+                    { value: "paid", label: `I paid ${firstName}` },
+                  ]}
+                  value={settleDirection}
+                  onChange={setSettleDirection}
+                />
                 <Input
-                  label="Settlement Amount (Rs)"
+                  label="Amount"
+                  prefix="₹"
                   value={settleAmount}
                   onChangeText={setSettleAmount}
                   keyboardType="numeric"
                   formula
-                  placeholder={`e.g. ${Math.abs(balance)}`}
-                  containerClassName="mb-3"
+                  placeholder={full > 0 ? String(full) : "0"}
                 />
-                <DateInput
-                  label="Date"
-                  value={settleDate}
-                  onChange={setSettleDate}
-                  containerClassName="mb-3"
-                />
-                <Input
-                  label="Description (optional)"
-                  value={settleDescription}
-                  onChangeText={setSettleDescription}
-                  placeholder="e.g. GPay transfer"
-                  maxLength={200}
-                  containerClassName="mb-3"
-                />
-
-                {/* Optional: which account received the money */}
-                <Text className="text-label font-medium text-muted-foreground mb-1">
-                  Received in (optional)
-                </Text>
-                <Pressable
-                  onPress={() => setShowSettleAccountPicker(true)}
-                  className="flex-row items-center border rounded-control px-3 py-2.5 mb-4"
-                  style={{ borderColor: theme.border }}
-                >
-                  <Ionicons name="wallet-outline" size={16} color={settleAccountId ? theme.primary : theme.mutedForeground} />
-                  <Text
-                    className="flex-1 text-meta ml-2"
-                    style={{ color: settleAccountId ? theme.foreground : theme.mutedForeground }}
-                  >
-                    {settleAccountLabel || "No account - external payment"}
-                  </Text>
-                  {settleAccountId && (
-                    <Pressable
-                      onPress={() => { setSettleAccountId(null); setSettleAccountLabel(""); }}
-                      hitSlop={8}
-                    >
-                      <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
-                    </Pressable>
-                  )}
-                  {!settleAccountId && (
-                    <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
-                  )}
-                </Pressable>
-
-                <View className="flex-row">
-                  <View className="flex-1 mr-2">
-                    <Button
-                      title="Cancel"
-                      variant="outline"
-                      onPress={() => setViewMode("list")}
+                {full > 0 && (
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Chip label={`Full ${formatAmount(full)}`} on={settleNum === full} onPress={() => setSettleAmount(String(full))} />
+                    <Chip
+                      label={`Half ${formatAmount(Math.round(full / 2))}`}
+                      on={settleNum === Math.round(full / 2)}
+                      onPress={() => setSettleAmount(String(Math.round(full / 2)))}
                     />
                   </View>
-                  <View className="flex-1">
-                    <Button title="Record" onPress={handleSettlement} />
-                  </View>
+                )}
+                <View>
+                  <Text className="text-label font-semibold text-muted-foreground mb-1.5">
+                    {settleDirection === "paid" ? "Paid from (optional)" : "Received in (optional)"}
+                  </Text>
+                  <Pressable
+                    onPress={() => setShowSettleAccountPicker(true)}
+                    className="flex-row items-center rounded-control border bg-card px-3"
+                    style={{ height: 52, gap: 10, borderColor: settleAccountId ? theme.primary : theme.border }}
+                    accessibilityRole="button"
+                    accessibilityLabel={settleAccountLabel ? `Received in ${settleAccountLabel}` : "Choose the account it came into"}
+                  >
+                    <Ionicons name="wallet-outline" size={18} color={settleAccountId ? theme.primary : theme.mutedForeground} />
+                    <Text className="flex-1 text-body" style={{ color: settleAccountId ? theme.foreground : theme.mutedForeground }} numberOfLines={1}>
+                      {settleAccountLabel || "No account · paid outside your accounts"}
+                    </Text>
+                    {settleAccountId ? (
+                      <Pressable
+                        onPress={() => {
+                          setSettleAccountId(null);
+                          setSettleAccountLabel("");
+                        }}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Clear the account"
+                      >
+                        <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
+                      </Pressable>
+                    ) : (
+                      <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} />
+                    )}
+                  </Pressable>
+                  {settleAccountId && (
+                    <Text className="text-label text-muted-foreground mt-1.5">
+                      {settleDirection === "paid"
+                        ? "Shows as money out on that account's ledger."
+                        : "Shows as money in on that account's ledger."}
+                    </Text>
+                  )}
+                  {settleDirection === "paid" && (
+                    <Text className="text-label text-muted-foreground mt-1.5">Counts as spending, like any other payment.</Text>
+                  )}
                 </View>
-              </Card>
+                <View className="flex-row" style={{ gap: 10 }}>
+                  <DateInput label="Date" value={settleDate} onChange={setSettleDate} containerClassName="flex-1" />
+                  <Input
+                    label="Note (optional)"
+                    value={settleDescription}
+                    onChangeText={setSettleDescription}
+                    placeholder="e.g. GPay transfer"
+                    maxLength={200}
+                    containerClassName="flex-1"
+                  />
+                </View>
+              </FormGroup>
             </View>
           </ScrollView>
+          <FormFooter
+            primary={settleNum > 0 ? `Record ${formatAmount(settleNum)}` : "Record"}
+            onPrimary={handleSettlement}
+            onCancel={() => setViewMode("list")}
+          />
         </KeyboardAvoidingView>
-
-        <AccountPickerSheet
-          visible={showSettleAccountPicker}
-          onSelect={(id) => {
-            (async () => {
-              const accts = await getActiveAccounts(DEFAULT_USER_ID);
-              const acct = accts.find((a) => a.id === id);
-              setSettleAccountId(id);
-              setSettleAccountLabel(
-                acct ? (acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`) : "Selected",
-              );
-              setShowSettleAccountPicker(false);
-            })();
-          }}
-          onClose={() => setShowSettleAccountPicker(false)}
-          title="Received in which account?"
-          filterTypes={["savings"]}
-        />
+        {accountPicker}
       </ScreenContainer>
     );
   }
@@ -502,105 +528,37 @@ export default function LedgerScreen() {
   if (viewMode === "add_entry") {
     return (
       <ScreenContainer padTop={false}>
-        <KeyboardAvoidingView
-          behavior="padding"
-          className="flex-1"
-        >
-          <ScrollView
-            className="flex-1"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 40 }}
-          >
-            <View className="px-4 py-4">
-              <Card
-                title={editingId ? "Edit Entry" : "Add Entry"}
-                className="mb-4"
-              >
-                {/* Type selector */}
-                <Text className="text-label font-medium text-muted-foreground mb-2">
-                  Type
-                </Text>
-                <View className="flex-row mb-3">
-                  <Pressable
-                    onPress={() => setFormType("debit")}
-                    className={`flex-1 py-2 rounded-l-control items-center border ${
-                      formType === "debit"
-                        ? "bg-danger/8"
-                        : "bg-transparent border-border"
-                    }`}
-                    style={formType === "debit" ? { borderColor: theme.danger } : undefined}
-                  >
-                    <Text
-                      className={`text-body font-medium ${
-                        formType === "debit"
-                          ? "text-danger"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      Debit (they owe)
-                    </Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setFormType("credit")}
-                    className={`flex-1 py-2 rounded-r-control items-center border border-l-0 ${
-                      formType === "credit"
-                        ? "bg-success/8"
-                        : "bg-transparent border-border"
-                    }`}
-                    style={formType === "credit" ? { borderColor: theme.success } : undefined}
-                  >
-                    <Text
-                      className={`text-body font-medium ${
-                        formType === "credit"
-                          ? "text-success"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      Credit (they paid)
-                    </Text>
-                  </Pressable>
-                </View>
-
-                <Input
-                  label="Amount (Rs)"
-                  value={formAmount}
-                  onChangeText={setFormAmount}
-                  keyboardType="numeric"
-                  formula
-                  placeholder="e.g. 3000"
-                  containerClassName="mb-3"
+        <Stack.Screen
+          options={{ title: editingId ? "Edit entry" : formType === "debit" ? `Lent to ${firstName}` : `Borrowed from ${firstName}` }}
+        />
+        <KeyboardAvoidingView behavior="padding" className="flex-1">
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+            <View className="px-4 py-4" style={{ gap: 12 }}>
+              <FormGroup icon="swap-vertical-outline" title={editingId ? "Edit entry" : "New entry"} hint={name}>
+                <Segmented<"debit" | "credit">
+                  options={[
+                    { value: "debit", label: "Lent · they owe" },
+                    { value: "credit", label: "Borrowed · they paid" },
+                  ]}
+                  value={formType === "credit" ? "credit" : "debit"}
+                  onChange={setFormType}
                 />
-                <DateInput
-                  label="Date"
-                  value={formDate}
-                  onChange={setFormDate}
-                  containerClassName="mb-3"
-                />
+                <Input label="Amount" prefix="₹" value={formAmount} onChangeText={setFormAmount} keyboardType="numeric" formula placeholder="3000" />
+                <DateInput label="Date" value={formDate} onChange={setFormDate} />
                 <Input
                   label="Description (optional)"
                   value={formDescription}
                   onChangeText={setFormDescription}
-                  placeholder="e.g. Dinner bill, Movie tickets"
-                  containerClassName="mb-4"
+                  placeholder="e.g. Dinner bill, movie tickets"
                 />
-                <View className="flex-row">
-                  <View className="flex-1 mr-2">
-                    <Button
-                      title="Cancel"
-                      variant="outline"
-                      onPress={resetForm}
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Button
-                      title={editingId ? "Update" : "Add"}
-                      onPress={handleSaveEntry}
-                    />
-                  </View>
-                </View>
-              </Card>
+              </FormGroup>
             </View>
           </ScrollView>
+          <FormFooter
+            primary={editingId ? "Save entry" : formType === "debit" ? "Record lent" : "Record borrowed"}
+            onPrimary={handleSaveEntry}
+            onCancel={resetForm}
+          />
         </KeyboardAvoidingView>
       </ScreenContainer>
     );
@@ -608,189 +566,119 @@ export default function LedgerScreen() {
 
   // ─── Main Ledger ───────────────────────────────────────
 
-  const isPositive = balance >= 0;
+  const startEntry = (type: "debit" | "credit") => {
+    setEditingId(null);
+    setFormAmount("");
+    setFormDescription("");
+    setFormDate(todayIso());
+    setFormType(type);
+    setViewMode("add_entry");
+  };
+  const openMore = () =>
+    alert(name, person?.phone ? person.phone : undefined, [
+      { text: "Export the ledger", onPress: handleShare },
+      ...(person ? [{ text: "Edit person", onPress: openEditPerson }] : []),
+      { text: "Cancel", style: "cancel" as const },
+    ]);
+  function openEditPerson() {
+    router.push({ pathname: "/hisaab/persons", params: { edit: personId } });
+  }
+
+  const actions: ActionRowItem[] = [
+    { key: "lent", label: "Lent", icon: "arrow-up-outline", onPress: () => startEntry("debit") },
+    { key: "borrowed", label: "Borrowed", icon: "arrow-down-outline", onPress: () => startEntry("credit") },
+    {
+      key: "settle",
+      label: "Settle",
+      icon: "checkmark-outline",
+      onPress: () => {
+        setSettleDirection(balance < 0 ? "paid" : "received");
+        setViewMode("settle");
+      },
+    },
+    { key: "more", label: "More", icon: "ellipsis-horizontal", onPress: openMore },
+  ];
+
+  // Opening → closing for a date range, as a statement that adds up.
+  let rangeDebits = 0;
+  let rangeCredits = 0;
+  let rangeSettlements = 0;
+  if (filterActive) {
+    for (const e of entries) {
+      if (e.type === "debit") rangeDebits += e.amount;
+      else if (e.type === "credit") rangeCredits += e.amount;
+      else if (e.type === "settlement") rangeSettlements += e.amount;
+    }
+  }
+  const signed = (n: number) => `${n < 0 ? "−" : ""}${formatAmount(Math.abs(n))}`;
 
   return (
     <ScreenContainer padTop={false}>
+      <Stack.Screen
+        options={{
+          title: "",
+          headerRight: person ? () => <HeaderPill label="Edit" onPress={openEditPerson} accessibilityLabel={`Edit ${name}`} /> : undefined,
+        }}
+      />
       {(entries.length > 0 || filterActive) && <ListToolbar {...tools.toolbar} />}
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        <View className="px-4 py-4">
-          {/* Balance Header */}
-          <Card className="mb-4">
-            <View className="items-center py-2">
-              <Text className="text-label text-muted-foreground mb-1">
-                {personName || person?.name}
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View className="px-4 pb-4">
+          {/* Hero: who, which way, how much */}
+          <View className="items-center pt-2 pb-4" style={{ gap: 2 }}>
+            <View className="w-14 h-14 rounded-pill items-center justify-center mb-2" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+              <Text className="text-heading font-bold" style={{ color: theme.primary }}>
+                {initialsOf(name)}
               </Text>
-              <Text
-                className={`text-title font-bold ${isPositive ? "text-success" : "text-danger"}`}
-              >
-                {isPositive ? "+" : ""}
-                {formatAmount(balance)}
-              </Text>
-              <Text className="text-meta text-muted-foreground mt-1">
-                {balance === 0
-                  ? "All settled up"
-                  : isPositive
-                    ? "owes you"
-                    : "you owe"}
-              </Text>
-
-              {/* Quick actions */}
-              <View className="flex-row mt-3">
-                <Pressable
-                  onPress={() => setViewMode("settle")}
-                  className="flex-row items-center px-3 py-1.5 rounded-full mr-2"
-                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                >
-                  <Ionicons
-                    name="checkmark-circle-outline"
-                    size={14}
-                    color={theme.primary}
-                  />
-                  <Text className="text-label font-medium ml-1" style={{ color: theme.primary }}>
-                    Settle
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={handleShare}
-                  className="flex-row items-center px-3 py-1.5 rounded-full mr-2"
-                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                >
-                  <Ionicons
-                    name="download-outline"
-                    size={14}
-                    color={theme.primary}
-                  />
-                  <Text className="text-label font-medium ml-1" style={{ color: theme.primary }}>
-                    Export
-                  </Text>
-                </Pressable>
-                {person?.phone && (
-                  <View className="flex-row items-center px-3 py-1.5 rounded-full bg-border/40">
-                    <Ionicons
-                      name="call-outline"
-                      size={14}
-                      color={theme.mutedForeground}
-                    />
-                    <Text className="text-label text-muted-foreground ml-1">
-                      {person.phone}
-                    </Text>
-                  </View>
-                )}
-              </View>
             </View>
-          </Card>
+            <Text className="text-heading font-semibold text-foreground" numberOfLines={1}>
+              {name}
+            </Text>
+            <Text className="text-meta text-muted-foreground">{balance === 0 ? "All settled up" : balance > 0 ? "owes you" : "you owe"}</Text>
+            <Text
+              className="text-hero font-bold"
+              style={{ color: balance > 0 ? theme.success : theme.foreground, fontVariant: ["tabular-nums"] }}
+              numberOfLines={1}
+            >
+              {formatAmount(Math.abs(balance))}
+            </Text>
+            {person?.phone ? (
+              <View className="flex-row items-center mt-1" style={{ gap: 4 }}>
+                <Ionicons name="call-outline" size={13} color={theme.mutedForeground} />
+                <Text className="text-meta text-muted-foreground">{person.phone}</Text>
+              </View>
+            ) : null}
+          </View>
 
-          {/* v16.0.5 — when filter is active, show a bank-statement-style
-              opening → closing summary for the selected range. Matches
-              the account ledger's semantics (opening at start, closing
-              at end, range totals in between). */}
-          {filterActive && (() => {
-            let rangeDebits = 0;
-            let rangeCredits = 0;
-            let rangeSettlements = 0;
-            for (const e of entries) {
-              if (e.type === "debit") rangeDebits += e.amount;
-              else if (e.type === "credit") rangeCredits += e.amount;
-              else if (e.type === "settlement") rangeSettlements += e.amount;
-            }
-            const openIsPositive = openingBalance >= 0;
-            const closeIsPositive = closingBalance >= 0;
-            const netChange = closingBalance - openingBalance;
-            const netColor = netChange === 0 ? theme.mutedForeground : netChange > 0 ? theme.success : theme.danger;
-            return (
-              <Card className="mb-3">
-                <Text
-                  className="text-label font-semibold uppercase tracking-wider mb-2"
-                  style={{ color: theme.mutedForeground }}
-                >
-                  {appliedFrom} → {appliedTo}
-                </Text>
-                {/* Opening */}
-                <View className="flex-row items-center justify-between py-1">
-                  <Text className="text-label" style={{ color: theme.mutedForeground }}>
-                    Opening balance
-                  </Text>
-                  <Text
-                    className="text-body font-semibold"
-                    style={{ color: openIsPositive ? theme.success : theme.danger }}
-                  >
-                    {openIsPositive ? "+" : ""}
-                    {formatAmount(openingBalance)}
-                  </Text>
-                </View>
-                {/* Activity */}
-                {rangeDebits > 0 && (
-                  <View className="flex-row items-center justify-between py-0.5">
-                    <Text className="text-label" style={{ color: theme.mutedForeground }}>
-                      They owed (debits)
-                    </Text>
-                    <Text className="text-label font-semibold" style={{ color: theme.danger }}>
-                      +{formatAmount(rangeDebits)}
-                    </Text>
-                  </View>
-                )}
-                {rangeCredits > 0 && (
-                  <View className="flex-row items-center justify-between py-0.5">
-                    <Text className="text-label" style={{ color: theme.mutedForeground }}>
-                      They paid (credits)
-                    </Text>
-                    <Text className="text-label font-semibold" style={{ color: theme.success }}>
-                      −{formatAmount(rangeCredits)}
-                    </Text>
-                  </View>
-                )}
-                {rangeSettlements > 0 && (
-                  <View className="flex-row items-center justify-between py-0.5">
-                    <Text className="text-label" style={{ color: theme.mutedForeground }}>
-                      Settlements
-                    </Text>
-                    <Text className="text-label font-semibold" style={{ color: theme.success }}>
-                      −{formatAmount(rangeSettlements)}
-                    </Text>
-                  </View>
-                )}
-                {/* Net change */}
-                <View className="flex-row items-center justify-between py-1 mt-1 pt-2 border-t border-border">
-                  <Text className="text-label font-semibold" style={{ color: theme.mutedForeground }}>
-                    Net change in range
-                  </Text>
-                  <Text className="text-body font-semibold" style={{ color: netColor }}>
-                    {netChange > 0 ? "+" : ""}
-                    {formatAmount(netChange)}
-                  </Text>
-                </View>
-                {/* Closing */}
-                <View className="flex-row items-center justify-between py-1 mt-1">
-                  <Text className="text-label font-bold" style={{ color: theme.foreground }}>
-                    Closing balance
-                  </Text>
-                  <Text
-                    className="text-body font-bold"
-                    style={{ color: closeIsPositive ? theme.success : theme.danger }}
-                  >
-                    {closeIsPositive ? "+" : ""}
-                    {formatAmount(closingBalance)}
-                  </Text>
-                </View>
-                <Text className="text-label mt-1" style={{ color: theme.mutedForeground }}>
-                  {closeIsPositive
-                    ? "They owe you as of filter end."
-                    : closingBalance < 0
-                      ? "You owe them as of filter end."
-                      : "All settled as of filter end."}
-                </Text>
-              </Card>
-            );
-          })()}
+          <ActionRow items={actions} className="mb-4" />
+
+          {filterActive && (
+            <Card className="mb-3">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                {appliedFrom} → {appliedTo}
+              </Text>
+              <Statement
+                lines={[
+                  { label: "Opening balance", amount: signed(openingBalance) },
+                  ...(rangeDebits > 0 ? [{ label: "They owed (lent)", sign: "+" as const, amount: formatAmount(rangeDebits) }] : []),
+                  ...(rangeCredits > 0 ? [{ label: "They paid (borrowed)", sign: "−" as const, amount: formatAmount(rangeCredits) }] : []),
+                  ...(rangeSettlements > 0 ? [{ label: "Settlements", sign: "−" as const, amount: formatAmount(rangeSettlements) }] : []),
+                ]}
+                total={{
+                  label: "Closing balance",
+                  amount: signed(closingBalance),
+                  sub:
+                    closingBalance > 0
+                      ? "They owe you as of the end of the range."
+                      : closingBalance < 0
+                        ? "You owe them as of the end of the range."
+                        : "All settled as of the end of the range.",
+                }}
+              />
+            </Card>
+          )}
 
           {tools.filterSheet}
 
-          {/* Entry count */}
           {sortedEntries.length > 0 && (
             <Text className="text-label text-faint-foreground mb-2">
               {sortedEntries.length} {sortedEntries.length === 1 ? "entry" : "entries"}
@@ -798,104 +686,97 @@ export default function LedgerScreen() {
             </Text>
           )}
 
-          {/* Entries */}
           {loadFailed ? (
             <LoadFailed onRetry={loadData} />
           ) : sortedEntries.length === 0 ? (
             <Card className="mb-4">
               <View className="items-center py-4">
-                <Ionicons name="document-text-outline" size={48} color={theme.mutedForeground} />
-                <Text className="text-body font-medium text-foreground mt-2">
+                <Ionicons name="document-text-outline" size={48} color={theme.faintForeground} />
+                <Text className="text-body font-semibold text-foreground mt-2">
                   {tools.narrowed && entries.length > 0 ? "Nothing matches" : filterActive ? "No entries in this range" : "No entries yet"}
                 </Text>
                 <Text className="text-meta text-muted-foreground mt-1 text-center">
-                  {tools.narrowed && entries.length > 0 ? "Try another name, amount or filter" : filterActive ? "Try a different date range" : "Add a debit or credit to start tracking"}
+                  {tools.narrowed && entries.length > 0
+                    ? "Try another name, amount or filter"
+                    : filterActive
+                      ? "Try a different date range"
+                      : "Record what you lent or borrowed to start"}
                 </Text>
               </View>
             </Card>
           ) : (
-            groupedEntries.map((row) => {
-              if (row.type === "heading") {
-                return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
-              }
-              const entry = row.item;
-              const linkedAccountId = accountIdMap.get(entry.id);
-              const isSettlementWithAccount =
-                entry.type === "settlement" && !!linkedAccountId;
-              return (
-                <EntryCard
-                  key={entry.id}
-                  entry={entry}
-                  onPress={() => {
-                    if (isSettlementWithAccount) {
-                      const month = entry.date.slice(0, 7);
-                      router.push({
-                        pathname: "/reconciliation/account-ledger",
-                        params: { accountId: linkedAccountId!, month },
-                      });
-                      return;
+            <View className="rounded-card bg-card border border-border overflow-hidden">
+              {groupedEntries.map((row, i) => {
+                if (row.type === "heading") {
+                  return (
+                    <View key={`group-${row.key}`} className={`px-3.5 pt-2 ${i > 0 ? "border-t border-border" : ""}`}>
+                      <GroupHeading label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />
+                    </View>
+                  );
+                }
+                const entry = row.item;
+                const linkedAccountId = accountIdMap.get(entry.id);
+                const isSettlementWithAccount = entry.type === "settlement" && !!linkedAccountId;
+                return (
+                  <EntryRow
+                    key={entry.id}
+                    entry={entry}
+                    divider={i > 0}
+                    onPress={() => {
+                      if (isSettlementWithAccount) {
+                        router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: linkedAccountId!, month: entry.date.slice(0, 7) } });
+                        return;
+                      }
+                      if (entry.linked_expense_id) {
+                        router.push(`/expense/${entry.linked_expense_id}`);
+                        return;
+                      }
+                      handleEditEntry(entry);
+                    }}
+                    onLongPress={() =>
+                      alert(entry.description?.trim() || HISAAB_TYPE_LABELS[entry.type] || "Entry", undefined, [
+                        { text: "Edit", onPress: () => handleEditEntry(entry) },
+                        { text: "Delete", style: "destructive", onPress: () => handleDeleteEntry(entry) },
+                        { text: "Cancel", style: "cancel" },
+                      ])
                     }
-                    if (entry.linked_expense_id) {
-                      router.push(`/expense/${entry.linked_expense_id}`);
-                      return;
-                    }
-                    handleEditEntry(entry);
-                  }}
-                  onLongPress={() => handleDeleteEntry(entry)}
-                  onViewExpense={(expenseId) => router.push(`/expense/${expenseId}`)}
-                  categoryMap={categoryMap}
-                  accountMap={accountMap}
-                  linkedType={entry.linked_expense_id ? linkedTypes.get(entry.linked_expense_id) : undefined}
-                />
-              
-);
-            })
+                    onViewExpense={(expenseId) => router.push(`/expense/${expenseId}`)}
+                    categoryMap={categoryMap}
+                    accountMap={accountMap}
+                    linkedType={entry.linked_expense_id ? linkedTypes.get(entry.linked_expense_id) : undefined}
+                  />
+                );
+              })}
+            </View>
           )}
 
           {sortedEntries.length > 0 && (
-            <Text className="text-label text-faint-foreground text-center mt-2">
-              Tap to view/edit. Long-press to delete.
-            </Text>
+            <Text className="text-label text-faint-foreground text-center mt-3">Tap to open. Long-press to edit or delete.</Text>
           )}
         </View>
       </ScrollView>
 
-      {/* FAB */}
-      <FAB icon="add" onPress={() => setViewMode("add_entry")} />
-
-      {/* Export Format Picker */}
       <ExportFormatPicker
         visible={showExportPicker}
         onClose={() => setShowExportPicker(false)}
         target={{ type: "person", personId: personId!, userId: DEFAULT_USER_ID }}
       />
-
-      {/* Account picker for settlement */}
-      <AccountPickerSheet
-        visible={showSettleAccountPicker}
-        onSelect={(id) => {
-          (async () => {
-            const accts = await getActiveAccounts(DEFAULT_USER_ID);
-            const acct = accts.find((a) => a.id === id);
-            setSettleAccountId(id);
-            setSettleAccountLabel(
-              acct ? (acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`) : "Selected",
-            );
-            setShowSettleAccountPicker(false);
-          })();
-        }}
-        onClose={() => setShowSettleAccountPicker(false)}
-        title="Received in which account?"
-        filterTypes={["savings"]}
-      />
+      {accountPicker}
     </ScreenContainer>
   );
 }
 
-// ─── Entry Card Component ───────────────────────────────
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
 
-function EntryCard({
+// ─── Entry row ──────────────────────────────────────────
+
+function EntryRow({
   entry,
+  divider,
   onPress,
   onLongPress,
   onViewExpense,
@@ -905,95 +786,80 @@ function EntryCard({
 }: {
   linkedType?: string;
   entry: HisaabEntry;
+  divider: boolean;
   onPress: () => void;
   onLongPress: () => void;
   onViewExpense?: (expenseId: string) => void;
   categoryMap?: Map<string, string>;
   accountMap?: Map<string, string>;
 }) {
-  const { colorScheme } = useColorScheme();
   const theme = useTheme();
   const isDebit = entry.type === "debit";
   const isSettlement = entry.type === "settlement";
-  const isCredit = entry.type === "credit";
 
-  const icon = isDebit
-    ? "arrow-up-outline"
-    : isSettlement
-      ? "checkmark-circle-outline"
-      : "arrow-down-outline";
-  const color = isDebit ? theme.danger : theme.success;
-  const prefix = isDebit ? "+" : "-";
+  // They owe you more: green (money coming to you). They paid / settled: ink.
+  const icon = isDebit ? "arrow-up-outline" : isSettlement ? "checkmark-outline" : "arrow-down-outline";
+  const color = isDebit ? theme.success : theme.foreground;
+  const prefix = isDebit ? "+" : "−";
   const label = isDebit ? "They owe" : isSettlement ? "Settlement" : "They paid";
   const description = entry.description?.trim() || null;
   const merchant = entry.merchant_name?.trim() || null;
   // With no description the merchant is the title — don't repeat it below.
   const categoryName = entry.category_id ? categoryMap?.get(entry.category_id) : null;
-  const subtitle = [
+  const meta = [
+    entry.date,
     // With neither description nor merchant the category is the title.
     description || merchant ? categoryName : null,
     description ? merchant : null,
     accountMap?.get(entry.id),
-  ].filter(Boolean).join(" · ");
+    entry.status !== "confirmed" ? entry.status : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <Pressable onPress={onPress} onLongPress={onLongPress}>
-      <Card className="mb-2">
-        <View className="flex-row items-center">
-          {/* Icon */}
-          <View
-            className="w-7 h-7 rounded-full items-center justify-center mr-3"
-            style={{ backgroundColor: `${color}14` }}
-          >
-            <Ionicons name={icon} size={16} color={color} />
-          </View>
-
-          {/* Description + date */}
-          <View className="flex-1">
-            <Text
-              className="text-body font-medium text-foreground"
-              numberOfLines={1}
-            >
-              {transactionTitle(entry, categoryName, label)}
-            </Text>
-            {subtitle ? (
-              <Text className="text-label text-faint-foreground" numberOfLines={1}>
-                {subtitle}
-              </Text>
-            ) : null}
-            <View className="flex-row items-center">
-              <Text className="text-label text-muted-foreground">
-                {entry.date}
-                {isSettlement && " · Settlement"}
-                {entry.status !== "confirmed" &&
-                  ` · ${entry.status}`}
-              </Text>
-              {entry.linked_expense_id && onViewExpense && (
-                <Pressable
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    onViewExpense(entry.linked_expense_id!);
-                  }}
-                  className="flex-row items-center ml-2 px-1.5 py-0.5 rounded"
-                  style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-                  hitSlop={4}
-                >
-                  <Ionicons name="receipt-outline" size={10} color={theme.primary} />
-                  <Text className="text-label font-medium ml-0.5" style={{ color: theme.primary }}>
-                    {linkedType ?? "Transaction"}
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
-
-          {/* Amount */}
-          <Text className={`text-body font-bold`} style={{ color }}>
+    <Pressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      className={`flex-row items-center px-3.5 py-3 ${divider ? "border-t border-border" : ""}`}
+      style={{ gap: 12 }}
+      accessibilityRole="button"
+      accessibilityLabel={`${transactionTitle(entry, categoryName, label)}, ${prefix}${formatAmount(entry.amount)}`}
+      accessibilityHint="Long-press to edit or delete"
+    >
+      <View
+        className="w-9 h-9 rounded-control items-center justify-center"
+        style={{ backgroundColor: isDebit ? theme.alpha("success", 0.1) : theme.alpha("foreground", 0.06) }}
+      >
+        <Ionicons name={icon} size={17} color={isDebit ? theme.success : theme.mutedForeground} />
+      </View>
+      <View className="flex-1" style={{ minWidth: 0, gap: 2 }}>
+        <View className="flex-row items-center justify-between" style={{ gap: 8 }}>
+          <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>
+            {transactionTitle(entry, categoryName, label)}
+          </Text>
+          <Text className="text-body font-bold" style={{ color, fontVariant: ["tabular-nums"] }}>
             {prefix}
             {formatAmount(entry.amount)}
           </Text>
         </View>
-      </Card>
+        <View className="flex-row items-center" style={{ gap: 6 }}>
+          <Text className="text-meta text-muted-foreground flex-shrink" numberOfLines={1}>
+            {meta}
+          </Text>
+          {entry.linked_expense_id && onViewExpense ? (
+            <Chip
+              variant="status"
+              tone="primary"
+              icon="receipt-outline"
+              label={linkedType ?? "Transaction"}
+              onPress={() => onViewExpense(entry.linked_expense_id!)}
+            />
+          ) : isSettlement ? (
+            <Chip variant="status" label="Settlement" />
+          ) : null}
+        </View>
+      </View>
     </Pressable>
   );
 }

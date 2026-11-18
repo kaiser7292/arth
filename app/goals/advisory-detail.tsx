@@ -16,6 +16,7 @@ import { ScrollView, View, Pressable } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 import { drawsOwnDivider } from "@/components/ui/Rows";
+import { tint } from "@/constants/brand";
 
 const SEVERITY_COLORS = {
   critical: { border: STATUS_COLORS.error, bg: "#FEF2F2", bgDark: "#3B0000", text: "#991B1B", textDark: "#FCA5A5", icon: "warning-outline" as const },
@@ -29,9 +30,9 @@ function StatRow({ label, value, highlight, lastRow }: { label: string; value: s
   const theme = useTheme();
   return (
     <View className={`flex-row items-center justify-between py-2 ${lastRow ? "" : "border-b border-border"}`}>
-      <Text className="text-sm text-muted-foreground flex-1">{label}</Text>
+      <Text className="text-meta text-muted-foreground flex-1">{label}</Text>
       <Text
-        className="text-sm font-semibold ml-4 text-foreground"
+        className="text-body font-semibold ml-4 text-foreground"
         style={highlight ? { color: theme.danger } : undefined}
       >
         {value}
@@ -42,7 +43,7 @@ function StatRow({ label, value, highlight, lastRow }: { label: string; value: s
 
 function SectionHeader({ title }: { title: string }) {
   return (
-    <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2 mt-4">
+    <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-2 mt-4">
       {title}
     </Text>
   );
@@ -52,12 +53,12 @@ function ActionButton({ label, icon, onPress, color }: { label: string; icon: ke
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center justify-between px-4 py-3.5 rounded-xl"
-      style={{ backgroundColor: color + "14" }}
+      className="flex-row items-center justify-between px-4 py-3.5 rounded-card"
+      style={{ backgroundColor: tint(color, 0.08) }}
     >
       <View className="flex-row items-center">
         <Ionicons name={icon} size={18} color={color} style={{ marginRight: 10 }} />
-        <Text className="text-sm font-medium" style={{ color }}>{label}</Text>
+        <Text className="text-body font-medium" style={{ color }}>{label}</Text>
       </View>
       <Ionicons name="chevron-forward" size={16} color={color} />
     </Pressable>
@@ -101,7 +102,7 @@ function SpendingDetail({
           highlight={tension.headroomMonthly < 0}
         />
         {isOverspending && tension.headroomMonthly >= 0 && (
-          <Text className="text-xs text-muted-foreground mt-2">
+          <Text className="text-label text-muted-foreground mt-2">
             You're spending more than budgeted, but what's left each month still covers every goal.
           </Text>
         )}
@@ -120,13 +121,13 @@ function SpendingDetail({
         <>
           <SectionHeader title="Course Correction" />
           <Card className="mb-4">
-            <Text className="text-sm text-muted-foreground mb-2">
+            <Text className="text-meta text-muted-foreground mb-2">
               Your headroom doesn't cover the overspend. To fund every goal for the rest of this FY, reduce monthly spending by:
             </Text>
-            <Text className="text-2xl font-bold text-danger">
+            <Text className="text-title font-bold text-danger">
               <Money value={-tension.discretionaryCutNeeded} />/mo
             </Text>
-            <Text className="text-xs text-faint-foreground mt-1">
+            <Text className="text-label text-faint-foreground mt-1">
               Discretionary spend YTD: {formatAmount(tension.discretionarySpendYTD)}
             </Text>
           </Card>
@@ -151,25 +152,25 @@ function BucketRow({ bucket, isDark }: { bucket: BucketStatus; isDark: boolean }
   return (
     <Card className="mb-3">
       <View className="flex-row items-center justify-between mb-1.5">
-        <Text className="text-sm font-semibold text-foreground flex-1 mr-2" numberOfLines={1}>
+        <Text className="text-body font-semibold text-foreground flex-1 mr-2" numberOfLines={1}>
           {bucket.name}
         </Text>
-        <Text className="text-xs font-medium" style={{ color: accentColor }}>
+        <Text className="text-label font-medium" style={{ color: accentColor }}>
           {Math.round(bucket.progressPct)}%
         </Text>
       </View>
       <ProgressBar value={bucket.progressPct / 100} color={accentColor} height={6} animated={false} className="mt-1.5" />
       <View className="flex-row justify-between mt-2">
-        <Text className="text-xs text-muted-foreground">
+        <Text className="text-label text-muted-foreground">
           {formatCompact(bucket.contributed)} saved
         </Text>
-        <Text className="text-xs text-muted-foreground">
+        <Text className="text-label text-muted-foreground">
           {formatCompact(bucket.annualTarget)} target
         </Text>
       </View>
       {bucket.paceStatus === "behind" && bucket.monthlyRequired > 0 && (
         <View className="mt-2 pt-2 border-t border-border">
-          <Text className="text-xs text-muted-foreground">
+          <Text className="text-label text-muted-foreground">
             Top-up needed:{" "}
             <Text className="font-semibold text-foreground">
               {formatAmount(bucket.monthlyRequired)}/mo
@@ -244,7 +245,7 @@ function MilestoneDetail({
   if (!ms) {
     return (
       <Card className="mb-4">
-        <Text className="text-sm text-muted-foreground">
+        <Text className="text-meta text-muted-foreground">
           Milestone details not available.
         </Text>
       </Card>
@@ -259,19 +260,19 @@ function MilestoneDetail({
       <SectionHeader title="Milestone Status" />
       <Card className="mb-4">
         <View className="flex-row items-center justify-between mb-1.5">
-          <Text className="text-sm font-semibold text-foreground flex-1 mr-2">
+          <Text className="text-body font-semibold text-foreground flex-1 mr-2">
             {ms.name}
           </Text>
-          <Text className="text-sm font-bold" style={{ color: accentColor }}>
+          <Text className="text-body font-bold" style={{ color: accentColor }}>
             {Math.round(ms.progressPct)}%
           </Text>
         </View>
         <ProgressBar value={ms.progressPct / 100} color={accentColor} height={6} animated={false} className="mt-1.5" />
         <View className="flex-row justify-between mt-2 mb-3">
-          <Text className="text-xs text-muted-foreground">
+          <Text className="text-label text-muted-foreground">
             {formatCompact(ms.currentSaved)} saved
           </Text>
-          <Text className="text-xs text-muted-foreground">
+          <Text className="text-label text-muted-foreground">
             {formatCompact(ms.targetAmount)} goal
           </Text>
         </View>
@@ -305,7 +306,7 @@ function MilestoneDetail({
         />
         {ms.monthlyPlanned > ms.monthlyRealistic && (
           <View className="mt-2 pt-2 border-t border-border">
-            <Text className="text-xs text-muted-foreground">
+            <Text className="text-label text-muted-foreground">
               Increase by{" "}
               <Text className="font-semibold text-danger">
                 {formatAmount(ms.monthlyPlanned - ms.monthlyRealistic)}/mo
@@ -325,8 +326,8 @@ function MilestoneDetail({
                 key={i}
                 className="flex-row items-center py-2 border-b border-border"
               >
-                <Ionicons name="link-outline" size={14} color={colors.textSecondary} style={{ marginRight: 8 }} />
-                <Text className="text-sm text-foreground">{name}</Text>
+                <Ionicons name="link-outline" size={14} color={theme.mutedForeground} style={{ marginRight: 8 }} />
+                <Text className="text-meta text-foreground">{name}</Text>
               </View>
             ))}
           </Card>
@@ -375,7 +376,7 @@ function SavingsDetail({
         <StatRow label="Target savings for FY" value={formatAmount(savings.targetSavings)} />
         {monthlyGap > 0 && (
           <View className="mt-3 pt-2 border-t border-border">
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-meta text-muted-foreground">
               To close the gap, save an additional{" "}
               <Text className="font-semibold text-danger">
                 {formatAmount(monthlyGap)}/mo
@@ -447,7 +448,7 @@ function GeneralDetail({
         ].map((idea, i) => (
           <View key={i} className="flex-row items-start py-2 border-b border-border">
             <Text className="text-success mr-2 mt-0.5">-</Text>
-            <Text className="text-sm text-foreground flex-1">{idea}</Text>
+            <Text className="text-meta text-foreground flex-1">{idea}</Text>
           </View>
         ))}
       </Card>
@@ -482,7 +483,7 @@ export default function AdvisoryDetailScreen() {
       <ScreenContainer padTop={false}>
         <Stack.Screen options={{ title: "Advisory" }} />
         <View className="flex-1 items-center justify-center px-6">
-          <Text className="text-base text-muted-foreground text-center">
+          <Text className="text-body text-muted-foreground text-center">
             Advisory data not available.
           </Text>
         </View>
@@ -510,7 +511,7 @@ export default function AdvisoryDetailScreen() {
       >
         {/* Header card */}
         <View
-          className="rounded-xl overflow-hidden mb-4"
+          className="rounded-card overflow-hidden mb-4"
           style={{
             backgroundColor: isDark ? sc.bgDark : sc.bg,
             borderLeftWidth: 4,
@@ -521,14 +522,14 @@ export default function AdvisoryDetailScreen() {
             <View className="flex-row items-center mb-2">
               <Ionicons name={sc.icon} size={20} color={sc.border} style={{ marginRight: 8 }} />
               <Text
-                className="text-base font-bold flex-1"
+                className="text-body font-bold flex-1"
                 style={{ color: isDark ? sc.textDark : sc.text }}
               >
                 {advisory.title}
               </Text>
             </View>
             <Text
-              className="text-sm"
+              className="text-meta"
               style={{ color: isDark ? sc.textDark : sc.text, opacity: 0.9 }}
             >
               {advisory.message}
@@ -539,7 +540,7 @@ export default function AdvisoryDetailScreen() {
         {/* Detail body */}
         {!cockpitData && (
           <View className="items-center py-8">
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-meta text-muted-foreground">
               Details not available.
             </Text>
           </View>

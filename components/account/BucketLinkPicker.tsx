@@ -59,19 +59,19 @@ export function BucketLinkPicker({
       <Pressable
         key={id ?? "none"}
         onPress={() => onChange(id)}
-        className="flex-row items-center py-2.5 px-2 rounded-lg"
+        className="flex-row items-center py-2.5 px-2 rounded-control"
         style={{ backgroundColor: active ? theme.alpha("primary", 0.1) : "transparent" }}
         accessibilityRole="radio"
         accessibilityState={{ selected: active }}
       >
         <Ionicons name={icon} size={16} color={active ? theme.primary : theme.mutedForeground} />
         <Text
-          className={`flex-1 ml-2 text-sm text-foreground ${active ? "font-semibold" : ""}`}
+          className={`flex-1 ml-2 text-body text-foreground ${active ? "font-semibold" : ""}`}
           numberOfLines={1}
         >
           {label}
         </Text>
-        {right ? <Text className="text-xs text-muted-foreground ml-2">{right}</Text> : null}
+        {right ? <Text className="text-label text-muted-foreground ml-2">{right}</Text> : null}
         {active && <Ionicons name="checkmark" size={16} color={theme.primary} style={{ marginLeft: 6 }} />}
       </Pressable>
     );
@@ -79,7 +79,7 @@ export function BucketLinkPicker({
 
   return (
     <Card className={className}>
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
         Count towards investment bucket (optional)
       </Text>
       {row(null, "close-circle-outline", "Don't link")}
@@ -88,7 +88,7 @@ export function BucketLinkPicker({
         const name = Number.isFinite(fy) ? `${b.name} · ${getFYLabel(fy, startMonth)}` : b.name;
         return row(b.id, "bookmark-outline", name, `${formatAmount(b.current_contributed)} / ${formatAmount(b.annual_target)}`);
       })}
-      <Text className="text-xs text-faint-foreground mt-1.5">
+      <Text className="text-label text-faint-foreground mt-1.5">
         The deposit counts as a contribution on its start date, and comes off the bucket when the FD
         matures.
       </Text>

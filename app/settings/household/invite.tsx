@@ -79,14 +79,14 @@ export default function InviteScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {requests.map((r) => (
           <Card key={r.inviteId} className="mb-3">
-            <Text className="text-base font-semibold text-foreground">{r.name} wants to join</Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">{r.device}</Text>
+            <Text className="text-body font-semibold text-foreground">{r.name} wants to join</Text>
+            <Text className="text-label text-muted-foreground mt-0.5">{r.device}</Text>
             <View className="items-center my-4">
-              <Text className="text-xs text-muted-foreground">Check code</Text>
-              <Text className="text-3xl font-bold text-foreground" style={{ letterSpacing: 2 }}>
+              <Text className="text-label text-muted-foreground">Check code</Text>
+              <Text className="text-display font-bold text-foreground" style={{ letterSpacing: 2 }}>
                 {r.code}
               </Text>
-              <Text className="text-xs text-muted-foreground mt-2 text-center leading-4">
+              <Text className="text-label text-muted-foreground mt-2 text-center leading-4">
                 {r.name}&apos;s phone shows a code too. Approve only if they match; if you&apos;re apart, read it out on a call.
               </Text>
             </View>
@@ -107,7 +107,7 @@ export default function InviteScreen() {
 
         <Card>
           {error ? (
-            <Text className="text-sm text-danger">{error}</Text>
+            <Text className="text-meta text-danger">{error}</Text>
           ) : !invite ? (
             <LoadingState rows={3} />
           ) : (
@@ -115,14 +115,14 @@ export default function InviteScreen() {
               <View style={{ padding: 12, backgroundColor: "#FFFFFF", borderRadius: 12 }}>
                 <QRCode value={invite.link} size={200} />
               </View>
-              <Text className="text-base font-semibold text-foreground mt-4 text-center">Scan this on their phone</Text>
-              <Text className="text-xs text-muted-foreground mt-1 text-center">
+              <Text className="text-body font-semibold text-foreground mt-4 text-center">Scan this on their phone</Text>
+              <Text className="text-label text-muted-foreground mt-1 text-center">
                 In their Arth: Settings → Household → Join a household
               </Text>
               <Button title="Send an invite link instead" variant="outline" className="mt-4 self-stretch" onPress={() => void share()} />
               <View className="flex-row items-center mt-4">
                 <ActivityIndicator size="small" color={theme.mutedForeground} />
-                <Text className="text-xs text-muted-foreground ml-2">Waiting for them to join · works once, for 24 hours</Text>
+                <Text className="text-label text-muted-foreground ml-2">Waiting for them to join · works once, for 24 hours</Text>
               </View>
             </View>
           )}
@@ -130,7 +130,7 @@ export default function InviteScreen() {
 
         <View className="flex-row items-start mt-4 px-1">
           <Ionicons name="lock-closed-outline" size={14} color={theme.mutedForeground} style={{ marginTop: 1 }} />
-          <Text className="text-xs text-muted-foreground ml-2 flex-1 leading-4">
+          <Text className="text-label text-muted-foreground ml-2 flex-1 leading-4">
             Nothing is shared just by joining. Each person picks what to share, with a preview first.
           </Text>
         </View>

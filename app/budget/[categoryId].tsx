@@ -39,6 +39,7 @@ import { settingsStorage } from "@/services/storage";
 import { LIST_ROW_LIMIT } from "@/utils/list-tools";
 import { useGuardedLoad } from "@/hooks/use-guarded-load";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { HeaderPill } from "@/components/ui/LinkRow";
 
 const CATEGORY_SORT_KEY = "budget.category.sortBy";
 
@@ -217,6 +218,7 @@ export default function CategoryDetailScreen() {
             {monthLabel}
           </Text>
         </View>
+        <HeaderPill label="Edit budget" onPress={() => router.push("/settings/budget-config")} accessibilityLabel={`Edit budget for ${category.name}`} />
       </View>
 
       {/* Summary card */}
@@ -224,7 +226,7 @@ export default function CategoryDetailScreen() {
         <View className="flex-row items-center justify-between mb-2">
           <View>
             <Text className="text-label text-faint-foreground">Spent</Text>
-            <Text className="text-title font-bold" style={{ color }}>
+            <Text className="text-title font-bold" style={{ color: budgetAmount > 0 && totalSpent > budgetAmount ? theme.danger : theme.foreground }}>
               {formatAmount(totalSpent)}
             </Text>
           </View>

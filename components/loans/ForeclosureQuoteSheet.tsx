@@ -103,17 +103,17 @@ export function ForeclosureQuoteSheet({
   return (
     <Sheet visible={visible} onClose={handleClose}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Foreclosure Quote
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           Close this loan today. Quote valid for {today}.
         </Text>
       </View>
       <View className="px-5">
         <View
-          className="p-4 rounded-xl"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="p-4 rounded-card"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
           <Row label="Principal outstanding" value={formatMoney(quote.principalOutstanding)} />
           <Row label="Interest accrued (from last EMI)" value={formatMoney(quote.interestAccruedToDate)} />
@@ -179,14 +179,14 @@ function Row({
       ? theme.success
       : color === "danger"
         ? theme.danger
-        : colors.text;
+        : theme.foreground;
   return (
     <View className="flex-row items-center justify-between py-1.5">
-      <Text className="text-sm" style={{ color: colors.textSecondary }}>
+      <Text className="text-meta" style={{ color: theme.mutedForeground }}>
         {label}
       </Text>
       <Text
-        className={`text-sm ${bold ? "font-bold text-lg" : "font-medium"}`}
+        className={`text-body ${bold ? "font-bold text-heading" : "font-medium"}`}
         style={{ color: valueColor }}
       >
         {value}

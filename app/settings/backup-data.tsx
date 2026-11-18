@@ -58,10 +58,10 @@ export default function BackupDataScreen() {
               color={stale ? theme.warning : theme.success}
             />
             <View className="flex-1 ml-3">
-              <Text className="text-base font-medium text-foreground">
+              <Text className="text-body font-medium text-foreground">
                 {last ? `Backed up ${formatLastBackupTime(last).toLowerCase()}` : "Not backed up yet"}
               </Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {schedule.enabled ? `Automatic backup ${formatFrequency(schedule.frequencyHours).toLowerCase()}` : "Automatic backup is off"}
                 {" · encrypted with your password"}
               </Text>
@@ -70,11 +70,11 @@ export default function BackupDataScreen() {
           <View className="flex-row mt-3" style={{ gap: 8 }}>
             <Pressable
               onPress={() => router.push("/settings/backup-restore")}
-              className="flex-1 items-center py-2.5 rounded-lg"
+              className="flex-1 items-center py-2.5 rounded-control"
               style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
             >
-              <Text className="text-sm font-medium text-primary-foreground">Back up or restore</Text>
+              <Text className="text-body font-medium text-primary-foreground">Back up or restore</Text>
             </Pressable>
           </View>
         </Card>
@@ -118,7 +118,7 @@ export default function BackupDataScreen() {
 }
 
 function Label({ children }: { children: string }) {
-  return <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-2 px-1">{children}</Text>;
+  return <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-2 px-1">{children}</Text>;
 }
 
 function Row({
@@ -146,8 +146,8 @@ function Row({
     >
       <Ionicons name={icon} size={19} color={danger ? theme.danger : theme.mutedForeground} />
       <View className="flex-1 ml-3 mr-2">
-        <Text className="text-sm font-medium" style={{ color: danger ? theme.danger : theme.foreground }}>{title}</Text>
-        <Text className="text-xs text-muted-foreground mt-0.5">{subtitle}</Text>
+        <Text className="text-body font-medium" style={{ color: danger ? theme.danger : theme.foreground }}>{title}</Text>
+        <Text className="text-label text-muted-foreground mt-0.5">{subtitle}</Text>
       </View>
       <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
     </Pressable>

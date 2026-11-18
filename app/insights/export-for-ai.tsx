@@ -142,20 +142,20 @@ export default function ExportForAiScreen() {
   const renderRow = (key: string, label: string, hint: string | undefined, right: React.ReactNode, last: boolean) => (
     <View key={key} className={`flex-row items-center justify-between py-2.5 ${last ? "" : "border-b border-border"}`}>
       <View className="flex-1 mr-3">
-        <Text className="text-sm text-foreground">{label}</Text>
-        {hint && <Text className="text-xs text-muted-foreground mt-0.5">{hint}</Text>}
+        <Text className="text-meta text-foreground">{label}</Text>
+        {hint && <Text className="text-label text-muted-foreground mt-0.5">{hint}</Text>}
       </View>
       {right}
     </View>
   );
 
-  const sectionLabel = "text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-2";
+  const sectionLabel = "text-label font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-2";
 
   return (
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 pt-2">
-          <Text className="text-xs text-muted-foreground leading-5">
+          <Text className="text-label text-muted-foreground leading-5">
             A clean copy of your finances for an AI assistant like Claude. Share it, then ask your questions there.
           </Text>
 
@@ -205,31 +205,31 @@ export default function ExportForAiScreen() {
 
           <View className="flex-row items-start gap-2 mt-4">
             <Ionicons name="lock-closed" size={14} color={theme.success} style={{ marginTop: 2 }} />
-            <Text className="flex-1 text-xs text-muted-foreground leading-5">
+            <Text className="flex-1 text-label text-muted-foreground leading-5">
               Never included: your password vault, SMS text, broker and login credentials, full account numbers,
               deleted or unreviewed items.
             </Text>
           </View>
           <View className="flex-row items-start gap-2 mt-2">
             <Ionicons name="warning-outline" size={14} color={theme.warning} style={{ marginTop: 2 }} />
-            <Text className="flex-1 text-xs text-muted-foreground leading-5">
+            <Text className="flex-1 text-label text-muted-foreground leading-5">
               {"What you share is sent to that AI company's servers. Arth can't control it after that."}
             </Text>
           </View>
 
           <Button title="Share with AI" onPress={handleShare} loading={working} disabled={!anySection} className="mt-5" />
           {ready && (
-            <Text className="text-xs text-muted-foreground text-center mt-2">
+            <Text className="text-label text-muted-foreground text-center mt-2">
               {ready.result.counts.transactions.toLocaleString("en-IN")} transactions · {ready.result.counts.accounts}{" "}
               accounts · {formatSize(ready.result.file.sizeBytes)}
             </Text>
           )}
           {ready && ready.result.skipped.length > 0 && (
-            <Text className="text-xs text-center mt-1" style={{ color: theme.warning }}>
+            <Text className="text-label text-center mt-1" style={{ color: theme.warning }}>
               {`Left out because they couldn't be read: ${ready.result.skipped.join(", ")}`}
             </Text>
           )}
-          {message && <Text className="text-xs text-muted-foreground text-center mt-2">{message}</Text>}
+          {message && <Text className="text-label text-muted-foreground text-center mt-2">{message}</Text>}
           {Platform.OS === "android" && (
             <Button title="Save to phone instead" variant="ghost" onPress={handleSave} disabled={working} className="mt-1" />
           )}
@@ -239,7 +239,7 @@ export default function ExportForAiScreen() {
             className="flex-row items-center justify-center gap-1 mt-5 py-2"
             accessibilityRole="button"
           >
-            <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+            <Text className="text-label font-medium" style={{ color: theme.primary }}>
               Want the AI to set things up for you? AI Assisted Setup
             </Text>
             <Ionicons name="chevron-forward" size={12} color={theme.primary} />

@@ -59,7 +59,7 @@ export default function ImageTemplateScreen() {
     return (
       <ScreenContainer padTop={false}>
         {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
-        {loaded && <Text className="text-sm text-muted-foreground p-4">This template no longer exists.</Text>}
+        {loaded && <Text className="text-meta text-muted-foreground p-4">This template no longer exists.</Text>}
       </ScreenContainer>
     );
   }
@@ -128,17 +128,17 @@ export default function ImageTemplateScreen() {
       {guarded.failed && <LoadFailedBanner onRetry={guarded.load} />}
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Name</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Name</Text>
           <TextInput
             value={name}
             onChangeText={setName}
             onBlur={saveName}
             onSubmitEditing={saveName}
             returnKeyType="done"
-            className="text-base text-foreground rounded-lg px-3 py-2 border border-border"
+            className="text-body text-foreground rounded-control px-3 py-2 border border-border"
             accessibilityLabel="Template name"
           />
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-2">Records as</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-2">Records as</Text>
           <View className="flex-row flex-wrap" style={{ gap: 8 }}>
             {KINDS.map((k) => {
               const on = t.kind === k.kind;
@@ -151,17 +151,17 @@ export default function ImageTemplateScreen() {
                   accessibilityRole="radio"
                   accessibilityState={{ selected: on }}
                 >
-                  <Text className="text-sm font-semibold" style={{ color: on ? theme.primary : theme.foreground }}>{k.label}</Text>
+                  <Text className="text-body font-semibold" style={{ color: on ? theme.primary : theme.foreground }}>{k.label}</Text>
                 </Pressable>
               );
             })}
           </View>
-          <Text className="text-xs text-muted-foreground mt-2">Used {t.useCount} {t.useCount === 1 ? "time" : "times"}</Text>
+          <Text className="text-label text-muted-foreground mt-2">Used {t.useCount} {t.useCount === 1 ? "time" : "times"}</Text>
         </Card>
 
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Fields</Text>
-          <Text className="text-xs text-muted-foreground mb-2">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Fields</Text>
+          <Text className="text-label text-muted-foreground mb-2">
             {sample
               ? "Tap a field to link it to different text from the picture this template was taught on: a whole line, or one word of it."
               : "This template was saved before editing was possible, so it has no text to re-link. You can remove a field, or re-teach it with a new picture below."}
@@ -178,8 +178,8 @@ export default function ImageTemplateScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ expanded }}
                 >
-                  <Text className="text-sm text-foreground" style={{ width: 130 }}>{label(d.field)}</Text>
-                  <Text className="text-sm flex-1 text-right" numberOfLines={1} style={{ color: has ? theme.foreground : theme.mutedForeground }}>
+                  <Text className="text-meta text-foreground" style={{ width: 130 }}>{label(d.field)}</Text>
+                  <Text className="text-meta flex-1 text-right" numberOfLines={1} style={{ color: has ? theme.foreground : theme.mutedForeground }}>
                     {has ? (value ?? "Linked") : "Not linked"}
                   </Text>
                   <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={14} color={theme.mutedForeground} style={{ marginLeft: 6 }} />
@@ -195,12 +195,12 @@ export default function ImageTemplateScreen() {
                             <Pressable
                               key={`${o.pick.i}:${o.pick.from ?? "all"}`}
                               onPress={() => !on && link(d.field, o.pick)}
-                              className="rounded-md px-2 py-1.5"
+                              className="rounded-control px-2 py-1.5"
                               style={{ borderWidth: 1, borderColor: on ? theme.primary : theme.border, backgroundColor: on ? theme.alpha("primary", 0.1) : undefined, maxWidth: "100%" }}
                               accessibilityRole="radio"
                               accessibilityState={{ selected: on }}
                             >
-                              <Text className="text-xs" numberOfLines={1} style={{ color: on ? theme.primary : theme.foreground }}>{o.text}</Text>
+                              <Text className="text-label" numberOfLines={1} style={{ color: on ? theme.primary : theme.foreground }}>{o.text}</Text>
                             </Pressable>
                           );
                         })}
@@ -208,7 +208,7 @@ export default function ImageTemplateScreen() {
                     )}
                     {has && (
                       <Pressable onPress={() => unlink(d.field)} className="mt-2 self-start" accessibilityRole="button">
-                        <Text className="text-sm font-medium" style={{ color: theme.danger }}>Remove this field</Text>
+                        <Text className="text-body font-medium" style={{ color: theme.danger }}>Remove this field</Text>
                       </Pressable>
                     )}
                   </View>
@@ -223,7 +223,7 @@ export default function ImageTemplateScreen() {
           variant="outline"
           onPress={() => router.push({ pathname: "/expense/from-screenshot", params: { templateId: t.id } })}
         />
-        <Text className="text-xs text-muted-foreground text-center mt-2 mb-4">Pick a picture like it and link its text again; this template is updated.</Text>
+        <Text className="text-label text-muted-foreground text-center mt-2 mb-4">Pick a picture like it and link its text again; this template is updated.</Text>
         <Button title="Delete template" variant="ghost" onPress={remove} />
       </ScrollView>
     </ScreenContainer>

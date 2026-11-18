@@ -90,20 +90,20 @@ export default function UpdateBalancesScreen() {
     if (list.length === 0) return null;
     return (
       <>
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-2">{title}</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-2">{title}</Text>
         {list.map((l) => {
           const v = parseAmount(values[l.accountId] ?? "");
           const diff = v != null ? v - l.current : 0;
           const isChanged = v != null && Math.abs(diff) >= 1;
           return (
             <Card key={l.accountId} className="mb-2">
-              <Text className="text-sm font-semibold text-foreground">{l.name}</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-body font-semibold text-foreground">{l.name}</Text>
+              <Text className="text-label text-muted-foreground mt-0.5">
                 Arth: {formatAmount(l.current)}
                 {kind === "card_due" ? " owed" : ""}
                 {kind === "card_due" && l.limit ? ` of ${formatAmount(l.limit)} limit` : ""}
               </Text>
-              <Text className="text-xs mt-0.5" style={{ color: l.sms ? theme.primary : theme.mutedForeground }}>
+              <Text className="text-label mt-0.5" style={{ color: l.sms ? theme.primary : theme.mutedForeground }}>
                 {l.sms
                   ? `Filled in from your bank's SMS${l.sms.date ? ` on ${formatDisplayDate(l.sms.date.slice(0, 10))}` : ""}. Change it if it's moved since.`
                   : "No balance from your bank's SMS. Replace Arth's figure with what your bank app shows."}
@@ -118,7 +118,7 @@ export default function UpdateBalancesScreen() {
               />
               {isChanged && (
                 <>
-                  <Text className="text-xs mt-1" style={{ color: theme.warning }}>
+                  <Text className="text-label mt-1" style={{ color: theme.warning }}>
                     {(kind === "balance" ? diff < 0 : diff > 0)
                       ? `${formatAmount(Math.abs(diff))} counted as money out`
                       : `${formatAmount(Math.abs(diff))} counted as money in`}
@@ -126,8 +126,8 @@ export default function UpdateBalancesScreen() {
                   {(kind === "balance" ? diff < 0 : diff > 0) && (
                     <View className="flex-row items-center mt-2">
                       <View className="flex-1 mr-3">
-                        <Text className="text-sm text-foreground">Count in budget</Text>
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-meta text-foreground">Count in budget</Text>
+                        <Text className="text-label text-muted-foreground">
                           {inBudget[l.accountId] ? "Counts as uncategorised spending this month" : "Money out, but not against your budget"}
                         </Text>
                       </View>
@@ -159,7 +159,7 @@ export default function UpdateBalancesScreen() {
     <ScreenContainer padTop={false}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
-          <Text className="text-sm text-muted-foreground mb-3 leading-5">
+          <Text className="text-meta text-muted-foreground mb-3 leading-5">
             Each box starts at your bank&apos;s latest SMS figure where there is one, otherwise at Arth&apos;s. Check them against your bank
             and card apps. Wherever a box differs from Arth&apos;s figure, the difference is recorded in that account&apos;s ledger as money
             out or money in. Money out stays out of your budget unless you switch on Count in budget.

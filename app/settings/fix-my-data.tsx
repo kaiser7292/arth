@@ -259,13 +259,13 @@ export default function FixMyDataScreen() {
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
           <ActivityIndicator size="large" color={theme.primary} />
-          <Text className="text-base font-semibold text-foreground mt-4 text-center">{p?.doing ?? "Applying"}</Text>
+          <Text className="text-body font-semibold text-foreground mt-4 text-center">{p?.doing ?? "Applying"}</Text>
           {p && p.total > 0 && (
-            <Text className="text-sm text-muted-foreground mt-1">
+            <Text className="text-meta text-muted-foreground mt-1">
               {Math.min(p.done, p.total)} of {p.total}
             </Text>
           )}
-          <Text className="text-xs text-muted-foreground mt-4 text-center">Keep Arth open until this finishes.</Text>
+          <Text className="text-label text-muted-foreground mt-4 text-center">Keep Arth open until this finishes.</Text>
         </View>
       </ScreenContainer>
     );
@@ -277,34 +277,34 @@ export default function FixMyDataScreen() {
       <ScreenContainer padTop={false}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
           <Card className="mb-3">
-            <Text className="text-xs text-muted-foreground">Applied</Text>
+            <Text className="text-label text-muted-foreground">Applied</Text>
             <Text className="text-title font-bold text-foreground mt-1">
               {result.applied} correction{result.applied === 1 ? "" : "s"}
             </Text>
             {result.byGroup.map((g) => (
               <View key={g.label} className="flex-row justify-between mt-1.5">
-                <Text className="text-sm text-muted-foreground flex-1 mr-2">{g.label}</Text>
-                <Text className="text-sm text-foreground">{g.count}</Text>
+                <Text className="text-meta text-muted-foreground flex-1 mr-2">{g.label}</Text>
+                <Text className="text-meta text-foreground">{g.count}</Text>
               </View>
             ))}
           </Card>
 
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-1">What moved</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-1">What moved</Text>
           <Card className="mb-3">
             {result.changes.length === 0 ? (
-              <Text className="text-sm text-muted-foreground">None of your headline figures changed.</Text>
+              <Text className="text-meta text-muted-foreground">None of your headline figures changed.</Text>
             ) : (
               result.changes.map((c: MetricChange) => {
                 const better = c.lowerIsBetter ? c.value < c.before : c.id === "health:score" ? c.value > c.before : null;
                 return (
                   <View key={c.id} className="flex-row items-center py-1.5">
-                    <Text className="text-sm text-foreground flex-1 mr-2" numberOfLines={1}>
+                    <Text className="text-meta text-foreground flex-1 mr-2" numberOfLines={1}>
                       {c.label}
                     </Text>
-                    <Text className="text-xs text-muted-foreground mr-1.5">{showMetric(c, c.before)}</Text>
+                    <Text className="text-label text-muted-foreground mr-1.5">{showMetric(c, c.before)}</Text>
                     <Ionicons name="arrow-forward" size={11} color={theme.mutedForeground} />
                     <Text
-                      className="text-sm font-semibold ml-1.5"
+                      className="text-body font-semibold ml-1.5"
                       style={{ color: better === true ? theme.success : better === false ? theme.warning : theme.foreground }}
                     >
                       {showMetric(c, c.value)}
@@ -317,11 +317,11 @@ export default function FixMyDataScreen() {
 
           {result.failed.length > 0 && (
             <Card className="mb-3">
-              <Text className="text-sm font-semibold text-foreground mb-1">
+              <Text className="text-body font-semibold text-foreground mb-1">
                 {result.failed.length} couldn't be applied
               </Text>
               {result.failed.slice(0, 30).map((f, i) => (
-                <Text key={i} className="text-xs text-muted-foreground mt-1">
+                <Text key={i} className="text-label text-muted-foreground mt-1">
                   {f.title}: {f.reason}
                 </Text>
               ))}
@@ -330,7 +330,7 @@ export default function FixMyDataScreen() {
 
           <Button title="Done" onPress={() => { setPhase("home"); setReply(null); setPasted(""); void loadHealth(); }} className="mb-2" />
           <Button title="Undo all of this" variant="outline" onPress={() => void undo()} loading={undoing} />
-          <Text className="text-xs text-muted-foreground mt-2 text-center">You can also undo it later from Fixes done, until your next AI fix.</Text>
+          <Text className="text-label text-muted-foreground mt-2 text-center">You can also undo it later from Fixes done, until your next AI fix.</Text>
         </ScrollView>
       </ScreenContainer>
     );
@@ -341,7 +341,7 @@ export default function FixMyDataScreen() {
     return (
       <ScreenContainer padTop={false}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
-          <Text className="text-sm text-muted-foreground mb-3 leading-5">
+          <Text className="text-meta text-muted-foreground mb-3 leading-5">
             {reply.accepted.length} correction{reply.accepted.length === 1 ? "" : "s"} checked against your data. Nothing has changed yet. Untick
             any you don't want.
             {reply.alreadySet > 0 ? ` ${reply.alreadySet} were already true and are left out.` : ""}
@@ -359,10 +359,10 @@ export default function FixMyDataScreen() {
                   accessibilityState={{ checked: allOn }}
                 >
                   <Ionicons name={allOn ? "checkbox" : "square-outline"} size={20} color={allOn ? theme.primary : theme.mutedForeground} />
-                  <Text className="text-sm font-semibold text-foreground ml-2 flex-1">{g.label}</Text>
-                  <Text className="text-xs text-muted-foreground">{g.items.length}</Text>
+                  <Text className="text-body font-semibold text-foreground ml-2 flex-1">{g.label}</Text>
+                  <Text className="text-label text-muted-foreground">{g.items.length}</Text>
                 </Pressable>
-                {DELIBERATE.has(g.type) && <Text className="text-xs text-muted-foreground mt-1">Changes your plan, so it starts unticked.</Text>}
+                {DELIBERATE.has(g.type) && <Text className="text-label text-muted-foreground mt-1">Changes your plan, so it starts unticked.</Text>}
                 {g.items.slice(0, 50).map((f: Fix) => {
                   const on = !off.has(f.key);
                   return (
@@ -375,14 +375,14 @@ export default function FixMyDataScreen() {
                     >
                       <Ionicons name={on ? "checkmark-circle" : "ellipse-outline"} size={18} color={on ? theme.primary : theme.mutedForeground} />
                       <View className="flex-1 ml-2">
-                        <Text className="text-sm text-foreground" numberOfLines={1}>{f.title}</Text>
-                        {f.detail ? <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={2}>{f.detail}</Text> : null}
-                        {f.why ? <Text className="text-xs mt-0.5" style={{ color: theme.mutedForeground }} numberOfLines={2}>“{f.why}”</Text> : null}
+                        <Text className="text-meta text-foreground" numberOfLines={1}>{f.title}</Text>
+                        {f.detail ? <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={2}>{f.detail}</Text> : null}
+                        {f.why ? <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }} numberOfLines={2}>“{f.why}”</Text> : null}
                       </View>
                     </Pressable>
                   );
                 })}
-                {g.items.length > 50 && <Text className="text-xs text-muted-foreground mt-2">and {g.items.length - 50} more like these</Text>}
+                {g.items.length > 50 && <Text className="text-label text-muted-foreground mt-2">and {g.items.length - 50} more like these</Text>}
               </Card>
             );
           })}
@@ -390,13 +390,13 @@ export default function FixMyDataScreen() {
           {reply.rejected.length > 0 && (
             <Card className="mb-3">
               <Pressable onPress={() => setShowRejected((v) => !v)} className="flex-row items-center">
-                <Text className="text-sm font-semibold text-foreground flex-1">{reply.rejected.length} left out</Text>
+                <Text className="text-body font-semibold text-foreground flex-1">{reply.rejected.length} left out</Text>
                 <Ionicons name={showRejected ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
               </Pressable>
-              <Text className="text-xs text-muted-foreground mt-1">Wrong, or about something Arth couldn't find. Nothing from these is applied.</Text>
+              <Text className="text-label text-muted-foreground mt-1">Wrong, or about something Arth couldn't find. Nothing from these is applied.</Text>
               {showRejected &&
                 reply.rejected.slice(0, 60).map((r, i) => (
-                  <Text key={i} className="text-xs text-muted-foreground mt-2" numberOfLines={3}>
+                  <Text key={i} className="text-label text-muted-foreground mt-2" numberOfLines={3}>
                     {r.reason}: {r.text}
                   </Text>
                 ))}
@@ -421,16 +421,16 @@ export default function FixMyDataScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
 
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Data health</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Data health</Text>
           {!health ? (
             <ActivityIndicator className="mt-3" color={theme.primary} />
           ) : (
             <>
               <View className="flex-row items-end mt-1">
                 <Text className="text-title font-bold" style={{ color: scoreColor }}>{health.score}%</Text>
-                <Text className="text-sm text-muted-foreground ml-2 mb-1">tidy · {health.transactions.toLocaleString("en-IN")} transactions</Text>
+                <Text className="text-meta text-muted-foreground ml-2 mb-1">tidy · {health.transactions.toLocaleString("en-IN")} transactions</Text>
               </View>
-              <Text className="text-xs text-muted-foreground mt-1">
+              <Text className="text-label text-muted-foreground mt-1">
                 {issues.length === 0 ? "Nothing Arth can see needs fixing." : `${issues.length} thing${issues.length === 1 ? "" : "s"} to look at.`}
               </Text>
             </>
@@ -449,11 +449,11 @@ export default function FixMyDataScreen() {
                 accessibilityRole="button"
               >
                 <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("warning", 0.14) }}>
-                  <Text className="text-xs font-bold" style={{ color: theme.warning }}>{c.count > 999 ? "999+" : c.count}</Text>
+                  <Text className="text-label font-bold" style={{ color: theme.warning }}>{c.count > 999 ? "999+" : c.count}</Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-sm font-medium text-foreground">{c.label}</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">{c.hint}</Text>
+                  <Text className="text-body font-medium text-foreground">{c.label}</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5">{c.hint}</Text>
                 </View>
                 <Ionicons name={isGaps && showGaps ? "chevron-up" : isGaps ? "chevron-down" : "chevron-forward"} size={15} color={theme.mutedForeground} />
               </Pressable>
@@ -466,10 +466,10 @@ export default function FixMyDataScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={`Open ${g.name}'s ledger`}
                     >
-                      <Text className="text-sm text-foreground flex-1">{g.name}</Text>
-                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Ledger</Text>
+                      <Text className="text-meta text-foreground flex-1">{g.name}</Text>
+                      <Text className="text-label font-semibold" style={{ color: theme.primary }}>Ledger</Text>
                     </Pressable>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
+                    <Text className="text-label text-muted-foreground mt-0.5">
                       Bank said {formatAmount(g.bank)} on {formatDisplayDate(g.bankDate)}; Arth makes it {formatAmount(g.arth)} ({g.gap > 0 ? "+" : "−"}
                       {formatAmount(Math.abs(g.gap))})
                     </Text>
@@ -480,7 +480,7 @@ export default function FixMyDataScreen() {
                       style={{ backgroundColor: theme.alpha("primary", 0.12) }}
                       accessibilityRole="button"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+                      <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                         {matching === g.accountId ? "Matching…" : "Match the bank"}
                       </Text>
                     </Pressable>
@@ -490,29 +490,29 @@ export default function FixMyDataScreen() {
           );
         })}
         {clean.length > 0 && (
-          <Text className="text-xs text-muted-foreground mb-3 mt-1">
+          <Text className="text-label text-muted-foreground mb-3 mt-1">
             All good: {clean.map((c) => c.label.toLowerCase()).join(", ")}.
           </Text>
         )}
 
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-3">Fix everything with your AI</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-3">Fix everything with your AI</Text>
         <Card className="mb-3">
-          <Text className="text-sm font-semibold text-foreground">1. Share your whole history</Text>
-          <Text className="text-xs text-muted-foreground mt-1 leading-4">
+          <Text className="text-body font-semibold text-foreground">1. Share your whole history</Text>
+          <Text className="text-label text-muted-foreground mt-1 leading-4">
             Your AI assistant gets every transaction, account, budget and goal, plus what Arth found above, and replies with a correction file.
             SMS text, the vault and account numbers stay on this phone.
           </Text>
           <View className="flex-row items-center mt-3">
-            <Text className="text-sm text-foreground flex-1">Include people's names (Hisaab)</Text>
+            <Text className="text-meta text-foreground flex-1">Include people's names (Hisaab)</Text>
             <Switch value={includePeople} onValueChange={setIncludePeople} />
           </View>
           <View className="flex-row items-center mt-1">
-            <Text className="text-sm text-foreground flex-1">Include your notes</Text>
+            <Text className="text-meta text-foreground flex-1">Include your notes</Text>
             <Switch value={includeNotes} onValueChange={setIncludeNotes} />
           </View>
           <Button title={file ? "Share again" : "Make the file and share"} onPress={() => void makeFile()} loading={exporting} className="mt-3" />
           {file && (
-            <Text className="text-xs text-muted-foreground mt-2">
+            <Text className="text-label text-muted-foreground mt-2">
               {file.transactions.toLocaleString("en-IN")} transactions · {Math.max(1, Math.round(file.sizeBytes / 1024))} KB. The request is on your
               clipboard too.
             </Text>
@@ -520,8 +520,8 @@ export default function FixMyDataScreen() {
         </Card>
 
         <Card className="mb-3">
-          <Text className="text-sm font-semibold text-foreground">2. Paste its reply</Text>
-          <Text className="text-xs text-muted-foreground mt-1">Copy the assistant's whole reply. Arth checks every correction before anything changes.</Text>
+          <Text className="text-body font-semibold text-foreground">2. Paste its reply</Text>
+          <Text className="text-label text-muted-foreground mt-1">Copy the assistant's whole reply. Arth checks every correction before anything changes.</Text>
           <Button title="Paste from clipboard" variant="outline" onPress={() => void pasteFromClipboard()} loading={reading} className="mt-3" />
           <TextInput
             value={pasted}
@@ -529,21 +529,21 @@ export default function FixMyDataScreen() {
             placeholder={'Or paste here: {"corrections": [ … ]}'}
             placeholderTextColor={theme.mutedForeground}
             multiline
-            className="text-xs text-foreground border border-border rounded-lg px-3 py-2 mt-2"
+            className="text-label text-foreground border border-border rounded-control px-3 py-2 mt-2"
             style={{ minHeight: 90, maxHeight: 200, textAlignVertical: "top" }}
             accessibilityLabel="Assistant's reply"
           />
           {pasted.trim().length > 0 && <Button title="Read the reply" onPress={() => void read(pasted)} loading={reading} className="mt-2" />}
         </Card>
 
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-3">Fixes done</Text>
-        <Text className="text-xs text-muted-foreground mb-2 leading-4">
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-3">Fixes done</Text>
+        <Text className="text-label text-muted-foreground mb-2 leading-4">
           Only your latest AI fix can be undone, at any time until you apply the next one. Undo puts all your data back as it was just before
           that fix, so anything added or edited after it goes too. Bank matches are undone by deleting the adjustment in the account&apos;s ledger.
         </Text>
         {history.length === 0 ? (
           <Card className="mb-3">
-            <Text className="text-sm text-muted-foreground">No fixes yet.</Text>
+            <Text className="text-meta text-muted-foreground">No fixes yet.</Text>
           </Card>
         ) : (
           history.map((e) => {
@@ -558,10 +558,10 @@ export default function FixMyDataScreen() {
                     color={e.undoneAt ? theme.mutedForeground : theme.primary}
                   />
                   <View className="flex-1 ml-2.5">
-                    <Text className="text-sm text-foreground" style={e.undoneAt ? { textDecorationLine: "line-through" } : undefined} numberOfLines={1}>
+                    <Text className="text-meta text-foreground" style={e.undoneAt ? { textDecorationLine: "line-through" } : undefined} numberOfLines={1}>
                       {e.title}
                     </Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">
+                    <Text className="text-label text-muted-foreground mt-0.5">
                       {formatDisplayDate(e.at.slice(0, 10))}
                       {e.undoneAt
                         ? ` · undone ${formatDisplayDate(e.undoneAt.slice(0, 10))}`
@@ -575,7 +575,7 @@ export default function FixMyDataScreen() {
                   </View>
                   {canUndo && (
                     <Pressable onPress={() => void undo()} hitSlop={8} accessibilityRole="button" disabled={undoing} className="ml-2">
-                      <Text className="text-sm font-semibold" style={{ color: theme.primary }}>{undoing ? "Undoing…" : "Undo"}</Text>
+                      <Text className="text-body font-semibold" style={{ color: theme.primary }}>{undoing ? "Undoing…" : "Undo"}</Text>
                     </Pressable>
                   )}
                   <Ionicons name={open ? "chevron-up" : "chevron-down"} size={14} color={theme.mutedForeground} style={{ marginLeft: 6 }} />
@@ -584,24 +584,24 @@ export default function FixMyDataScreen() {
                   <View className="mt-2">
                     {e.groups.map((g) => (
                       <View key={g.label} className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-muted-foreground flex-1 mr-2">{g.label}</Text>
-                        <Text className="text-xs text-foreground">{g.count}</Text>
+                        <Text className="text-label text-muted-foreground flex-1 mr-2">{g.label}</Text>
+                        <Text className="text-label text-foreground">{g.count}</Text>
                       </View>
                     ))}
-                    {e.moved.length > 0 && <Text className="text-xs font-semibold text-foreground mt-2">What moved</Text>}
+                    {e.moved.length > 0 && <Text className="text-label font-semibold text-foreground mt-2">What moved</Text>}
                     {e.moved.map((m) => (
                       <View key={m.label} className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-muted-foreground flex-1 mr-2" numberOfLines={1}>{m.label}</Text>
-                        <Text className="text-xs text-foreground">
+                        <Text className="text-label text-muted-foreground flex-1 mr-2" numberOfLines={1}>{m.label}</Text>
+                        <Text className="text-label text-foreground">
                           {showMetric(m, m.before)} → {showMetric(m, m.value)}
                         </Text>
                       </View>
                     ))}
                     {e.groups.length === 0 && e.moved.length === 0 && (
-                      <Text className="text-xs text-muted-foreground">No details kept for this one.</Text>
+                      <Text className="text-label text-muted-foreground">No details kept for this one.</Text>
                     )}
                     {!canUndo && e.kind === "ai" && !e.undoneAt && (
-                      <Text className="text-xs text-muted-foreground mt-2">A later AI fix replaced its undo copy.</Text>
+                      <Text className="text-label text-muted-foreground mt-2">A later AI fix replaced its undo copy.</Text>
                     )}
                   </View>
                 )}

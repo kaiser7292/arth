@@ -134,14 +134,14 @@ export function SalaryInputForm({
               <Ionicons
                 name="wallet-outline"
                 size={20}
-                color={colors.blue}
+                color={theme.data.series[3]}
               />
             </View>
             <View>
-              <Text className="text-base font-bold text-foreground">
+              <Text className="text-body font-bold text-foreground">
                 Direct Salary Input
               </Text>
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-label text-muted-foreground">
                 Enter your take-home salary directly
               </Text>
             </View>
@@ -168,7 +168,7 @@ export function SalaryInputForm({
                 color={theme.primary}
               />
               <Text
-                className="text-xs font-medium ml-1"
+                className="text-label font-medium ml-1"
                 style={{ color: theme.primary }}
               >
                 Customize by Month
@@ -192,7 +192,7 @@ export function SalaryInputForm({
                 onPress={() => onMonthlyOverridesChange?.({})}
                 hitSlop={8}
               >
-                <Text className="text-xs text-danger">
+                <Text className="text-label text-danger">
                   Reset all
                 </Text>
               </Pressable>
@@ -214,7 +214,7 @@ export function SalaryInputForm({
                     className="flex-row items-center mb-1.5"
                   >
                     <Text
-                      className={`w-10 text-xs font-medium ${
+                      className={`w-10 text-label font-medium ${
                         isOverridden
                           ? ""
                           : "text-muted-foreground"
@@ -254,7 +254,7 @@ export function SalaryInputForm({
                         <Ionicons
                           name="close-circle"
                           size={16}
-                          color={colors.textSecondary}
+                          color={theme.mutedForeground}
                         />
                       </Pressable>
                     )}
@@ -269,17 +269,17 @@ export function SalaryInputForm({
         {directAnnual > 0 && (
           <Card className="mb-4">
             <View className="items-center py-2">
-              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-1">
+              <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-1">
                 Annual In-Hand
               </Text>
-              <Text className="text-3xl font-bold text-success">
+              <Text className="text-display font-bold text-success">
                 {formatAmount(directAnnual)}
               </Text>
-              <Text className="text-sm text-muted-foreground mt-0.5">
+              <Text className="text-meta text-muted-foreground mt-0.5">
                 {formatAmount(directAnnual / 12)} / month avg
               </Text>
               {hasAnyOverride && (
-                <Text className="text-xs text-faint-foreground mt-1">
+                <Text className="text-label text-faint-foreground mt-1">
                   {overrideCount} month{overrideCount > 1 ? "s" : ""} customized
                 </Text>
               )}
@@ -295,13 +295,13 @@ export function SalaryInputForm({
                 <Ionicons
                   name="wallet-outline"
                   size={28}
-                  color={colors.blue}
+                  color={theme.data.series[3]}
                 />
               </View>
-              <Text className="text-base font-medium text-foreground mb-1">
+              <Text className="text-body font-medium text-foreground mb-1">
                 Enter your salary
               </Text>
-              <Text className="text-sm text-muted-foreground text-center px-4">
+              <Text className="text-meta text-muted-foreground text-center px-4">
                 Enter your monthly take-home salary. No tax calculation
                 needed - just the amount you receive.
               </Text>
@@ -322,14 +322,14 @@ export function SalaryInputForm({
             <Ionicons
               name="cash-outline"
               size={20}
-              color={colors.blue}
+              color={theme.data.series[3]}
             />
           </View>
           <View>
-            <Text className="text-base font-bold text-foreground">
+            <Text className="text-body font-bold text-foreground">
               Annual CTC
             </Text>
-            <Text className="text-xs text-muted-foreground">
+            <Text className="text-label text-muted-foreground">
               Enter your cost-to-company
             </Text>
           </View>
@@ -378,7 +378,7 @@ export function SalaryInputForm({
           </View>
         ) : (
           <View>
-            <Text className="text-xs text-muted-foreground mb-2">
+            <Text className="text-label text-muted-foreground mb-2">
               Enter rupee amounts from your offer letter. Leave Special Allowance blank to auto-fill from remainder.
             </Text>
             <Input
@@ -431,11 +431,11 @@ export function SalaryInputForm({
 
       {basicBelowHalf && (
         <View
-          className="flex-row items-start px-3 py-2.5 rounded-lg mb-4"
+          className="flex-row items-start px-3 py-2.5 rounded-control mb-4"
           style={{ backgroundColor: theme.alpha("warning", 0.08) }}
         >
           <Ionicons name="alert-circle-outline" size={16} color={theme.warning} />
-          <Text className="text-xs text-muted-foreground ml-2 flex-1">
+          <Text className="text-label text-muted-foreground ml-2 flex-1">
             Basic pay is under half of your gross pay. Under the new Labour Codes (from 21 Nov 2025),
             basic + DA must be at least 50% of pay for PF and gratuity, so your employer may raise
             basic. That means more PF and gratuity and slightly lower take-home. Check your latest
@@ -501,9 +501,9 @@ export function SalaryInputForm({
           <Ionicons
             name="information-circle-outline"
             size={14}
-            color={colors.textSecondary}
+            color={theme.mutedForeground}
           />
-          <Text className="text-xs text-faint-foreground ml-1">
+          <Text className="text-label text-faint-foreground ml-1">
             Professional Tax: {formatAmount(profTax)}/year
           </Text>
         </View>

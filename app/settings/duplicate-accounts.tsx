@@ -96,7 +96,7 @@ export default function DuplicateAccountsScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Text className="text-xs text-muted-foreground mb-3 px-1">
+        <Text className="text-label text-muted-foreground mb-3 px-1">
           These accounts have the same bank and the same last digits, so they're probably one account recorded twice - often a savings account that was also saved as a credit card. Pick the one to keep.
         </Text>
         {groups.map((g) => {
@@ -113,7 +113,7 @@ export default function DuplicateAccountsScreen() {
                 />
               ))}
               {!g.canMerge && (
-                <Text className="text-xs mt-2" style={{ color: theme.warning }}>
+                <Text className="text-label mt-2" style={{ color: theme.warning }}>
                   More than one of these has a loan or investment attached, so they can't be merged here. Edit them from the account screen instead.
                 </Text>
               )}
@@ -149,15 +149,15 @@ function AccountChoice({ account: a, selected, first, onPress }: { account: Dupl
     >
       <Ionicons name={selected ? "radio-button-on" : "radio-button-off"} size={20} color={selected ? theme.primary : theme.mutedForeground} />
       <View className="flex-1 ml-3">
-        <Text className="text-sm font-medium text-foreground">
+        <Text className="text-body font-medium text-foreground">
           {a.name} · {TYPE_LABEL[a.account_type] ?? a.account_type} ••{a.account_identifier.slice(-4)}
         </Text>
-        <Text className="text-xs text-muted-foreground mt-0.5">
+        <Text className="text-label text-muted-foreground mt-0.5">
           {a.addedByYou ? "Added by you" : "Created from a message"} · {formatDisplayDate(a.created_at.slice(0, 10))} · {a.txCount} transaction{a.txCount === 1 ? "" : "s"}
           {a.last_known_balance != null ? ` · ${formatAmount(a.last_known_balance)}` : ""}
         </Text>
       </View>
-      {selected && <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Keep</Text>}
+      {selected && <Text className="text-label font-semibold" style={{ color: theme.primary }}>Keep</Text>}
     </Pressable>
   );
 }

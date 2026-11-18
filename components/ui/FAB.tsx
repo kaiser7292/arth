@@ -10,6 +10,7 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { Shadows } from "@/constants/theme";
+import { Text } from "./Text";
 
 interface FABProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -17,6 +18,11 @@ interface FABProps {
   iconColor?: string;
   size?: number;
   accessibilityLabel?: string;
+  /**
+   * Makes it the labelled pill the revamp boards use ("+ Milestone", "+ Account"): 52 tall, the icon
+   * and one word. Without a label it stays the round button.
+   */
+  label?: string;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -26,7 +32,8 @@ export function FAB({
   onPress,
   iconColor,
   size = 64,
-  accessibilityLabel = "Add new item",
+  accessibilityLabel,
+  label,
 }: FABProps) {
   const theme = useTheme();
   // Scheme-aware stops. A fixed 400->600 gradient with a white glyph measured 3.4:1 in light and
@@ -64,18 +71,20 @@ export function FAB({
       onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={accessibilityLabel ?? (label ? `Add ${label.toLowerCase()}` : "Add new item")}
       accessibilityRole="button"
       style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          overflow: "hidden",
-          position: "absolute",
-          bottom: 24,
-          right: 24,
-        },
+        label
+          ? { height: 52, borderRadius: 26, overflow: "hidden", position: "absolute", bottom: 24, right: 16 }
+          : {
+              width: size,
+              height: size,
+              borderRadius: size / 2,
+              overflow: "hidden",
+              position: "absolute",
+              bottom: 24,
+              right: 24,
+            },
         Shadows.fab,
         animatedStyle,
       ]}
@@ -84,9 +93,18 @@ export function FAB({
         colors={stops}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+        style={
+          label
+            ? { flex: 1, flexDirection: "row", alignItems: "center", paddingLeft: 16, paddingRight: 20, gap: 8 }
+            : { flex: 1, alignItems: "center", justifyContent: "center" }
+        }
       >
-        <Ionicons name={icon} size={32} color={glyph} />
+        <Ionicons name={icon} size={label ? 20 : 32} color={glyph} />
+        {label ? (
+          <Text className="text-body font-bold" style={{ color: glyph }} numberOfLines={1}>
+            {label}
+          </Text>
+        ) : null}
       </LinearGradient>
     </AnimatedPressable>
   );

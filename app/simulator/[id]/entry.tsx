@@ -31,6 +31,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { tint } from "@/constants/brand";
 
 const REPEAT_LABELS: Record<RecurringFrequency, string> = {
   monthly: "Monthly",
@@ -274,7 +275,7 @@ export default function SimulatorEntryForm() {
       <ScreenContainer padTop={false}>
         {loadFailed && <LoadFailedBanner />}
         <View className="flex-1 items-center justify-center">
-          <Text style={{ color: colors.textSecondary }}>Loading...</Text>
+          <Text style={{ color: theme.mutedForeground }}>Loading...</Text>
         </View>
       </ScreenContainer>
     );
@@ -293,7 +294,7 @@ export default function SimulatorEntryForm() {
         >
           <View className="px-4 pt-4 pb-8">
             <View className="mb-4">
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              <Text className="text-meta" style={{ color: theme.mutedForeground }}>
                 {isHisaab
                   ? flavor === "collect"
                     ? "Plan money coming in from someone who owes you."
@@ -304,8 +305,8 @@ export default function SimulatorEntryForm() {
           {/* Kind selector */}
           <View className="px-0 pb-3">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
+              className="text-label font-semibold uppercase tracking-wider mb-2"
+              style={{ color: theme.mutedForeground }}
             >
               Kind
             </Text>
@@ -333,12 +334,12 @@ export default function SimulatorEntryForm() {
                       minWidth: "48%",
                       flexGrow: 1,
                       backgroundColor: active
-                        ? theme.primary + "22"
-                        : colors.surface,
+                        ? tint(theme.primary, 0.13)
+                        : theme.card,
                       borderWidth: active ? 2 : 1,
                       borderColor: active
                         ? theme.primary
-                        : colors.border,
+                        : theme.border,
                       borderRadius: 12,
                       paddingVertical: 10,
                       paddingHorizontal: 10,
@@ -350,11 +351,11 @@ export default function SimulatorEntryForm() {
                     <Ionicons
                       name={f.icon}
                       size={14}
-                      color={active ? theme.primary : colors.textSecondary}
+                      color={active ? theme.primary : theme.mutedForeground}
                     />
                     <Text
-                      className="ml-1.5 text-xs font-semibold"
-                      style={{ color: active ? colors.text : colors.textSecondary }}
+                      className="ml-1.5 text-label font-semibold"
+                      style={{ color: active ? theme.foreground : theme.mutedForeground }}
                       numberOfLines={1}
                     >
                       {f.label}
@@ -369,20 +370,20 @@ export default function SimulatorEntryForm() {
           {isHisaab && (
             <View className="px-0 pb-3">
               <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
+                className="text-label font-semibold uppercase tracking-wider mb-2"
+                style={{ color: theme.mutedForeground }}
               >
                 Hisaab person
               </Text>
               <Pressable
                 onPress={() => setPersonPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
-                style={{ borderColor: colors.border }}
+                className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
+                style={{ borderColor: theme.border }}
               >
-                <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedPerson ? colors.text : colors.textSecondary }}>
+                <Text className="text-meta flex-1" numberOfLines={1} style={{ color: selectedPerson ? theme.foreground : theme.mutedForeground }}>
                   {selectedPerson ? selectedPerson.name : "Pick a person"}
                 </Text>
-                <Ionicons name={personPickerVisible ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
+                <Ionicons name={personPickerVisible ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
               </Pressable>
               {personPickerVisible && (
                 <SearchablePickerList
@@ -401,7 +402,7 @@ export default function SimulatorEntryForm() {
                 />
               )}
               {!selectedPerson && (
-                <Text className="text-label mt-1" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-1" style={{ color: theme.mutedForeground }}>
                   {flavor === "collect"
                     ? "Who's paying you back?"
                     : "Who are you paying back?"}
@@ -418,51 +419,51 @@ export default function SimulatorEntryForm() {
               onChangeText={setAmount}
               placeholder="0"
               formula
-              className="text-lg font-semibold"
+              className="text-heading font-semibold"
             />
           </View>
 
           {/* Date */}
           <View className="px-0 pb-3">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
+              className="text-label font-semibold uppercase tracking-wider mb-2"
+              style={{ color: theme.mutedForeground }}
             >
               Date
             </Text>
             <Pressable
               onPress={() => setDatePickerVisible(true)}
-              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
-              style={{ borderColor: colors.border }}
+              className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
+              style={{ borderColor: theme.border }}
             >
-              <Text className="text-sm" style={{ color: colors.text }}>
+              <Text className="text-meta" style={{ color: theme.foreground }}>
                 {prettyDate(date)}
               </Text>
-              <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+              <Ionicons name="calendar-outline" size={18} color={theme.mutedForeground} />
             </Pressable>
           </View>
 
           {/* Repeat */}
           <View className="px-0 pb-3">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
+              className="text-label font-semibold uppercase tracking-wider mb-2"
+              style={{ color: theme.mutedForeground }}
             >
               Repeat
             </Text>
             {isSeriesChild ? (
-              <View className="border border-border rounded-lg px-3 py-3" style={{ borderColor: colors.border }}>
-                <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              <View className="border border-border rounded-control px-3 py-3" style={{ borderColor: theme.border }}>
+                <Text className="text-meta" style={{ color: theme.mutedForeground }}>
                   Part of a recurring series — edit the cadence from the series' first occurrence.
                 </Text>
               </View>
             ) : (
               <Pressable
                 onPress={() => setRepeatSheetVisible(true)}
-                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
-                style={{ borderColor: colors.border }}
+                className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
+                style={{ borderColor: theme.border }}
               >
-                <Text className="text-sm flex-1" style={{ color: repeatFrequency ? colors.text : colors.textSecondary }}>
+                <Text className="text-meta flex-1" style={{ color: repeatFrequency ? theme.foreground : theme.mutedForeground }}>
                   {repeatFrequency
                     ? `Repeats ${REPEAT_LABELS[repeatFrequency].toLowerCase()}${repeatUntil ? ` · until ${prettyDate(repeatUntil)}` : ""}`
                     : "Doesn't repeat"}
@@ -479,10 +480,10 @@ export default function SimulatorEntryForm() {
                     hitSlop={10}
                     className="p-1 ml-1"
                   >
-                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                    <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
                   </Pressable>
                 ) : null}
-                <Ionicons name="repeat-outline" size={16} color={colors.textSecondary} />
+                <Ionicons name="repeat-outline" size={16} color={theme.mutedForeground} />
               </Pressable>
             )}
           </View>
@@ -490,17 +491,17 @@ export default function SimulatorEntryForm() {
           {/* Account */}
           <View className="px-0 pb-3">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
+              className="text-label font-semibold uppercase tracking-wider mb-2"
+              style={{ color: theme.mutedForeground }}
             >
               {flavor === "transfer" ? "From account" : "Account"}
             </Text>
             <Pressable
               onPress={() => setAccountPickerVisible(prev => !prev)}
-              className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
-              style={{ borderColor: colors.border }}
+              className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
+              style={{ borderColor: theme.border }}
             >
-              <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedAccount ? colors.text : colors.textSecondary }}>
+              <Text className="text-meta flex-1" numberOfLines={1} style={{ color: selectedAccount ? theme.foreground : theme.mutedForeground }}>
                 {selectedAccount
                   ? selectedAccount.account_label ?? `${selectedAccount.bank_name} ••${selectedAccount.account_identifier}`
                   : "Pick an account"}
@@ -514,10 +515,10 @@ export default function SimulatorEntryForm() {
                   hitSlop={10}
                   className="p-1 ml-1"
                 >
-                  <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                  <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
                 </Pressable>
               ) : null}
-              <Ionicons name={accountPickerVisible ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
+              <Ionicons name={accountPickerVisible ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
             </Pressable>
             {accountPickerVisible && (
               <SearchablePickerList
@@ -541,17 +542,17 @@ export default function SimulatorEntryForm() {
           {flavor === "transfer" && (
             <View className="px-0 pb-3">
               <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
+                className="text-label font-semibold uppercase tracking-wider mb-2"
+                style={{ color: theme.mutedForeground }}
               >
                 To account
               </Text>
               <Pressable
                 onPress={() => setToAccountPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
-                style={{ borderColor: colors.border }}
+                className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
+                style={{ borderColor: theme.border }}
               >
-                <Text className="text-sm flex-1" numberOfLines={1} style={{ color: toAccountId ? colors.text : colors.textSecondary }}>
+                <Text className="text-meta flex-1" numberOfLines={1} style={{ color: toAccountId ? theme.foreground : theme.mutedForeground }}>
                   {toAccountId
                     ? (accounts.find((a) => a.id === toAccountId)?.account_label ?? accounts.find((a) => a.id === toAccountId)?.bank_name ?? "Selected account")
                     : "Pick destination account"}
@@ -565,10 +566,10 @@ export default function SimulatorEntryForm() {
                     hitSlop={10}
                     className="p-1 ml-1"
                   >
-                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                    <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
                   </Pressable>
                 ) : null}
-                <Ionicons name={toAccountPickerVisible ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
+                <Ionicons name={toAccountPickerVisible ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
               </Pressable>
               {toAccountPickerVisible && (
                 <SearchablePickerList
@@ -594,17 +595,17 @@ export default function SimulatorEntryForm() {
           {direction === "out" && !isHisaab && (
             <View className="px-0 pb-3">
               <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
+                className="text-label font-semibold uppercase tracking-wider mb-2"
+                style={{ color: theme.mutedForeground }}
               >
                 Category (optional)
               </Text>
               <Pressable
                 onPress={() => setCategoryPickerVisible(prev => !prev)}
-                className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
-                style={{ borderColor: colors.border }}
+                className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
+                style={{ borderColor: theme.border }}
               >
-                <Text className="text-sm flex-1" numberOfLines={1} style={{ color: selectedCategory ? colors.text : colors.textSecondary }}>
+                <Text className="text-meta flex-1" numberOfLines={1} style={{ color: selectedCategory ? theme.foreground : theme.mutedForeground }}>
                   {selectedCategory ? selectedCategory.name : "No category"}
                 </Text>
                 {selectedCategory ? (
@@ -616,10 +617,10 @@ export default function SimulatorEntryForm() {
                     hitSlop={10}
                     className="p-1 ml-1"
                   >
-                    <Ionicons name="close-circle" size={18} color={colors.textSecondary} />
+                    <Ionicons name="close-circle" size={18} color={theme.mutedForeground} />
                   </Pressable>
                 ) : null}
-                <Ionicons name={categoryPickerVisible ? "chevron-up" : "chevron-down"} size={16} color={colors.textSecondary} />
+                <Ionicons name={categoryPickerVisible ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
               </Pressable>
               {categoryPickerVisible && (
                 <SearchablePickerList
@@ -645,8 +646,8 @@ export default function SimulatorEntryForm() {
           {!isHisaab && (
             <View className="px-0 pb-3">
               <Text
-                className="text-xs font-semibold uppercase tracking-wider mb-2"
-                style={{ color: colors.textSecondary }}
+                className="text-label font-semibold uppercase tracking-wider mb-2"
+                style={{ color: theme.mutedForeground }}
               >
                 Merchant (optional)
               </Text>
@@ -661,14 +662,14 @@ export default function SimulatorEntryForm() {
                   setTimeout(() => setMerchantFocused(false), 150);
                 }}
                 placeholder={direction === "out" ? "e.g. Netflix" : "e.g. Bonus"}
-                placeholderTextColor={colors.textSecondary}
-                className="border border-border rounded-lg px-3 py-2.5 text-sm"
-                style={{ color: colors.text, borderColor: colors.border }}
+                placeholderTextColor={theme.mutedForeground}
+                className="border border-border rounded-control px-3 py-2.5 text-meta"
+                style={{ color: theme.foreground, borderColor: theme.border }}
               />
               {merchantSuggestions.length > 0 && (
                 <View
-                  className="mt-1 border rounded-lg overflow-hidden"
-                  style={{ borderColor: colors.border, backgroundColor: colors.surface }}
+                  className="mt-1 border rounded-control overflow-hidden"
+                  style={{ borderColor: theme.border, backgroundColor: theme.card }}
                 >
                   {merchantSuggestions.map((name, i) => (
                     <Pressable
@@ -678,9 +679,9 @@ export default function SimulatorEntryForm() {
                         setMerchantFocused(false);
                       }}
                       className="px-3 py-2"
-                      style={i > 0 ? { borderTopWidth: 1, borderTopColor: colors.border } : undefined}
+                      style={i > 0 ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined}
                     >
-                      <Text className="text-sm" style={{ color: colors.text }} numberOfLines={1}>
+                      <Text className="text-meta" style={{ color: theme.foreground }} numberOfLines={1}>
                         {name}
                       </Text>
                     </Pressable>
@@ -693,8 +694,8 @@ export default function SimulatorEntryForm() {
           {/* Description */}
           <View className="px-0 pb-3">
             <Text
-              className="text-xs font-semibold uppercase tracking-wider mb-2"
-              style={{ color: colors.textSecondary }}
+              className="text-label font-semibold uppercase tracking-wider mb-2"
+              style={{ color: theme.mutedForeground }}
             >
               Description (optional)
             </Text>
@@ -703,9 +704,9 @@ export default function SimulatorEntryForm() {
               onChangeText={setDescription}
               onFocus={scrollToBottom}
               placeholder="Any note"
-              placeholderTextColor={colors.textSecondary}
-              className="border border-border rounded-lg px-3 py-2.5 text-sm"
-              style={{ color: colors.text, borderColor: colors.border, minHeight: 48 }}
+              placeholderTextColor={theme.mutedForeground}
+              className="border border-border rounded-control px-3 py-2.5 text-meta"
+              style={{ color: theme.foreground, borderColor: theme.border, minHeight: 48 }}
               multiline
             />
           </View>

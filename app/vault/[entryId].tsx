@@ -139,10 +139,10 @@ export default function VaultEntryScreen() {
       {/* Clipboard banner */}
       {copiedField && (
         <View
-          className="mx-4 mt-3 px-4 py-2.5 rounded-xl flex-row items-center justify-between"
+          className="mx-4 mt-3 px-4 py-2.5 rounded-card flex-row items-center justify-between"
           style={{ backgroundColor: theme.alpha("primary", 0.13) }}
         >
-          <Text className="text-sm font-medium" style={{ color: theme.primary }}>
+          <Text className="text-body font-medium" style={{ color: theme.primary }}>
             {copiedField} copied — clears in {clipboardSecsLeft}s
           </Text>
           <Pressable
@@ -173,10 +173,10 @@ export default function VaultEntryScreen() {
               />
             </View>
             <View className="flex-1">
-              <Text className="text-lg font-bold text-foreground">
+              <Text className="text-heading font-bold text-foreground">
                 {entry.title}
               </Text>
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-label text-muted-foreground">
                 {VAULT_CATEGORY_LABELS[entry.category as keyof typeof VAULT_CATEGORY_LABELS]}
                 {" · "}
                 {LOGIN_METHOD_LABELS[entry.login_method as keyof typeof LOGIN_METHOD_LABELS]}
@@ -188,16 +188,16 @@ export default function VaultEntryScreen() {
           <View className="flex-row gap-2">
             <Pressable
               onPress={() => router.push({ pathname: "/vault/add", params: { id: entry.id } })}
-              className="flex-1 flex-row items-center justify-center py-2.5 rounded-xl border border-border"
+              className="flex-1 flex-row items-center justify-center py-2.5 rounded-card border border-border"
             >
-              <Ionicons name="pencil-outline" size={14} color={colors.textSecondary} />
-              <Text className="text-sm font-medium text-muted-foreground ml-1.5">
+              <Ionicons name="pencil-outline" size={14} color={theme.mutedForeground} />
+              <Text className="text-body font-medium text-muted-foreground ml-1.5">
                 Edit
               </Text>
             </Pressable>
             <Pressable
               onPress={handleDelete}
-              className="flex-row items-center justify-center px-4 py-2.5 rounded-xl border border-border"
+              className="flex-row items-center justify-center px-4 py-2.5 rounded-card border border-border"
             >
               <Ionicons name="trash-outline" size={14} color={theme.danger} />
             </Pressable>
@@ -435,19 +435,19 @@ export default function VaultEntryScreen() {
         {entry.notes && (
           <View className="mt-2">
             <View className="flex-row items-center justify-between mb-1.5">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
                 Notes
               </Text>
               <Pressable onPress={() => handleCopy("Notes", entry.notes!)} hitSlop={8}>
                 <Ionicons
                   name={copiedField === "Notes" ? "checkmark" : "copy-outline"}
                   size={14}
-                  color={copiedField === "Notes" ? theme.primary : colors.textSecondary}
+                  color={copiedField === "Notes" ? theme.primary : theme.mutedForeground}
                 />
               </Pressable>
             </View>
             <Card>
-              <Text selectable className="text-sm text-foreground leading-5">
+              <Text selectable className="text-meta text-foreground leading-5">
                 {entry.notes}
               </Text>
             </Card>
@@ -484,19 +484,19 @@ function TotpRow({
   const secsLeft = totpSecondsRemaining(now);
   return (
     <View className="mb-3">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
         TOTP Code
       </Text>
       <View
-        className="flex-row items-center border border-border rounded-xl px-4 py-3"
-        style={{ backgroundColor: colors.surface }}
+        className="flex-row items-center border border-border rounded-card px-4 py-3"
+        style={{ backgroundColor: theme.card }}
       >
-        <Text className="flex-1 text-lg font-bold text-foreground font-mono tracking-widest">
+        <Text className="flex-1 text-heading font-bold text-foreground font-mono tracking-widest">
           {code.slice(0, 3)} {code.slice(3)}
         </Text>
         <Text
-          className="text-xs mr-3"
-          style={{ color: secsLeft <= 5 ? theme.danger : colors.textSecondary, fontVariant: ["tabular-nums"] }}
+          className="text-label mr-3"
+          style={{ color: secsLeft <= 5 ? theme.danger : theme.mutedForeground, fontVariant: ["tabular-nums"] }}
         >
           {secsLeft}s
         </Text>
@@ -504,7 +504,7 @@ function TotpRow({
           <Ionicons
             name={copied ? "checkmark" : "copy-outline"}
             size={16}
-            color={copied ? theme.primary : colors.textSecondary}
+            color={copied ? theme.primary : theme.mutedForeground}
           />
         </Pressable>
       </View>
@@ -533,14 +533,14 @@ function FieldRow({
   const theme = useTheme();
   return (
     <View className="mb-3">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
         {label}
       </Text>
       <View
-        className="flex-row items-center border border-border rounded-xl px-4 py-3"
-        style={{ backgroundColor: colors.surface }}
+        className="flex-row items-center border border-border rounded-card px-4 py-3"
+        style={{ backgroundColor: theme.card }}
       >
-        <Text className="flex-1 text-sm text-foreground" selectable>
+        <Text className="flex-1 text-meta text-foreground" selectable>
           {value}
         </Text>
         {onCopy && (
@@ -548,7 +548,7 @@ function FieldRow({
             <Ionicons
               name={copied ? "checkmark" : "copy-outline"}
               size={16}
-              color={copied ? theme.primary : colors.textSecondary}
+              color={copied ? theme.primary : theme.mutedForeground}
             />
           </Pressable>
         )}
@@ -600,28 +600,28 @@ function SecretRow({
   const theme = useTheme();
   return (
     <View className="mb-3">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
         {label}
       </Text>
       <View
-        className="flex-row items-center border border-border rounded-xl px-4 py-3"
-        style={{ backgroundColor: colors.surface }}
+        className="flex-row items-center border border-border rounded-card px-4 py-3"
+        style={{ backgroundColor: theme.card }}
       >
-        <Text className="flex-1 text-sm text-foreground font-mono tracking-widest">
+        <Text className="flex-1 text-meta text-foreground font-mono tracking-widest">
           {show ? value : "•".repeat(Math.min(value.length, 12))}
         </Text>
         <Pressable onPress={onToggle} hitSlop={8} className="mr-3">
           <Ionicons
             name={show ? "eye-off-outline" : "eye-outline"}
             size={18}
-            color={colors.textSecondary}
+            color={theme.mutedForeground}
           />
         </Pressable>
         <Pressable onPress={onCopy} hitSlop={8}>
           <Ionicons
             name={copied ? "checkmark" : "copy-outline"}
             size={16}
-            color={copied ? theme.primary : colors.textSecondary}
+            color={copied ? theme.primary : theme.mutedForeground}
           />
         </Pressable>
       </View>

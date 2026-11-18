@@ -1,7 +1,12 @@
-import { Button, Card, DateInput, FAB, Input, LoadingState, MetricRow, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Button, Card, Chip, DateInput, Input, LoadingState, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { HeaderPill, StatTile } from "@/components/ui/LinkRow";
+import { FormGroup } from "@/components/ui/FormParts";
+import { tint } from "@/constants/brand";
+import { describeBucketDelete } from "@/utils/bucket-delete-text";
+import { formatError } from "@/utils/error-message";
+import { logger } from "@/utils/logger";
 
 import { useAlert } from "@/hooks/use-alert";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
     getLinksForBucketEnriched,
     type ExpenseInvestmentLink,
@@ -11,11 +16,15 @@ import { getLifeMilestoneById } from "@/services/life-milestone";
 import type {
     InvestmentBucket,
     InvestmentContribution,
+    InvestmentBucketUsage,
 } from "@/services/yearly-plan";
 import {
     createInvestmentContribution,
     deleteInvestmentContribution,
+    deleteInvestmentBucket,
     getInvestmentBucketById,
+    getInvestmentBucketUsage,
+    resetInvestmentBucket,
     getInvestmentContributions,
     updateInvestmentContribution,
 } from "@/services/yearly-plan";
@@ -23,7 +32,7 @@ import {
 import { formatAmount } from "@/utils/expense-validation";
 import { formatLocalDate } from "@/utils/fiscal-year";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { KeyboardAvoidingView, Pressable, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -33,7 +42,6 @@ import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 export default function InvestmentDetailScreen() {
   const router = useRouter();
   const alert = useAlert();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const { bucketId } = useLocalSearchParams<{ bucketId: string }>();
 
@@ -280,8 +288,8 @@ export default function InvestmentDetailScreen() {
     return (
       <ScreenContainer centered padTop={false}>
         {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-        <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-        <Text className="text-base font-medium text-foreground mt-4">
+        <Ionicons name="alert-circle-outline" size={48} color={theme.faintForeground} />
+        <Text className="text-body font-semibold text-foreground mt-4">
           Bucket not found
         </Text>
       </ScreenContainer>
@@ -294,222 +302,142 @@ export default function InvestmentDetailScreen() {
   const remaining = Math.max(bucket.annual_target - done, 0);
   const pct = bucket.annual_target > 0 ? Math.min(Math.max((done / bucket.annual_target) * 100, 0), 100) : 0;
   const isComplete = done >= bucket.annual_target;
+  const color = isComplete ? theme.success : theme.data.series[3];
+
+  const openMore = () =>
+    alert(bucket.name, undefined, [
+      {
+        text: "Reset contributions",
+        onPress: () =>
+          alert(
+            "Reset contributions",
+            `This will clear all contributions for "${bucket.name}" and set invested amount to zero. The bucket structure and target are kept.\n\nContinue?`,
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Reset",
+                style: "destructive",
+                onPress: async () => {
+                  await resetInvestmentBucket(bucket.id);
+                  await loadData();
+                },
+              },
+            ],
+          ),
+      },
+      {
+        text: "Delete bucket",
+        style: "destructive",
+        onPress: async () => {
+          let usage: InvestmentBucketUsage | null = null;
+          try {
+            usage = await getInvestmentBucketUsage(bucket.id);
+          } catch (e) {
+            logger.warn("Bucket usage lookup failed:", e);
+          }
+          alert("Delete bucket", describeBucketDelete(bucket.name, usage), [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Delete",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  await deleteInvestmentBucket(bucket.id);
+                  router.back();
+                } catch (e) {
+                  logger.error("Delete bucket failed:", e);
+                  alert("Couldn't delete the bucket", `"${bucket.name}" is unchanged. ${formatError("Delete bucket", e)}`);
+                }
+              },
+            },
+          ]);
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
 
   return (
     <ScreenContainer padTop={false}>
+      <Stack.Screen
+        options={{
+          title: "",
+          headerRight: () => (
+            <HeaderPill
+              label="Edit"
+              accessibilityLabel={`Edit ${bucket.name}`}
+              onPress={() =>
+                router.push({
+                  pathname: "/goals/investment-buckets",
+                  params: { fy: bucket.financial_year ?? undefined, edit: bucket.id },
+                })
+              }
+            />
+          ),
+        }}
+      />
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-      <KeyboardAvoidingView
-        behavior="padding"
-        className="flex-1"
-      >
-        <ScrollView
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 80 }}
-        >
-          <View className="px-4 py-4">
-            {/* Bucket Header */}
-            <Card className="mb-4">
-              <View className="items-center py-2">
-                <View
-                  className="w-14 h-14 rounded-full items-center justify-center mb-2"
-                  style={{
-                    backgroundColor: isComplete
-                      ? theme.alpha("success", 0.08)
-                      : theme.alpha("primary", 0.08),
-                  }}
-                >
-                  <Ionicons
-                    name={isComplete ? "checkmark-circle" : "wallet-outline"}
-                    size={28}
-                    color={isComplete ? theme.success : colors.blue}
-                  />
-                </View>
-                <Text className="text-lg font-bold text-foreground">
-                  {bucket.name}
-                </Text>
-                {linkedMilestoneName && (
-                  <View className="flex-row items-center mt-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
-                    <Ionicons name="link-outline" size={12} color={colors.blue} />
-                    <Text className="text-xs ml-1" style={{ color: theme.primary }}>
-                      Feeds "{linkedMilestoneName}"
-                    </Text>
-                  </View>
-                )}
-                {isComplete && (
-                  <View className="mt-1 px-3 py-1 rounded-full" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
-                    <Text className="text-xs font-medium text-success">
-                      Goal Complete!
-                    </Text>
-                  </View>
-                )}
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
+          {/* Hero: contributed against the target */}
+          <View className="items-center px-4 pb-4" style={{ gap: 4 }}>
+            <View className="w-[52px] h-[52px] rounded-card items-center justify-center" style={{ backgroundColor: tint(color, 0.1) }}>
+              <Ionicons name={isComplete ? "checkmark-circle" : "wallet-outline"} size={24} color={color} />
+            </View>
+            <Text className="text-heading font-semibold text-foreground mt-2" numberOfLines={1}>
+              {bucket.name}
+            </Text>
+            <Text className="text-hero font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }} numberOfLines={1}>
+              {formatAmount(done)}
+            </Text>
+            <Text className="text-meta text-muted-foreground text-center">
+              of {formatAmount(bucket.annual_target)}
+              {linkedMilestoneName ? ` · linked to milestone ${linkedMilestoneName}` : ""}
+              {remaining > 0 ? ` · ${formatAmount(remaining)} left` : ""}
+            </Text>
+            {isComplete && <Chip variant="status" tone="success" label="Target reached" className="mt-1" />}
+            {bucket.annual_target > 0 && (
+              <View className="w-full mt-2.5">
+                <ProgressBar value={pct / 100} color={color} height={8} animated={false} />
               </View>
-
-              {/* Goal / Done / Left */}
-              <View className="flex-row mt-3">
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground text-center">
-                    Goal
-                  </Text>
-                  <Text className="text-base font-bold text-foreground text-center">
-                    {formatAmount(bucket.annual_target)}
-                  </Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground text-center">
-                    Done
-                  </Text>
-                  <Text className="text-base font-bold text-success text-center">
-                    {formatAmount(done)}
-                  </Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground text-center">
-                    Left
-                  </Text>
-                  <Text className="text-base font-bold text-danger text-center">
-                    {formatAmount(remaining)}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Progress bar */}
-              <View className="mt-3 h-3 rounded-full bg-border overflow-hidden">
-                <View
-                  className="h-3 rounded-full"
-                  style={{
-                    width: `${pct}%`,
-                    backgroundColor: isComplete ? theme.success : colors.blue,
-                  }}
-                />
-              </View>
-              <Text className="text-xs text-muted-foreground mt-1 text-right">
-                {pct.toFixed(1)}% complete
-              </Text>
-            </Card>
-
-            {/* Projection */}
-            {projection && (
-              <Card title="Projection" className="mb-4">
-                {projection.isComplete ? (
-                  <View className="flex-row items-center py-2">
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={18}
-                      color={theme.success}
-                    />
-                    <Text className="text-sm font-medium text-success ml-2">
-                      Annual target achieved!
-                    </Text>
-                  </View>
-                ) : projection.monthsToComplete != null ? (
-                  <>
-                    <MetricRow
-                      label="Avg Monthly Contribution"
-                      value={formatAmount(projection.avgMonthly)}
-                    />
-                    <MetricRow
-                      label="Months to Complete"
-                      value={String(projection.monthsToComplete)}
-                    />
-                    <MetricRow
-                      label="Projected Completion"
-                      value={formatProjectedDate(projection.projectedDate!)}
-                    />
-                    {/* Needed per month to hit target by FY end hint */}
-                    {remaining > 0 && (
-                      <View
-                        className="mt-2 px-3 py-2 rounded-lg"
-                        style={{
-                          backgroundColor:
-                            projection.avgMonthly >= remaining / 12
-                              ? theme.alpha("success", 0.08)
-                              : theme.alpha("danger", 0.08),
-                        }}
-                      >
-                        <Text className="text-xs text-muted-foreground">
-                          At current pace: {formatAmount(projection.avgMonthly)}/month
-                        </Text>
-                      </View>
-                    )}
-                  </>
-                ) : (
-                  <Text className="text-sm text-muted-foreground py-2">
-                    Add contributions to see projection
-                  </Text>
-                )}
-              </Card>
             )}
+          </View>
 
-
-            {/* Monthly History */}
-            {monthlyHistory.length > 0 && (
-              <Card title="Monthly History" className="mb-4">
-                {monthlyHistory.map((m, i) => {
-                  const barPct =
-                    bucket.annual_target > 0
-                      ? Math.min(
-                          (m.total / (bucket.annual_target / 12)) * 100,
-                          100,
-                        )
-                      : 0;
-                  return (
-                    <View
-                      key={m.month}
-                      className={`py-2.5 ${
-                        i < monthlyHistory.length - 1
-                          ? "border-b border-border"
-                          : ""
-                      }`}
+          <View className="px-4" style={{ gap: 12 }}>
+            {/* Projection: avg a month, months to go, done by */}
+            {projection &&
+              (projection.isComplete ? (
+                <View className="flex-row items-center rounded-card px-4 py-3" style={{ backgroundColor: theme.alpha("success", 0.08), gap: 8 }}>
+                  <Ionicons name="checkmark-circle" size={18} color={theme.success} />
+                  <Text className="text-body font-semibold text-foreground">Annual target achieved</Text>
+                </View>
+              ) : projection.monthsToComplete != null ? (
+                <View style={{ gap: 6 }}>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <StatTile label="Avg a month" value={formatAmount(projection.avgMonthly)} />
+                    <StatTile label="Months to go" value={String(projection.monthsToComplete)} />
+                    <StatTile label="Done by" value={formatProjectedDate(projection.projectedDate!)} />
+                  </View>
+                  {remaining > 0 && (
+                    <Text
+                      className="text-meta px-1"
+                      style={{ color: projection.avgMonthly >= remaining / 12 ? theme.success : theme.warning }}
                     >
-                      <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-sm font-medium text-foreground">
-                          {m.label}
-                        </Text>
-                        <Text className="text-sm font-semibold text-foreground">
-                          {formatAmount(m.total)}
-                        </Text>
-                      </View>
-                      <ProgressBar value={(barPct) / 100} color={theme.primary} height={8} animated={false} />
-                      {m.count > 1 && (
-                        <Text className="text-xs text-faint-foreground mt-0.5">
-                          {m.count} contributions
-                        </Text>
-                      )}
-                    </View>
-                  );
-                })}
-              </Card>
-            )}
+                      At the current pace: {formatAmount(projection.avgMonthly)} a month
+                    </Text>
+                  )}
+                </View>
+              ) : (
+                <Text className="text-meta text-muted-foreground px-1">Add contributions to see when it&apos;s done</Text>
+              ))}
 
-            {/* Add contribution Form */}
-            {showAddForm ? (
-              <Card title={editingContrib ? "Edit Contribution" : "Add contribution"} className="mb-4">
-                <Input
-                  label="Amount"
-                  value={contribAmount}
-                  onChangeText={setContribAmount}
-                  keyboardType="numeric"
-                  formula
-                  placeholder="e.g. 10000"
-                  containerClassName="mb-3"
-                />
-                <DateInput
-                  label="Date"
-                  value={contribDate}
-                  onChange={setContribDate}
-                  containerClassName="mb-3"
-                />
-                <Input
-                  label="Notes (optional)"
-                  value={contribNotes}
-                  onChangeText={setContribNotes}
-                  placeholder="e.g. SIP for April"
-                  maxLength={200}
-                  containerClassName="mb-3"
-                />
-                <View className="flex-row">
-                  <View className="flex-1 mr-2">
+            {/* Add / edit contribution */}
+            {showAddForm && (
+              <FormGroup icon="add-circle-outline" title={editingContrib ? "Edit contribution" : "Add contribution"}>
+                <Input label="Amount" prefix="₹" value={contribAmount} onChangeText={setContribAmount} keyboardType="numeric" formula placeholder="10000" />
+                <DateInput label="Date" value={contribDate} onChange={setContribDate} />
+                <Input label="Notes (optional)" value={contribNotes} onChangeText={setContribNotes} placeholder="e.g. SIP for April" maxLength={200} />
+                <View className="flex-row" style={{ gap: 8 }}>
+                  <View className="flex-1">
                     <Button
                       title="Cancel"
                       variant="outline"
@@ -522,124 +450,132 @@ export default function InvestmentDetailScreen() {
                     />
                   </View>
                   <View className="flex-1">
-                    <Button title={editingContrib ? "Update" : "Save"} onPress={handleSaveContribution} />
+                    <Button title={editingContrib ? "Save" : "Add"} onPress={handleSaveContribution} />
                   </View>
                 </View>
+              </FormGroup>
+            )}
+
+            {/* Monthly history */}
+            {monthlyHistory.length > 0 && (
+              <Card>
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Monthly history</Text>
+                  {!showAddForm && <Chip label="Contribution" icon="add" on onPress={() => setShowAddForm(true)} />}
+                </View>
+                {monthlyHistory.map((m, i) => {
+                  const barPct = bucket.annual_target > 0 ? Math.min((m.total / (bucket.annual_target / 12)) * 100, 100) : 0;
+                  return (
+                    <View key={m.month} className={`py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="text-body font-semibold text-foreground">{m.label}</Text>
+                        <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                          {formatAmount(m.total)}
+                        </Text>
+                      </View>
+                      <ProgressBar value={barPct / 100} color={theme.primary} height={6} animated={false} />
+                      {m.count > 1 && <Text className="text-label text-faint-foreground mt-0.5">{m.count} contributions</Text>}
+                    </View>
+                  );
+                })}
               </Card>
-            ) : (
+            )}
+
+            {/* Every contribution: manual, from an expense, from a transfer */}
+            {allContributions.length > 0 && (
+              <Card>
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  All contributions · {allContributions.length}
+                </Text>
+                {allContributions.map((c, i) => {
+                  const contrib = c.source === "manual" ? contributions.find((contr) => contr.id === c.id) : undefined;
+                  const fromTransfer =
+                    contrib?.linked_transfer_id && contrib.linked_transfer_account_id && contrib.linked_transfer_date ? contrib : null;
+                  const sourceLabel = c.source === "expense" ? "From expense" : fromTransfer ? "From transfer" : "Added by hand";
+                  const open =
+                    c.source === "expense"
+                      ? () => router.push({ pathname: "/expense/[id]", params: { id: c.sourceId } })
+                      : fromTransfer
+                        ? () =>
+                            router.push({
+                              pathname: "/reconciliation/account-ledger",
+                              params: {
+                                accountId: fromTransfer.linked_transfer_account_id,
+                                month: fromTransfer.linked_transfer_date!.slice(0, 7),
+                                transferId: fromTransfer.linked_transfer_id,
+                              },
+                            })
+                        : undefined;
+                  return (
+                    <Pressable
+                      key={`${c.source}-${c.sourceId}`}
+                      onPress={open}
+                      onLongPress={contrib ? () => handleContributionLongPress(contrib) : undefined}
+                      className={`flex-row items-center py-2.5 ${i > 0 ? "border-t border-border" : ""}`}
+                      style={{ gap: 12 }}
+                      accessibilityRole={open ? "button" : undefined}
+                      accessibilityLabel={`${formatAmount(c.amount)}, ${sourceLabel}, ${c.date}`}
+                      accessibilityHint={contrib ? "Long-press to edit or delete" : undefined}
+                    >
+                      <View className="flex-1" style={{ gap: 4 }}>
+                        <View className="flex-row items-center" style={{ gap: 6 }}>
+                          <Chip variant="status" label={sourceLabel} />
+                          <Text className="text-meta text-muted-foreground">{c.date}</Text>
+                        </View>
+                        {c.notes ? (
+                          <Text className="text-meta text-muted-foreground" numberOfLines={1}>
+                            {c.notes}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                        {formatAmount(c.amount)}
+                      </Text>
+                      {open ? <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} /> : null}
+                    </Pressable>
+                  );
+                })}
+                <Text className="text-label text-faint-foreground mt-2 text-center">Long-press one you added by hand to edit or delete it</Text>
+              </Card>
+            )}
+
+            {!showAddForm && monthlyHistory.length === 0 && (
               <Pressable
                 onPress={() => setShowAddForm(true)}
-                className="flex-row items-center justify-center py-3 mb-4 rounded-lg border border-dashed"
-                style={{ borderColor: theme.primary }}
+                className="flex-row items-center justify-center rounded-card border border-dashed"
+                style={{ minHeight: 52, borderColor: theme.primary, gap: 6 }}
+                accessibilityRole="button"
               >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={18}
-                  color={colors.blue}
-                />
-                <Text className="text-sm font-medium ml-1" style={{ color: theme.primary }}>
+                <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
+                <Text className="text-body font-semibold" style={{ color: theme.primary }}>
                   Add contribution
                 </Text>
               </Pressable>
             )}
 
-            {/* All Contributions (unified: manual + expense + transfer) */}
-            {allContributions.length > 0 && (
-              <Card
-                title={`All Contributions (${allContributions.length})`}
-                className="mb-4"
-              >
-                {allContributions.map((c, i) => (
-                  <Pressable
-                    key={`${c.source}-${c.sourceId}`}
-                    onLongPress={c.source === 'manual' ? () => handleContributionLongPress(contributions.find(contr => contr.id === c.id)!) : undefined}
-                    className={`flex-row items-center py-2.5 ${
-                      i < allContributions.length - 1
-                        ? "border-b border-border"
-                        : ""
-                    }`}
-                  >
-                    <View className="flex-1">
-                      <Text className="text-sm font-medium text-foreground">
-                        {formatAmount(c.amount)}
-                      </Text>
-                      {c.notes && (
-                        <Text className="text-xs text-muted-foreground">
-                          {c.notes}
-                        </Text>
-                      )}
-                      {c.source === 'expense' && (
-                        <Pressable
-                          onPress={() => router.push({ pathname: "/expense/[id]", params: { id: c.sourceId } })}
-                          accessibilityRole="button"
-                          accessibilityLabel="View source expense"
-                        >
-                          <Text
-                            className="text-xs mt-0.5"
-                            style={{ color: theme.primary }}
-                          >
-                            from expense · tap to view
-                          </Text>
-                        </Pressable>
-                      )}
-                      {/* Cross-link back to the source transfer, when this
-                          contribution was auto-created by a demat transfer.
-                          Requires accountId + month params for the ledger to
-                          actually load entries (without accountId it renders
-                          blank). transferId + date let the ledger flash-
-                          highlight the matching row. */}
-                      {c.source === 'manual' && (() => {
-                        const contrib = contributions.find(contr => contr.id === c.id);
-                        return contrib?.linked_transfer_id && contrib.linked_transfer_account_id && contrib.linked_transfer_date ? (
-                          <Pressable
-                            onPress={() =>
-                              router.push({
-                                pathname: "/reconciliation/account-ledger",
-                                params: {
-                                  accountId: contrib.linked_transfer_account_id,
-                                  month: contrib.linked_transfer_date!.slice(0, 7),
-                                  transferId: contrib.linked_transfer_id,
-                                },
-                              })
-                            }
-                            accessibilityRole="button"
-                            accessibilityLabel="View source transfer"
-                          >
-                            <Text
-                              className="text-xs mt-0.5"
-                              style={{ color: theme.primary }}
-                            >
-                              from transfer · tap to view
-                            </Text>
-                          </Pressable>
-                        ) : null;
-                      })()}
-                    </View>
-                    <Text className="text-xs text-muted-foreground">
-                      {c.date}
-                    </Text>
-                  </Pressable>
-                ))}
-                <Text className="text-xs text-faint-foreground mt-2 text-center">
-                  Long-press to edit or delete manual contributions
-                </Text>
-              </Card>
-            )}
-
-
+            {/* More: reset contributions, delete bucket */}
+            <Pressable
+              onPress={openMore}
+              className="flex-row items-center rounded-card bg-card border border-border px-4"
+              style={{ minHeight: 52, gap: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel="More: reset contributions, delete bucket"
+            >
+              <Text className="flex-1 text-body font-semibold text-foreground" numberOfLines={1}>
+                More: reset contributions, delete bucket
+              </Text>
+              <Ionicons name="ellipsis-horizontal" size={18} color={theme.mutedForeground} />
+            </Pressable>
           </View>
         </ScrollView>
 
-        {/* FAB: Add contribution (when form is hidden) */}
-        {!showAddForm && (
-          <FAB icon="add" onPress={() => setShowAddForm(true)} />
-        )}
       </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }
 
 // ─── Helpers ─────────────────────────────────────────────
+
 
 
 function formatMonthLabel(month: string): string {

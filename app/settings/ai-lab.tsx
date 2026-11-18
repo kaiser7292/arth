@@ -59,15 +59,15 @@ function ResultLine({ row, open, onToggle }: { row: RunRow; open: boolean; onTog
       <View className="flex-row items-start">
         <Ionicons name={icon} size={18} color={color} style={{ marginTop: 1 }} />
         <View className="flex-1 ml-2">
-          <Text className="text-xs text-muted-foreground" numberOfLines={open ? undefined : 2}>
+          <Text className="text-label text-muted-foreground" numberOfLines={open ? undefined : 2}>
             {row.sender} · {row.body}
           </Text>
-          <Text className="text-sm text-foreground mt-0.5">
+          <Text className="text-meta text-foreground mt-0.5">
             {row.error ? `Error: ${row.error}` : row.outcome ? describe(row.outcome) : "Waiting…"}
             {row.ms != null ? `  (${(row.ms / 1000).toFixed(1)} s)` : ""}
           </Text>
           {open && row.raw != null && (
-            <Text className="text-xs text-muted-foreground mt-1" selectable>
+            <Text className="text-label text-muted-foreground mt-1" selectable>
               Model said: {row.raw || "(nothing)"}
             </Text>
           )}
@@ -81,6 +81,7 @@ export default function AiLabScreen() {
   const router = useRouter();
   const toast = useToast();
   const { colors } = useColorScheme();
+  const theme = useTheme();
   const [status, setStatus] = useState<NanoStatus | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [downloaded, setDownloaded] = useState<number | null>(null);
@@ -171,19 +172,19 @@ export default function AiLabScreen() {
   const p90 = times.length ? times[Math.min(times.length - 1, Math.floor(times.length * 0.9))] : 0;
 
   const ready = status === "available";
-  const inputClass = "border border-border rounded-lg px-3 py-2 text-sm text-foreground";
+  const inputClass = "border border-border rounded-control px-3 py-2 text-meta text-foreground";
 
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Gemini Nano</Text>
-          <Text className="text-base font-semibold text-foreground">{status ? STATUS_TEXT[status] : "Checking…"}</Text>
-          <Text className="text-xs text-muted-foreground mt-1 leading-4">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Gemini Nano</Text>
+          <Text className="text-body font-semibold text-foreground">{status ? STATUS_TEXT[status] : "Checking…"}</Text>
+          <Text className="text-label text-muted-foreground mt-1 leading-4">
             Runs on this phone through Android. Nothing is sent anywhere, and nothing here changes your data.
           </Text>
           {downloaded != null && (
-            <Text className="text-xs text-muted-foreground mt-2">Downloaded {(downloaded / 1e6).toFixed(0)} MB…</Text>
+            <Text className="text-label text-muted-foreground mt-2">Downloaded {(downloaded / 1e6).toFixed(0)} MB…</Text>
           )}
           {status === "downloadable" && (
             <Button title="Download model" onPress={() => void download()} loading={busy === "download"} className="mt-3" />
@@ -195,12 +196,12 @@ export default function AiLabScreen() {
         </Card>
 
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Try one message</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">Try one message</Text>
           <TextInput
             value={sender}
             onChangeText={setSender}
             placeholder="Sender, e.g. AX-HDFCBK"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             autoCapitalize="characters"
             className={inputClass}
           />
@@ -208,7 +209,7 @@ export default function AiLabScreen() {
             value={body}
             onChangeText={setBody}
             placeholder="Paste a bank message"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             multiline
             className={`${inputClass} mt-2`}
             style={{ minHeight: 90, textAlignVertical: "top" }}
@@ -224,10 +225,10 @@ export default function AiLabScreen() {
         </Card>
 
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
             Test on unrecognised messages
           </Text>
-          <Text className="text-xs text-muted-foreground mb-2 leading-4">
+          <Text className="text-label text-muted-foreground mb-2 leading-4">
             Reads up to {BATCH} recent messages Arth couldn&apos;t read, one by one. Target: most read correctly, each in
             under 2 seconds.
           </Text>
@@ -239,11 +240,11 @@ export default function AiLabScreen() {
 
           {finished.length > 0 && (
             <View className="mt-3 mb-1">
-              <Text className="text-sm text-foreground">
+              <Text className="text-meta text-foreground">
                 {finished.length} read · {count("transaction")} transactions · {count("not_transaction")} not transactions ·{" "}
                 {count("rejected")} rejected · {count("error")} errors
               </Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 Average {(avg / 1000).toFixed(1)} s · 9 in 10 under {(p90 / 1000).toFixed(1)} s · tap a row for the model&apos;s answer
               </Text>
             </View>

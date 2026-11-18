@@ -51,7 +51,7 @@ export function OtherIncomeSection({
         icon="layers-outline"
         rightContent={
           result && result.netCash !== 0 ? (
-            <Text className={`text-xs font-medium mr-2 ${result.netCash > 0 ? "text-success" : "text-danger"}`}>
+            <Text className={`text-label font-medium mr-2 ${result.netCash > 0 ? "text-success" : "text-danger"}`}>
               {result.netCash > 0 ? "+" : ""}
               {formatAmount(result.netCash)}
             </Text>
@@ -59,7 +59,7 @@ export function OtherIncomeSection({
         }
       >
         <View className="pt-2">
-          <Text className="text-xs text-muted-foreground mb-3">
+          <Text className="text-label text-muted-foreground mb-3">
             Regular income besides your main one. Tax is worked out on your total income, so each
             rupee here is taxed at your highest slab.
           </Text>
@@ -89,7 +89,7 @@ export function OtherIncomeSection({
             </>
           )}
 
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
             Rent from a Let-Out Property
           </Text>
           <Input
@@ -123,7 +123,7 @@ export function OtherIncomeSection({
               />
             </View>
           </View>
-          <Text className="text-xs text-faint-foreground mt-2">
+          <Text className="text-label text-faint-foreground mt-2">
             30% of rent (after municipal tax) is deducted automatically for repairs. Your own home's
             loan interest goes under Old Regime Deductions instead.
           </Text>

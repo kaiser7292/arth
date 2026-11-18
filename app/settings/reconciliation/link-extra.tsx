@@ -14,6 +14,7 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 // mode="find_missing" — initiated from Extra tab: show unmatched statement rows to pair with
 // mode="find_extra"   — initiated from Missing tab: show extra Arth entries to pair with
@@ -134,10 +135,10 @@ export default function LinkExtraScreen() {
           className="flex-row items-center py-3.5 border-b border-border"
         >
           <View className="flex-1">
-            <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+            <Text className="text-body font-medium text-foreground" numberOfLines={1}>
               {item.stmt_narration || "(no narration)"}
             </Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {formatDate(item.stmt_date)} · {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
               {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
             </Text>
@@ -163,7 +164,7 @@ export default function LinkExtraScreen() {
         >
           <View className="flex-1">
             <View className="flex-row items-center">
-              <Text className="text-sm font-medium text-foreground flex-1" numberOfLines={1}>
+              <Text className="text-body font-medium text-foreground flex-1" numberOfLines={1}>
                 {item.arth_description || "(no description)"}
               </Text>
               <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: "#F59E0B22" }}>
@@ -172,12 +173,12 @@ export default function LinkExtraScreen() {
                 </Text>
               </View>
             </View>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {item.arth_date ? formatDate(item.arth_date) : ""} · {amountStr(arthAmt)}
               {diff > 0 && diff <= 10 && ` · ₹${diff.toFixed(2)} diff`}
             </Text>
             {meta.length > 0 && (
-              <Text className="text-xs text-faint-foreground mt-0.5" numberOfLines={1}>
+              <Text className="text-label text-faint-foreground mt-0.5" numberOfLines={1}>
                 {meta.join(" · ")}
               </Text>
             )}
@@ -203,20 +204,20 @@ export default function LinkExtraScreen() {
   return (
     <ScreenContainer padTop={false}>
       <View className="px-4 pt-3 pb-2">
-        <Text className="text-xs text-muted-foreground mb-3">
+        <Text className="text-label text-muted-foreground mb-3">
           {headerText}
         </Text>
         <View
-          className="flex-row items-center rounded-xl px-3 py-2.5"
-          style={{ backgroundColor: colors.border + "55" }}
+          className="flex-row items-center rounded-card px-3 py-2.5"
+          style={{ backgroundColor: tint(theme.border, 0.33) }}
         >
-          <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+          <Ionicons name="search-outline" size={16} color={theme.mutedForeground} />
           <TextInput
             value={query}
             onChangeText={setQuery}
             placeholder={searchPlaceholder}
-            placeholderTextColor={colors.textSecondary}
-            className="flex-1 ml-2 text-sm text-foreground"
+            placeholderTextColor={theme.mutedForeground}
+            className="flex-1 ml-2 text-meta text-foreground"
             autoCapitalize="none"
             autoCorrect={false}
           />
@@ -236,7 +237,7 @@ export default function LinkExtraScreen() {
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 40 }}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-muted-foreground">
+              <Text className="text-meta text-muted-foreground">
                 {query
                   ? `No results for "${query}"`
                   : mode === "find_missing"

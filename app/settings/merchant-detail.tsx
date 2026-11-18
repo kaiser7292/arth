@@ -170,7 +170,7 @@ export default function MerchantDetailScreen() {
     return (
       <ScreenContainer padTop={false}>
         <Stack.Screen options={{ title: name || "Merchant" }} />
-        <Text className="text-sm text-muted-foreground text-center px-8 mt-10">
+        <Text className="text-meta text-muted-foreground text-center px-8 mt-10">
           This merchant no longer exists. It may have been merged into another{pendingUndo ? " - you can undo that below." : "."}
         </Text>
         {undoBar}
@@ -189,7 +189,7 @@ export default function MerchantDetailScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: pendingUndo ? 120 : 40 }} keyboardShouldPersistTaps="handled">
         {/* Name */}
         <Card className="mx-4 mt-3">
-          <Text className="text-xs text-muted-foreground">Shown as</Text>
+          <Text className="text-label text-muted-foreground">Shown as</Text>
           {editing ? (
             <>
               <TextInput
@@ -199,7 +199,7 @@ export default function MerchantDetailScreen() {
                 onSubmitEditing={rename}
                 returnKeyType="done"
                 maxLength={100}
-                className="text-lg font-semibold text-foreground py-2 border-b-2"
+                className="text-heading font-semibold text-foreground py-2 border-b-2"
                 style={{ borderColor: theme.primary }}
                 accessibilityLabel="Merchant name"
               />
@@ -215,13 +215,13 @@ export default function MerchantDetailScreen() {
           ) : (
             <View className="flex-row items-center mt-1">
               <View className="flex-1 mr-3">
-                <Text className="text-lg font-semibold text-foreground">{merchant.name}</Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">{s(merchant.txCount, "transaction")}</Text>
+                <Text className="text-heading font-semibold text-foreground">{merchant.name}</Text>
+                <Text className="text-label text-muted-foreground mt-0.5">{s(merchant.txCount, "transaction")}</Text>
               </View>
               {renaming ? (
                 <View className="flex-row items-center" accessibilityLabel="Saving">
                   <ActivityIndicator size="small" color={theme.primary} />
-                  <Text className="text-xs text-muted-foreground ml-2">Saving…</Text>
+                  <Text className="text-label text-muted-foreground ml-2">Saving…</Text>
                 </View>
               ) : (
                 <BigAction
@@ -238,7 +238,7 @@ export default function MerchantDetailScreen() {
         </Card>
 
         {/* Names in messages */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-6 mb-2">Names in transaction messages</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-6 mb-2">Names in transaction messages</Text>
         <Card className="mx-4">
           {merchant.names.map((n, i) => {
             const canSeparate = n.aliasId != null && n.smsName.toLowerCase() !== merchant.name.toLowerCase();
@@ -248,7 +248,7 @@ export default function MerchantDetailScreen() {
                 className="flex-row items-center"
                 style={[{ minHeight: 56, paddingVertical: 8 }, i > 0 ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined]}
               >
-                <Text className="text-sm text-foreground flex-1 mr-3" numberOfLines={2}>{n.smsName}</Text>
+                <Text className="text-meta text-foreground flex-1 mr-3" numberOfLines={2}>{n.smsName}</Text>
                 {canSeparate && <BigAction icon="git-branch-outline" label="Separate" onPress={() => separate(n.aliasId!, n.smsName)} />}
               </View>
             );
@@ -261,12 +261,12 @@ export default function MerchantDetailScreen() {
         </Card>
 
         {/* Category */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-6 mb-2">Category</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-6 mb-2">Category</Text>
         <Card className="mx-4">
           <View className="flex-row items-center" style={{ minHeight: 56 }}>
             <View className="flex-1 mr-3">
-              <Text className="text-base font-semibold text-foreground">{merchant.category ?? "Not set"}</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-body font-semibold text-foreground">{merchant.category ?? "Not set"}</Text>
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {merchant.categorySource === "rule"
                   ? rule?.source === "builtin"
                     ? "Arth's built-in choice for new transactions"
@@ -280,7 +280,7 @@ export default function MerchantDetailScreen() {
           </View>
           {rule && past > 0 && (
             <View className="pt-3 mt-2" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
-              <Text className="text-xs text-muted-foreground mb-2">
+              <Text className="text-label text-muted-foreground mb-2">
                 {past} older transaction{past === 1 ? " is" : "s are"} in a different category.
               </Text>
               <Button title={`Move ${past === 1 ? "it" : `all ${past}`} to ${rule.categoryName}`} variant="secondary" onPress={applyPast} />
@@ -291,7 +291,7 @@ export default function MerchantDetailScreen() {
         {/* Resets, kept apart from everything else. */}
         {(canReset || canForget) && (
           <>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-8 mb-2">Reset</Text>
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-5 mt-8 mb-2">Reset</Text>
             <Card className="mx-4">
               <View style={{ gap: 10 }}>
               {canReset && (
@@ -344,7 +344,7 @@ function BigAction({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyph
       accessibilityLabel={label}
     >
       <Ionicons name={icon} size={16} color={theme.primary} />
-      <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.primary }}>{label}</Text>
+      <Text className="text-body font-semibold ml-1.5" style={{ color: theme.primary }}>{label}</Text>
     </Pressable>
   );
 }
@@ -354,12 +354,12 @@ function DangerButton({ label, onPress }: { label: string; onPress: () => void }
   return (
     <Pressable
       onPress={onPress}
-      className="items-center justify-center rounded-xl px-4"
+      className="items-center justify-center rounded-card px-4"
       android_ripple={{ color: theme.alpha("danger", 0.15) }}
       style={{ minHeight: 48, borderWidth: 1.5, borderColor: theme.alpha("danger", 0.5), overflow: "hidden" }}
       accessibilityRole="button"
     >
-      <Text className="text-sm font-semibold text-center" style={{ color: theme.danger }}>{label}</Text>
+      <Text className="text-body font-semibold text-center" style={{ color: theme.danger }}>{label}</Text>
     </Pressable>
   );
 }

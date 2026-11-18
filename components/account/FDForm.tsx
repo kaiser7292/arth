@@ -19,6 +19,7 @@ import { formatAmount } from "@/utils/format";
 import { formatDate, todayIso } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { tint } from "@/constants/brand";
 
 const COMPOUNDING_OPTIONS: { value: CompoundingFreq; label: string }[] = [
   { value: "monthly", label: "Monthly" },
@@ -160,8 +161,8 @@ export function FDForm({ onSaved, initialBankName }: FDFormProps) {
   ]);
 
   const chip = (active: boolean) => ({
-    backgroundColor: active ? theme.primary + "20" : colors.surface,
-    borderColor: active ? theme.primary : colors.border,
+    backgroundColor: active ? tint(theme.primary, 0.13) : theme.card,
+    borderColor: active ? theme.primary : theme.border,
   });
 
   return (
@@ -195,7 +196,7 @@ export function FDForm({ onSaved, initialBankName }: FDFormProps) {
           keyboardType="numeric"
         />
 
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-2">
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-2">
           Interest type
         </Text>
         <View className="flex-row gap-2 mb-3">
@@ -205,10 +206,10 @@ export function FDForm({ onSaved, initialBankName }: FDFormProps) {
               <Pressable
                 key={opt.value}
                 onPress={() => setInterestMethod(opt.value)}
-                className="flex-1 py-2.5 rounded-xl items-center border"
+                className="flex-1 py-2.5 rounded-card items-center border"
                 style={chip(active)}
               >
-                <Text className="text-sm font-semibold" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                <Text className="text-body font-semibold" style={{ color: active ? theme.primary : theme.mutedForeground }}>
                   {opt.label}
                 </Text>
               </Pressable>
@@ -218,7 +219,7 @@ export function FDForm({ onSaved, initialBankName }: FDFormProps) {
 
         {interestMethod === "compound" && (
           <>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Compounding frequency
             </Text>
             <View className="flex-row gap-2 mb-1">
@@ -228,10 +229,10 @@ export function FDForm({ onSaved, initialBankName }: FDFormProps) {
                   <Pressable
                     key={opt.value}
                     onPress={() => setCompoundingFreq(opt.value)}
-                    className="flex-1 py-2.5 rounded-xl items-center border"
+                    className="flex-1 py-2.5 rounded-card items-center border"
                     style={chip(active)}
                   >
-                    <Text className="text-sm font-semibold" style={{ color: active ? theme.primary : colors.textSecondary }}>
+                    <Text className="text-body font-semibold" style={{ color: active ? theme.primary : theme.mutedForeground }}>
                       {opt.label}
                     </Text>
                   </Pressable>
@@ -243,32 +244,32 @@ export function FDForm({ onSaved, initialBankName }: FDFormProps) {
       </Card>
 
       <Card className="mt-3">
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Starts</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">Starts</Text>
         <Pressable
           onPress={() => setShowStartPicker(true)}
-          className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3 mb-3"
+          className="flex-row items-center justify-between border border-border rounded-control px-3 py-3 mb-3"
         >
-          <Text className="text-sm text-foreground">{formatDate(startDate)}</Text>
-          <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+          <Text className="text-meta text-foreground">{formatDate(startDate)}</Text>
+          <Ionicons name="calendar-outline" size={18} color={theme.mutedForeground} />
         </Pressable>
 
         <FDTermInput startDate={startDate} value={maturityDate} onChange={setMaturityDate} />
       </Card>
 
       <Card className="mt-3">
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           Funded from / pays back to
         </Text>
         <Pressable
           onPress={() => setShowAccountPicker(true)}
-          className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+          className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
         >
-          <Text className="text-sm" style={{ color: sourceAccountLabel ? colors.text : colors.textSecondary }}>
+          <Text className="text-meta" style={{ color: sourceAccountLabel ? theme.foreground : theme.mutedForeground }}>
             {sourceAccountLabel ?? "Select account"}
           </Text>
-          <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
+          <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
         </Pressable>
-        <Text className="text-xs text-faint-foreground mt-1.5">
+        <Text className="text-label text-faint-foreground mt-1.5">
           The deposit moves out of this account now. At maturity, what the FD pays out lands here as a credit for you to review.
         </Text>
       </Card>
@@ -285,27 +286,27 @@ export function FDForm({ onSaved, initialBankName }: FDFormProps) {
             <>
               <View className="flex-row justify-between items-end">
                 <View>
-                  <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                     Maturity amount
                   </Text>
-                  <Text className="text-lg font-bold" style={{ color: theme.success }}>
+                  <Text className="text-heading font-bold" style={{ color: theme.success }}>
                     {formatAmount(projectedValue)}
                   </Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-xs text-muted-foreground mb-1">Interest</Text>
-                  <Text className="text-sm font-semibold text-foreground">{formatAmount(projectedValue - p)}</Text>
+                  <Text className="text-label text-muted-foreground mb-1">Interest</Text>
+                  <Text className="text-body font-semibold text-foreground">{formatAmount(projectedValue - p)}</Text>
                 </View>
               </View>
               <Pressable onPress={startCorrecting} className="mt-3" accessibilityRole="button">
-                <Text className="text-sm font-medium" style={{ color: theme.primary }}>
+                <Text className="text-body font-medium" style={{ color: theme.primary }}>
                   {"Bank's figure differs? Correct it"}
                 </Text>
               </Pressable>
             </>
           ) : (
             <>
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                 As on your FD receipt
               </Text>
               <View className="flex-row gap-2">
@@ -330,9 +331,9 @@ export function FDForm({ onSaved, initialBankName }: FDFormProps) {
                   containerClassName="flex-1"
                 />
               </View>
-              <Text className="text-xs text-faint-foreground">Arth worked out {formatAmount(projectedValue)}.</Text>
+              <Text className="text-label text-faint-foreground">Arth worked out {formatAmount(projectedValue)}.</Text>
               <Pressable onPress={() => setCorrected(null)} className="mt-2" accessibilityRole="button">
-                <Text className="text-sm font-medium" style={{ color: theme.primary }}>
+                <Text className="text-body font-medium" style={{ color: theme.primary }}>
                   {"Use Arth's figure"}
                 </Text>
               </Pressable>

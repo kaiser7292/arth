@@ -5,6 +5,7 @@ import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { dismissOpeningBanner, isOpeningBannerDismissed } from "@/services/opening-balance-banner";
+import { tint } from "@/constants/brand";
 
 /** The "no opening balance" warning on an account. Once dismissed it never comes back for that account. */
 export function OpeningBalanceBanner({ accountId, message }: { accountId: string; message: string }) {
@@ -16,8 +17,8 @@ export function OpeningBalanceBanner({ accountId, message }: { accountId: string
 
   return (
     <View
-      className="flex-row items-center pl-3 pr-1 py-1 rounded-lg mb-3"
-      style={{ backgroundColor: theme.warning + "14" }}
+      className="flex-row items-center pl-3 pr-1 py-1 rounded-control mb-3"
+      style={{ backgroundColor: tint(theme.warning, 0.08) }}
     >
       <Ionicons name="alert-circle" size={14} color={theme.warning} />
       <Text className="text-label font-medium ml-2 flex-1" style={{ color: theme.warning }}>

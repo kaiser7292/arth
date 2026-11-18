@@ -62,21 +62,21 @@ export default function ProjectionsScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} showsVerticalScrollIndicator={false}>
         <Card className="mb-3">
-          <Text className="text-xs text-muted-foreground">In your bank and wallets by {formatMonthLabel(end.month)}</Text>
+          <Text className="text-label text-muted-foreground">In your bank and wallets by {formatMonthLabel(end.month)}</Text>
           <Text className="text-title font-bold mt-1" style={{ color: endValue < 0 ? theme.danger : theme.foreground }}>
             {formatAmount(endValue)}
           </Text>
-          <Text className="text-xs text-muted-foreground mt-1">
+          <Text className="text-label text-muted-foreground mt-1">
             {formatAmount(data.startBalance)} today · {signed(data.monthlyLeft)} a month
             {data.basedOn.length > 0 ? `, as in ${data.basedOn.map((m) => formatMonthLabel(m)).join(", ")}` : ""}
           </Text>
           {showWhatIfs && end.withWhatIfs !== end.baseline && (
-            <Text className="text-xs mt-1" style={{ color: theme.warning }}>
+            <Text className="text-label mt-1" style={{ color: theme.warning }}>
               {signed(end.withWhatIfs - end.baseline)} from the what-ifs you've switched on
             </Text>
           )}
           {lowestValue < 0 && (
-            <Text className="text-xs mt-2" style={{ color: theme.danger }}>
+            <Text className="text-label mt-2" style={{ color: theme.danger }}>
               Goes below zero in {formatMonthLabel(lowest.month)} ({formatAmount(lowestValue)}).
             </Text>
           )}
@@ -85,15 +85,15 @@ export default function ProjectionsScreen() {
         <Card className="mb-3">
           <TrendLineChart series={series} showLegend={showWhatIfs} />
           {data.basedOn.length === 0 && (
-            <Text className="text-xs text-muted-foreground mt-2">
+            <Text className="text-label text-muted-foreground mt-2">
               No complete month to learn from yet, so the line stays flat. It fills in after your first full month.
             </Text>
           )}
         </Card>
 
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-2">What-ifs</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-2">What-ifs</Text>
         {data.scenarios.length === 0 ? (
-          <Text className="text-sm text-muted-foreground mb-3">
+          <Text className="text-meta text-muted-foreground mb-3">
             Plan a big buy, a bonus or a trip and see what it does to the line.
           </Text>
         ) : (
@@ -111,8 +111,8 @@ export default function ProjectionsScreen() {
                   >
                     <Ionicons name={active ? "checkbox" : "square-outline"} size={20} color={active ? theme.primary : theme.mutedForeground} />
                     <View className="flex-1 ml-2.5">
-                      <Text className="text-sm font-medium text-foreground" numberOfLines={1}>{s.scenario.name}</Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">
+                      <Text className="text-body font-medium text-foreground" numberOfLines={1}>{s.scenario.name}</Text>
+                      <Text className="text-label text-muted-foreground mt-0.5">
                         {s.count === 0
                           ? `Nothing planned in the next ${PROJECTION_MONTHS} months`
                           : `${s.count} planned · ${s.plannedIn > 0 ? `+${formatAmount(s.plannedIn)} ` : ""}${s.plannedOut > 0 ? `−${formatAmount(s.plannedOut)}` : ""}`}

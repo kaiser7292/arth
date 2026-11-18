@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { ActivityIndicator, ScrollView, TextInput, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -32,32 +33,33 @@ function CredentialField({
   secure?: boolean;
   colors: ReturnType<typeof useColorScheme>['colors'];
 }) {
+  const theme = useTheme();
   return (
     <View className="mb-4">
-      <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+      <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2">
         {label}
       </Text>
       <TextInput
         value={value}
         onChangeText={onChange}
         placeholder={placeholder}
-        placeholderTextColor={colors.textSecondary}
+        placeholderTextColor={theme.mutedForeground}
         autoCapitalize="none"
         autoCorrect={false}
         secureTextEntry={secure}
         style={{
-          color: colors.text,
-          backgroundColor: colors.surface,
-          borderColor: colors.border,
+          color: theme.foreground,
+          backgroundColor: theme.card,
+          borderColor: theme.border,
           borderWidth: 1,
           borderRadius: 8,
           paddingHorizontal: 12,
           paddingVertical: 10,
-          fontSize: 14,
+          fontSize: FONT_SIZE.body,
           fontFamily: 'Inter',
         }}
       />
-      {hint && <Text className="text-xs text-muted-foreground mt-1.5">{hint}</Text>}
+      {hint && <Text className="text-label text-muted-foreground mt-1.5">{hint}</Text>}
     </View>
   );
 }
@@ -196,7 +198,7 @@ export default function AngelConnectCredentialsScreen() {
             <Pressable
               onPress={handleConnect}
               disabled={isSaving || !agreed}
-              className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+              className="flex-1 rounded-control p-3.5 flex-row items-center justify-center"
               style={{ backgroundColor: theme.primary, opacity: isSaving || !agreed ? 0.5 : 1 }}
             >
               {isSaving ? (
@@ -204,7 +206,7 @@ export default function AngelConnectCredentialsScreen() {
               ) : (
                 <>
                   <Ionicons name="link-outline" size={18} color="#fff" />
-                  <Text className="text-white font-semibold text-sm ml-2">Connect</Text>
+                  <Text className="text-white font-semibold text-body ml-2">Connect</Text>
                 </>
               )}
             </Pressable>
@@ -212,19 +214,19 @@ export default function AngelConnectCredentialsScreen() {
             {apiKey ? (
               <Pressable
                 onPress={handleClear}
-                className="flex-1 rounded-lg p-3.5 flex-row items-center justify-center"
+                className="flex-1 rounded-control p-3.5 flex-row items-center justify-center"
                 style={{ backgroundColor: theme.danger }}
               >
                 <Ionicons name="trash-outline" size={18} color="#fff" />
-                <Text className="text-white font-semibold text-sm ml-2">Remove</Text>
+                <Text className="text-white font-semibold text-body ml-2">Remove</Text>
               </Pressable>
             ) : (
               <Pressable
                 onPress={() => router.back()}
-                className="flex-1 rounded-lg p-3.5 items-center justify-center border border-border"
-                style={{ backgroundColor: colors.surface }}
+                className="flex-1 rounded-control p-3.5 items-center justify-center border border-border"
+                style={{ backgroundColor: theme.card }}
               >
-                <Text className="text-sm font-semibold text-foreground">Cancel</Text>
+                <Text className="text-body font-semibold text-foreground">Cancel</Text>
               </Pressable>
             )}
           </View>

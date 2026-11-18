@@ -3,7 +3,7 @@ import { Pressable, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { FilterChip, Input, Text } from "@/components/ui";
 import { CalendarModal } from "@/components/ui/CalendarModal";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTheme } from "@/hooks/use-theme";
 import { addFDTerm, fdTermBetween, formatFDTerm } from "@/services/investment-engine";
 import { formatDate } from "@/utils/date";
 
@@ -26,7 +26,7 @@ const toInt = (s: string) => {
  * other one is worked out and shown underneath.
  */
 export function FDTermInput({ startDate, value, onChange, className }: FDTermInputProps) {
-  const { colors } = useColorScheme();
+  const theme = useTheme();
   const [mode, setMode] = useState<"date" | "term">("date");
   const [years, setYears] = useState("");
   const [months, setMonths] = useState("");
@@ -63,7 +63,7 @@ export function FDTermInput({ startDate, value, onChange, className }: FDTermInp
   return (
     <View className={className}>
       <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Matures</Text>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Matures</Text>
         <View className="flex-row">
           <FilterChip label="Date" active={mode === "date"} onPress={() => switchTo("date")} spacing="sm" />
           <FilterChip label="Term" active={mode === "term"} onPress={() => switchTo("term")} spacing="sm" />
@@ -73,13 +73,13 @@ export function FDTermInput({ startDate, value, onChange, className }: FDTermInp
       {mode === "date" ? (
         <Pressable
           onPress={() => setShowPicker(true)}
-          className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+          className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
           accessibilityRole="button"
         >
-          <Text className="text-sm" style={{ color: value ? colors.text : colors.textSecondary }}>
+          <Text className="text-meta" style={{ color: value ? theme.foreground : theme.mutedForeground }}>
             {value ? formatDate(value) : "Select maturity date"}
           </Text>
-          <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={18} color={theme.mutedForeground} />
         </Pressable>
       ) : (
         <View className="flex-row gap-2">
@@ -123,7 +123,7 @@ export function FDTermInput({ startDate, value, onChange, className }: FDTermInp
       )}
 
       {valid && (
-        <Text className="text-xs text-faint-foreground mt-1.5">
+        <Text className="text-label text-faint-foreground mt-1.5">
           {mode === "date"
             ? `Term: ${formatFDTerm(fdTermBetween(startDate, value))}`
             : `Matures on ${formatDate(value)}`}

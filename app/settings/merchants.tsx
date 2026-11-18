@@ -147,7 +147,7 @@ export default function MerchantsScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: selecting ? 160 : pendingUndo ? 120 : 40 }}
         ListEmptyComponent={loadFailed ? <LoadFailed onRetry={loadMerchants} /> :
-          <Text className="text-sm text-muted-foreground text-center px-8 mt-8">
+          <Text className="text-meta text-muted-foreground text-center px-8 mt-8">
             {merchants.length === 0 ? "Merchants appear here once you have transactions." : "Nothing matches."}
           </Text>
         }
@@ -183,8 +183,8 @@ export default function MerchantsScreen() {
               />
             )}
             <View className="flex-1 mr-2">
-              <Text className="text-base font-medium text-foreground" numberOfLines={1}>{m.name}</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
+              <Text className="text-body font-medium text-foreground" numberOfLines={1}>{m.name}</Text>
+              <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
                 {m.names.length > 1 ? `${m.names.length} names in messages` : "1 name"}
                 {" · "}
                 {m.txCount} transaction{m.txCount === 1 ? "" : "s"}
@@ -193,11 +193,11 @@ export default function MerchantsScreen() {
             </View>
             {m.category ? (
               <View className="rounded-full px-3 py-1" style={{ backgroundColor: theme.alpha("primary", 0.1), maxWidth: 140 }}>
-                <Text className="text-xs font-semibold" style={{ color: theme.primary }} numberOfLines={1}>{m.category}</Text>
+                <Text className="text-label font-semibold" style={{ color: theme.primary }} numberOfLines={1}>{m.category}</Text>
               </View>
             ) : (
               <View className="rounded-full px-3 py-1" style={{ backgroundColor: theme.alpha("warning", 0.14) }}>
-                <Text className="text-xs font-semibold" style={{ color: theme.warning }}>Set category</Text>
+                <Text className="text-label font-semibold" style={{ color: theme.warning }}>Set category</Text>
               </View>
             )}
             {!selecting && <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />}
@@ -208,13 +208,13 @@ export default function MerchantsScreen() {
         ListFooterComponent={
           <Pressable
             onPress={() => router.push("/settings/merchant-categories")}
-            className="flex-row items-center mx-4 mt-4 px-3 py-3 rounded-lg border border-border"
+            className="flex-row items-center mx-4 mt-4 px-3 py-3 rounded-control border border-border"
             accessibilityRole="button"
           >
             <Ionicons name="list-outline" size={16} color={theme.mutedForeground} />
             <View className="flex-1 ml-2">
-              <Text className="text-sm text-foreground">All keyword rules</Text>
-              <Text className="text-xs text-muted-foreground">Built-in and your own keywords, and what Arth has learned</Text>
+              <Text className="text-meta text-foreground">All keyword rules</Text>
+              <Text className="text-label text-muted-foreground">Built-in and your own keywords, and what Arth has learned</Text>
             </View>
             <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
           </Pressable>
@@ -223,7 +223,7 @@ export default function MerchantsScreen() {
       {selecting && (
         <View className="absolute left-0 right-0 bottom-0 px-4 pt-3 pb-6 bg-card border-t border-border">
           <View className="flex-row items-center justify-between mb-3">
-            <Text className="text-sm text-foreground">
+            <Text className="text-meta text-foreground">
               {chosen.length === 0 ? "Tap merchants to pick them" : `${chosen.length} selected`}
             </Text>
             <Pressable
@@ -231,7 +231,7 @@ export default function MerchantsScreen() {
               hitSlop={8}
               accessibilityRole="button"
             >
-              <Text className="text-sm font-semibold" style={{ color: theme.primary }}>
+              <Text className="text-body font-semibold" style={{ color: theme.primary }}>
                 {allChosen ? "Select none" : `Select all ${tools.rows.length}`}
               </Text>
             </Pressable>

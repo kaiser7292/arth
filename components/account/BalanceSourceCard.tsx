@@ -13,6 +13,7 @@ import {
 } from "@/services/balance-source";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
+import { tint } from "@/constants/brand";
 
 interface BalanceSourceCardProps {
   accountId: string;
@@ -103,7 +104,7 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
     <Card className="mb-4">
       {/* Header */}
       <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground">
+        <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground">
           {sectionLabel}
         </Text>
         <Pressable
@@ -111,7 +112,7 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
           hitSlop={10}
           accessibilityLabel="About this balance"
         >
-          <Ionicons name="information-circle-outline" size={18} color={colors.textSecondary} />
+          <Ionicons name="information-circle-outline" size={18} color={theme.mutedForeground} />
         </Pressable>
       </View>
 
@@ -119,17 +120,17 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
       {hasAutoDetected && (
         <View className="flex-row items-center justify-between py-1">
           <View className="flex-1 pr-2">
-            <Text className="text-sm text-foreground">
+            <Text className="text-meta text-foreground">
               Auto-detected{isStale ? " · stale" : ""}
             </Text>
             {autoDetectedDate && (
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {formatShortDate(autoDetectedDate)}{sourceSuffix}
               </Text>
             )}
           </View>
           <Text
-            className="text-base font-semibold text-foreground"
+            className="text-body font-semibold text-foreground"
             style={isStale ? { textDecorationLine: "line-through", color: theme.faintForeground } : undefined}
           >
             {formatAmount(autoDetectedBalance!)}
@@ -141,14 +142,14 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
       {calculatedBalance != null && (
         <View className="flex-row items-center justify-between py-1">
           <View className="flex-1 pr-2">
-            <Text className="text-sm font-medium text-foreground">
+            <Text className="text-body font-medium text-foreground">
               Calculated
             </Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {!hasAutoDetected || isStale || mismatch ? "Authoritative" : "Matches SMS"}
             </Text>
           </View>
-          <Text className="text-base font-bold text-foreground">
+          <Text className="text-body font-bold text-foreground">
             {formatAmount(calculatedBalance)}
           </Text>
         </View>
@@ -157,10 +158,10 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
       {/* Staleness / mismatch note */}
       {(isStale || mismatch) && (
         <View
-          className="mt-3 p-3 rounded-lg"
-          style={{ backgroundColor: theme.warning + "14" }}
+          className="mt-3 p-3 rounded-control"
+          style={{ backgroundColor: tint(theme.warning, 0.08) }}
         >
-          <Text className="text-xs leading-4" style={{ color: theme.warning }}>
+          <Text className="text-label leading-4" style={{ color: theme.warning }}>
             {isStale
               ? "New activity recorded after the last balance SMS. Using the Calculated balance."
               : `Auto-detected and Calculated differ by ${formatAmount(Math.abs((calculatedBalance ?? 0) - (autoDetectedBalance ?? 0)))}. An untracked transaction may have occurred.`}
@@ -172,13 +173,13 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
       {autoApplyFailedWithCandidate && autoApply?.candidateSms && (
         <View className="mt-3">
           <View
-            className="p-3 rounded-lg mb-2"
-            style={{ backgroundColor: theme.warning + "14" }}
+            className="p-3 rounded-control mb-2"
+            style={{ backgroundColor: tint(theme.warning, 0.08) }}
           >
-            <Text className="text-xs font-medium" style={{ color: theme.warning }}>
+            <Text className="text-label font-medium" style={{ color: theme.warning }}>
               Newer SMS found but couldn't be applied
             </Text>
-            <Text className="text-xs mt-1 leading-4" style={{ color: theme.warning }}>
+            <Text className="text-label mt-1 leading-4" style={{ color: theme.warning }}>
               {formatSmsTimestamp(autoApply.candidateSms.sms_date)}
               {autoApply.reason === "no_balance_in_sms" ? " - no balance in it." :
                autoApply.reason === "parse_failed" ? " - couldn't parse." :
@@ -190,19 +191,19 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
             className="flex-row items-center"
             hitSlop={6}
           >
-            <Text className="text-xs font-medium text-muted-foreground">
+            <Text className="text-label font-medium text-muted-foreground">
               {showCandidateSms ? "Hide unapplied SMS" : "View unapplied SMS"}
             </Text>
             <Ionicons
               name={showCandidateSms ? "chevron-up" : "chevron-down"}
               size={14}
-              color={colors.textSecondary}
+              color={theme.mutedForeground}
               style={{ marginLeft: 4 }}
             />
           </Pressable>
           {showCandidateSms && (
-            <View className="mt-2 p-3 rounded-lg bg-background">
-              <Text className="text-xs text-muted-foreground leading-5">
+            <View className="mt-2 p-3 rounded-control bg-background">
+              <Text className="text-label text-muted-foreground leading-5">
                 {autoApply.candidateSms.body}
               </Text>
               <Text className="text-label text-faint-foreground mt-2">
@@ -221,13 +222,13 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
             className="flex-row items-center"
             hitSlop={6}
           >
-            <Text className="text-xs font-medium text-muted-foreground">
+            <Text className="text-label font-medium text-muted-foreground">
               Source SMS
             </Text>
             <Ionicons
               name={showSourceSms ? "chevron-up" : "chevron-down"}
               size={14}
-              color={colors.textSecondary}
+              color={theme.mutedForeground}
               style={{ marginLeft: 4 }}
             />
             <Text className="text-label text-faint-foreground ml-auto">
@@ -235,8 +236,8 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
             </Text>
           </Pressable>
           {showSourceSms && (
-            <View className="mt-2 p-3 rounded-lg bg-background">
-              <Text className="text-xs text-muted-foreground leading-5">
+            <View className="mt-2 p-3 rounded-control bg-background">
+              <Text className="text-label text-muted-foreground leading-5">
                 {sourceSms.body}
               </Text>
               <Text className="text-label text-faint-foreground mt-2">
@@ -251,45 +252,45 @@ export function BalanceSourceCard({ accountId, isShared, sourceLabel, accountTyp
       <Sheet visible={infoSheetOpen} onClose={() => setInfoSheetOpen(false)}>
         <View className="px-5 pb-2">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-bold text-foreground">
+              <Text className="text-body font-bold text-foreground">
                 About This Balance
               </Text>
               <Pressable onPress={() => setInfoSheetOpen(false)} hitSlop={10}>
-                <Ionicons name="close" size={20} color={colors.textSecondary} />
+                <Ionicons name="close" size={20} color={theme.mutedForeground} />
               </Pressable>
             </View>
             <ScrollView style={{ maxHeight: 460 }}>
-              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
+              <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-2">
                 Calculated
               </Text>
-              <Text className="text-sm text-foreground mb-4 leading-5">
+              <Text className="text-meta text-foreground mb-4 leading-5">
                 Derived from your starting balance plus this month's transactions.
                 Authoritative - correct even when the bank doesn't send SMS.
               </Text>
 
-              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
+              <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-2">
                 Auto-detected
               </Text>
-              <Text className="text-sm text-foreground mb-4 leading-5">
+              <Text className="text-meta text-foreground mb-4 leading-5">
                 The latest balance extracted from a bank SMS. Not every SMS contains a
                 balance. When new activity (SMS purchase, payment, or credit) is recorded
                 after this SMS, auto-detected is marked stale and Calculated becomes the
                 source of truth.
               </Text>
 
-              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
+              <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-2">
                 Why they might differ
               </Text>
-              <Text className="text-sm text-foreground mb-4 leading-5">
+              <Text className="text-meta text-foreground mb-4 leading-5">
                 • The bank sent a transaction SMS without a balance{"\n"}
                 • You made a payment that hasn't been SMS'd yet{"\n"}
                 • A transaction outside the app happened
               </Text>
 
-              <Text className="text-xs font-semibold tracking-wider uppercase text-muted-foreground mb-2">
+              <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-2">
                 Privacy
               </Text>
-              <Text className="text-sm text-foreground leading-5">
+              <Text className="text-meta text-foreground leading-5">
                 The source SMS is stored locally on your device and never transmitted.
               </Text>
             </ScrollView>

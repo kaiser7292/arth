@@ -150,10 +150,10 @@ export default function VoiceInputSettingsScreen() {
         <Card title="Behaviour" className="mb-4">
           <View className="flex-row items-center justify-between py-1">
             <View className="flex-1 mr-4">
-              <Text className="text-sm font-semibold text-foreground">
+              <Text className="text-body font-semibold text-foreground">
                 Speak back questions
               </Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {settings.speakBack
                   ? "Arth reads follow-up questions aloud while listening"
                   : "Questions appear as text only — silent mode"}
@@ -162,7 +162,7 @@ export default function VoiceInputSettingsScreen() {
             <Switch
               value={settings.speakBack}
               onValueChange={(v) => updateSettings({ speakBack: v })}
-              trackColor={{ false: colors.border, true: accentColor }}
+              trackColor={{ false: theme.border, true: accentColor }}
               thumbColor="#ffffff"
             />
           </View>
@@ -170,7 +170,7 @@ export default function VoiceInputSettingsScreen() {
 
         {/* Voice sound */}
         <Card title="Voice Sound" className="mb-4">
-          <Text className="text-xs text-muted-foreground mb-3">
+          <Text className="text-label text-muted-foreground mb-3">
             Tap Preview to hear a voice before selecting it. Voices come from your device's
             installed text-to-speech engine.
           </Text>
@@ -178,7 +178,7 @@ export default function VoiceInputSettingsScreen() {
           {loading ? (
             <LoadingState message="Loading voices…" rows={3} />
           ) : voices.length === 0 ? (
-            <Text className="text-sm text-muted-foreground py-3 text-center">
+            <Text className="text-meta text-muted-foreground py-3 text-center">
               No English voices found. Install Google Text-to-Speech for more options.
             </Text>
           ) : (
@@ -193,7 +193,7 @@ export default function VoiceInputSettingsScreen() {
                   >
                     <View
                       className="w-5 h-5 rounded-full border-2 items-center justify-center mr-3 flex-shrink-0"
-                      style={{ borderColor: isSelected ? accentColor : colors.border }}
+                      style={{ borderColor: isSelected ? accentColor : theme.border }}
                     >
                       {isSelected && (
                         <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
@@ -201,12 +201,12 @@ export default function VoiceInputSettingsScreen() {
                     </View>
                     <View className="flex-1">
                       <Text
-                        className="text-sm font-medium text-foreground"
+                        className="text-body font-medium text-foreground"
                         style={isSelected ? { color: accentColor } : undefined}
                       >
                         System Default
                       </Text>
-                      <Text className="text-xs text-faint-foreground mt-0.5">
+                      <Text className="text-label text-faint-foreground mt-0.5">
                         Uses your device's default TTS voice
                       </Text>
                     </View>
@@ -226,14 +226,14 @@ export default function VoiceInputSettingsScreen() {
                   >
                     <View
                       className="w-5 h-5 rounded-full border-2 items-center justify-center mr-3 flex-shrink-0"
-                      style={{ borderColor: isSelected ? accentColor : colors.border }}
+                      style={{ borderColor: isSelected ? accentColor : theme.border }}
                     >
                       {isSelected && (
                         <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColor }} />
                       )}
                     </View>
                     <Text
-                      className="text-sm font-medium text-foreground flex-1"
+                      className="text-body font-medium text-foreground flex-1"
                       style={isSelected ? { color: accentColor } : undefined}
                     >
                       {voice.friendlyName}
@@ -249,7 +249,7 @@ export default function VoiceInputSettingsScreen() {
                         size={13}
                         color={accentColor}
                       />
-                      <Text className="text-xs ml-1 font-medium" style={{ color: accentColor }}>
+                      <Text className="text-label ml-1 font-medium" style={{ color: accentColor }}>
                         {isPreviewing ? "Stop" : "Preview"}
                       </Text>
                     </Pressable>
@@ -258,7 +258,7 @@ export default function VoiceInputSettingsScreen() {
               })}
 
               {selectedVoice && (
-                <Text className="text-xs text-faint-foreground mt-3 text-center">
+                <Text className="text-label text-faint-foreground mt-3 text-center">
                   Active: {selectedVoice.friendlyName}
                 </Text>
               )}

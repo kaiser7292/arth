@@ -458,28 +458,28 @@ export default function KiteConnectScreen() {
 
   if (showWebView) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
         {loginTotpSecret && (() => {
           const code = generateTOTP(loginTotpSecret, totpNow);
           const secsLeft = totpSecondsRemaining(totpNow);
           return (
             <View
               className="flex-row items-center px-4 py-2.5"
-              style={{ backgroundColor: theme.alpha('primary', 0.1), borderBottomWidth: 1, borderBottomColor: colors.border }}
+              style={{ backgroundColor: theme.alpha('primary', 0.1), borderBottomWidth: 1, borderBottomColor: theme.border }}
             >
               <Ionicons name="lock-closed-outline" size={14} color={theme.primary} />
-              <Text className="text-xs text-muted-foreground ml-2">TOTP from Vault</Text>
-              <Text className="text-base font-bold text-foreground font-mono tracking-widest ml-3 flex-1">
+              <Text className="text-label text-muted-foreground ml-2">TOTP from Vault</Text>
+              <Text className="text-body font-bold text-foreground font-mono tracking-widest ml-3 flex-1">
                 {code.slice(0, 3)} {code.slice(3)}
               </Text>
               <Text
-                className="text-xs mr-3"
-                style={{ color: secsLeft <= 5 ? theme.danger : colors.textSecondary, fontVariant: ['tabular-nums'] }}
+                className="text-label mr-3"
+                style={{ color: secsLeft <= 5 ? theme.danger : theme.mutedForeground, fontVariant: ['tabular-nums'] }}
               >
                 {secsLeft}s
               </Text>
               <Pressable onPress={() => Clipboard.setStringAsync(code)} hitSlop={8}>
-                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Copy</Text>
+                <Text className="text-label font-semibold" style={{ color: theme.primary }}>Copy</Text>
               </Pressable>
             </View>
           );
@@ -540,14 +540,14 @@ export default function KiteConnectScreen() {
                     ? theme.success
                     : tokenExpired
                     ? theme.warning
-                    : colors.textSecondary,
+                    : theme.mutedForeground,
                 }}
               />
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   {!isAuthenticated ? 'Not connected' : tokenExpired ? 'Session expired' : 'Connected'}
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
+                <Text className="text-label text-muted-foreground mt-0.5">
                   {!isAuthenticated
                     ? 'Tap Connect to link your Kite account'
                     : tokenExpired
@@ -561,26 +561,26 @@ export default function KiteConnectScreen() {
             {!isAuthenticated ? (
               <Pressable
                 onPress={handleConnectPress}
-                className="flex-row items-center px-3 py-2 rounded-lg"
+                className="flex-row items-center px-3 py-2 rounded-control"
                 style={{ backgroundColor: theme.primary }}
               >
                 <Ionicons name="link-outline" size={16} color="#fff" />
-                <Text className="text-white text-xs font-semibold ml-1">Connect</Text>
+                <Text className="text-white text-label font-semibold ml-1">Connect</Text>
               </Pressable>
             ) : tokenExpired ? (
               <Pressable
                 onPress={handleConnectPress}
-                className="flex-row items-center px-3 py-2 rounded-lg"
+                className="flex-row items-center px-3 py-2 rounded-control"
                 style={{ backgroundColor: theme.warning }}
               >
                 <Ionicons name="refresh-outline" size={16} color="#fff" />
-                <Text className="text-white text-xs font-semibold ml-1">Reconnect</Text>
+                <Text className="text-white text-label font-semibold ml-1">Reconnect</Text>
               </Pressable>
             ) : (
               <Pressable
                 onPress={handleSync}
                 disabled={syncing}
-                className="flex-row items-center px-3 py-2 rounded-lg"
+                className="flex-row items-center px-3 py-2 rounded-control"
                 style={{ backgroundColor: theme.primary, opacity: syncing ? 0.7 : 1 }}
               >
                 {syncing ? (
@@ -588,7 +588,7 @@ export default function KiteConnectScreen() {
                 ) : (
                   <>
                     <Ionicons name="sync-outline" size={16} color="#fff" />
-                    <Text className="text-white text-xs font-semibold ml-1">Sync</Text>
+                    <Text className="text-white text-label font-semibold ml-1">Sync</Text>
                   </>
                 )}
               </Pressable>
@@ -604,17 +604,17 @@ export default function KiteConnectScreen() {
             <Ionicons
               name="lock-closed-outline"
               size={16}
-              color={vaultEntry ? theme.primary : colors.textSecondary}
+              color={vaultEntry ? theme.primary : theme.mutedForeground}
             />
             <View className="flex-1 ml-3">
-              <Text className="text-sm font-semibold text-foreground">Fill login from Vault</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-body font-semibold text-foreground">Fill login from Vault</Text>
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {vaultEntry
                   ? `Using "${vaultEntry.title}" — user ID, password and TOTP are filled in for you`
                   : 'Off — tap to choose a Vault entry'}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
           </Pressable>
         </Card>
 
@@ -636,7 +636,7 @@ export default function KiteConnectScreen() {
               saveDisabled={!linkedAccountId}
             />
             {dayOrders.count > 0 && (
-              <Text className="text-xs text-muted-foreground mx-4 mb-3">
+              <Text className="text-label text-muted-foreground mx-4 mb-3">
                 Today: bought {formatAmount(dayOrders.bought)}, sold {formatAmount(dayOrders.sold)}. Included above until they reach your holdings.
               </Text>
             )}
@@ -660,13 +660,13 @@ export default function KiteConnectScreen() {
               onPress={() => router.push('/settings/kite-connect-api-key' as any)}
               className="flex-row items-center py-2.5 border-b border-border"
             >
-              <Ionicons name="key-outline" size={16} color={colors.text} />
-              <Text className="text-sm text-foreground ml-3 flex-1">Update API Key</Text>
-              <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+              <Ionicons name="key-outline" size={16} color={theme.foreground} />
+              <Text className="text-meta text-foreground ml-3 flex-1">Update API Key</Text>
+              <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
             </Pressable>
             <Pressable onPress={handleDisconnect} className="flex-row items-center py-2.5">
               <Ionicons name="log-out-outline" size={16} color={theme.danger} />
-              <Text className="text-sm font-medium ml-3" style={{ color: theme.danger }}>
+              <Text className="text-body font-medium ml-3" style={{ color: theme.danger }}>
                 Disconnect Kite
               </Text>
             </Pressable>
@@ -678,9 +678,9 @@ export default function KiteConnectScreen() {
       {/* ── Account picker modal ── */}
       <Modal visible={showAccountPicker} transparent animationType="slide">
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: colors.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
-            <Text className="text-base font-bold text-foreground mb-1">Link demat account</Text>
-            <Text className="text-xs text-muted-foreground mb-4">
+          <View style={{ backgroundColor: theme.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
+            <Text className="text-body font-bold text-foreground mb-1">Link demat account</Text>
+            <Text className="text-label text-muted-foreground mb-4">
               Which account is your Zerodha demat? This is a one-time setup.
             </Text>
             <ScrollView>
@@ -690,25 +690,25 @@ export default function KiteConnectScreen() {
                   onPress={() => handlePickAccount(a.id)}
                   className="py-3 border-b border-border flex-row items-center"
                 >
-                  <Ionicons name="trending-up-outline" size={16} color={colors.textSecondary} style={{ marginRight: 10 }} />
-                  <Text className="text-sm text-foreground flex-1">{a.label}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
+                  <Ionicons name="trending-up-outline" size={16} color={theme.mutedForeground} style={{ marginRight: 10 }} />
+                  <Text className="text-meta text-foreground flex-1">{a.label}</Text>
+                  <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
                 </Pressable>
               ))}
               {pickerAccounts.length === 0 && (
-                <Text className="text-sm text-muted-foreground text-center py-4">
+                <Text className="text-meta text-muted-foreground text-center py-4">
                   You don't have a demat account in Arth yet.
                 </Text>
               )}
             </ScrollView>
           <Pressable
             onPress={() => void handleCreateAccount()}
-            className="mt-3 py-3 rounded-lg flex-row items-center justify-center"
+            className="mt-3 py-3 rounded-control flex-row items-center justify-center"
             style={{ borderWidth: 1.5, borderColor: theme.primary }}
             accessibilityRole="button"
           >
             <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
-            <Text className="text-sm font-semibold ml-2" style={{ color: theme.primary }}>
+            <Text className="text-body font-semibold ml-2" style={{ color: theme.primary }}>
               Create a Zerodha account and link it
             </Text>
           </Pressable>
@@ -716,7 +716,7 @@ export default function KiteConnectScreen() {
               onPress={() => setShowAccountPicker(false)}
               className="mt-4 py-3 items-center"
             >
-              <Text className="text-sm text-muted-foreground">Cancel</Text>
+              <Text className="text-meta text-muted-foreground">Cancel</Text>
             </Pressable>
           </View>
         </View>
@@ -725,9 +725,9 @@ export default function KiteConnectScreen() {
       {/* ── Vault entry picker modal ── */}
       <Modal visible={showVaultPicker} transparent animationType="slide">
         <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <View style={{ backgroundColor: colors.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
-            <Text className="text-base font-bold text-foreground mb-1">Zerodha login from Vault</Text>
-            <Text className="text-xs text-muted-foreground mb-4">
+          <View style={{ backgroundColor: theme.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
+            <Text className="text-body font-bold text-foreground mb-1">Zerodha login from Vault</Text>
+            <Text className="text-label text-muted-foreground mb-4">
               Pick the entry with your Zerodha user ID and password. Add a TOTP secret to it to fill the code too.
             </Text>
             <ScrollView>
@@ -739,10 +739,10 @@ export default function KiteConnectScreen() {
                     onPress={() => handlePickVaultEntry(e)}
                     className="py-3 border-b border-border flex-row items-center"
                   >
-                    <Ionicons name="lock-closed-outline" size={16} color={selected ? theme.primary : colors.textSecondary} style={{ marginRight: 10 }} />
+                    <Ionicons name="lock-closed-outline" size={16} color={selected ? theme.primary : theme.mutedForeground} style={{ marginRight: 10 }} />
                     <View className="flex-1">
-                      <Text className="text-sm text-foreground" style={selected ? { color: theme.primary } : undefined}>{e.title}</Text>
-                      <Text className="text-xs text-muted-foreground">{e.username || e.phone || e.email}</Text>
+                      <Text className="text-meta text-foreground" style={selected ? { color: theme.primary } : undefined}>{e.title}</Text>
+                      <Text className="text-label text-muted-foreground">{e.username || e.phone || e.email}</Text>
                     </View>
                     {selected && <Ionicons name="checkmark" size={16} color={theme.primary} />}
                   </Pressable>
@@ -751,11 +751,11 @@ export default function KiteConnectScreen() {
             </ScrollView>
             {vaultEntry && (
               <Pressable onPress={() => handlePickVaultEntry(null)} className="mt-4 py-3 items-center">
-                <Text className="text-sm font-medium" style={{ color: theme.danger }}>Stop filling from Vault</Text>
+                <Text className="text-body font-medium" style={{ color: theme.danger }}>Stop filling from Vault</Text>
               </Pressable>
             )}
             <Pressable onPress={() => setShowVaultPicker(false)} className="mt-2 py-3 items-center">
-              <Text className="text-sm text-muted-foreground">Cancel</Text>
+              <Text className="text-meta text-muted-foreground">Cancel</Text>
             </Pressable>
           </View>
         </View>

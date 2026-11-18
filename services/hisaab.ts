@@ -794,6 +794,46 @@ export async function recordSettlement(
 }
 
 /**
+ * Record paying a person back (owner, Nov 2026: "it should be part of spend").
+ *
+ * Writes two rows that travel together:
+ *   1. an approved, manual expense: the money left your pocket, so it counts as spending, on the
+ *      account it came from when one is given (its ledger shows the money out);
+ *   2. a Hisaab "You paid" (debit) entry linked to that expense, which moves a you-owe balance
+ *      towards zero.
+ * Deleting the expense follows the usual linked-expense cascade, the same as a split.
+ */
+export async function recordPaidBack(
+  personId: string,
+  amount: number,
+  date: string,
+  description?: string,
+  paidFromAccountId?: string,
+): Promise<{ entryId: string; expenseId: string }> {
+  const person = await getPerson(personId);
+  const personName = person?.name ?? "Someone";
+  const { createExpense } = await import("@/services/expense-crud");
+  const expenseId = await createExpense({
+    user_id: person?.owner_user_id ?? "",
+    amount,
+    description: description ?? `Paid back ${personName}`,
+    merchant_name: personName,
+    date,
+    nature: "realized",
+    account_id: paidFromAccountId ?? null,
+  });
+  const entryId = await createEntry({
+    hisaab_person_id: personId,
+    amount,
+    description: description ?? `Paid back ${personName}`,
+    date,
+    type: "debit",
+    linked_expense_id: expenseId,
+  });
+  return { entryId, expenseId };
+}
+
+/**
  * Mark a pre-existing account credit (real bank transaction) as a settlement
  * received from a hisaab person. Creates a settlement entry with
  * settlement_source='linked' so deletion only unlinks, never destroys the

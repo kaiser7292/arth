@@ -112,7 +112,7 @@ export default function ForecastDetailScreen() {
         {/* Where the likely total comes from: the three parts add up to it. */}
         <View className="px-4 mt-3">
           <Card>
-            <Text className="text-xs text-muted-foreground">Likely spend by month end</Text>
+            <Text className="text-label text-muted-foreground">Likely spend by month end</Text>
             <Text className="text-title font-bold text-foreground mt-0.5">{formatAmount(projectedTotal)}</Text>
 
             <View className="mt-3 flex-row h-3 rounded-full overflow-hidden bg-border" style={{ gap: 2 }}>
@@ -124,8 +124,8 @@ export default function ForecastDetailScreen() {
               {parts.map((p) => (
                 <View key={p.key} className="flex-row items-center py-1">
                   <View className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: p.color }} />
-                  <Text className="text-sm text-foreground flex-1 mr-2">{p.label}</Text>
-                  <Text className="text-sm font-semibold text-foreground">{formatAmount(p.amount)}</Text>
+                  <Text className="text-meta text-foreground flex-1 mr-2">{p.label}</Text>
+                  <Text className="text-body font-semibold text-foreground">{formatAmount(p.amount)}</Text>
                 </View>
               ))}
             </View>
@@ -137,14 +137,14 @@ export default function ForecastDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Open Budget vs actual"
               >
-                <Text className="text-sm text-muted-foreground flex-1 mr-2">Budget {formatAmount(budget)}</Text>
-                <Text className="text-sm font-semibold" style={{ color: isOverBudget ? theme.danger : theme.success }}>
+                <Text className="text-meta text-muted-foreground flex-1 mr-2">Budget {formatAmount(budget)}</Text>
+                <Text className="text-body font-semibold" style={{ color: isOverBudget ? theme.danger : theme.success }}>
                   {isOverBudget ? `${formatAmount(projectedTotal - budget)} over` : `${formatAmount(budget - projectedTotal)} to spare`}
                 </Text>
                 <Ionicons name="chevron-forward" size={13} color={theme.faintForeground} style={{ marginLeft: 4 }} />
               </Pressable>
             )}
-            <Text className="text-xs text-muted-foreground mt-2">
+            <Text className="text-label text-muted-foreground mt-2">
               Based on {forecast.dataMonths} {forecast.dataMonths === 1 ? "month" : "months"} of your spending
             </Text>
           </Card>
@@ -155,15 +155,15 @@ export default function ForecastDetailScreen() {
           <SectionHeader title={`Spent so far - ${formatAmount(forecast.monthSoFar)}`} />
           <Card>
             <View className="flex-row justify-between py-1">
-              <Text className="text-sm text-foreground">Fixed bills paid</Text>
-              <Text className="text-sm font-semibold text-foreground">{formatAmount(fixedDone.total)}</Text>
+              <Text className="text-meta text-foreground">Fixed bills paid</Text>
+              <Text className="text-body font-semibold text-foreground">{formatAmount(fixedDone.total)}</Text>
             </View>
             <View className="flex-row justify-between py-1">
-              <Text className="text-sm text-foreground">Day-to-day</Text>
-              <Text className="text-sm font-semibold text-foreground">{formatAmount(Math.max(0, forecast.monthSoFar - fixedDone.total))}</Text>
+              <Text className="text-meta text-foreground">Day-to-day</Text>
+              <Text className="text-body font-semibold text-foreground">{formatAmount(Math.max(0, forecast.monthSoFar - fixedDone.total))}</Text>
             </View>
             {variable.daysLeft > 0 && dayToDayToCome > 0 && (
-              <Text className="text-xs text-muted-foreground mt-1.5">
+              <Text className="text-label text-muted-foreground mt-1.5">
                 About {formatAmount(Math.round(dayToDayToCome / variable.daysLeft))} a day for the {variable.daysLeft} {variable.daysLeft === 1 ? "day" : "days"} left
               </Text>
             )}
@@ -175,7 +175,7 @@ export default function ForecastDetailScreen() {
           <SectionHeader title={`Fixed bills paid - ${formatAmount(fixedDone.total)}`} />
           <Card>
             {fixedDone.items.length === 0 ? (
-              <Text className="text-sm text-muted-foreground">
+              <Text className="text-meta text-muted-foreground">
                 No fixed bills paid yet this month.
               </Text>
             ) : (
@@ -186,13 +186,13 @@ export default function ForecastDetailScreen() {
                     idx < fixedDone.items.length - 1 ? "border-b border-border" : ""
                   }`}
                 >
-                  <Text className="text-sm text-foreground capitalize flex-1">
+                  <Text className="text-meta text-foreground capitalize flex-1">
                     {item.merchant}
                   </Text>
-                  <Text className="text-sm font-bold text-foreground mr-2">
+                  <Text className="text-body font-bold text-foreground mr-2">
                     {formatAmount(item.actualAmount ?? item.amount)}
                   </Text>
-                  <Text className="text-xs text-muted-foreground mr-2">
+                  <Text className="text-label text-muted-foreground mr-2">
                     {item.actualDate ? formatDay(item.actualDate) : ""}
                   </Text>
                   <Ionicons name="checkmark-circle" size={16} color={theme.success} />
@@ -209,7 +209,7 @@ export default function ForecastDetailScreen() {
             {fixedPending.items.length === 0 ? (
               <View className="flex-row items-center gap-2">
                 <Ionicons name="checkmark-circle" size={16} color={theme.success} />
-                <Text className="text-sm" style={{ color: theme.success }}>
+                <Text className="text-meta" style={{ color: theme.success }}>
                   All the fixed bills you expect have been paid this month.
                 </Text>
               </View>
@@ -221,13 +221,13 @@ export default function ForecastDetailScreen() {
                     idx < fixedPending.items.length - 1 ? "border-b border-border" : ""
                   }`}
                 >
-                  <Text className="text-sm text-foreground capitalize flex-1">
+                  <Text className="text-meta text-foreground capitalize flex-1">
                     {item.merchant}
                   </Text>
-                  <Text className="text-sm font-bold text-foreground mr-2">
+                  <Text className="text-body font-bold text-foreground mr-2">
                     {formatAmount(item.amount)}
                   </Text>
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-label text-muted-foreground">
                     ~Day {item.expectedDay}
                   </Text>
                 </View>
@@ -249,20 +249,20 @@ export default function ForecastDetailScreen() {
             {/* Category Paces */}
             {forecast.categoryPaces.length > 0 && (
               <>
-                <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-2">
+                <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-2">
                   By Category
                 </Text>
                 {forecast.categoryPaces.slice(0, 5).map((cp) => (
                   <View key={cp.categoryId} className="flex-row items-center justify-between py-1.5">
-                    <Text className="text-xs text-foreground flex-1 mr-2" numberOfLines={1}>
+                    <Text className="text-label text-foreground flex-1 mr-2" numberOfLines={1}>
                       {categoryNames.get(cp.categoryId) || "Other"}
                     </Text>
-                    <Text className="text-xs text-muted-foreground mr-2" numberOfLines={1}>
+                    <Text className="text-label text-muted-foreground mr-2" numberOfLines={1}>
                       {formatAmount(cp.dailyPace)}/day
                     </Text>
                     {/* Non-breaking space between the arrow and the figure — a plain space
                         let RN wrap the arrow onto its own line when the figure ran long. */}
-                    <Text className="text-xs font-bold text-foreground text-right" numberOfLines={1}>
+                    <Text className="text-label font-bold text-foreground text-right" numberOfLines={1}>
                       {"→ "}{formatAmount(cp.projected)}
                     </Text>
                   </View>
@@ -303,11 +303,11 @@ export default function ForecastDetailScreen() {
                     <View className="flex-1">
                       <View className="flex-row items-center gap-1.5">
                         <Ionicons name="warning-outline" size={14} color={theme.warning} />
-                        <Text className="text-sm font-medium text-foreground">
+                        <Text className="text-body font-medium text-foreground">
                           {categoryNames.get(cat.categoryId) ?? "Category"} on pace for {formatAmount(cat.predictedTotal)}
                         </Text>
                       </View>
-                      <Text className="text-xs text-muted-foreground mt-0.5 ml-5">
+                      <Text className="text-label text-muted-foreground mt-0.5 ml-5">
                         Budget: {formatAmount(cat.budget)} ({Math.round((cat.predictedTotal / cat.budget) * 100)}%)
                       </Text>
                     </View>
@@ -338,8 +338,8 @@ export default function ForecastDetailScreen() {
 function MetricLine({ label, value }: { label: string; value: string }) {
   return (
     <View className="flex-row justify-between items-center">
-      <Text className="text-xs text-muted-foreground">{label}:</Text>
-      <Text className="text-xs font-medium text-foreground">{value}</Text>
+      <Text className="text-label text-muted-foreground">{label}:</Text>
+      <Text className="text-label font-medium text-foreground">{value}</Text>
     </View>
   );
 }

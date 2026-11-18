@@ -6,6 +6,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import type { HealthGrade, HealthFactor } from "@/utils/financial-cockpit";
 import { useTheme } from "@/hooks/use-theme";
+import { tint } from "@/constants/brand";
 
 const GRADE_RANGES: [HealthGrade, string, string][] = [
   ["A+", "90–100", "Excellent"],
@@ -69,7 +70,7 @@ export default function HealthGradeScreen() {
   const mainBg = isGood
     ? theme.alpha("success", 0.08)
     : isOK
-      ? accentColor + "14"
+      ? tint(accentColor, 0.08)
       : isWarn
         ? theme.alpha("warning", 0.08)
         : theme.alpha("danger", 0.08);
@@ -93,26 +94,26 @@ export default function HealthGradeScreen() {
           <Card className="mb-4">
             <View className="flex-row items-start justify-between mb-4">
               <View className="flex-1 pr-4">
-                <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   Financial Health Grade
                 </Text>
                 <Text className="text-5xl font-bold mb-1" style={{ color: mainColor }}>
                   {healthGrade}
                 </Text>
-                <Text className="text-sm text-muted-foreground">
+                <Text className="text-meta text-muted-foreground">
                   {GRADE_DESC[healthGrade]}
                 </Text>
                 {early && (
-                  <Text className="text-xs text-muted-foreground mt-2">
+                  <Text className="text-label text-muted-foreground mt-2">
                     Early days: under two months of this year so far, so one big bill moves this a lot. Read it as a first look.
                   </Text>
                 )}
               </View>
               <View
                 className="w-16 h-16 rounded-full items-center justify-center shrink-0"
-                style={{ borderWidth: 2.5, borderColor: mainColor + "60", backgroundColor: mainBg }}
+                style={{ borderWidth: 2.5, borderColor: tint(mainColor, 0.38), backgroundColor: mainBg }}
               >
-                <Text className="text-lg font-bold" style={{ color: mainColor }}>
+                <Text className="text-heading font-bold" style={{ color: mainColor }}>
                   {Math.round(healthScore)}
                 </Text>
                 <Text className="text-label text-faint-foreground">/ 100</Text>
@@ -121,8 +122,8 @@ export default function HealthGradeScreen() {
 
             {/* Score bar */}
             <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-xs text-faint-foreground">Score</Text>
-              <Text className="text-xs font-semibold" style={{ color: mainColor }}>
+              <Text className="text-label text-faint-foreground">Score</Text>
+              <Text className="text-label font-semibold" style={{ color: mainColor }}>
                 {Math.round(healthScore)} / 100
               </Text>
             </View>
@@ -132,14 +133,14 @@ export default function HealthGradeScreen() {
           {/* Factors breakdown */}
           {factors.length > 0 && (
             <Card className="mb-4">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 What's driving this grade
               </Text>
               {factors.map((f, i) => {
                 const fColor = f.status === "positive"
                   ? theme.success
                   : f.status === "neutral"
-                    ? colors.textSecondary
+                    ? theme.mutedForeground
                     : theme.warning;
                 return (
                   <View
@@ -159,14 +160,14 @@ export default function HealthGradeScreen() {
                           size={15}
                           color={fColor}
                         />
-                        <Text className="text-sm font-medium text-foreground">
+                        <Text className="text-body font-medium text-foreground">
                           {f.name}
                         </Text>
                         <Text className="text-label text-faint-foreground">
                           {Math.round(f.weight * 100)}% wt
                         </Text>
                       </View>
-                      <Text className="text-xs font-semibold" style={{ color: fColor }}>
+                      <Text className="text-label font-semibold" style={{ color: fColor }}>
                         {Math.round(f.score)}/100
                       </Text>
                     </View>
@@ -181,7 +182,7 @@ export default function HealthGradeScreen() {
           {/* Tips to reach next grade */}
           {nextG && weakFactors.length > 0 && (
             <Card className="mb-4">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-3">
                 To reach Grade {nextG}
               </Text>
               {weakFactors.map((f, i) => (
@@ -195,7 +196,7 @@ export default function HealthGradeScreen() {
                     color={accentColor}
                     style={{ marginTop: 1 }}
                   />
-                  <Text className="text-sm text-foreground flex-1">
+                  <Text className="text-meta text-foreground flex-1">
                     {FACTOR_TIPS[f.name] ?? "Improve this area"}
                   </Text>
                 </View>
@@ -205,7 +206,7 @@ export default function HealthGradeScreen() {
 
           {/* Grade scale reference */}
           <Card>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               Grade scale
             </Text>
             {GRADE_RANGES.map(([g, range, label]) => {
@@ -213,18 +214,18 @@ export default function HealthGradeScreen() {
               return (
                 <View
                   key={g}
-                  className="flex-row items-center py-2 rounded-lg"
+                  className="flex-row items-center py-2 rounded-control"
                   style={isCurrent ? { backgroundColor: mainBg, paddingHorizontal: 8, marginHorizontal: -8 } : {}}
                 >
                   <Text
-                    className="text-sm font-bold w-8"
-                    style={{ color: isCurrent ? mainColor : colors.textSecondary }}
+                    className="text-body font-bold w-8"
+                    style={{ color: isCurrent ? mainColor : theme.mutedForeground }}
                   >
                     {g}
                   </Text>
-                  <Text className="text-xs text-faint-foreground w-16">{range}</Text>
+                  <Text className="text-label text-faint-foreground w-16">{range}</Text>
                   <Text
-                    className={`text-xs flex-1 ${isCurrent ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+                    className={`text-label flex-1 ${isCurrent ? "font-semibold text-foreground" : "text-muted-foreground"}`}
                   >
                     {label}
                   </Text>

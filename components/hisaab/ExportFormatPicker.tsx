@@ -21,6 +21,7 @@ import { generatePersonExcel } from "@/services/hisaab-export-excel";
 import { saveToPhone } from "@/services/save-to-phone";
 import { useTheme } from "@/hooks/use-theme";
 import { shareFile } from "@/services/share-file";
+import { tint } from "@/constants/brand";
 
 export type ExportTarget =
   | { type: "person"; personId: string; userId: string };
@@ -251,10 +252,10 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
             <View>
               {/* Title */}
               <View className="px-5 pb-3">
-                <Text className="text-lg font-bold text-foreground">
+                <Text className="text-heading font-bold text-foreground">
                   Statement Period
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">
+                <Text className="text-label text-muted-foreground mt-0.5">
                   Choose the date range for your statement
                 </Text>
               </View>
@@ -273,17 +274,17 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                           className="flex-row items-center py-2 px-3 rounded-full border"
                           style={isSelected
                             ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.08) }
-                            : { borderColor: colors.border }
+                            : { borderColor: theme.border }
                           }
                         >
                           <Ionicons
                             name={preset.icon}
                             size={14}
-                            color={isSelected ? theme.primary : colors.textSecondary}
+                            color={isSelected ? theme.primary : theme.mutedForeground}
                           />
                           <Text
-                            className="text-xs font-semibold ml-1.5"
-                            style={{ color: isSelected ? theme.primary : colors.textSecondary }}
+                            className="text-label font-semibold ml-1.5"
+                            style={{ color: isSelected ? theme.primary : theme.mutedForeground }}
                           >
                             {preset.label}
                           </Text>
@@ -315,7 +316,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                   )}
 
                   {selectedPreset === "custom" && !customValid && customStart && customEnd && (
-                    <Text className="text-xs text-danger mt-1.5">
+                    <Text className="text-label text-danger mt-1.5">
                       Start date must be before end date
                     </Text>
                   )}
@@ -323,7 +324,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                   {/* Preview of selected range */}
                   {selectedPreset !== "custom" && (
                     <View className="mt-1 px-1">
-                      <Text className="text-xs text-faint-foreground">
+                      <Text className="text-label text-faint-foreground">
                         {getPresetRange(selectedPreset).startDate} → {getPresetRange(selectedPreset).endDate}
                       </Text>
                     </View>
@@ -336,18 +337,18 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                 disabled={selectedPreset === "custom" && !customValid}
                 accessibilityLabel="Continue to format selection"
                 accessibilityRole="button"
-                className="mx-5 mb-3 py-3.5 rounded-xl items-center"
+                className="mx-5 mb-3 py-3.5 rounded-card items-center"
                 style={{
                   backgroundColor: (selectedPreset === "custom" && !customValid)
-                    ? colors.border
+                    ? theme.border
                     : theme.primary,
                 }}
               >
                 <Text
-                  className="text-sm font-bold"
+                  className="text-body font-bold"
                   style={{
                     color: (selectedPreset === "custom" && !customValid)
-                      ? colors.textSecondary
+                      ? theme.mutedForeground
                       : "#FFFFFF",
                   }}
                 >
@@ -358,9 +359,9 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
               {/* Cancel */}
               <Pressable
                 onPress={handleClose}
-                className="mx-5 mb-6 py-3 rounded-xl bg-card items-center"
+                className="mx-5 mb-6 py-3 rounded-card bg-card items-center"
               >
-                <Text className="text-sm font-semibold text-muted-foreground">
+                <Text className="text-body font-semibold text-muted-foreground">
                   Cancel
                 </Text>
               </Pressable>
@@ -381,10 +382,10 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                   <Ionicons name="chevron-back" size={18} color={theme.primary} />
                 </Pressable>
                 <View className="flex-1">
-                  <Text className="text-lg font-bold text-foreground">
+                  <Text className="text-heading font-bold text-foreground">
                     Export Format
                   </Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">
+                  <Text className="text-label text-muted-foreground mt-0.5">
                     {dateRange?.label ?? "All Time"}
                   </Text>
                 </View>
@@ -414,7 +415,7 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                     >
                       <View
                         className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                        style={{ backgroundColor: option.iconColor + "14" }}
+                        style={{ backgroundColor: tint(option.iconColor, 0.08) }}
                       >
                         {isActive ? (
                           <ActivityIndicator size="small" color={option.iconColor} />
@@ -423,14 +424,14 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
                         )}
                       </View>
                       <View className="flex-1">
-                        <Text className="text-sm font-semibold text-foreground">
+                        <Text className="text-body font-semibold text-foreground">
                           {option.label}
                         </Text>
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-label text-muted-foreground">
                           {isActive ? "Generating..." : option.subtitle}
                         </Text>
                       </View>
-                      <Ionicons name="share-outline" size={16} color={colors.textSecondary} />
+                      <Ionicons name="share-outline" size={16} color={theme.mutedForeground} />
                     </Pressable>
                   );
                 })}
@@ -440,9 +441,9 @@ export function ExportFormatPicker({ visible, onClose, target }: ExportFormatPic
               <Pressable
                 onPress={handleClose}
                 disabled={exporting}
-                className="mx-5 mb-6 py-3 rounded-xl bg-card items-center"
+                className="mx-5 mb-6 py-3 rounded-card bg-card items-center"
               >
-                <Text className="text-sm font-semibold text-muted-foreground">
+                <Text className="text-body font-semibold text-muted-foreground">
                   Cancel
                 </Text>
               </Pressable>

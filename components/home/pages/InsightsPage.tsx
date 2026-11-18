@@ -142,19 +142,19 @@ export function InsightsPage() {
     <Card className="mb-3">
       <CardTitle title="Budget vs actual" onPress={() => router.push("/insights/budget-vs-actual")} />
       <Pressable onPress={() => router.push("/insights/budget-vs-actual")} accessibilityRole="button" accessibilityLabel="Open Budget vs actual">
-        <Text className="text-xs text-muted-foreground">
+        <Text className="text-label text-muted-foreground">
           Spent of your {formatAmount(budget!.totalBudget)} budget{daysLeft > 0 ? `, ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left` : ""}
         </Text>
         <Text className="text-title font-bold text-foreground mt-0.5">{formatAmount(budget!.totalActual)}</Text>
         <ProgressBar value={Math.min(1, budget!.totalActual / budget!.totalBudget)} color={budgetColor} height={8} className="mt-2" />
-        <Text className="text-xs mt-1.5" style={{ color: budgetColor }}>{budgetNote}</Text>
+        <Text className="text-label mt-1.5" style={{ color: budgetColor }}>{budgetNote}</Text>
       </Pressable>
       {overCategories.length > 0 && (
         <View className="mt-2 pt-1 border-t border-border">
           {overCategories.map((r) => (
             <Pressable key={r.categoryId} onPress={() => openCategory(r)} className="flex-row items-center py-2" accessibilityRole="button" accessibilityLabel={`${r.categoryName}, ${formatAmount(r.totalActual - r.totalBudget)} over, see transactions`}>
-              <Text className="text-sm text-foreground flex-1 mr-2" numberOfLines={1}>{r.categoryName}</Text>
-              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>{formatAmount(r.totalActual - r.totalBudget)} over</Text>
+              <Text className="text-meta text-foreground flex-1 mr-2" numberOfLines={1}>{r.categoryName}</Text>
+              <Text className="text-body font-semibold" style={{ color: theme.danger }}>{formatAmount(r.totalActual - r.totalBudget)} over</Text>
               <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
             </Pressable>
           ))}
@@ -169,10 +169,10 @@ export function InsightsPage() {
       <FlowRow dot={theme.success} label="Came in" amount={now.cameIn} onPress={drill("in", "Came in")} />
       <FlowRow dot={theme.primary} label="Went out" amount={now.wentOut} onPress={drill("out", "Went out")} />
       <Pressable onPress={drill("left", "What's left")} className="flex-row items-center pt-2 mt-1 border-t border-border" accessibilityRole="button" accessibilityLabel="What's left this month, see transactions">
-        <Text className="text-sm font-semibold text-foreground flex-1 mr-2">
+        <Text className="text-body font-semibold text-foreground flex-1 mr-2">
           {quietShort ? "So far, before your income" : now.left < 0 ? "More went out, by" : "Left this month"}
         </Text>
-        <Text className="text-base font-bold" style={{ color: quietShort ? theme.foreground : now.left < 0 ? theme.danger : theme.success }}>{formatAmount(Math.abs(now.left))}</Text>
+        <Text className="text-body font-bold" style={{ color: quietShort ? theme.foreground : now.left < 0 ? theme.danger : theme.success }}>{formatAmount(Math.abs(now.left))}</Text>
         <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
       </Pressable>
 
@@ -246,7 +246,7 @@ export function InsightsPage() {
           ))}
           {insights.length > SHOWN_INSIGHTS && (
             <Pressable onPress={() => setAllInsights((v) => !v)} className="pb-2" accessibilityRole="button">
-              <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+              <Text className="text-label font-medium" style={{ color: theme.primary }}>
                 {allInsights ? "Show less" : `See all ${insights.length}`}
               </Text>
             </Pressable>
@@ -290,9 +290,9 @@ function CardTitle({ title, onPress }: { title: string; onPress: () => void }) {
   const theme = useTheme();
   return (
     <Pressable onPress={onPress} className="flex-row items-center justify-between mb-2" accessibilityRole="button" accessibilityLabel={`Open ${title}`} hitSlop={6}>
-      <Text className="text-base font-semibold text-foreground">{title}</Text>
+      <Text className="text-body font-semibold text-foreground">{title}</Text>
       <View className="flex-row items-center">
-        <Text className="text-xs font-medium" style={{ color: theme.primary }}>See more</Text>
+        <Text className="text-label font-medium" style={{ color: theme.primary }}>See more</Text>
         <Ionicons name="chevron-forward" size={13} color={theme.primary} />
       </View>
     </Pressable>
@@ -304,8 +304,8 @@ function FlowRow({ dot, label, amount, onPress }: { dot: string; label: string; 
   return (
     <Pressable onPress={onPress} className="flex-row items-center py-1.5" accessibilityRole="button" accessibilityLabel={`${label}, ${formatAmount(amount)}, see transactions`}>
       <View className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: dot }} />
-      <Text className="text-sm text-foreground flex-1 mr-2">{label}</Text>
-      <Text className="text-sm font-semibold text-foreground">{formatAmount(amount)}</Text>
+      <Text className="text-meta text-foreground flex-1 mr-2">{label}</Text>
+      <Text className="text-body font-semibold text-foreground">{formatAmount(amount)}</Text>
       <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
     </Pressable>
   );
@@ -317,8 +317,8 @@ function ExploreLine({ icon, title, detail }: { icon: keyof typeof Ionicons.glyp
     <View className="flex-row items-center">
       <Ionicons name={icon} size={18} color={theme.primary} />
       <View className="flex-1 mx-3">
-        <Text className="text-sm font-medium text-foreground">{title}</Text>
-        <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>{detail}</Text>
+        <Text className="text-body font-medium text-foreground">{title}</Text>
+        <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>{detail}</Text>
       </View>
       <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
     </View>

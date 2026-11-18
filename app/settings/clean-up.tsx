@@ -17,6 +17,7 @@ import { formatDisplayDate as formatDateLabel } from "@/utils/date";
 export default function CleanUpScreen() {
   const alert = useAlert();
   const { colors } = useColorScheme();
+  const theme = useTheme();
   const uiTheme = useTheme();
   const [cleaning, setCleaning] = useState(false);
   const [cleanupScope, setCleanupScope] = useState<CleanupScope | null>(null);
@@ -144,7 +145,7 @@ export default function CleanUpScreen() {
         <Card className="mb-3">
           <View className="flex-row items-start">
             <Ionicons name="warning-outline" size={18} color={uiTheme.danger} />
-            <Text className="text-xs text-muted-foreground ml-2 flex-1">
+            <Text className="text-label text-muted-foreground ml-2 flex-1">
               This deletes for good, not to the recycle bin. Make a backup first if you might want any of it back.
             </Text>
           </View>
@@ -154,7 +155,7 @@ export default function CleanUpScreen() {
         ) : (
           <Card>
             <View>
-              <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-2 mt-1">1. Time Range</Text>
+              <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-2 mt-1">1. Time Range</Text>
               <View className="flex-row flex-wrap gap-1.5 mb-3">
                 {([
                   { scope: "day" as CleanupScope, label: "Today" },
@@ -170,7 +171,7 @@ export default function CleanUpScreen() {
                     className={`px-3 py-1.5 rounded-full border ${cleanupScope === option.scope ? "bg-danger/8" : "border-border"}`}
                     style={cleanupScope === option.scope ? { borderColor: uiTheme.danger } : undefined}
                   >
-                    <Text className={`text-xs font-medium ${cleanupScope === option.scope ? "text-danger" : "text-foreground"}`}>
+                    <Text className={`text-label font-medium ${cleanupScope === option.scope ? "text-danger" : "text-foreground"}`}>
                       {option.label}
                     </Text>
                   </Pressable>
@@ -183,12 +184,12 @@ export default function CleanUpScreen() {
                     <View className="flex-1 mr-2"><DateInput label="From" value={cleanupCustomFrom} onChange={setCleanupCustomFrom} maximumDate={null} /></View>
                     <View className="flex-1"><DateInput label="To" value={cleanupCustomTo} onChange={setCleanupCustomTo} maximumDate={null} /></View>
                   </View>
-                  {cleanupDateError && <Text className="text-xs text-danger mb-2">{cleanupDateError}</Text>}
-                  <Pressable onPress={handleCleanupCustomApply} className="py-2 rounded-lg items-center" style={{ backgroundColor: uiTheme.danger }}>
-                    <Text className="text-sm font-medium text-white">Apply range</Text>
+                  {cleanupDateError && <Text className="text-label text-danger mb-2">{cleanupDateError}</Text>}
+                  <Pressable onPress={handleCleanupCustomApply} className="py-2 rounded-control items-center" style={{ backgroundColor: uiTheme.danger }}>
+                    <Text className="text-body font-medium text-white">Apply range</Text>
                   </Pressable>
                   {cleanupCustomRange && (
-                    <Text className="text-xs text-muted-foreground mt-1.5 text-center">
+                    <Text className="text-label text-muted-foreground mt-1.5 text-center">
                       {formatDateLabel(cleanupCustomRange.startDate)} - {formatDateLabel(cleanupCustomRange.endDate)}
                     </Text>
                   )}
@@ -197,7 +198,7 @@ export default function CleanUpScreen() {
 
               {cleanupScope && (cleanupScope !== "custom" || cleanupCustomRange) && (
                 <>
-                  <Text className="text-xs font-semibold text-faint-foreground uppercase tracking-wider mb-2">2. What to Delete</Text>
+                  <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-2">2. What to Delete</Text>
                   {([
                     { type: "expenses" as CleanupObjectType, label: "Expenses", icon: "receipt-outline" as keyof typeof Ionicons.glyphMap },
                     { type: "credits" as CleanupObjectType, label: "Credits (Salary, Refunds)", icon: "arrow-down-outline" as keyof typeof Ionicons.glyphMap },
@@ -218,17 +219,17 @@ export default function CleanUpScreen() {
                       <Pressable
                         key={item.type}
                         onPress={() => toggleCleanupObject(item.type)}
-                        className={`flex-row items-center justify-between rounded-lg px-3 py-2.5 mb-1.5 border ${checked ? "border-danger/30 bg-danger/3" : "border-border"}`}
+                        className={`flex-row items-center justify-between rounded-control px-3 py-2.5 mb-1.5 border ${checked ? "border-danger/30 bg-danger/3" : "border-border"}`}
                       >
                         <View className="flex-row items-center flex-1">
-                          <Ionicons name={checked ? "checkbox" : "square-outline"} size={20} color={checked ? uiTheme.danger : colors.textSecondary} />
-                          <Ionicons name={item.icon} size={16} color={colors.textSecondary} style={{ marginLeft: 8 }} />
-                          <Text className="text-sm text-foreground ml-2">{item.label}</Text>
+                          <Ionicons name={checked ? "checkbox" : "square-outline"} size={20} color={checked ? uiTheme.danger : theme.mutedForeground} />
+                          <Ionicons name={item.icon} size={16} color={theme.mutedForeground} style={{ marginLeft: 8 }} />
+                          <Text className="text-meta text-foreground ml-2">{item.label}</Text>
                         </View>
                         {loadingPreview ? (
-                          <ActivityIndicator size="small" color={colors.textSecondary} />
+                          <ActivityIndicator size="small" color={theme.mutedForeground} />
                         ) : (
-                          <Text className={`text-xs font-medium ${count > 0 ? "text-danger" : "text-faint-foreground"}`}>{count}</Text>
+                          <Text className={`text-label font-medium ${count > 0 ? "text-danger" : "text-faint-foreground"}`}>{count}</Text>
                         )}
                       </Pressable>
                     );
@@ -236,11 +237,11 @@ export default function CleanUpScreen() {
                   <Pressable
                     onPress={executeCleanup}
                     disabled={cleanupObjects.size === 0}
-                    className="flex-row items-center justify-center py-2.5 mt-1 rounded-lg"
+                    className="flex-row items-center justify-center py-2.5 mt-1 rounded-control"
                     style={{ backgroundColor: cleanupObjects.size === 0 ? "#9CA3AF40" : uiTheme.danger }}
                   >
                     <Ionicons name="trash-outline" size={16} color="#FFFFFF" />
-                    <Text className="text-sm font-semibold text-white ml-2">Delete selected</Text>
+                    <Text className="text-body font-semibold text-white ml-2">Delete selected</Text>
                   </Pressable>
                 </>
               )}

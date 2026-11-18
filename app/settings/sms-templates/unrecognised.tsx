@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { View, FlatList, Pressable, ActivityIndicator, TextInput } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -19,6 +20,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
 import { getBacklogDays } from "@/services/sms/backlog-days";
 import { formatKey } from "@/services/sms/template-guess";
+import { tint } from "@/constants/brand";
 
 /**
  * v15.6.0 — Browser for pending_sms rows that never became expenses.
@@ -126,38 +128,38 @@ export default function UnrecognisedSmsScreen() {
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
-          <Text className="text-xs text-faint-foreground">
+          <Text className="text-label text-faint-foreground">
             Transaction messages from the last {getBacklogDays()} days that Arth couldn&apos;t read, grouped by format. Teach a format once and Arth reads its past and future messages.
           </Text>
         </View>
 
         <View className="px-4 pb-3">
           <View
-            className="flex-row items-center rounded-lg"
+            className="flex-row items-center rounded-control"
             style={{
-              backgroundColor: colors.surface,
+              backgroundColor: theme.card,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: theme.border,
               paddingHorizontal: 10,
             }}
           >
-            <Ionicons name="search" size={16} color={colors.textSecondary} />
+            <Ionicons name="search" size={16} color={theme.mutedForeground} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="Search sender or text…"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               style={{
                 flex: 1,
                 paddingVertical: 8,
                 paddingHorizontal: 8,
-                fontSize: 14,
-                color: colors.text,
+                fontSize: FONT_SIZE.body,
+                color: theme.foreground,
               }}
             />
             {query.length > 0 && (
               <Pressable onPress={() => setQuery("")} hitSlop={8}>
-                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+                <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
               </Pressable>
             )}
           </View>
@@ -168,11 +170,11 @@ export default function UnrecognisedSmsScreen() {
             <Ionicons
               name={grouped ? "checkbox" : "square-outline"}
               size={16}
-              color={grouped ? accentColor : colors.textSecondary}
+              color={grouped ? accentColor : theme.mutedForeground}
             />
             <Text
-              className="text-xs ml-1.5"
-              style={{ color: grouped ? accentColor : colors.textSecondary }}
+              className="text-label ml-1.5"
+              style={{ color: grouped ? accentColor : theme.mutedForeground }}
             >
               Group similar messages
             </Text>
@@ -195,39 +197,39 @@ export default function UnrecognisedSmsScreen() {
                   <Ionicons
                     name="mail-outline"
                     size={16}
-                    color={colors.textSecondary}
+                    color={theme.mutedForeground}
                   />
-                  <Text className="text-xs font-semibold ml-2 text-muted-foreground">
+                  <Text className="text-label font-semibold ml-2 text-muted-foreground">
                     {item.row.address}
                   </Text>
                   {item.count > 1 && (
                     <View
                       className="ml-2 px-2 py-0.5 rounded-full"
-                      style={{ backgroundColor: accentColor + "18" }}
+                      style={{ backgroundColor: tint(accentColor, 0.09) }}
                     >
                       <Text className="text-label font-bold" style={{ color: accentColor }}>
                         ×{item.count}
                       </Text>
                     </View>
                   )}
-                  <Text className="text-xs text-faint-foreground ml-auto">
+                  <Text className="text-label text-faint-foreground ml-auto">
                     {formatDate(item.row.sms_date)}
                   </Text>
                 </View>
                 <Text
-                  className="text-sm text-foreground my-2"
+                  className="text-meta text-foreground my-2"
                   numberOfLines={3}
                 >
                   {item.row.body}
                 </Text>
                 <Pressable
                   onPress={() => handleTeach(item.row)}
-                  className="flex-row items-center justify-center py-2 rounded-lg"
-                  style={{ backgroundColor: accentColor + "15" }}
+                  className="flex-row items-center justify-center py-2 rounded-control"
+                  style={{ backgroundColor: tint(accentColor, 0.08) }}
                 >
                   <Ionicons name="construct-outline" size={16} color={accentColor} />
                   <Text
-                    className="text-sm font-semibold ml-2"
+                    className="text-body font-semibold ml-2"
                     style={{ color: accentColor }}
                   >
                     {item.count > 1
@@ -243,12 +245,12 @@ export default function UnrecognisedSmsScreen() {
                         params: { id: templatesBySender.get(senderCode(item.row.address))!.id, addExample: item.row.body },
                       })
                     }
-                    className="flex-row items-center mt-2 p-2 rounded-lg"
-                    style={{ backgroundColor: accentColor + "12" }}
+                    className="flex-row items-center mt-2 p-2 rounded-control"
+                    style={{ backgroundColor: tint(accentColor, 0.07) }}
                     accessibilityRole="button"
                   >
                     <Ionicons name="link-outline" size={15} color={accentColor} />
-                    <Text className="text-xs ml-1.5 flex-1" style={{ color: accentColor }}>
+                    <Text className="text-label ml-1.5 flex-1" style={{ color: accentColor }}>
                       Close to your {templatesBySender.get(senderCode(item.row.address))!.template_id ?? templatesBySender.get(senderCode(item.row.address))!.bank_name} template — add as an example
                     </Text>
                   </Pressable>
@@ -258,8 +260,8 @@ export default function UnrecognisedSmsScreen() {
                   className="flex-row items-center justify-center py-2 mt-1"
                   accessibilityRole="button"
                 >
-                  <Ionicons name="mail-outline" size={15} color={colors.textSecondary} />
-                  <Text className="text-xs font-medium ml-1.5 text-muted-foreground">Send to developer</Text>
+                  <Ionicons name="mail-outline" size={15} color={theme.mutedForeground} />
+                  <Text className="text-label font-medium ml-1.5 text-muted-foreground">Send to developer</Text>
                 </Pressable>
               </Card>
             )}

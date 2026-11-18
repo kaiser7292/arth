@@ -56,6 +56,7 @@ import { getActiveAccounts } from "@/services/financial-account";
 import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import { getPersonsWithBalances } from "@/services/hisaab";
 import { getDistinctMerchantNames } from "@/services/merchant-alias";
+import { getMerchantUsage, getPaymentModeUsage, type MerchantUsage } from "@/services/picker-usage";
 import type { PaymentMode } from "@/services/payment-mode";
 import { getPaymentModes } from "@/services/payment-mode";
 import { addTagsToExpense } from "@/services/tags";
@@ -132,6 +133,20 @@ export default function AddExpenseScreen() {
   const creditKindTouched = useRef(isRefund || !!params.prefillCreditKind);
   const [salaryForMonth, setSalaryForMonth] = useState<string | null>(null);
   const categoryTouched = useRef(false);
+  /** The pickers' recents and most-used lists (services/picker-usage). */
+  const [merchantUsage, setMerchantUsage] = useState<{ recent: MerchantUsage[]; mostUsed: MerchantUsage[]; byName: Map<string, MerchantUsage> } | null>(null);
+  const [modeUsage, setModeUsage] = useState<Map<string, number>>(new Map());
+  /** Set by hand: a merchant pick won't overwrite these. */
+  const accountTouched = useRef(false);
+  const modeTouched = useRef(false);
+  /** The merchant whose usual category / account / mode were filled in ("From merchant"). */
+  const filledFrom = useRef<string | null>(null);
+  const [accountHint, setAccountHint] = useState<string | null>(null);
+  const [modeHint, setModeHint] = useState<string | null>(null);
+  useEffect(() => {
+    getMerchantUsage(DEFAULT_USER_ID).then(setMerchantUsage).catch(() => {});
+    getPaymentModeUsage(DEFAULT_USER_ID).then(setModeUsage).catch(() => {});
+  }, []);
   const [categoryHint, setCategoryHint] = useState<string | null>(null);
   // "Refund" picked on a plain credit: which expense it refunds.
   const [pickedRefund, setPickedRefund] = useState<{ id: string; summary: string } | null>(null);
@@ -412,7 +427,7 @@ export default function AddExpenseScreen() {
     const timer = setTimeout(() => {
       categorizeByMerchant(DEFAULT_USER_ID, m)
         .then((r) => {
-          if (categoryTouched.current || !r.categoryId) return;
+          if (categoryTouched.current || filledFrom.current === m.toLowerCase() || !r.categoryId) return;
           setCategoryId(r.categoryId);
           setCategoryHint(`suggested from ${m}`);
           const cat = categories.find((c) => c.id === r.categoryId);
@@ -431,6 +446,8 @@ export default function AddExpenseScreen() {
   // V4: Auto-suggest payment mode when account changes
   const handleAccountSelect = useCallback(
     async (acctId: string | null) => {
+      accountTouched.current = true;
+      setAccountHint(null);
       setAccountId(acctId);
       setShowAccounts(false);
       if (!acctId) return;
@@ -751,7 +768,35 @@ export default function AddExpenseScreen() {
       setShowAccounts(false);
     },
     onCloseSuggestions: () => setShowMerchants(false),
+    usage: txType === "spent" && merchantUsage ? merchantUsage : undefined,
+    describe: (u: MerchantUsage) =>
+      [
+        u.categoryId ? categories.find((c) => c.id === u.categoryId)?.name : null,
+        u.paymentModeId ? paymentModes.find((pm) => pm.id === u.paymentModeId)?.name : null,
+        `${u.count}×`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    onPickUsage: (u: MerchantUsage) => {
+      if (txType !== "spent") return;
+      filledFrom.current = u.name.toLowerCase();
+      if (u.categoryId && !categoryTouched.current && categories.some((c) => c.id === u.categoryId)) {
+        setCategoryId(u.categoryId);
+        setCategoryHint("From merchant");
+        const cat = categories.find((c) => c.id === u.categoryId);
+        if (cat) setIsRightSpend(cat.is_unavoidable === 1);
+      }
+      if (u.accountId && !accountTouched.current && accounts.some((a) => a.id === u.accountId)) {
+        setAccountId(u.accountId);
+        setAccountHint("From merchant");
+      }
+      if (u.paymentModeId && !modeTouched.current && paymentModes.some((pm) => pm.id === u.paymentModeId)) {
+        setPaymentModeId(u.paymentModeId);
+        setModeHint("From merchant");
+      }
+    },
   };
+  const usualCategoryId = merchantUsage?.byName.get(merchantName.trim().toLowerCase())?.categoryId ?? null;
   // The type is fixed for a refund of a specific expense and for reminder entries.
   const showTypeSwitch = !isRefund && !fulfillsReminderId;
   const dateField = (
@@ -821,6 +866,7 @@ export default function AddExpenseScreen() {
                   selectedCategory={selectedCategory}
                   showCategories={showCategories}
                   hint={categoryHint}
+                  usualId={usualCategoryId}
                   onToggle={() => {
                     setShowCategories(!showCategories);
                     setShowPaymentModes(false);
@@ -842,6 +888,7 @@ export default function AddExpenseScreen() {
                   selectedAccount={selectedAccount}
                   showAccounts={showAccounts}
                   label="Paid from"
+                  hint={accountHint}
                   onToggle={() => {
                     setShowAccounts(!showAccounts);
                     setShowCategories(false);
@@ -867,6 +914,8 @@ export default function AddExpenseScreen() {
                 <PaymentModePicker
                   paymentModes={paymentModes}
                   paymentModeId={paymentModeId}
+                  usage={modeUsage}
+                  hint={modeHint}
                   selectedPaymentMode={selectedPaymentMode}
                   showPaymentModes={showPaymentModes}
                   onToggle={() => {
@@ -874,6 +923,8 @@ export default function AddExpenseScreen() {
                     setShowCategories(false);
                   }}
                   onSelect={(pmId) => {
+                    modeTouched.current = true;
+                    setModeHint(null);
                     setPaymentModeId(pmId);
                     setShowPaymentModes(false);
                   }}
@@ -1024,6 +1075,7 @@ export default function AddExpenseScreen() {
                           <PaymentModePicker
                             paymentModes={paymentModes}
                             paymentModeId={leg.paymentModeId}
+                            usage={modeUsage}
                             selectedPaymentMode={legPM}
                             showPaymentModes={leg.showPaymentModes}
                             onToggle={() =>

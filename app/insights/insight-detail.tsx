@@ -64,10 +64,10 @@ export default function InsightDetailScreen() {
         {loadFailed && <LoadFailedBanner onRetry={loadData} />}
         <View className="items-center py-16 px-8">
           <Ionicons name="alert-circle-outline" size={48} color={theme.faintForeground} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Text className="text-heading font-medium text-foreground mt-4">
             Insight not available
           </Text>
-          <Text className="text-sm text-muted-foreground mt-1 text-center">
+          <Text className="text-meta text-muted-foreground mt-1 text-center">
             This insight may no longer be relevant for the current month.
           </Text>
         </View>
@@ -119,13 +119,13 @@ export default function InsightDetailScreen() {
               color={severityColor}
             />
 
-            <Text className="text-lg font-bold text-foreground mt-3">
+            <Text className="text-heading font-bold text-foreground mt-3">
               {insight.title}
             </Text>
 
             {/* Generic detail — suppressed for creep drill because the YoY summary below is more informative */}
             {!isCreepDrill && (
-              <Text className="text-sm text-muted-foreground mt-1">
+              <Text className="text-meta text-muted-foreground mt-1">
                 {insight.detail}
               </Text>
             )}
@@ -139,7 +139,7 @@ export default function InsightDetailScreen() {
                       {yoyComparison.currentLabel}
                     </Text>
                     <Text
-                      className="text-lg font-bold mt-0.5"
+                      className="text-heading font-bold mt-0.5"
                       style={{ color: grandDelta >= 0 ? theme.danger : theme.success }}
                     >
                       {formatAmount(yoyComparison.currentTotal)}
@@ -149,14 +149,14 @@ export default function InsightDetailScreen() {
                     <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
                       {yoyComparison.previousLabel}
                     </Text>
-                    <Text className="text-lg font-bold text-muted-foreground mt-0.5">
+                    <Text className="text-heading font-bold text-muted-foreground mt-0.5">
                       {formatAmount(yoyComparison.previousTotal)}
                     </Text>
                   </View>
                 </View>
 
                 <View className="mt-3 pt-3 border-t border-border flex-row items-center justify-between">
-                  <Text className="text-xs font-medium text-muted-foreground">
+                  <Text className="text-label font-medium text-muted-foreground">
                     Change YoY
                   </Text>
                   <View className="flex-row items-center">
@@ -166,7 +166,7 @@ export default function InsightDetailScreen() {
                       color={grandDelta >= 0 ? theme.danger : theme.success}
                     />
                     <Text
-                      className="text-sm font-bold ml-1"
+                      className="text-body font-bold ml-1"
                       style={{ color: grandDelta >= 0 ? theme.danger : theme.success }}
                     >
                       {grandDelta >= 0 ? "+" : "−"}
@@ -186,10 +186,10 @@ export default function InsightDetailScreen() {
                   height={8}
                 />
                 <View className="flex-row justify-between mt-1.5">
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-label text-muted-foreground">
                     {overPct > 0 ? `${overPct}% over` : "Within budget"}
                   </Text>
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-label text-muted-foreground">
                     Budget: {formatAmount(budgetAmount)}
                   </Text>
                 </View>
@@ -260,10 +260,10 @@ export default function InsightDetailScreen() {
         {isCreepDrill ? (
           <View className="px-4 mt-4">
             <Card>
-              <Text className="text-xs font-semibold text-muted-foreground mb-2">
+              <Text className="text-label font-semibold text-muted-foreground mb-2">
                 How to read this
               </Text>
-              <Text className="text-xs text-muted-foreground leading-5">
+              <Text className="text-label text-muted-foreground leading-5">
                 Each row shows one category. The red/green bar is what you spent in the last 3 months. The grey bar is what you spent in the same 3 months last year. A big gap between the two is where lifestyle creep is happening.
                 {"\n\n"}
                 <Text className="font-semibold">"New this year"</Text> means Arth has no data for that category last year - either you weren't tracking yet, or the category name is new. That can inflate the headline YoY % even when your real spending is similar.
@@ -274,15 +274,15 @@ export default function InsightDetailScreen() {
           <View className="px-4 mt-4">
             <Card>
               <View className="flex-row justify-between items-center">
-                <Text className="text-sm font-medium text-muted-foreground">
+                <Text className="text-body font-medium text-muted-foreground">
                   Total
                 </Text>
-                <Text className="text-base font-bold text-foreground">
+                <Text className="text-body font-bold text-foreground">
                   {formatAmount(totalAmount)}
                 </Text>
               </View>
               {drillGroups.length > 0 && (
-                <Text className="text-xs text-muted-foreground mt-1">
+                <Text className="text-label text-muted-foreground mt-1">
                   Across {drillGroups.reduce((s, g) => s + g.count, 0)} transactions
                 </Text>
               )}

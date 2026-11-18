@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
+import { useTheme } from "@/hooks/use-theme";
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { View, TextInput, ScrollView, Pressable } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -43,6 +45,7 @@ export default function PasteSmsScreen() {
     senderAddress?: string;
   }>();
   const { colors } = useColorScheme();
+  const theme = useTheme();
 
   const existingDraft = getDraft();
   const hasStaleDraft =
@@ -114,30 +117,30 @@ export default function PasteSmsScreen() {
         {hasStaleDraft && (
           <Card className="mb-3">
             <View className="flex-row items-start">
-              <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+              <Ionicons name="time-outline" size={18} color={theme.mutedForeground} />
               <View className="flex-1 ml-2">
-                <Text className="text-sm font-semibold text-foreground">
+                <Text className="text-body font-semibold text-foreground">
                   Resume unfinished template?
                 </Text>
-                <Text className="text-xs text-faint-foreground mt-0.5">
+                <Text className="text-label text-faint-foreground mt-0.5">
                   You started teaching Arth an SMS earlier but didn't save. Continue where you left off, or discard and start over.
                 </Text>
                 <View className="flex-row mt-2" style={{ gap: 8 }}>
                   <Pressable
                     onPress={() => router.push("/settings/sms-templates/tag")}
-                    className="flex-1 items-center py-2 rounded-lg"
-                    style={{ backgroundColor: colors.tint }}
+                    className="flex-1 items-center py-2 rounded-control"
+                    style={{ backgroundColor: theme.primary }}
                   >
-                    <Text className="text-xs font-semibold" style={{ color: "#FFFFFF" }}>
+                    <Text className="text-label font-semibold" style={{ color: "#FFFFFF" }}>
                       Continue
                     </Text>
                   </Pressable>
                   <Pressable
                     onPress={handleDiscard}
-                    className="flex-1 items-center py-2 rounded-lg"
-                    style={{ borderWidth: 1, borderColor: colors.border }}
+                    className="flex-1 items-center py-2 rounded-control"
+                    style={{ borderWidth: 1, borderColor: theme.border }}
                   >
-                    <Text className="text-xs font-semibold" style={{ color: colors.text }}>
+                    <Text className="text-label font-semibold" style={{ color: theme.foreground }}>
                       Discard
                     </Text>
                   </Pressable>
@@ -148,10 +151,10 @@ export default function PasteSmsScreen() {
         )}
 
         <Card className="mb-4">
-          <Text className="text-sm font-semibold text-foreground mb-2">
+          <Text className="text-body font-semibold text-foreground mb-2">
             Paste an SMS Arth couldn't read
           </Text>
-          <Text className="text-xs text-faint-foreground mb-3">
+          <Text className="text-label text-faint-foreground mb-3">
             Copy the raw SMS from your Messages app. Include the whole body so Arth can learn the format.
           </Text>
           <TextInput
@@ -159,27 +162,27 @@ export default function PasteSmsScreen() {
             value={body}
             onChangeText={setBody}
             placeholder="Paste the SMS here…"
-            placeholderTextColor={colors.textSecondary}
+            placeholderTextColor={theme.mutedForeground}
             style={{
               minHeight: 160,
               maxHeight: 260,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: theme.border,
               borderRadius: 8,
               padding: 12,
-              fontSize: 14,
-              color: colors.text,
-              backgroundColor: colors.background,
+              fontSize: FONT_SIZE.body,
+              color: theme.foreground,
+              backgroundColor: theme.background,
               textAlignVertical: "top",
             }}
           />
-          <Text className="text-xs text-faint-foreground mt-2 mb-3">
+          <Text className="text-label text-faint-foreground mt-2 mb-3">
             Tip: long-press inside the text box and tap Paste.
           </Text>
           <Button title="Next" onPress={handleNext} disabled={!canProceed} />
         </Card>
 
-        <Text className="text-xs text-faint-foreground px-2">
+        <Text className="text-label text-faint-foreground px-2">
           ⚠️ The SMS body is stored on your device with the template so Arth can show it back to you later. If the SMS contains sensitive details (full account numbers, OTPs), remove them before pasting.
         </Text>
       </ScrollView>

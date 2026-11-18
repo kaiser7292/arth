@@ -77,7 +77,7 @@ export default function DataHealthIssueScreen() {
   };
   const IgnoreButton = ({ keys, label }: { keys: string[]; label?: string }) => (
     <Pressable onPress={() => toggle(keys)} hitSlop={8} accessibilityRole="button" className="ml-2">
-      <Text className="text-xs font-semibold" style={{ color: showIgnored ? theme.primary : theme.mutedForeground }}>
+      <Text className="text-label font-semibold" style={{ color: showIgnored ? theme.primary : theme.mutedForeground }}>
         {label ?? (showIgnored ? "Bring back" : "Ignore")}
       </Text>
     </Pressable>
@@ -88,19 +88,19 @@ export default function DataHealthIssueScreen() {
   const Row = ({ r, ignorable }: { r: HealthTxn; ignorable?: boolean }) => (
     <Pressable onPress={() => openTxn(r.id)} className="flex-row items-center py-2.5" accessibilityRole="button">
       <View className="flex-1 mr-2">
-        <Text className="text-sm text-foreground" numberOfLines={1}>
+        <Text className="text-meta text-foreground" numberOfLines={1}>
           {r.merchant || (r.nature === "credit" ? "Money in" : "Payment")}
         </Text>
-        <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
+        <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
           {[formatDisplayDate(r.date.slice(0, 10)), r.category, r.account].filter(Boolean).join(" · ")}
         </Text>
         {r.hint ? (
-          <Text className="text-xs mt-0.5" style={{ color: theme.warning }} numberOfLines={1}>
+          <Text className="text-label mt-0.5" style={{ color: theme.warning }} numberOfLines={1}>
             {r.hint}
           </Text>
         ) : null}
       </View>
-      <Text className="text-sm font-semibold" style={{ color: r.nature === "credit" ? theme.success : theme.foreground }}>
+      <Text className="text-body font-semibold" style={{ color: r.nature === "credit" ? theme.success : theme.foreground }}>
         {r.nature === "credit" ? "+" : ""}
         {formatAmount(r.amount)}
       </Text>
@@ -123,7 +123,7 @@ export default function DataHealthIssueScreen() {
   const toolbar = items && (count > 0 || items.ignored > 0 || showIgnored) && (
     <View className="flex-row items-center justify-between mb-3">
       <Pressable onPress={() => setShowIgnored((v) => !v)} hitSlop={8} accessibilityRole="button">
-        <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+        <Text className="text-label font-semibold" style={{ color: theme.primary }}>
           {showIgnored ? "Show what's left" : items.ignored > 0 ? `Show ignored (${items.ignored})` : ""}
         </Text>
       </Pressable>
@@ -155,11 +155,11 @@ export default function DataHealthIssueScreen() {
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }}>
-          <Text className="text-sm text-muted-foreground mb-3 leading-5">
+          <Text className="text-meta text-muted-foreground mb-3 leading-5">
             {showIgnored ? "These are ignored: they don't count in this check or your score. Bring back any that need a look." : check ? HOW[check] : ""}
           </Text>
           {toolbar}
-          {count === 0 && <Text className="text-sm text-muted-foreground">Nothing ignored.</Text>}
+          {count === 0 && <Text className="text-meta text-muted-foreground">Nothing ignored.</Text>}
 
           {check === "transfers" && (
             <Button title="Turn them into transfers" onPress={() => router.push("/settings/transfer-review")} className="mb-3" />
@@ -172,7 +172,7 @@ export default function DataHealthIssueScreen() {
                   <Row r={r} ignorable />
                 </View>
               ))}
-              {items.rows.length >= 500 && <Text className="text-xs text-muted-foreground mt-2">Showing the latest 500.</Text>}
+              {items.rows.length >= 500 && <Text className="text-label text-muted-foreground mt-2">Showing the latest 500.</Text>}
             </Card>
           )}
 
@@ -181,8 +181,8 @@ export default function DataHealthIssueScreen() {
               <Card key={`${g.title}-${gi}`} className="mb-3">
                 <View className="flex-row items-start">
                   <View className="flex-1">
-                    <Text className="text-sm font-semibold text-foreground">{g.title}</Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">{g.subtitle}</Text>
+                    <Text className="text-body font-semibold text-foreground">{g.title}</Text>
+                    <Text className="text-label text-muted-foreground mt-0.5">{g.subtitle}</Text>
                   </View>
                   {check !== "duplicates" && (
                     <Pressable
@@ -191,7 +191,7 @@ export default function DataHealthIssueScreen() {
                       accessibilityRole="button"
                       className="ml-2"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Merchant</Text>
+                      <Text className="text-label font-semibold" style={{ color: theme.primary }}>Merchant</Text>
                     </Pressable>
                   )}
                   <IgnoreButton keys={[g.key]} />
@@ -201,7 +201,7 @@ export default function DataHealthIssueScreen() {
                     <Row r={r} />
                   </View>
                 ))}
-                {g.more > 0 && <Text className="text-xs text-muted-foreground mt-2">and {g.more} more</Text>}
+                {g.more > 0 && <Text className="text-label text-muted-foreground mt-2">and {g.more} more</Text>}
               </Card>
             ))}
 
@@ -219,8 +219,8 @@ export default function DataHealthIssueScreen() {
                   accessibilityRole="button"
                 >
                   <View className="flex-1 mr-2">
-                    <Text className="text-sm text-foreground">{a.name}</Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5">{a.detail}</Text>
+                    <Text className="text-meta text-foreground">{a.name}</Text>
+                    <Text className="text-label text-muted-foreground mt-0.5">{a.detail}</Text>
                   </View>
                   <IgnoreButton keys={[a.key]} />
                   <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />

@@ -1,10 +1,10 @@
 import { useState, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable } from "react-native";
-import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, LoadingState, MetricRow, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Card, Chip, FieldRow, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, SectionTitle, Segmented, Text } from "@/components/ui";
+import { HeaderPill, StatTile, Statement } from "@/components/ui/LinkRow";
 import {
   deriveYearlyPlan,
 } from "@/services/yearly-plan";
@@ -62,8 +62,8 @@ let lastPlan: { stamp: string; data: PlanData } | null = null;
 
 export default function YearlyPlanScreen() {
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
+  const [view, setView] = useState<"plan" | "actual">("actual");
   const { fy } = useLocalSearchParams<{ fy?: string }>();
   const startMonth = getFYStartMonth();
 
@@ -196,766 +196,420 @@ export default function YearlyPlanScreen() {
     [router],
   );
 
+  const header = (
+    <Stack.Screen
+      options={{
+        title: "Yearly plan",
+        headerRight: () => (
+          <HeaderPill label="Edit plan" onPress={() => router.push("/settings/budget-config")} accessibilityLabel="Edit plan, budget configuration" />
+        ),
+      }}
+    />
+  );
+
   if (!loaded) {
     return (
       <ScreenContainer padTop={false}>
+        {header}
         <LoadingState message="Loading your plan..." icon="document-text-outline" />
       </ScreenContainer>
     );
   }
 
   const fyLabel = getFYLabel(targetFYNum, startMonth);
+  const hasActuals = realityCheck != null && realityCheck.monthsElapsed > 0;
+  const showActual = view === "actual" && hasActuals;
+
+  // Debt servicing is a real outflow too (INR loans only), rolled into the totals.
+  const inrLoans = loanForecast.filter((r) => r.currency === "INR");
+  const debtServicingInr = inrLoans.reduce((s, r) => s + r.annualOutflowTotal, 0);
+  const totalIncome = derived?.total_income ?? 0;
+  const outflowWithDebt = (derived?.total_outflow ?? 0) + debtServicingInr;
+  const surplusWithDebt = totalIncome - outflowWithDebt;
+
+  // Plan vs actual: the debt-servicing line worked out the same way the reality-check rows are.
+  const debtYTD = inrLoans.reduce((s, r) => s + r.ytdOutflowTotal, 0);
+  const monthsElapsed = realityCheck?.monthsElapsed ?? 0;
+  const debtProrated = monthsElapsed > 0 ? Math.round((debtServicingInr / 12) * monthsElapsed) : 0;
+  const debtGap = debtYTD - debtProrated;
+  const debtProjYearEnd =
+    realityCheck && !realityCheck.isPastFY && monthsElapsed > 0 && debtYTD > 0
+      ? Math.round((debtYTD / monthsElapsed) * 12)
+      : debtServicingInr;
+  const netSurplusProj = realityCheck ? realityCheck.netSurplusProjected - debtProjYearEnd : surplusWithDebt;
+  const netSurplusPlanned = realityCheck ? realityCheck.netSurplusPlanned - debtServicingInr : surplusWithDebt;
+
+  const heroSurplus = showActual ? netSurplusProj : surplusWithDebt;
+  const status: { label: string; tone: "success" | "danger" } = showActual
+    ? realityCheck!.isPastFY
+      ? netSurplusProj >= netSurplusPlanned
+        ? { label: "Better than planned", tone: "success" }
+        : { label: "Behind plan", tone: "danger" }
+      : realityCheck!.overallStatus === "on_track"
+        ? { label: "On track", tone: "success" }
+        : { label: "Needs a correction", tone: "danger" }
+    : surplusWithDebt >= 0
+      ? { label: "Achievable", tone: "success" }
+      : { label: "Deficit", tone: "danger" };
+
+  const plannedRate = derived?.savings_rate ?? 0;
+  const actualRate = savings && savings.monthsElapsed > 0 ? savings.actualSavingsRatePct : null;
+
+  const totalMilestoneNeed = milestones.reduce((s, m) => s + getMilestoneContributionForFY(m, targetFY), 0);
+  const totalBucketForMilestones = milestones.reduce((s, m) => {
+    const linked = buckets.filter((b) => b.linked_milestone_id === m.id);
+    return s + linked.reduce((t, b) => t + b.annual_target, 0);
+  }, 0);
+  const coveredByBuckets = Math.min(totalBucketForMilestones, totalMilestoneNeed);
+
+  const fmtLoan = (row: LoanForecastRow, n: number) =>
+    row.currency === "INR" ? formatAmount(Math.round(n)) : `${row.currency} ${Math.round(n).toLocaleString()}`;
 
   return (
     <ScreenContainer padTop={false} keyboardAware>
-      <ScrollView
-        className="flex-1"
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
-        <View className="px-4 py-4">
-          {/* FY Navigator */}
-          <PeriodNavigator
-            mode="fy"
-            value={targetFYNum}
-            onChange={navigateToFY}
-            variant="inline"
-          />
+      {header}
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View className="px-4 py-3" style={{ gap: 12 }}>
+          <PeriodNavigator mode="fy" value={targetFYNum} onChange={navigateToFY} variant="inline" />
 
-          {/* Income Card */}
-          <Card className="mb-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center">
-                <Text className="text-base font-semibold text-foreground">
-                  Income
-                </Text>
-                {profile?.status === "draft" && (
-                  <View className="ml-2 px-2 py-0.5 rounded-full" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
-                    <Text className="text-label font-bold" style={{ color: theme.warning }}>DRAFT</Text>
-                  </View>
-                )}
-              </View>
-              <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: "/goals/salary-calculator",
-                    params: { fy: targetFY },
-                  })
-                }
-                className="flex-row items-center"
-              >
-                <Ionicons name="create-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
-                  Edit
-                </Text>
-              </Pressable>
-            </View>
-            <MetricRow
-              label="Annual Salary (In-Hand)"
-              value={formatAmount(derived?.annual_salary_in_hand ?? 0)}
-              icon="wallet-outline"
+          {hasActuals && (
+            <Segmented
+              options={[
+                { value: "plan", label: "Plan" },
+                { value: "actual", label: realityCheck!.isPastFY ? "Year-end review" : "Plan vs actual" },
+              ]}
+              value={view}
+              onChange={setView}
             />
+          )}
+
+          {/* ── Hero: the year's surplus, as income − outflow ── */}
+          <Card>
+            <View className="flex-row items-center justify-between">
+              <Text className="text-meta text-muted-foreground flex-1" numberOfLines={1}>
+                {fyLabel} · {showActual ? (realityCheck!.isPastFY ? "how it ended" : "year-end projection") : "plan"}
+              </Text>
+              <Chip variant="status" tone={status.tone} label={status.label} />
+            </View>
+            <Text className="text-meta text-muted-foreground mt-3">{heroSurplus >= 0 ? "Surplus" : "Deficit"}</Text>
+            <Text
+              className="text-hero font-bold"
+              style={{ color: heroSurplus >= 0 ? theme.success : theme.danger, fontVariant: ["tabular-nums"] }}
+              numberOfLines={1}
+            >
+              {heroSurplus >= 0 ? "+" : "−"}
+              {fmtFull(Math.abs(heroSurplus))}
+            </Text>
+            {showActual && (
+              <Text className="text-meta text-muted-foreground mt-0.5">Plan: {fmtFull(netSurplusPlanned)}</Text>
+            )}
+            <View className="flex-row mt-3.5" style={{ gap: 8 }}>
+              <StatTile label="Income" value={formatAmount(totalIncome)} />
+              <StatTile label="Outflow" value={formatAmount(outflowWithDebt)} />
+            </View>
+            {realityCheck && !realityCheck.isPastFY && hasActuals && (
+              <Text className="text-label text-faint-foreground mt-2">Month {realityCheck.monthsElapsed} of 12</Text>
+            )}
+          </Card>
+
+          {/* ── Savings rate: planned vs actual ── */}
+          <Card>
+            <SectionTitle
+              icon="stats-chart-outline"
+              title="Savings rate"
+              hint={`Planned ${plannedRate}%${actualRate != null ? ` · actual so far ${actualRate}%` : ""}`}
+            />
+            {plannedRate > 0 && actualRate != null && (
+              <View className="mt-3" style={{ gap: 6 }}>
+                <ProgressBar
+                  value={Math.min(1, actualRate / plannedRate)}
+                  color={actualRate >= plannedRate ? theme.success : theme.warning}
+                  height={8}
+                  animated={false}
+                />
+                <View className="flex-row justify-between">
+                  <Text className="text-meta font-semibold text-foreground">Actual {actualRate}%</Text>
+                  <Text className="text-meta text-muted-foreground">Target {plannedRate}%</Text>
+                </View>
+              </View>
+            )}
+          </Card>
+
+          {/* ── Income ── */}
+          <Card>
+            <SectionTitle
+              icon="arrow-down-outline"
+              title="Income"
+              right={
+                <View className="flex-row items-center" style={{ gap: 8 }}>
+                  {profile?.status === "draft" && <Chip variant="status" tone="warning" label="Draft" />}
+                  <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                    {formatAmount(totalIncome)}
+                  </Text>
+                </View>
+              }
+              className="mb-1"
+            />
+            <FieldRow label="Salary, in hand" value={formatAmount(derived?.annual_salary_in_hand ?? 0)} divider={false} />
             {!!derived?.salary_actuals?.months && (
-              <Text className="text-xs text-muted-foreground mb-2">
+              <Text className="text-label text-muted-foreground -mt-1 mb-1">
                 Actual salary for {derived.salary_actuals.months} {derived.salary_actuals.months === 1 ? "month" : "months"}, the plan for the rest
                 {Math.abs(derived.salary_actuals.difference) >= 1
                   ? `: ${formatAmount(Math.abs(derived.salary_actuals.difference))} ${derived.salary_actuals.difference > 0 ? "more" : "less"} than planned`
                   : ""}
               </Text>
             )}
-            <MetricRow
-              label="Expected Bonus"
-              value={formatAmount(derived?.expected_bonus ?? 0)}
-              icon="gift-outline"
-            />
-            <MetricRow
-              label="Expected Capital Gains"
-              value={formatAmount(derived?.expected_capital_gains ?? 0)}
-              icon="trending-up-outline"
-            />
-            <View className="h-px bg-border my-2" />
-            <MetricRow
-              label="Total Income"
-              value={formatAmount(derived?.total_income ?? 0)}
-              bold
-              color={theme.success}
+            <FieldRow label="Expected bonus" value={formatAmount(derived?.expected_bonus ?? 0)} />
+            <FieldRow label="Capital gains" value={formatAmount(derived?.expected_capital_gains ?? 0)} />
+            <FieldRow
+              label="Change in the income calculator"
+              onPress={() => router.push({ pathname: "/goals/salary-calculator", params: { fy: targetFY } })}
             />
           </Card>
 
-          {/* Investments Card */}
-          <Card className="mb-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-semibold text-foreground">
-                Investments
-              </Text>
-              <Pressable
-                onPress={() =>
-                  router.push({
-                    pathname: "/goals/investment-buckets",
-                    params: { fy: targetFY },
-                  })
-                }
-                className="flex-row items-center"
-              >
-                <Ionicons name="settings-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
-                  Manage
-                </Text>
-              </Pressable>
-            </View>
-            {buckets.length > 0 ? (
-              buckets.map((b) => {
-                const linkedMs = b.linked_milestone_id
-                  ? milestones.find((m) => m.id === b.linked_milestone_id)
-                  : null;
-                return (
-                  <MetricRow
-                    key={b.id}
-                    label={b.name}
-                    value={formatAmount(b.annual_target)}
-                    sublabel={linkedMs ? `Feeds "${linkedMs.name}"` : undefined}
-                    icon="pie-chart-outline"
-                  />
-                );
-              })
-            ) : (
-              <Text className="text-xs text-faint-foreground py-2">
-                No investment buckets for this FY
-              </Text>
-            )}
-            <View className="h-px bg-border my-2" />
-            <MetricRow
-              label="Total Investments"
-              value={formatAmount(derived?.total_planned_investments ?? 0)}
-              bold
-              color={colors.blue}
+          {/* ── Outflow, as a statement that adds up ── */}
+          <Card>
+            <SectionTitle icon="arrow-up-outline" title="Outflow" className="mb-1" />
+            <Statement
+              lines={[
+                {
+                  label: "Expenses",
+                  sub: "From your monthly budget",
+                  amount: formatAmount(derived?.total_planned_expenses ?? 0),
+                  onPress: () => router.push("/settings/budget-config"),
+                },
+                ...(debtServicingInr > 0
+                  ? [
+                      {
+                        label: "Debt servicing",
+                        sub: loanForecast.some((r) => r.currency !== "INR") ? "EMIs + prepayments (INR loans only)" : "EMIs + prepayments",
+                        amount: formatAmount(debtServicingInr),
+                        sign: "+" as const,
+                        onPress: () => router.push("/goals/loans"),
+                      },
+                    ]
+                  : []),
+                {
+                  label: "Investments",
+                  amount: formatAmount(derived?.total_planned_investments ?? 0),
+                  sign: "+" as const,
+                  onPress: () => router.push({ pathname: "/goals/investment-buckets", params: { fy: targetFY } }),
+                },
+                {
+                  label: "Milestones, paid directly",
+                  sub: coveredByBuckets > 0 ? `${formatCompact(coveredByBuckets)} more covered by buckets` : undefined,
+                  amount: formatAmount(derived?.total_planned_milestones ?? 0),
+                  sign: "+" as const,
+                  onPress: () => router.push("/goals/milestones"),
+                },
+              ]}
+              total={{ label: "Total outflow", amount: formatAmount(outflowWithDebt) }}
             />
           </Card>
 
-          {/* Milestones Card */}
-          <Card className="mb-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-semibold text-foreground">
-                Milestones
-              </Text>
-              <Pressable
-                onPress={() => router.push("/goals/milestones")}
-                className="flex-row items-center"
-              >
-                <Ionicons name="settings-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
-                  Manage
-                </Text>
-              </Pressable>
-            </View>
-            {milestones.length > 0 ? (
-              milestones.map((m) => {
-                const linkedBuckets = buckets.filter((b) => b.linked_milestone_id === m.id);
-                const fullContribution = getMilestoneContributionForFY(m, targetFY);
-                const parts: string[] = [];
-                if (linkedBuckets.length > 0) {
-                  const names = linkedBuckets.map((b) => b.name).join(", ");
-                  parts.push(`Fed by "${names}"`);
-                }
-                const totalMo = getMilestoneTotalMonths(m);
-                if (totalMo > 12) {
-                  const yrs = m.duration_years || 0;
-                  const mos = m.duration_months || 0;
-                  if (yrs > 0 && mos > 0) parts.push(`${yrs}yr ${mos}mo`);
-                  else if (yrs > 0) parts.push(`${yrs}yr`);
-                  else parts.push(`${mos}mo`);
-                }
-                return (
-                  <MetricRow
-                    key={m.id}
-                    label={m.name}
-                    value={formatAmount(fullContribution)}
-                    sublabel={parts.length > 0 ? parts.join(" · ") : undefined}
-                    icon="flag-outline"
-                  />
-                );
-              })
-            ) : (
-              <Text className="text-xs text-faint-foreground py-2">
-                No active milestones for this FY
-              </Text>
-            )}
-            <View className="h-px bg-border my-2" />
-            {(() => {
-              const totalMilestoneNeed = milestones.reduce(
-                (s, m) => s + getMilestoneContributionForFY(m, targetFY), 0,
-              );
-              const totalInvestmentContribution = milestones.reduce((s, m) => {
-                const linked = buckets.filter((b) => b.linked_milestone_id === m.id);
-                return s + linked.reduce((t, b) => t + b.annual_target, 0);
-              }, 0);
-              const remainingDirect = derived?.total_planned_milestones ?? 0;
-              return (
-                <>
-                  <MetricRow
-                    label="Total Milestones"
-                    value={formatAmount(totalMilestoneNeed)}
-                    icon="flag-outline"
-                  />
-                  <MetricRow
-                    label="Investment Contribution"
-                    value={formatAmount(Math.min(totalInvestmentContribution, totalMilestoneNeed))}
-                    sublabel="Covered by linked investment buckets"
-                    icon="pie-chart-outline"
-                  />
-                  <MetricRow
-                    label="Remaining Direct Contribution"
-                    value={formatAmount(remainingDirect)}
-                    bold
-                    color={colors.blue}
-                  />
-                </>
-              );
-            })()}
-          </Card>
-
-          {/* v17.5.0 — Loans & Debt forecast block */}
-          <Card className="mb-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <View className="flex-row items-center flex-1">
-                <View
-                  className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                >
-                  <Ionicons name="cash-outline" size={18} color={colors.blue} />
-                </View>
-                <Text className="text-base font-bold text-foreground">
-                  Loans & Debt
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => router.push("/goals/loans")}
-                accessibilityRole="button"
-                accessibilityLabel="Manage loans"
-                className="flex-row items-center"
-              >
-                <Ionicons name="create-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
-                  Manage
-                </Text>
-              </Pressable>
-            </View>
-
-            {loanForecast.length === 0 ? (
-              <View className="py-3">
-                <Text className="text-sm text-muted-foreground">
-                  No active loans.
-                </Text>
-                <Pressable
-                  onPress={() => router.push("/loans/add")}
-                  className="mt-3 py-2 rounded-lg items-center"
-                  style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
-                >
-                  <Text className="text-sm font-medium" style={{ color: theme.primary }}>
-                    Add a loan
-                  </Text>
-                </Pressable>
-              </View>
-            ) : (
-              <>
-                {loanForecast.map((row, i) => {
-                  const fmt = (n: number) =>
-                    row.currency === "INR"
-                      ? formatAmount(Math.round(n))
-                      : `${row.currency} ${Math.round(n).toLocaleString()}`;
-                  return (
-                    <Pressable
-                      key={row.loanId}
-                      onPress={() => router.push({ pathname: "/loans/[id]", params: { id: row.loanId } })}
-                      className={`py-2.5 ${
-                        i < loanForecast.length - 1
-                          ? "border-b border-border"
-                          : ""
-                      }`}
-                    >
-                      <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-sm font-semibold text-foreground flex-1">
-                          {row.bankName} · {row.loanType}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-                      </View>
-                      <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs text-muted-foreground">
-                          Monthly EMI
-                        </Text>
-                        <Text className="text-xs font-medium text-foreground">
-                          {fmt(row.currentEMI)}
-                        </Text>
-                      </View>
-                      <View className="flex-row justify-between mt-0.5">
-                        <Text className="text-xs text-muted-foreground">
-                          EMI outflow this FY
-                        </Text>
-                        <Text className="text-xs font-medium text-foreground">
-                          {fmt(row.annualEmiTotal)}
-                        </Text>
-                      </View>
-                      {row.annualPrepaymentTotal > 0 && (
-                        <View className="flex-row justify-between mt-0.5">
-                          <Text className="text-xs text-muted-foreground">
-                            Prepayments this FY
-                          </Text>
-                          <Text className="text-xs font-medium text-foreground">
-                            {fmt(row.annualPrepaymentTotal)}
-                          </Text>
-                        </View>
-                      )}
-                      <View className="flex-row justify-between mt-1">
-                        <Text className="text-xs font-semibold text-foreground">
-                          Total annual outflow
-                        </Text>
-                        <Text className="text-xs font-bold" style={{ color: theme.danger }}>
-                          {fmt(row.annualOutflowTotal)}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-                {/* Grand total across all loans (INR only) */}
-                {(() => {
-                  const inrLoans = loanForecast.filter((r) => r.currency === "INR");
-                  if (inrLoans.length === 0) return null;
-                  const grandTotal = inrLoans.reduce((s, r) => s + r.annualOutflowTotal, 0);
-                  const asPctOfIncome =
-                    derived && derived.total_income > 0
-                      ? Math.round((grandTotal / derived.total_income) * 100)
-                      : 0;
-                  return (
-                    <View className="mt-3 pt-3 border-t border-border">
-                      <View className="flex-row justify-between">
-                        <Text className="text-sm font-bold text-foreground">
-                          Debt servicing this year
-                        </Text>
-                        <Text className="text-sm font-bold" style={{ color: theme.danger }}>
-                          −{formatAmount(grandTotal)}
-                        </Text>
-                      </View>
-                      {asPctOfIncome > 0 && (
-                        <Text className="text-xs text-faint-foreground mt-1">
-                          {asPctOfIncome}% of your annual income goes to EMIs + prepayments
-                        </Text>
-                      )}
-                    </View>
-                  );
-                })()}
-              </>
-            )}
-          </Card>
-
-          {/* Expenses Card */}
-          <Card className="mb-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-semibold text-foreground">
-                Expenses (Annualized)
-              </Text>
-              <Pressable
-                onPress={() => router.push("/settings/budget-config")}
-                className="flex-row items-center"
-              >
-                <Ionicons name="create-outline" size={14} color={colors.blue} />
-                <Text className="text-xs font-medium ml-1" style={{ color: theme.primary }}>
-                  Edit budget
-                </Text>
-              </Pressable>
-            </View>
-            <MetricRow
-              label="Estimated Annual Expenses"
-              value={formatAmount(derived?.total_planned_expenses ?? 0)}
-              icon="receipt-outline"
-              color={theme.danger}
-            />
-            <Text className="text-xs text-faint-foreground mt-1">
-              Based on your monthly budget averages
-            </Text>
-          </Card>
-
-          {/* Summary */}
-          <Card title="Plan Summary" className="mb-4">
-            {(() => {
-              // v17.5.1 — Debt servicing is a real outflow too. Roll it into the summary.
-              const debtServicingInr = loanForecast
-                .filter((r) => r.currency === "INR")
-                .reduce((s, r) => s + r.annualOutflowTotal, 0);
-              const baseOutflow = derived?.total_outflow ?? 0;
-              const outflowWithDebt = baseOutflow + debtServicingInr;
-              const surplusWithDebt = (derived?.total_income ?? 0) - outflowWithDebt;
-              return (
-                <>
-                  <MetricRow
-                    label="Total Income"
-                    value={formatAmount(derived?.total_income ?? 0)}
-                    icon="arrow-down-circle-outline"
-                    color={theme.success}
-                  />
-                  <View className="h-px bg-border my-2" />
-                  <MetricRow
-                    label="Expenses"
-                    value={formatAmount(derived?.total_planned_expenses ?? 0)}
-                    icon="receipt-outline"
-                  />
-                  <MetricRow
-                    label="Investments & Milestones"
-                    value={formatAmount((derived?.total_planned_investments ?? 0) + (derived?.total_planned_milestones ?? 0))}
-                    icon="pie-chart-outline"
-                    sublabel={
-                      (derived?.total_planned_milestones ?? 0) > 0
-                        ? `${formatCompact(derived?.total_planned_investments ?? 0)} investments + ${formatCompact(derived?.total_planned_milestones ?? 0)} direct milestone`
-                        : undefined
-                    }
-                  />
-                  {debtServicingInr > 0 && (
-                    <MetricRow
-                      label="Debt Servicing"
-                      value={formatAmount(debtServicingInr)}
-                      icon="card-outline"
-                      sublabel={
-                        loanForecast.some((r) => r.currency !== "INR")
-                          ? "EMIs + prepayments (INR loans only)"
-                          : "EMIs + prepayments"
-                      }
-                    />
-                  )}
-                  <View className="h-px bg-border my-2" />
-                  <MetricRow
-                    label="Total Outflow"
-                    value={formatAmount(outflowWithDebt)}
-                    icon="arrow-up-circle-outline"
-                    color={theme.danger}
-                    bold
-                  />
-                  <View className="h-px bg-border my-2" />
-                  <MetricRow
-                    label="Surplus / Deficit"
-                    value={`${surplusWithDebt < 0 ? "-" : ""}${formatAmount(Math.abs(surplusWithDebt))}`}
-                    icon={
-                      surplusWithDebt >= 0
-                        ? "checkmark-circle-outline"
-                        : "alert-circle-outline"
-                    }
-                    color={surplusWithDebt >= 0 ? theme.success : theme.danger}
-                    bold
-                  />
-                </>
-              );
-            })()}
-            <View className="h-px bg-border my-2" />
-            <MetricRow
-              label="Planned Savings Rate"
-              value={`${derived?.savings_rate ?? 0}%`}
-              icon="stats-chart-outline"
-            />
-            {savings && savings.monthsElapsed > 0 && (
-              <MetricRow
-                label="Actual Savings Rate"
-                value={`${savings.actualSavingsRatePct}%`}
+          {showActual && realityCheck ? (
+            /* ── Plan vs actual: each line, expected so far against what happened ── */
+            <Card>
+              <SectionTitle
                 icon="pulse-outline"
-                color={
-                  savings.actualSavingsRatePct >= (derived?.savings_rate ?? 0)
-                    ? theme.success
-                    : theme.danger
-                }
+                title={realityCheck.isPastFY ? "Year-end review" : "Plan vs actual"}
+                hint={realityCheck.isPastFY ? "Planned against what happened" : "Expected by now against what happened"}
+                className="mb-1"
               />
-            )}
-
-            {/* Achievability (uses debt-adjusted surplus) */}
-            {derived && derived.total_income > 0 && (() => {
-              const debtServicingInr = loanForecast
-                .filter((r) => r.currency === "INR")
-                .reduce((s, r) => s + r.annualOutflowTotal, 0);
-              const adjustedSurplus = derived.total_income - (derived.total_outflow + debtServicingInr);
-              const isPositive = adjustedSurplus >= 0;
-              return (
-                <View
-                  className="mt-3 flex-row items-center justify-center py-2 rounded-lg"
-                  style={{
-                    backgroundColor: isPositive
-                      ? theme.alpha("success", 0.08)
-                      : theme.alpha("danger", 0.08),
-                  }}
-                >
-                  <Ionicons
-                    name={isPositive ? "checkmark-circle" : "alert-circle"}
-                    size={18}
-                    color={isPositive ? theme.success : theme.danger}
-                  />
-                  <Text
-                    className="ml-2 text-sm font-medium"
-                    style={{
-                      color: isPositive ? theme.success : theme.danger,
-                    }}
-                  >
-                    {isPositive
-                      ? "Plan is achievable"
-                      : "Plan has a deficit - review your targets"}
-                  </Text>
-                </View>
-              );
-            })()}
-          </Card>
-
-          {/* Reality Check */}
-          {realityCheck && realityCheck.monthsElapsed > 0 && (
-            <Card title={realityCheck.isPastFY ? "Year-End Review" : "Reality Check"} className="mb-4">
-              {/* Status badge */}
-              <View
-                className="flex-row items-center px-3 py-2 rounded-lg mb-3"
-                style={{
-                  backgroundColor: realityCheck.overallStatus === "on_track"
-                    ? theme.alpha("success", 0.08)
-                    : theme.alpha("danger", 0.08),
-                }}
-              >
-                <Ionicons
-                  name={realityCheck.overallStatus === "on_track" ? "checkmark-circle" : "alert-circle"}
-                  size={16}
-                  color={realityCheck.overallStatus === "on_track" ? theme.success : theme.danger}
+              {realityCheck.rows.map((row) => (
+                <ActualRow
+                  key={row.label}
+                  label={row.label}
+                  planned={row.planned}
+                  proratedTarget={row.proratedTarget}
+                  actualYTD={row.actualYTD}
+                  gap={row.gap}
+                  isAhead={row.isAhead}
+                  gapLabel={row.gapLabel}
+                  correctionLabel={row.correctionLabel}
+                  isPastFY={realityCheck.isPastFY}
+                  projYearEnd={
+                    !realityCheck.isPastFY && realityCheck.monthsElapsed > 0
+                      ? Math.round((row.actualYTD / realityCheck.monthsElapsed) * 12)
+                      : null
+                  }
                 />
-                <Text
-                  className="text-xs font-semibold ml-1.5"
-                  style={{
-                    color: realityCheck.overallStatus === "on_track"
-                      ? theme.success
-                      : theme.danger,
-                  }}
-                >
-                  {realityCheck.isPastFY
-                    ? (realityCheck.netSurplusProjected >= realityCheck.netSurplusPlanned
-                        ? "Finished better than planned"
-                        : "Finished behind plan")
-                    : realityCheck.overallStatus === "on_track"
-                      ? "On track to achieve your plan"
-                      : "Course correction needed"}
+              ))}
+              {debtServicingInr > 0 && (
+                <ActualRow
+                  label="Debt servicing"
+                  planned={debtServicingInr}
+                  proratedTarget={debtProrated}
+                  actualYTD={debtYTD}
+                  gap={debtGap}
+                  isAhead={debtGap <= 0}
+                  gapLabel={
+                    Math.abs(debtGap) < 1 ? "On track" : debtGap > 0 ? `${formatCompact(debtGap)} over` : `${formatCompact(Math.abs(debtGap))} under`
+                  }
+                  correctionLabel={debtGap > 0 ? `${formatCompact(debtGap)} above expected` : ""}
+                  isPastFY={realityCheck.isPastFY}
+                  projYearEnd={!realityCheck.isPastFY ? debtProjYearEnd : null}
+                />
+              )}
+              <View className="flex-row items-center justify-between border-t border-border pt-3 mt-1">
+                <Text className="text-body font-bold text-foreground">
+                  {realityCheck.isPastFY ? "Actual surplus" : "Projected surplus"}
                 </Text>
-                {!realityCheck.isPastFY && (
-                  <Text className="text-xs text-faint-foreground ml-auto">
-                    Month {realityCheck.monthsElapsed}/12
-                  </Text>
-                )}
-              </View>
-
-              {/* Per-category blocks */}
-              {(() => {
-                const debtAnnual = loanForecast
-                  .filter((r) => r.currency === "INR")
-                  .reduce((s, r) => s + r.annualOutflowTotal, 0);
-                const debtYTD = loanForecast
-                  .filter((r) => r.currency === "INR")
-                  .reduce((s, r) => s + r.ytdOutflowTotal, 0);
-                const debtProrated = realityCheck.monthsElapsed > 0
-                  ? Math.round((debtAnnual / 12) * realityCheck.monthsElapsed)
-                  : 0;
-                const debtGap = debtYTD - debtProrated;
-                const debtIsAhead = debtGap <= 0;
-                const debtGapLabel = Math.abs(debtGap) < 1
-                  ? "On track"
-                  : debtGap > 0
-                    ? `${formatCompact(debtGap)} over`
-                    : `${formatCompact(Math.abs(debtGap))} under`;
-                const debtProjYearEnd = !realityCheck.isPastFY && realityCheck.monthsElapsed > 0 && debtYTD > 0
-                  ? Math.round((debtYTD / realityCheck.monthsElapsed) * 12)
-                  : debtAnnual;
-                const netSurplusProj = realityCheck.netSurplusProjected - debtProjYearEnd;
-                const netSurplusPlanned = realityCheck.netSurplusPlanned - debtAnnual;
-
-                const renderRow = (
-                  label: string,
-                  planned: number,
-                  proratedTarget: number,
-                  actualYTD: number,
-                  gap: number,
-                  isAhead: boolean,
-                  gapLabel: string,
-                  correctionLabel: string,
-                  projYearEnd: number | null,
-                  borderBottom: boolean,
-                ) => {
-                  const statusColor = Math.abs(gap) < 1
-                    ? colors.textSecondary
-                    : isAhead
-                      ? theme.success
-                      : theme.danger;
-                  const statusBg = Math.abs(gap) < 1
-                    ? colors.surface
-                    : isAhead
-                      ? theme.alpha("success", 0.08)
-                      : theme.alpha("danger", 0.08);
-                  return (
-                    <View
-                      key={label}
-                      className={`py-3${borderBottom ? " border-b border-border" : ""}`}
-                    >
-                      {/* Section header */}
-                      <View className="flex-row items-center justify-between mb-2">
-                        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          {label}
-                        </Text>
-                        <View className="px-2 py-0.5 rounded-full" style={{ backgroundColor: statusBg }}>
-                          <Text className="text-label font-bold" style={{ color: statusColor }}>
-                            {gapLabel}
-                          </Text>
-                        </View>
-                      </View>
-                      {/* Expected vs Actual */}
-                      <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-xs text-muted-foreground">
-                          {realityCheck.isPastFY ? "Planned" : "Expected so far"}
-                        </Text>
-                        <Text className="text-sm text-muted-foreground">
-                          {fmtFull(realityCheck.isPastFY ? planned : proratedTarget)}
-                        </Text>
-                      </View>
-                      <View className="flex-row items-center justify-between mb-2">
-                        <Text className="text-xs text-muted-foreground">Actual</Text>
-                        <Text className="text-sm font-semibold text-foreground">
-                          {fmtFull(actualYTD)}
-                        </Text>
-                      </View>
-                      {/* Year-end projection (current FY only) */}
-                      {!realityCheck.isPastFY && projYearEnd !== null && (
-                        <View
-                          className="rounded-lg px-3 py-2 mb-1"
-                          style={{ backgroundColor: colors.surface }}
-                        >
-                          <View className="flex-row items-center justify-between">
-                            <Text className="text-label text-faint-foreground">Year-end projection</Text>
-                            <Text
-                              className="text-xs font-semibold"
-                              style={{
-                                color: Math.abs(gap) < 1
-                                  ? colors.textSecondary
-                                  : isAhead
-                                    ? theme.success
-                                    : theme.danger,
-                              }}
-                            >
-                              {fmtFull(projYearEnd)}
-                            </Text>
-                          </View>
-                          <View className="items-end mt-0.5">
-                            <Text className="text-label text-faint-foreground">{fmtFull(planned)} planned</Text>
-                          </View>
-                        </View>
-                      )}
-                      {/* Correction / confirmation hint */}
-                      {!realityCheck.isPastFY && !isAhead && Math.abs(gap) >= 1 && (
-                        <View className="flex-row items-center gap-1.5">
-                          <Ionicons name="arrow-forward" size={11} color={theme.danger} />
-                          <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
-                            {correctionLabel} to get back on track
-                          </Text>
-                        </View>
-                      )}
-                      {!realityCheck.isPastFY && isAhead && Math.abs(gap) >= 1 && (
-                        <View className="flex-row items-center gap-1.5">
-                          <Ionicons name="checkmark" size={11} color={theme.success} />
-                          <Text className="text-xs font-semibold" style={{ color: theme.success }}>
-                            {correctionLabel}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                };
-
-                const rcRows = realityCheck.rows.map((row, i) => {
-                  const projYearEnd = !realityCheck.isPastFY && realityCheck.monthsElapsed > 0
-                    ? Math.round((row.actualYTD / realityCheck.monthsElapsed) * 12)
-                    : null;
-                  return renderRow(
-                    row.label,
-                    row.planned,
-                    row.proratedTarget,
-                    row.actualYTD,
-                    row.gap,
-                    row.isAhead,
-                    row.gapLabel,
-                    row.correctionLabel,
-                    projYearEnd,
-                    true,
-                  );
-                });
-
-                // Debt servicing block (only if there are INR loans)
-                const debtBlock = debtAnnual > 0
-                  ? renderRow(
-                      "Debt Servicing",
-                      debtAnnual,
-                      debtProrated,
-                      debtYTD,
-                      debtGap,
-                      debtIsAhead,
-                      debtGapLabel,
-                      debtGap > 0 ? `${formatCompact(debtGap)} above expected` : "",
-                      !realityCheck.isPastFY ? debtProjYearEnd : null,
-                      false,
-                    )
-                  : null;
-
-                return (
-                  <>
-                    {rcRows}
-                    {debtBlock}
-                    {/* Net surplus */}
-                    <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-border">
-                      <Text className="text-xs font-bold text-foreground">
-                        {realityCheck.isPastFY ? "Actual Surplus" : "Projected Surplus"}
-                      </Text>
-                      <Text
-                        className="text-sm font-bold"
-                        style={{
-                          color: netSurplusProj >= 0
-                            ? theme.success
-                            : theme.danger,
-                        }}
-                      >
-                        {fmtFull(netSurplusProj)}
-                        <Text className="text-label font-normal text-faint-foreground">
-                          {" "}(plan: {fmtFull(netSurplusPlanned)})
-                        </Text>
-                      </Text>
-                    </View>
-                  </>
-                );
-              })()}
-
-              {/* Action summary */}
-              {realityCheck.summaryLines.length > 0 && (
-                <View
-                  className="mt-3 p-2.5 rounded-lg"
-                  style={{
-                    backgroundColor: realityCheck.overallStatus === "on_track"
-                      ? theme.alpha("success", 0.08)
-                      : theme.alpha("danger", 0.08),
-                  }}
+                <Text
+                  className="text-body font-bold"
+                  style={{ color: netSurplusProj >= 0 ? theme.success : theme.danger, fontVariant: ["tabular-nums"] }}
                 >
+                  {fmtFull(netSurplusProj)}
+                </Text>
+              </View>
+              {realityCheck.summaryLines.length > 0 && (
+                <View className="mt-3 p-3 rounded-control" style={{ backgroundColor: theme.alpha("foreground", 0.04), gap: 4 }}>
                   {realityCheck.summaryLines.map((line, i) => (
-                    <View key={i} className="flex-row items-center mb-0.5">
-                      <Text className="text-label mr-1.5">
+                    <View key={i} className="flex-row">
+                      <Text className="text-meta text-muted-foreground mr-1.5">
                         {line.startsWith("Cut") || line.startsWith("Add") ? "→" : "✓"}
                       </Text>
-                      <Text className="text-xs text-muted-foreground">
-                        {line}
-                      </Text>
+                      <Text className="text-meta text-muted-foreground flex-1">{line}</Text>
                     </View>
                   ))}
                 </View>
               )}
             </Card>
+          ) : (
+            <>
+              {/* ── Investment buckets ── */}
+              <Card>
+                <SectionTitle
+                  icon="pie-chart-outline"
+                  title="Investments"
+                  hint={`${buckets.length} ${buckets.length === 1 ? "bucket" : "buckets"} · ${formatAmount(derived?.total_planned_investments ?? 0)} a year`}
+                  className="mb-1"
+                />
+                {buckets.length > 0 ? (
+                  buckets.map((b, i) => {
+                    const linkedMs = b.linked_milestone_id ? milestones.find((m) => m.id === b.linked_milestone_id) : null;
+                    return (
+                      <View key={b.id} className={`py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
+                        <View className="flex-row items-center justify-between">
+                          <Text className="text-body text-foreground flex-1" numberOfLines={1}>
+                            {b.name}
+                          </Text>
+                          <Text className="text-body text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                            {formatAmount(b.annual_target)}
+                          </Text>
+                        </View>
+                        {linkedMs && <Text className="text-label text-muted-foreground">Feeds {linkedMs.name}</Text>}
+                      </View>
+                    );
+                  })
+                ) : (
+                  <Text className="text-meta text-muted-foreground py-2">No investment buckets for this FY</Text>
+                )}
+                <FieldRow
+                  label="Open investment buckets"
+                  onPress={() => router.push({ pathname: "/goals/investment-buckets", params: { fy: targetFY } })}
+                />
+              </Card>
+
+              {/* ── Milestones ── */}
+              <Card>
+                <SectionTitle icon="flag-outline" title="Milestones" className="mb-1" />
+                {milestones.length > 0 ? (
+                  milestones.map((m, i) => {
+                    const linkedBuckets = buckets.filter((b) => b.linked_milestone_id === m.id);
+                    const parts: string[] = [];
+                    if (linkedBuckets.length > 0) parts.push(`Fed by ${linkedBuckets.map((b) => b.name).join(", ")}`);
+                    const totalMo = getMilestoneTotalMonths(m);
+                    if (totalMo > 12) {
+                      const yrs = m.duration_years || 0;
+                      const mos = m.duration_months || 0;
+                      parts.push(yrs > 0 && mos > 0 ? `${yrs}yr ${mos}mo` : yrs > 0 ? `${yrs}yr` : `${mos}mo`);
+                    }
+                    return (
+                      <View key={m.id} className={`py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
+                        <View className="flex-row items-center justify-between">
+                          <Text className="text-body text-foreground flex-1" numberOfLines={1}>
+                            {m.name}
+                          </Text>
+                          <Text className="text-body text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                            {formatAmount(getMilestoneContributionForFY(m, targetFY))}
+                          </Text>
+                        </View>
+                        {parts.length > 0 && <Text className="text-label text-muted-foreground">{parts.join(" · ")}</Text>}
+                      </View>
+                    );
+                  })
+                ) : (
+                  <Text className="text-meta text-muted-foreground py-2">No active milestones for this FY</Text>
+                )}
+                {milestones.length > 0 && (
+                  <View className="border-t border-border mt-1 pt-1">
+                    <Statement
+                      lines={[
+                        { label: "Milestones need this year", amount: formatAmount(totalMilestoneNeed) },
+                        { label: "Covered by linked buckets", amount: formatAmount(coveredByBuckets), sign: "−" },
+                      ]}
+                      total={{ label: "Paid directly", amount: formatAmount(derived?.total_planned_milestones ?? 0) }}
+                    />
+                  </View>
+                )}
+                <FieldRow label="Open life milestones" onPress={() => router.push("/goals/milestones")} />
+              </Card>
+
+              {/* ── Loans & debt ── */}
+              <Card>
+                <SectionTitle icon="business-outline" title="Loans & debt" className="mb-1" />
+                {loanForecast.length === 0 ? (
+                  <Text className="text-meta text-muted-foreground py-2">No active loans.</Text>
+                ) : (
+                  loanForecast.map((row, i) => (
+                    <Pressable
+                      key={row.loanId}
+                      onPress={() => router.push({ pathname: "/loans/[id]", params: { id: row.loanId } })}
+                      className={`py-2.5 ${i > 0 ? "border-t border-border" : ""}`}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${row.bankName} ${row.loanType}, open loan`}
+                    >
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>
+                          {row.bankName} · {row.loanType}
+                        </Text>
+                        <Ionicons name="chevron-forward" size={14} color={theme.faintForeground} />
+                      </View>
+                      <MiniLine label="Monthly EMI" value={fmtLoan(row, row.currentEMI)} />
+                      <MiniLine label="EMIs this FY" value={fmtLoan(row, row.annualEmiTotal)} />
+                      {row.annualPrepaymentTotal > 0 && <MiniLine label="Prepayments this FY" value={fmtLoan(row, row.annualPrepaymentTotal)} />}
+                      <MiniLine label="Paid out this FY" value={fmtLoan(row, row.annualOutflowTotal)} bold />
+                    </Pressable>
+                  ))
+                )}
+                {debtServicingInr > 0 && (
+                  <View className="border-t border-border pt-2.5 mt-1">
+                    <View className="flex-row justify-between">
+                      <Text className="text-body font-bold text-foreground">Debt servicing this year</Text>
+                      <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
+                        {formatAmount(debtServicingInr)}
+                      </Text>
+                    </View>
+                    {totalIncome > 0 && Math.round((debtServicingInr / totalIncome) * 100) > 0 && (
+                      <Text className="text-label text-muted-foreground mt-0.5">
+                        {Math.round((debtServicingInr / totalIncome) * 100)}% of your annual income goes to EMIs + prepayments
+                      </Text>
+                    )}
+                  </View>
+                )}
+                <FieldRow label="Add a loan" onPress={() => router.push("/loans/add")} />
+                <FieldRow label="Open loans & debt" onPress={() => router.push("/goals/loans")} />
+              </Card>
+            </>
           )}
 
           {/* Data sources */}
           {derived && derived.sources.length > 0 && (
-            <View className="px-2 mb-4">
-              <Text className="text-xs font-medium text-faint-foreground mb-1">
-                Data sources:
-              </Text>
+            <View className="px-1">
+              <Text className="text-label font-semibold text-faint-foreground mb-1">Data sources</Text>
               {derived.sources.map((s, i) => (
-                <Text key={i} className="text-xs text-faint-foreground">
+                <Text key={i} className="text-label text-faint-foreground">
                   {s}
                 </Text>
               ))}
@@ -967,3 +621,65 @@ export default function YearlyPlanScreen() {
   );
 }
 
+function MiniLine({ label, value, bold = false }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <View className="flex-row justify-between mt-0.5">
+      <Text className={`text-meta ${bold ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{label}</Text>
+      <Text className={`text-meta text-foreground ${bold ? "font-bold" : ""}`} style={{ fontVariant: ["tabular-nums"] }}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
+/** One line of Plan vs actual: expected so far, actual, the gap chip and the year-end projection. */
+function ActualRow({
+  label,
+  planned,
+  proratedTarget,
+  actualYTD,
+  gap,
+  isAhead,
+  gapLabel,
+  correctionLabel,
+  isPastFY,
+  projYearEnd,
+}: {
+  label: string;
+  planned: number;
+  proratedTarget: number;
+  actualYTD: number;
+  gap: number;
+  isAhead: boolean;
+  gapLabel: string;
+  correctionLabel: string;
+  isPastFY: boolean;
+  projYearEnd: number | null;
+}) {
+  const theme = useTheme();
+  const even = Math.abs(gap) < 1;
+  const tone = even ? "neutral" : isAhead ? "success" : "danger";
+  return (
+    <View className="py-3 border-t border-border">
+      <View className="flex-row items-center justify-between mb-1.5">
+        <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>
+          {label}
+        </Text>
+        <Chip variant="status" tone={tone} label={gapLabel} />
+      </View>
+      <MiniLine label={isPastFY ? "Planned" : "Expected so far"} value={fmtFull(isPastFY ? planned : proratedTarget)} />
+      <MiniLine label="Actual" value={fmtFull(actualYTD)} bold />
+      {!isPastFY && projYearEnd !== null && (
+        <MiniLine label={`Year-end projection · ${fmtFull(planned)} planned`} value={fmtFull(projYearEnd)} />
+      )}
+      {!isPastFY && !even && correctionLabel !== "" && (
+        <View className="flex-row items-center mt-1" style={{ gap: 6 }}>
+          <Ionicons name={isAhead ? "checkmark" : "arrow-forward"} size={12} color={isAhead ? theme.success : theme.danger} />
+          <Text className="text-meta font-semibold flex-1" style={{ color: isAhead ? theme.success : theme.danger }}>
+            {isAhead ? correctionLabel : `${correctionLabel} to get back on track`}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}

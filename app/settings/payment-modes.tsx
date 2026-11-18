@@ -105,19 +105,19 @@ export default function PaymentModesScreen() {
         <Ionicons
           name={TYPE_ICONS[item.type as PaymentModeType]}
           size={20}
-          color={colors.blue}
+          color={theme.data.series[3]}
         />
       </View>
       <View className="flex-1">
-        <Text className="text-base font-medium text-foreground">
+        <Text className="text-body font-medium text-foreground">
           {item.name}
         </Text>
         <View className="flex-row items-center">
-          <Text className="text-xs text-muted-foreground">
+          <Text className="text-label text-muted-foreground">
             {PAYMENT_MODE_TYPE_LABELS[item.type as PaymentModeType]}
           </Text>
           {item.is_active === 0 && (
-            <Text className="text-xs text-danger ml-2">Inactive</Text>
+            <Text className="text-label text-danger ml-2">Inactive</Text>
           )}
         </View>
       </View>
@@ -127,7 +127,7 @@ export default function PaymentModesScreen() {
         <Ionicons
           name={item.is_active === 1 ? "eye-outline" : "eye-off-outline"}
           size={18}
-          color={item.is_active === 1 ? colors.blue : theme.faintForeground}
+          color={item.is_active === 1 ? theme.data.series[3] : theme.faintForeground}
         />
       </Pressable>
 
@@ -158,7 +158,7 @@ export default function PaymentModesScreen() {
           />
         }
       />
-      <FAB icon="add" onPress={() => router.push("/settings/payment-mode-edit")} />
+      <FAB icon="add" label="Mode" onPress={() => router.push("/settings/payment-mode-edit")} />
     </ScreenContainer>
   );
 }

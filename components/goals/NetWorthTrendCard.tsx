@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { View } from "react-native";
-import { Card, Money, ProgressBar, Text } from "@/components/ui";
+import { Card, Money, ProgressBar, Segmented, Text } from "@/components/ui";
+import { Statement } from "@/components/ui/LinkRow";
 import { AnimatedNumber, SegmentedControl } from "@/components/motion";
 import { StackedAreaChart, type StackedLayer } from "@/components/charts/StackedAreaChart";
 import { DATA_HEX } from "@/constants/brand";
@@ -29,6 +30,22 @@ const OWN = [
 ] as const;
 type OwnKey = (typeof OWN)[number]["key"];
 
+/** What you owe, for the Debt view's bands. */
+const OWE = [
+  { key: "loans", label: "Loans", color: DATA_HEX.series[1] },
+  { key: "cards", label: "Card dues", color: DATA_HEX.series[4] },
+  { key: "payables", label: "Payables", color: DATA_HEX.series[3] },
+] as const;
+
+type KindKey = "all" | "liquid" | "invest" | "debt";
+const KINDS: { value: KindKey; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "liquid", label: "Liquid cash" },
+  { value: "invest", label: "Investments" },
+  { value: "debt", label: "Debt" },
+];
+const KIND_LABEL: Record<KindKey, string> = { all: "Net worth", liquid: "Liquid cash", invest: "Investments", debt: "Debt" };
+
 const monthLabel = (m: string, withYear = true) => {
   const [y, mo] = m.split("-").map(Number);
   return withYear ? `${SHORT_MONTHS[mo - 1]} ${String(y).slice(2)}` : SHORT_MONTHS[mo - 1];
@@ -49,6 +66,8 @@ interface Props {
 export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
   const theme = useTheme();
   const [range, setRange] = useState<RangeKey>("fy");
+  /** What the chart and headline show: net worth, or one part of it (owner, Nov 2026). */
+  const [kind, setKind] = useState<KindKey>("all");
   /** Index into `visible` under the finger while dragging; null otherwise. */
   const [scrub, setScrub] = useState<number | null>(null);
 
@@ -68,23 +87,31 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
     return { visible: points.slice(from), baseIndex: from };
   }, [points, range, fyStartMonth]);
 
-  const layers = useMemo<StackedLayer[]>(
-    () =>
-      OWN.map((o) => ({
+  const layers = useMemo<StackedLayer[]>(() => {
+    if (kind === "debt") {
+      return OWE.map((o) => ({
+        key: o.key,
+        label: o.label,
+        color: o.color,
+        values: visible.map((p) => Math.max(0, p[o.key])),
+      })).filter((l) => l.values.some((v) => v > 0));
+    }
+    return OWN.filter((o) => kind === "all" || (kind === "liquid" ? o.key === "liquidCash" : o.key === "investments"))
+      .map((o) => ({
         key: o.key,
         label: o.label,
         color: o.color,
         values: visible.map((p) => Math.max(0, p[o.key as OwnKey])),
-      })).filter((l) => l.values.some((v) => v > 0)),
-    [visible],
-  );
+      }))
+      .filter((l) => l.values.some((v) => v > 0));
+  }, [visible, kind]);
 
   if (loading && points.length === 0) {
     return (
       <Card className="mx-4 mb-2">
-        <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Net worth over time</Text>
+        <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">Net worth over time</Text>
         <View style={{ height: 150 }} className="items-center justify-center">
-          <Text className="text-xs text-faint-foreground">Working it out…</Text>
+          <Text className="text-label text-faint-foreground">Working it out…</Text>
         </View>
       </Card>
     );
@@ -97,8 +124,11 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
   const first = visible[0];
   const point = visible[at];
   const isToday = at === n - 1;
-  const delta = point.netWorth - first.netWorth;
-  const deltaPct = first.netWorth > 0 ? (delta / first.netWorth) * 100 : null;
+  const valueOf = (pt: NetWorthPoint) =>
+    kind === "all" ? pt.netWorth : kind === "liquid" ? pt.liquidCash : kind === "invest" ? pt.investments : pt.cards + pt.loans + pt.payables;
+  const shown = valueOf(point);
+  const delta = shown - valueOf(first);
+  const deltaPct = valueOf(first) > 0 ? (delta / valueOf(first)) * 100 : null;
   const sinceLabel =
     range === "fy" && first.month < fyStartMonth ? `since 1 ${monthLabel(fyStartMonth, false)}` : `since ${monthLabel(first.month)}`;
   const change = changeBetween(points, baseIndex, baseIndex + at);
@@ -130,25 +160,44 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
     },
     { label: "Everything else", hint: "Money people owe you or you owe them, and other changes", value: change.other },
   ].filter((r, i) => i === 0 || Math.abs(r.value) >= 1);
+  // Rounding in the monthly steps can leave a rupee or two: "Everything else" takes it, so the
+  // statement below adds up to the net worth shown at the top.
+  const gap = point.netWorth - first.netWorth - howRows.reduce((sum, r) => sum + r.value, 0);
+  if (Math.abs(gap) >= 1) {
+    const other = howRows.find((r) => r.label === "Everything else");
+    if (other) other.value += gap;
+    else howRows.push({ label: "Everything else", hint: "Money people owe you or you owe them, and other changes", value: gap });
+  }
 
   return (
     <Card className="mx-4 mb-2">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-        {isToday && !scrubbing ? "Net worth" : `Net worth · end of ${monthLabel(point.month)}`}
+      <Text className="text-meta text-muted-foreground">
+        {isToday && !scrubbing ? `${KIND_LABEL[kind]} today` : `${KIND_LABEL[kind]} · end of ${monthLabel(point.month)}`}
       </Text>
       {/* Counts up when the screen opens; while dragging it follows the finger exactly. */}
       {scrubbing ? (
-        <Money value={point.netWorth} className="text-2xl font-bold text-foreground" />
+        <Money value={shown} className="text-hero font-bold text-foreground" />
       ) : (
-        <AnimatedNumber value={point.netWorth} className="text-2xl font-bold text-foreground" />
+        <AnimatedNumber value={shown} className="text-hero font-bold text-foreground" />
       )}
       {Math.abs(delta) >= 1 || scrubbing ? (
-        <Text className="text-xs mt-0.5" style={{ color: delta >= 0 ? theme.success : theme.danger }}>
+        <Text className="text-label mt-0.5" style={{ color: delta >= 0 ? theme.success : theme.danger }}>
           {delta >= 0 ? "+" : "−"}{formatAmount(Math.abs(delta))}
           {deltaPct != null ? ` (${delta >= 0 ? "+" : "−"}${Math.abs(deltaPct).toFixed(1)}%)` : ""}
-          <Text className="text-xs text-muted-foreground"> {sinceLabel}{point.estimated ? " · estimated" : ""}</Text>
+          <Text className="text-label text-muted-foreground"> {sinceLabel}{point.estimated ? " · estimated" : ""}</Text>
         </Text>
       ) : null}
+
+      {/* What to show: net worth, or one part of it. */}
+      <Segmented<KindKey>
+        className="mt-3"
+        options={KINDS}
+        value={kind}
+        onChange={(v) => {
+          setKind(v);
+          setScrub(null);
+        }}
+      />
 
       {/* How far back to look. */}
       <SegmentedControl
@@ -168,44 +217,48 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
 
       {/* What it's made of - follows the finger, like the rows under the Investments chart. */}
       <View className="mt-2">
-        {owe.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">What you own</Text>}
-        {[...own].reverse().map((o) => (
+        {kind === "all" && owe.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">What you own</Text>}
+        {(kind === "debt" ? [] : [...own].filter((o) => kind === "all" || (kind === "liquid" ? o.key === "liquidCash" : o.key === "investments")).reverse()).map((o) => (
           <BreakdownRow key={o.key} color={o.color} label={o.label} hint={o.hint} amount={o.value} percent={pct(o.value)} />
         ))}
-        {owe.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-0.5">What you owe</Text>}
-        {owe.map((o) => (
+        {kind === "all" && owe.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-0.5">What you owe</Text>}
+        {(kind === "all" || kind === "debt" ? owe : []).map((o) => (
           <BreakdownRow key={o.label} color={theme.danger} label={o.label} hint={o.hint} amount={-o.value} percent={pct(o.value)} owed />
         ))}
       </View>
 
-      {/* How it changed, in plain words. The rows add up to the change shown at the top. */}
-      <View className="mt-3 pt-3 border-t border-border">
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          How it changed {sinceLabel}{scrubbing && !isToday ? ` to ${monthLabel(point.month)}` : ""}
+      {/* How it changed, as a statement that adds up: where it started, each reason, where it is now. */}
+      {kind === "all" && <View className="mt-3 pt-3 border-t border-border">
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+          Change {sinceLabel}{scrubbing && !isToday ? ` to ${monthLabel(point.month)}` : ""}
         </Text>
-        {howRows.map((r) => (
-          <View key={r.label} className="flex-row items-start py-1.5">
-            <View className="flex-1 mr-3">
-              <Text className="text-sm text-foreground">{r.label}</Text>
-              <Text className="text-label text-muted-foreground">{r.hint}</Text>
-            </View>
-            <Text className="text-sm font-semibold" style={{ color: r.value > 0 ? theme.success : r.value < 0 ? theme.danger : theme.mutedForeground }}>
-              {r.value >= 0 ? "+" : "−"}{formatCompact(Math.abs(r.value))}
-            </Text>
-          </View>
-        ))}
-        <View className="flex-row items-center pt-1.5 mt-0.5 border-t border-border">
-          <Text className="text-sm font-semibold text-foreground flex-1">Change in net worth</Text>
-          <Text className="text-sm font-bold" style={{ color: delta >= 0 ? theme.success : theme.danger }}>
-            {delta >= 0 ? "+" : "−"}{formatCompact(Math.abs(delta))}
-          </Text>
-        </View>
+        <Statement
+          lines={[
+            {
+              label:
+                range === "fy" && first.month < fyStartMonth
+                  ? `Net worth on 1 ${monthLabel(fyStartMonth, false)}`
+                  : `Net worth, end of ${monthLabel(first.month)}`,
+              amount: formatAmount(first.netWorth),
+            },
+            ...howRows.map((r) => ({
+              label: r.label,
+              sub: r.hint,
+              sign: (r.value >= 0 ? "+" : "−") as "+" | "−",
+              amount: formatAmount(Math.abs(r.value)),
+            })),
+          ]}
+          total={{
+            label: isToday ? "Net worth today" : `Net worth, end of ${monthLabel(point.month)}`,
+            amount: formatAmount(point.netWorth),
+          }}
+        />
         {visible.some((p) => p.estimated) && (
           <Text className="text-label text-faint-foreground mt-2">
             Some months are estimates: an investment snapshot carried forward, or a balance worked back from a message.
           </Text>
         )}
-      </View>
+      </View>}
     </Card>
   );
 }
@@ -228,18 +281,18 @@ function BreakdownRow({
   const theme = useTheme();
   return (
     <View style={{ minHeight: 40, flexDirection: "row", alignItems: "center", paddingVertical: 6 }} accessible accessibilityLabel={`${label}, ${formatAmount(amount)}`}>
-      <View className="w-2.5 h-2.5 rounded-sm mr-2.5" style={{ backgroundColor: color, opacity: owed ? 0.7 : 1 }} />
+      <View className="w-2.5 h-2.5 rounded-control mr-2.5" style={{ backgroundColor: color, opacity: owed ? 0.7 : 1 }} />
       <View className="flex-1">
-        <Text className="text-sm text-foreground" numberOfLines={1}>
+        <Text className="text-meta text-foreground" numberOfLines={1}>
           {label}
           <Text className="text-label text-muted-foreground">  {hint}</Text>
         </Text>
         <ProgressBar value={Math.min(1, percent / 100)} color={color} height={3} className="mt-1" animated={false} />
       </View>
-      <Text className="text-xs w-24 text-right" style={{ color: owed ? theme.danger : theme.mutedForeground }}>
+      <Text className="text-label w-24 text-right" style={{ color: owed ? theme.foreground : theme.mutedForeground }}>
         {owed ? "−" : ""}{formatAmount(Math.abs(amount))}
       </Text>
-      <Text className="text-sm font-semibold text-foreground w-11 text-right">{percent}%</Text>
+      <Text className="text-body font-semibold text-foreground w-11 text-right">{percent}%</Text>
     </View>
   );
 }

@@ -166,7 +166,7 @@ export default function SmartSmsTemplatesListScreen() {
     <ScreenContainer padTop={false}>
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
-          <Text className="text-xs text-faint-foreground">
+          <Text className="text-label text-faint-foreground">
             Teach Arth to read a transaction message it doesn't know yet. Your templates are grouped by bank or wallet and stay on this phone.
           </Text>
         </View>
@@ -195,12 +195,12 @@ export default function SmartSmsTemplatesListScreen() {
                     color={accentColor}
                   />
                   <View className="flex-1 ml-3">
-                    <Text className="text-sm font-semibold text-foreground">
+                    <Text className="text-body font-semibold text-foreground">
                       {unrecognisedCount > 0
                         ? `Browse unrecognised SMS (${unrecognisedCount})`
                         : "No unrecognised SMS"}
                     </Text>
-                    <Text className="text-xs text-faint-foreground mt-0.5">
+                    <Text className="text-label text-faint-foreground mt-0.5">
                       {unrecognisedCount > 0
                         ? `Last ${backlogDays} days of transaction messages Arth couldn't read. Tap any to teach Arth.`
                         : `Arth has read every transaction message from the last ${backlogDays} days.`}
@@ -209,7 +209,7 @@ export default function SmartSmsTemplatesListScreen() {
                   <Ionicons
                     name="chevron-forward"
                     size={18}
-                    color={colors.textSecondary}
+                    color={theme.mutedForeground}
                   />
                 </Pressable>
                 {/* How far back a new template reads unread messages (live count + "Read them now"). */}
@@ -218,14 +218,14 @@ export default function SmartSmsTemplatesListScreen() {
                   className="flex-row items-center mt-2 pt-2 border-t border-border"
                   accessibilityRole="button"
                 >
-                  <Ionicons name="time-outline" size={18} color={colors.textSecondary} />
+                  <Ionicons name="time-outline" size={18} color={theme.mutedForeground} />
                   <View className="flex-1 ml-3">
-                    <Text className="text-sm text-foreground">Read past messages from</Text>
-                    <Text className="text-xs text-faint-foreground mt-0.5">
+                    <Text className="text-meta text-foreground">Read past messages from</Text>
+                    <Text className="text-label text-faint-foreground mt-0.5">
                       When you teach a template, Arth checks unread messages this far back.
                     </Text>
                   </View>
-                  <Text className="text-sm font-semibold" style={{ color: accentColor }}>
+                  <Text className="text-body font-semibold" style={{ color: accentColor }}>
                     Last {backlogDays} days
                   </Text>
                 </Pressable>
@@ -247,7 +247,7 @@ export default function SmartSmsTemplatesListScreen() {
                     }}
                     className="mt-2 pt-2 border-t border-border"
                   >
-                    <Text className="text-xs font-medium text-center" style={{ color: theme.danger }}>
+                    <Text className="text-label font-medium text-center" style={{ color: theme.danger }}>
                       Clear all unrecognised messages
                     </Text>
                   </Pressable>
@@ -275,16 +275,16 @@ export default function SmartSmsTemplatesListScreen() {
                     accessibilityState={{ expanded: isOpen }}
                     accessibilityLabel={`${g.title}, ${g.list.length} templates`}
                   >
-                    <View className="w-9 h-9 rounded-xl items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                    <View className="w-9 h-9 rounded-card items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
                       <Ionicons name="business-outline" size={17} color={accentColor} />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-foreground">{g.title}</Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5">
+                      <Text className="text-body font-semibold text-foreground">{g.title}</Text>
+                      <Text className="text-label text-muted-foreground mt-0.5">
                         {g.list.length} template{g.list.length === 1 ? "" : "s"} · {matched} message{matched === 1 ? "" : "s"} read
                       </Text>
                     </View>
-                    <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={18} color={colors.textSecondary} />
+                    <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />
                   </Pressable>
 
                   {isOpen &&
@@ -294,35 +294,35 @@ export default function SmartSmsTemplatesListScreen() {
                         <View key={item.id} className="mt-3 pt-3 border-t border-border">
                           <Pressable onPress={() => router.push(`/settings/sms-templates/${item.id}`)} accessibilityRole="button">
                             <View className="flex-row items-center mb-1">
-                              <Text className="text-sm font-medium text-foreground flex-1" numberOfLines={1}>
+                              <Text className="text-body font-medium text-foreground flex-1" numberOfLines={1}>
                                 {item.template_id ?? `${item.bank_name} template`}
                               </Text>
-                              <View className="px-2 py-0.5 rounded-md" style={{ backgroundColor: theme.alpha("foreground", 0.06) }}>
+                              <View className="px-2 py-0.5 rounded-control" style={{ backgroundColor: theme.alpha("foreground", 0.06) }}>
                                 <Text className="text-label text-muted-foreground">
                                   {item.tx_type === "credit" ? "Money in" : item.tx_type === "debit" ? "Money out" : item.tx_type === "refund" ? "Refund" : item.tx_type === "transfer" ? "Transfer" : "Auto"}
                                 </Text>
                               </View>
                             </View>
                             {item.sample_sms && (
-                              <Text className="text-xs text-muted-foreground" numberOfLines={2}>
+                              <Text className="text-label text-muted-foreground" numberOfLines={2}>
                                 {item.sample_sms}
                               </Text>
                             )}
                           </Pressable>
                           <View className="flex-row mt-2" style={{ gap: 16 }}>
                             <Pressable onPress={() => router.push(`/settings/sms-templates/${item.id}`)} hitSlop={6}>
-                              <Text className="text-xs font-medium" style={{ color: accentColor }}>Edit</Text>
+                              <Text className="text-label font-medium" style={{ color: accentColor }}>Edit</Text>
                             </Pressable>
                             <Pressable onPress={() => router.push(`/settings/sms-templates/matches/${item.id}`)} hitSlop={6} disabled={matchCount === 0}>
-                              <Text className="text-xs font-medium" style={{ color: matchCount > 0 ? accentColor : colors.textSecondary }}>
+                              <Text className="text-label font-medium" style={{ color: matchCount > 0 ? accentColor : theme.mutedForeground }}>
                                 Read {matchCount}
                               </Text>
                             </Pressable>
                             <Pressable onPress={() => handleDiagnose(item)} hitSlop={6} disabled={diagnosingId === item.id}>
-                              <Text className="text-xs font-medium text-muted-foreground">{diagnosingId === item.id ? "Checking…" : "Diagnose"}</Text>
+                              <Text className="text-label font-medium text-muted-foreground">{diagnosingId === item.id ? "Checking…" : "Diagnose"}</Text>
                             </Pressable>
                             <Pressable onPress={() => confirmDelete(item)} hitSlop={6} style={{ marginLeft: "auto" }}>
-                              <Text className="text-xs font-medium" style={{ color: theme.danger }}>Delete</Text>
+                              <Text className="text-label font-medium" style={{ color: theme.danger }}>Delete</Text>
                             </Pressable>
                           </View>
                         </View>
@@ -343,6 +343,7 @@ export default function SmartSmsTemplatesListScreen() {
 
         <FAB
           icon="add"
+          label="Teach"
           onPress={() => router.push("/settings/sms-templates/new")}
           accessibilityLabel="Teach Arth a new SMS"
         />

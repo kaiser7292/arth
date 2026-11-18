@@ -46,7 +46,7 @@ export default function AddInvestmentPickerScreen() {
   return (
     <ScreenContainer padTop={false}>
       <View className="px-4 pt-4">
-        <Text className="text-sm text-muted-foreground mb-4">
+        <Text className="text-meta text-muted-foreground mb-4">
           What kind of investment do you want to add?
         </Text>
         {OPTIONS.map((opt) => (
@@ -60,10 +60,10 @@ export default function AddInvestmentPickerScreen() {
                   <Ionicons name={opt.icon} size={20} color={theme.primary} />
                 </View>
                 <View className="flex-1 mr-2">
-                  <Text className="text-sm font-semibold text-foreground">{opt.title}</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">{opt.subtitle}</Text>
+                  <Text className="text-body font-semibold text-foreground">{opt.title}</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5">{opt.subtitle}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+                <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
               </View>
             </Card>
           </Pressable>

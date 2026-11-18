@@ -11,6 +11,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { getSessions, deleteSession, type ReconciliationSession } from "@/services/reconciliation/reconciliation-crud";
 import { useTheme, type Theme } from "@/hooks/use-theme";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 function statusLabel(status: string): string {
   if (status === "completed") return "Completed";
@@ -97,7 +98,7 @@ export default function ReconciliationHubScreen() {
         <View className="flex-row items-center">
           <View
             className="w-9 h-9 rounded-full items-center justify-center mr-3"
-            style={{ backgroundColor: color + "22" }}
+            style={{ backgroundColor: tint(color, 0.13) }}
           >
             <Ionicons
               name={item.status === "completed" ? "checkmark-circle-outline" : "ellipse-outline"}
@@ -106,17 +107,17 @@ export default function ReconciliationHubScreen() {
             />
           </View>
           <View className="flex-1 min-w-0">
-            <Text className="text-base font-medium text-foreground" numberOfLines={1}>
+            <Text className="text-body font-medium text-foreground" numberOfLines={1}>
               {account ? (account.account_label || account.bank_name) : "Unknown account"}
             </Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {item.stmt_start_date && item.stmt_end_date
                 ? `${formatDate(item.stmt_start_date)} – ${formatDate(item.stmt_end_date)}`
                 : formatDate(item.created_at)}
             </Text>
           </View>
           <View className="items-end ml-3 shrink-0">
-            <Text className="text-xs font-semibold" style={{ color }}>
+            <Text className="text-label font-semibold" style={{ color }}>
               {statusLabel(item.status)}
             </Text>
             {item.import_format && (
@@ -149,11 +150,11 @@ export default function ReconciliationHubScreen() {
         <LoadingState />
       ) : sessions.length === 0 ? (
         <View className="flex-1 items-center justify-center pb-16 px-10">
-          <Ionicons name="checkmark-done-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-semibold text-foreground mt-4 text-center">
+          <Ionicons name="checkmark-done-outline" size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-semibold text-foreground mt-4 text-center">
             No reconciliations yet
           </Text>
-          <Text className="text-sm text-muted-foreground mt-1 text-center">
+          <Text className="text-meta text-muted-foreground mt-1 text-center">
             Import a bank statement to match it against your Arth ledger and spot any gaps.
           </Text>
         </View>
@@ -168,13 +169,13 @@ export default function ReconciliationHubScreen() {
           renderItem={renderItem}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
           ListHeaderComponent={
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-1">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-1">
               {sessions.length} session{sessions.length !== 1 ? "s" : ""}
             </Text>
           }
         />
       )}
-      <FAB icon="add" onPress={() => router.push("/settings/reconciliation/new")} />
+      <FAB icon="add" label="Reconcile" onPress={() => router.push("/settings/reconciliation/new")} />
     </ScreenContainer>
   );
 }

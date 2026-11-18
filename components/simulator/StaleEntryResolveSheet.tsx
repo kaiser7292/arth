@@ -12,6 +12,7 @@ import type { SimulationEntry } from "@/services/simulator";
 import { getDatabase } from "@/database";
 import { useTheme, type Theme } from "@/hooks/use-theme";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 interface Candidate {
   id: string;
@@ -178,39 +179,39 @@ export function StaleEntryResolveSheet({
     return (
       <Pressable
         onPress={() => toggleSelect(c.id)}
-        className="flex-row items-center py-2.5 px-3 rounded-lg mb-1.5"
+        className="flex-row items-center py-2.5 px-3 rounded-control mb-1.5"
         style={{
-          backgroundColor: isSelected ? theme.alpha("primary", 0.1) : colors.surface,
+          backgroundColor: isSelected ? theme.alpha("primary", 0.1) : theme.card,
           borderWidth: 1,
-          borderColor: isSelected ? theme.alpha("primary", 0.33) : colors.border,
+          borderColor: isSelected ? theme.alpha("primary", 0.33) : theme.border,
         }}
       >
         <Ionicons
           name={isSelected ? "checkbox" : "square-outline"}
           size={20}
-          color={isSelected ? theme.primary : colors.textSecondary}
+          color={isSelected ? theme.primary : theme.mutedForeground}
         />
         <View className="flex-1 ml-2">
           <View className="flex-row items-center">
-            <Text className="text-sm font-semibold flex-1" style={{ color: colors.text }} numberOfLines={1}>
+            <Text className="text-body font-semibold flex-1" style={{ color: theme.foreground }} numberOfLines={1}>
               {c.merchant || c.description || "Transaction"}
             </Text>
-            <View className="rounded-full px-1.5 py-0.5 ml-1" style={{ backgroundColor: badge.color + "18" }}>
+            <View className="rounded-full px-1.5 py-0.5 ml-1" style={{ backgroundColor: tint(badge.color, 0.09) }}>
               <Text className="text-label font-semibold" style={{ color: badge.color }}>
                 {badge.label}
               </Text>
             </View>
           </View>
           {showDescription && (
-            <Text className="text-xs mt-0.5" numberOfLines={1} style={{ color: colors.textSecondary }}>
+            <Text className="text-label mt-0.5" numberOfLines={1} style={{ color: theme.mutedForeground }}>
               {c.description}
             </Text>
           )}
-          <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+          <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
             {metaParts.join(" · ")}
           </Text>
         </View>
-        <Text className="text-sm font-bold ml-2" style={{ color: colors.text }}>
+        <Text className="text-body font-bold ml-2" style={{ color: theme.foreground }}>
           {formatAmount(c.amount)}
         </Text>
       </Pressable>
@@ -220,10 +221,10 @@ export function StaleEntryResolveSheet({
   return (
     <Sheet visible={visible} onClose={handleClose}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           {headerLabel}
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           {formatAmount(entry.amount)} planned for {prettyDate(entry.date)}
           {entry.date < todayIso() ? " · that date has passed" : ""}
         </Text>
@@ -233,38 +234,38 @@ export function StaleEntryResolveSheet({
         <View className="px-5 pb-4">
           <Pressable
             onPress={() => setMode("link")}
-            className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+            className="flex-row items-center py-3 px-4 rounded-card mb-2"
             style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.33) }}
             accessibilityRole="button"
           >
             <Ionicons name="checkmark-circle-outline" size={20} color={theme.primary} />
             <View className="flex-1 ml-3">
-              <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+              <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                 It happened - link to transactions
               </Text>
-              <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                 Select one or more matching transactions from your ledger.
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
           </Pressable>
 
           <Pressable
             onPress={() => setReschedulePickerVisible(true)}
-            className="flex-row items-center py-3 px-4 rounded-xl mb-2"
-            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            className="flex-row items-center py-3 px-4 rounded-card mb-2"
+            style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
             accessibilityRole="button"
           >
-            <Ionicons name="calendar-outline" size={20} color={colors.textSecondary} />
+            <Ionicons name="calendar-outline" size={20} color={theme.mutedForeground} />
             <View className="flex-1 ml-3">
-              <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+              <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                 Reschedule
               </Text>
-              <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                 It'll happen later than planned. Pick a new date.
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
           </Pressable>
 
           <Pressable
@@ -272,16 +273,16 @@ export function StaleEntryResolveSheet({
               await onRemove(entry.id);
               handleClose();
             }}
-            className="flex-row items-center py-3 px-4 rounded-xl"
-            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            className="flex-row items-center py-3 px-4 rounded-card"
+            style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
             accessibilityRole="button"
           >
             <Ionicons name="trash-outline" size={20} color={theme.danger} />
             <View className="flex-1 ml-3">
-              <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+              <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                 Remove
               </Text>
-              <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+              <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                 It didn't happen and it won't.
               </Text>
             </View>
@@ -292,32 +293,32 @@ export function StaleEntryResolveSheet({
       {mode === "link" && (
         <View className="px-5 pb-4">
           {/* Search */}
-          <View className="flex-row items-center mb-2 border rounded-lg px-3 py-2" style={{ borderColor: colors.border }}>
-            <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+          <View className="flex-row items-center mb-2 border rounded-control px-3 py-2" style={{ borderColor: theme.border }}>
+            <Ionicons name="search-outline" size={16} color={theme.mutedForeground} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search by merchant, description, amount..."
-              placeholderTextColor={colors.textSecondary}
-              className="flex-1 ml-2 text-sm text-foreground"
+              placeholderTextColor={theme.mutedForeground}
+              className="flex-1 ml-2 text-meta text-foreground"
               autoCapitalize="none"
               autoCorrect={false}
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
-                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+                <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
               </Pressable>
             )}
           </View>
 
-          <Text className="text-label mb-1.5" style={{ color: colors.textSecondary }}>
+          <Text className="text-label mb-1.5" style={{ color: theme.mutedForeground }}>
             Showing transactions from last 30 days ({filteredCandidates.length}{query ? ` of ${candidates.length}` : ""})
           </Text>
 
           {loadingCandidates ? (
             <LoadingState rows={3} />
           ) : filteredCandidates.length === 0 ? (
-            <Text className="text-sm py-4" style={{ color: colors.textSecondary }}>
+            <Text className="text-meta py-4" style={{ color: theme.mutedForeground }}>
               {query ? "No transactions match your search." : "No recent transactions to pick from. Try Reschedule or Remove."}
             </Text>
           ) : (
@@ -337,14 +338,14 @@ export function StaleEntryResolveSheet({
           {/* Running total + variance */}
           {selectedIds.size > 0 && (
             <View
-              className="mt-3 px-3 py-2.5 rounded-xl"
+              className="mt-3 px-3 py-2.5 rounded-card"
               style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.2) }}
             >
               <View className="flex-row justify-between items-center">
-                <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                <Text className="text-label" style={{ color: theme.mutedForeground }}>
                   Selected: {formatAmount(selectedTotal)} ({selectedIds.size})
                 </Text>
-                <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                <Text className="text-label" style={{ color: theme.mutedForeground }}>
                   Planned: {formatAmount(entry.amount)}
                 </Text>
               </View>
@@ -352,11 +353,11 @@ export function StaleEntryResolveSheet({
                 <Ionicons
                   name={variance > 0 ? "trending-up" : variance < 0 ? "trending-down" : "checkmark-circle"}
                   size={12}
-                  color={variance > 0 ? theme.danger : variance < 0 ? theme.success : colors.textSecondary}
+                  color={variance > 0 ? theme.danger : variance < 0 ? theme.success : theme.mutedForeground}
                 />
                 <Text
-                  className="text-xs font-semibold ml-1"
-                  style={{ color: variance > 0 ? theme.danger : variance < 0 ? theme.success : colors.textSecondary }}
+                  className="text-label font-semibold ml-1"
+                  style={{ color: variance > 0 ? theme.danger : variance < 0 ? theme.success : theme.mutedForeground }}
                 >
                   {variance === 0 ? "Exact match" : variance > 0 ? `${formatAmount(variance)} over` : `${formatAmount(Math.abs(variance))} under`}
                 </Text>
@@ -371,11 +372,11 @@ export function StaleEntryResolveSheet({
                 await onLinkFulfillment(entry.id, Array.from(selectedIds));
                 handleClose();
               }}
-              className="mt-3 py-3 rounded-xl items-center"
+              className="mt-3 py-3 rounded-card items-center"
               style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
             >
-              <Text className="text-sm font-bold text-primary-foreground">
+              <Text className="text-body font-bold text-primary-foreground">
                 Link Selected ({selectedIds.size})
               </Text>
             </Pressable>
@@ -383,11 +384,11 @@ export function StaleEntryResolveSheet({
 
           <Pressable
             onPress={() => { setMode("root"); setSelectedIds(new Set()); setSearchQuery(""); }}
-            className="mt-2 py-2.5 rounded-lg items-center"
-            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+            className="mt-2 py-2.5 rounded-control items-center"
+            style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
             accessibilityRole="button"
           >
-            <Text className="text-sm" style={{ color: colors.textSecondary }}>
+            <Text className="text-meta" style={{ color: theme.mutedForeground }}>
               Back
             </Text>
           </Pressable>

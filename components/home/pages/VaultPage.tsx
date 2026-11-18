@@ -2,8 +2,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, SectionList, TextInput, View } from "react-native";
-import { ListSeparator, LoadingState, Text } from "@/components/ui";
+import { Pressable, ScrollView, SectionList, TextInput, View } from "react-native";
+import { Chip, ListSeparator, LoadingState, Text } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { Chevron } from "@/components/motion/Chevron";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -22,6 +22,7 @@ import { consumeVaultPreload } from "@/services/home-preload";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailed } from "@/components/ui/ListToolbar";
 import { ListToolbar } from "@/components/ui/ListToolbar";
+import { tint } from "@/constants/brand";
 
 const LINK_CATEGORIES = ["banking", "card", "demat", "statement_pwd"];
 // statement_pwd isn't offered for new entries, but older ones still need to be reachable.
@@ -43,6 +44,8 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
   const theme = useTheme();
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [query, setQuery] = useState("");
+  /** One kind only (the chips under the search), or every kind. */
+  const [only, setOnly] = useState<VaultCategory | null>(null);
   const [loaded, setLoaded] = useState(false);
   // Drawers start closed, so opening the Vault doesn't show every login at once.
   const [openCategories, setOpenCategories] = useState<Set<VaultCategory>>(new Set());
@@ -74,12 +77,12 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
 
   const sections = useMemo(() => {
     const searching = query.trim().length > 0;
-    const grouped = ALL_CATEGORIES.map((category) => ({
+    const grouped = ALL_CATEGORIES.filter((c) => !only || c === only).map((category) => ({
       category,
       matches: entries.filter((e) => e.category === category && vaultEntryMatches(e, query)),
     })).filter((g) => g.matches.length > 0);
     // Searching opens the drawers with matches. With only one drawer there is nothing to choose.
-    const locked = searching || grouped.length === 1;
+    const locked = searching || grouped.length === 1 || only !== null;
     return grouped.map(({ category, matches }) => {
       const open = locked || openCategories.has(category);
       return {
@@ -93,7 +96,13 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
         data: open ? matches : [],
       };
     });
-  }, [entries, query, openCategories]);
+  }, [entries, query, openCategories, only]);
+
+  // The chips: All, then each kind that has entries, with how many.
+  const kinds = useMemo(
+    () => ALL_CATEGORIES.map((c) => ({ c, n: entries.filter((e) => e.category === c).length })).filter((k) => k.n > 0),
+    [entries],
+  );
 
   const renderEntry = ({ item }: { item: VaultEntry }) => {
     const needsLink = LINK_CATEGORIES.includes(item.category) && !item.linked_account_id;
@@ -103,11 +112,11 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
         className="flex-row items-center py-3"
       >
         <View className="flex-1 min-w-0">
-          <Text className="text-base font-medium text-foreground">
+          <Text className="text-body font-medium text-foreground">
             {item.title}
           </Text>
           {(item.email || item.username || item.phone) && (
-            <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
+            <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
               {item.email || item.username || item.phone}
             </Text>
           )}
@@ -115,7 +124,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
         {needsLink && (
           <View className="w-2 h-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: theme.warning }} />
         )}
-        <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+        <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
       </Pressable>
     );
   };
@@ -130,24 +139,42 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
       <ListToolbar
         search={{ value: query, onChangeText: setQuery, placeholder: "Search vault", input: { autoCapitalize: "none", autoCorrect: false } }}
       />
+      {!empty && (
+        <View className="px-4 pb-2" style={{ gap: 8 }}>
+          <Text className="text-meta text-muted-foreground">Encrypted and kept only on this phone.</Text>
+          {kinds.length > 1 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+              <Chip label={`All ${entries.length}`} on={only === null} onPress={() => setOnly(null)} />
+              {kinds.map((k) => (
+                <Chip
+                  key={k.c}
+                  label={`${VAULT_CATEGORY_LABELS[k.c]} ${k.n}`}
+                  on={only === k.c}
+                  onPress={() => setOnly(only === k.c ? null : k.c)}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
 
       {showInlineAdd && (
         <Pressable
           onPress={() => router.push("/vault/add")}
-          className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-lg border border-border"
+          className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-control border border-border"
         >
-          <Ionicons name="add" size={16} color={colors.textSecondary} />
-          <Text className="text-sm text-muted-foreground ml-1">Add entry</Text>
+          <Ionicons name="add" size={16} color={theme.mutedForeground} />
+          <Text className="text-meta text-muted-foreground ml-1">Add entry</Text>
         </Pressable>
       )}
 
       {empty ? (
         <View className="flex-1 items-center justify-center pb-16">
-          <VaultIcon size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-semibold text-foreground mt-4">
+          <VaultIcon size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-semibold text-foreground mt-4">
             Vault is empty
           </Text>
-          <Text className="text-sm text-muted-foreground mt-1 text-center px-10">
+          <Text className="text-meta text-muted-foreground mt-1 text-center px-10">
             Store your banking logins, card PINs, subscriptions, and any other credentials here — all encrypted on your device.
           </Text>
         </View>
@@ -168,25 +195,25 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
               className="flex-row items-center py-3 mt-2 border-b border-border"
             >
               <View
-                className="w-6 h-6 rounded-md items-center justify-center mr-2"
-                style={{ backgroundColor: theme.primary + "22" }}
+                className="w-6 h-6 rounded-control items-center justify-center mr-2"
+                style={{ backgroundColor: tint(theme.primary, 0.13) }}
               >
                 <Ionicons name={section.icon as any} size={13} color={theme.primary} />
               </View>
-              <Text className="text-sm font-semibold text-foreground flex-1" numberOfLines={1}>
+              <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>
                 {section.title}
               </Text>
               {/* An account still to link would otherwise be hidden inside a closed drawer. */}
               {!section.open && section.needsLink && (
                 <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: theme.warning }} />
               )}
-              <Text className="text-xs text-muted-foreground mr-2">{section.total}</Text>
-              {!section.locked && <Chevron open={section.open} size={16} color={colors.textSecondary} />}
+              <Text className="text-label text-muted-foreground mr-2">{section.total}</Text>
+              {!section.locked && <Chevron open={section.open} size={16} color={theme.mutedForeground} />}
             </Pressable>
           )}
           ListEmptyComponent={
             <View className="items-center py-12">
-              <Text className="text-sm text-muted-foreground">
+              <Text className="text-meta text-muted-foreground">
                 No results for "{query}"
               </Text>
             </View>

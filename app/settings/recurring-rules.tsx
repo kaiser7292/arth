@@ -19,6 +19,7 @@ import { LoadingState } from "@/components/ui";
 import { DrawerCell, GroupHeading, ListToolbar } from "@/components/ui";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
+import { tint } from "@/constants/brand";
 
 /**
  * Settings → Reminders.
@@ -122,11 +123,11 @@ export default function RecurringRulesScreen() {
     return (
       <ScreenContainer padTop={false}>
         <View className="flex-1 items-center justify-center px-8">
-          <Ionicons name="repeat-outline" size={48} color={colors.textSecondary} />
-          <Text className="text-lg font-medium text-foreground mt-4">
+          <Ionicons name="repeat-outline" size={48} color={theme.mutedForeground} />
+          <Text className="text-heading font-medium text-foreground mt-4">
             No reminders yet
           </Text>
-          <Text className="text-sm text-muted-foreground text-center mt-2">
+          <Text className="text-meta text-muted-foreground text-center mt-2">
             Open an expense and tap "Set reminder" to get notified 24h before each cycle.
           </Text>
         </View>
@@ -137,7 +138,7 @@ export default function RecurringRulesScreen() {
   return (
     <ScreenContainer padTop={false}>
       <View className="px-4 py-2 border-b border-border">
-        <Text className="text-xs text-faint-foreground">
+        <Text className="text-label text-faint-foreground">
           {reminders.length} active reminder{reminders.length !== 1 ? "s" : ""}
         </Text>
       </View>
@@ -150,7 +151,7 @@ export default function RecurringRulesScreen() {
         data={tools.grouped}
         keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.rule.id)}
         keyboardShouldPersistTaps="handled"
-        ListEmptyComponent={<Text className="text-sm text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
+        ListEmptyComponent={<Text className="text-meta text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
         renderItem={({ item: row }) => {
           if (row.type === "heading") return <GroupHeading label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
           const item = row.item;
@@ -164,7 +165,7 @@ export default function RecurringRulesScreen() {
               ? { color: theme.danger, label: "Overdue" }
               : item.state === "due_soon"
                 ? { color: theme.warning, label: "Due soon" }
-                : { color: colors.textSecondary, label: "Upcoming" };
+                : { color: theme.mutedForeground, label: "Upcoming" };
 
           return (
     <DrawerCell row={row}>
@@ -182,21 +183,21 @@ export default function RecurringRulesScreen() {
                 accessibilityLabel={`View ${description}`}
               >
                 <Text
-                  className="text-sm font-semibold text-foreground"
+                  className="text-body font-semibold text-foreground"
                   numberOfLines={1}
                 >
                   {description}
                 </Text>
                 {secondary && secondary !== description && (
                   <Text
-                    className="text-xs text-muted-foreground"
+                    className="text-label text-muted-foreground"
                     numberOfLines={1}
                   >
                     {secondary} · {item.rule.frequency}
                   </Text>
                 )}
                 {!secondary && (
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-label text-muted-foreground">
                     {item.rule.frequency}
                   </Text>
                 )}
@@ -220,11 +221,11 @@ export default function RecurringRulesScreen() {
               <Pressable
                 onPress={() => handleStop(item)}
                 className="w-9 h-9 rounded-full items-center justify-center ml-2"
-                style={{ backgroundColor: colors.textSecondary + "14" }}
+                style={{ backgroundColor: tint(theme.mutedForeground, 0.08) }}
                 accessibilityRole="button"
                 accessibilityLabel="Stop reminder"
               >
-                <Ionicons name="pause-outline" size={18} color={colors.textSecondary} />
+                <Ionicons name="pause-outline" size={18} color={theme.mutedForeground} />
               </Pressable>
             </View>
           </DrawerCell>

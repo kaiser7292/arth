@@ -335,40 +335,40 @@ export default function VaultAddScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Title */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
           Title
         </Text>
         <TextInput
           value={title}
           onChangeText={setTitle}
           placeholder="e.g. HDFC NetBanking, Netflix"
-          placeholderTextColor={colors.textSecondary}
+          placeholderTextColor={theme.mutedForeground}
           autoFocus={!editId}
           returnKeyType="next"
-          className="text-base text-foreground bg-card-light border border-border rounded-xl px-4 py-3 mb-5"
+          className="text-body text-foreground bg-card-light border border-border rounded-card px-4 py-3 mb-5"
         />
 
         {/* Account Type — dropdown */}
-        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           Account Type
         </Text>
         <Pressable
           onPress={() => setCategoryOpen((o) => !o)}
-          className="flex-row items-center border border-border rounded-xl px-4 py-3 mb-1"
-          style={{ backgroundColor: colors.surface }}
+          className="flex-row items-center border border-border rounded-card px-4 py-3 mb-1"
+          style={{ backgroundColor: theme.card }}
         >
           <Ionicons
             name={VAULT_CATEGORY_ICONS[category] as any}
             size={16}
             color={theme.primary}
           />
-          <Text className="flex-1 text-sm text-foreground ml-2">
+          <Text className="flex-1 text-meta text-foreground ml-2">
             {VAULT_CATEGORY_LABELS[category]}
           </Text>
           <Ionicons
             name={categoryOpen ? "chevron-up" : "chevron-down"}
             size={16}
-            color={colors.textSecondary}
+            color={theme.mutedForeground}
           />
         </Pressable>
 
@@ -384,17 +384,17 @@ export default function VaultAddScreen() {
                   style={{
                     backgroundColor: selected ? theme.alpha("primary", 0.09) : "transparent",
                     borderTopWidth: idx > 0 ? 1 : 0,
-                    borderTopColor: colors.border,
+                    borderTopColor: theme.border,
                   }}
                 >
                   <Ionicons
                     name={VAULT_CATEGORY_ICONS[cat] as any}
                     size={14}
-                    color={selected ? theme.primary : colors.textSecondary}
+                    color={selected ? theme.primary : theme.mutedForeground}
                   />
                   <Text
-                    className="flex-1 text-sm ml-2.5"
-                    style={{ color: selected ? theme.primary : colors.text }}
+                    className="flex-1 text-meta ml-2.5"
+                    style={{ color: selected ? theme.primary : theme.foreground }}
                   >
                     {VAULT_CATEGORY_LABELS[cat]}
                   </Text>
@@ -410,22 +410,22 @@ export default function VaultAddScreen() {
         {/* Linked Arth account — shown for banking/card/demat/statement_pwd */}
         {(category === "banking" || category === "card" || category === "demat" || category === "statement_pwd") && accounts.length > 0 && (
           <>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-1.5">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-1.5">
               Linked Arth Account (optional)
             </Text>
             <Pressable
               onPress={() => setAccountPickerOpen((o) => !o)}
-              className="flex-row items-center border border-border rounded-xl px-4 py-3 mb-1"
-              style={{ backgroundColor: colors.surface }}
+              className="flex-row items-center border border-border rounded-card px-4 py-3 mb-1"
+              style={{ backgroundColor: theme.card }}
             >
               <Ionicons
                 name="wallet-outline"
                 size={16}
-                color={linkedAccountId ? theme.primary : colors.textSecondary}
+                color={linkedAccountId ? theme.primary : theme.mutedForeground}
               />
               <Text
-                className="flex-1 text-sm ml-2"
-                style={{ color: linkedAccountId ? colors.text : colors.textSecondary }}
+                className="flex-1 text-meta ml-2"
+                style={{ color: linkedAccountId ? theme.foreground : theme.mutedForeground }}
               >
                 {linkedAccountId
                   ? (accounts.find((a) => a.id === linkedAccountId)?.account_label ||
@@ -436,18 +436,18 @@ export default function VaultAddScreen() {
               <Ionicons
                 name={accountPickerOpen ? "chevron-up" : "chevron-down"}
                 size={16}
-                color={colors.textSecondary}
+                color={theme.mutedForeground}
               />
             </Pressable>
             {accountPickerOpen && (
-              <View className="border border-border rounded-xl mb-4 overflow-hidden">
+              <View className="border border-border rounded-card mb-4 overflow-hidden">
                 <Pressable
                   onPress={() => { setLinkedAccountId(undefined); setAccountPickerOpen(false); }}
                   className="flex-row items-center px-4 py-3"
-                  style={{ borderBottomWidth: 1, borderBottomColor: colors.border }}
+                  style={{ borderBottomWidth: 1, borderBottomColor: theme.border }}
                 >
-                  <Ionicons name="close-circle-outline" size={14} color={colors.textSecondary} />
-                  <Text className="text-sm text-muted-foreground ml-2">
+                  <Ionicons name="close-circle-outline" size={14} color={theme.mutedForeground} />
+                  <Text className="text-meta text-muted-foreground ml-2">
                     None
                   </Text>
                 </Pressable>
@@ -461,23 +461,23 @@ export default function VaultAddScreen() {
                       style={{
                         backgroundColor: selected ? theme.alpha("primary", 0.09) : "transparent",
                         borderTopWidth: idx > 0 ? 1 : 0,
-                        borderTopColor: colors.border,
+                        borderTopColor: theme.border,
                       }}
                     >
                       <Ionicons
                         name="wallet-outline"
                         size={14}
-                        color={selected ? theme.primary : colors.textSecondary}
+                        color={selected ? theme.primary : theme.mutedForeground}
                       />
                       <View className="flex-1 ml-2.5">
                         <Text
-                          className="text-sm"
-                          style={{ color: selected ? theme.primary : colors.text }}
+                          className="text-meta"
+                          style={{ color: selected ? theme.primary : theme.foreground }}
                         >
                           {acc.account_label || acc.bank_name}
                         </Text>
                         {acc.account_identifier || accountBalances[acc.id] != null ? (
-                          <Text className="text-xs text-muted-foreground">
+                          <Text className="text-label text-muted-foreground">
                             {withPickerBalance(acc.account_identifier ? `****${acc.account_identifier}` : "", accountBalances[acc.id])}
                           </Text>
                         ) : null}
@@ -490,7 +490,7 @@ export default function VaultAddScreen() {
                 })}
               </View>
             )}
-            <Text className="text-xs text-muted-foreground mb-3 -mt-1">
+            <Text className="text-label text-muted-foreground mb-3 -mt-1">
               Link to an account so Arth can auto-fill this password when reconciling statements.
             </Text>
           </>
@@ -506,10 +506,10 @@ export default function VaultAddScreen() {
                 value={cardHolder}
                 onChangeText={setCardHolder}
                 placeholder="Name on card"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 autoCapitalize="words"
                 autoCorrect={false}
-                className="flex-1 text-sm text-foreground"
+                className="flex-1 text-meta text-foreground"
               />
             </Field>
 
@@ -518,18 +518,18 @@ export default function VaultAddScreen() {
                 value={cardNumber}
                 onChangeText={handleCardNumberChange}
                 placeholder="XXXX-XXXX-XXXX-XXXX"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 secureTextEntry={!showCardNumber}
                 keyboardType="number-pad"
                 maxLength={19}
                 autoCorrect={false}
-                className="flex-1 text-sm text-foreground"
+                className="flex-1 text-meta text-foreground"
               />
               <Pressable onPress={() => setShowCardNumber((p) => !p)} hitSlop={8}>
                 <Ionicons
                   name={showCardNumber ? "eye-off-outline" : "eye-outline"}
                   size={18}
-                  color={colors.textSecondary}
+                  color={theme.mutedForeground}
                 />
               </Pressable>
             </Field>
@@ -539,10 +539,10 @@ export default function VaultAddScreen() {
                 value={cardExpiry}
                 onChangeText={handleExpiryChange}
                 placeholder="MM/YY"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 keyboardType="number-pad"
                 maxLength={5}
-                className="flex-1 text-sm text-foreground"
+                className="flex-1 text-meta text-foreground"
               />
             </Field>
 
@@ -551,17 +551,17 @@ export default function VaultAddScreen() {
                 value={cardCvv}
                 onChangeText={setCardCvv}
                 placeholder="CVV"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 secureTextEntry={!showCvv}
                 keyboardType="number-pad"
                 maxLength={4}
-                className="flex-1 text-sm text-foreground"
+                className="flex-1 text-meta text-foreground"
               />
               <Pressable onPress={() => setShowCvv((p) => !p)} hitSlop={8}>
                 <Ionicons
                   name={showCvv ? "eye-off-outline" : "eye-outline"}
                   size={18}
-                  color={colors.textSecondary}
+                  color={theme.mutedForeground}
                 />
               </Pressable>
             </Field>
@@ -571,17 +571,17 @@ export default function VaultAddScreen() {
                 value={pin}
                 onChangeText={setPin}
                 placeholder="PIN"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 secureTextEntry={!showPin}
                 keyboardType="number-pad"
                 maxLength={8}
-                className="flex-1 text-sm text-foreground"
+                className="flex-1 text-meta text-foreground"
               />
               <Pressable onPress={() => setShowPin((p) => !p)} hitSlop={8}>
                 <Ionicons
                   name={showPin ? "eye-off-outline" : "eye-outline"}
                   size={18}
-                  color={colors.textSecondary}
+                  color={theme.mutedForeground}
                 />
               </Pressable>
             </Field>
@@ -596,10 +596,10 @@ export default function VaultAddScreen() {
                 value={username}
                 onChangeText={setUsername}
                 placeholder="e.g. name@okicici"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 autoCapitalize="none"
                 autoCorrect={false}
-                className="flex-1 text-sm text-foreground"
+                className="flex-1 text-meta text-foreground"
               />
             </Field>
 
@@ -608,9 +608,9 @@ export default function VaultAddScreen() {
                 value={phone}
                 onChangeText={setPhone}
                 placeholder="+91 99999 99999"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 keyboardType="phone-pad"
-                className="flex-1 text-sm text-foreground"
+                className="flex-1 text-meta text-foreground"
               />
             </Field>
 
@@ -619,17 +619,17 @@ export default function VaultAddScreen() {
                 value={pin}
                 onChangeText={setPin}
                 placeholder="4 or 6 digit PIN"
-                placeholderTextColor={colors.textSecondary}
+                placeholderTextColor={theme.mutedForeground}
                 secureTextEntry={!showPin}
                 keyboardType="number-pad"
                 maxLength={6}
-                className="flex-1 text-sm text-foreground"
+                className="flex-1 text-meta text-foreground"
               />
               <Pressable onPress={() => setShowPin((p) => !p)} hitSlop={8}>
                 <Ionicons
                   name={showPin ? "eye-off-outline" : "eye-outline"}
                   size={18}
-                  color={colors.textSecondary}
+                  color={theme.mutedForeground}
                 />
               </Pressable>
             </Field>
@@ -639,7 +639,7 @@ export default function VaultAddScreen() {
         {/* Login method (hidden for card + upi) */}
         {showLoginMethodPicker && (
           <>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
               How you log in
             </Text>
             <View className="flex-row flex-wrap gap-2 mb-5">
@@ -652,12 +652,12 @@ export default function VaultAddScreen() {
                     className="px-3 py-1.5 rounded-full border"
                     style={{
                       backgroundColor: selected ? theme.alpha("primary", 0.1) : "transparent",
-                      borderColor: selected ? theme.primary : colors.border,
+                      borderColor: selected ? theme.primary : theme.border,
                     }}
                   >
                     <Text
-                      className="text-xs font-medium"
-                      style={{ color: selected ? theme.primary : colors.textSecondary }}
+                      className="text-label font-medium"
+                      style={{ color: selected ? theme.primary : theme.mutedForeground }}
                     >
                       {LOGIN_METHOD_LABELS[method]}
                     </Text>
@@ -675,10 +675,10 @@ export default function VaultAddScreen() {
               value={username}
               onChangeText={setUsername}
               placeholder="Username"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               autoCapitalize="none"
               autoCorrect={false}
-              className="flex-1 text-sm text-foreground"
+              className="flex-1 text-meta text-foreground"
             />
           </Field>
         )}
@@ -689,11 +689,11 @@ export default function VaultAddScreen() {
               value={email}
               onChangeText={setEmail}
               placeholder="email@example.com"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               autoCapitalize="none"
               keyboardType="email-address"
               autoCorrect={false}
-              className="flex-1 text-sm text-foreground"
+              className="flex-1 text-meta text-foreground"
             />
           </Field>
         )}
@@ -704,9 +704,9 @@ export default function VaultAddScreen() {
               value={phone}
               onChangeText={setPhone}
               placeholder="+91 99999 99999"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               keyboardType="phone-pad"
-              className="flex-1 text-sm text-foreground"
+              className="flex-1 text-meta text-foreground"
             />
           </Field>
         )}
@@ -717,17 +717,17 @@ export default function VaultAddScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder="Password"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
-              className="flex-1 text-sm text-foreground"
+              className="flex-1 text-meta text-foreground"
             />
             <Pressable onPress={() => setShowPassword((p) => !p)} hitSlop={8}>
               <Ionicons
                 name={showPassword ? "eye-off-outline" : "eye-outline"}
                 size={18}
-                color={colors.textSecondary}
+                color={theme.mutedForeground}
               />
             </Pressable>
           </Field>
@@ -741,17 +741,17 @@ export default function VaultAddScreen() {
               value={pin}
               onChangeText={setPin}
               placeholder="PIN"
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               secureTextEntry={!showPin}
               keyboardType="number-pad"
               maxLength={8}
-              className="flex-1 text-sm text-foreground"
+              className="flex-1 text-meta text-foreground"
             />
             <Pressable onPress={() => setShowPin((p) => !p)} hitSlop={8}>
               <Ionicons
                 name={showPin ? "eye-off-outline" : "eye-outline"}
                 size={18}
-                color={colors.textSecondary}
+                color={theme.mutedForeground}
               />
             </Pressable>
           </Field>
@@ -767,7 +767,7 @@ export default function VaultAddScreen() {
             size={16}
             color={theme.primary}
           />
-          <Text className="text-sm font-medium ml-1.5" style={{ color: theme.primary }}>
+          <Text className="text-body font-medium ml-1.5" style={{ color: theme.primary }}>
             {showMore ? "Hide extra fields" : "More fields"}
           </Text>
         </Pressable>
@@ -783,14 +783,14 @@ export default function VaultAddScreen() {
                     value={secondaryPassword}
                     onChangeText={setSecondaryPassword}
                     placeholder="Secondary password for transfers / profile changes"
-                    placeholderTextColor={colors.textSecondary}
+                    placeholderTextColor={theme.mutedForeground}
                     secureTextEntry={!showSecondaryPassword}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    className="flex-1 text-sm text-foreground"
+                    className="flex-1 text-meta text-foreground"
                   />
                   <Pressable onPress={() => setShowSecondaryPassword((p) => !p)} hitSlop={8}>
-                    <Ionicons name={showSecondaryPassword ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                    <Ionicons name={showSecondaryPassword ? "eye-off-outline" : "eye-outline"} size={18} color={theme.mutedForeground} />
                   </Pressable>
                 </Field>
 
@@ -799,14 +799,14 @@ export default function VaultAddScreen() {
                     value={mpin}
                     onChangeText={setMpin}
                     placeholder="4–6 digit MPIN for mobile banking app"
-                    placeholderTextColor={colors.textSecondary}
+                    placeholderTextColor={theme.mutedForeground}
                     secureTextEntry={!showMpin}
                     keyboardType="number-pad"
                     maxLength={6}
-                    className="flex-1 text-sm text-foreground"
+                    className="flex-1 text-meta text-foreground"
                   />
                   <Pressable onPress={() => setShowMpin((p) => !p)} hitSlop={8}>
-                    <Ionicons name={showMpin ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                    <Ionicons name={showMpin ? "eye-off-outline" : "eye-outline"} size={18} color={theme.mutedForeground} />
                   </Pressable>
                 </Field>
 
@@ -815,14 +815,14 @@ export default function VaultAddScreen() {
                     value={statementPwd}
                     onChangeText={setStatementPwd}
                     placeholder="Password to open bank PDF statements"
-                    placeholderTextColor={colors.textSecondary}
+                    placeholderTextColor={theme.mutedForeground}
                     secureTextEntry={!showStatementPwd}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    className="flex-1 text-sm text-foreground"
+                    className="flex-1 text-meta text-foreground"
                   />
                   <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
-                    <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                    <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={theme.mutedForeground} />
                   </Pressable>
                 </Field>
               </>
@@ -835,14 +835,14 @@ export default function VaultAddScreen() {
                   value={statementPwd}
                   onChangeText={setStatementPwd}
                   placeholder="Password to open bank PDF statements"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={theme.mutedForeground}
                   secureTextEntry={!showStatementPwd}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  className="flex-1 text-sm text-foreground"
+                  className="flex-1 text-meta text-foreground"
                 />
                 <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
-                  <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                  <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={theme.mutedForeground} />
                 </Pressable>
               </Field>
             )}
@@ -855,14 +855,14 @@ export default function VaultAddScreen() {
                     value={tpin}
                     onChangeText={setTpin}
                     placeholder="PIN for authorising trades / debit"
-                    placeholderTextColor={colors.textSecondary}
+                    placeholderTextColor={theme.mutedForeground}
                     secureTextEntry={!showTpin}
                     keyboardType="number-pad"
                     maxLength={8}
-                    className="flex-1 text-sm text-foreground"
+                    className="flex-1 text-meta text-foreground"
                   />
                   <Pressable onPress={() => setShowTpin((p) => !p)} hitSlop={8}>
-                    <Ionicons name={showTpin ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                    <Ionicons name={showTpin ? "eye-off-outline" : "eye-outline"} size={18} color={theme.mutedForeground} />
                   </Pressable>
                 </Field>
 
@@ -871,17 +871,17 @@ export default function VaultAddScreen() {
                     value={totpSecret}
                     onChangeText={setTotpSecret}
                     placeholder="Text key from your broker's TOTP setup"
-                    placeholderTextColor={colors.textSecondary}
+                    placeholderTextColor={theme.mutedForeground}
                     secureTextEntry={!showTotpSecret}
                     autoCapitalize="characters"
                     autoCorrect={false}
-                    className="flex-1 text-sm text-foreground"
+                    className="flex-1 text-meta text-foreground"
                   />
                   <Pressable onPress={() => setShowTotpSecret((p) => !p)} hitSlop={8}>
-                    <Ionicons name={showTotpSecret ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                    <Ionicons name={showTotpSecret ? "eye-off-outline" : "eye-outline"} size={18} color={theme.mutedForeground} />
                   </Pressable>
                 </Field>
-                <Text className="text-xs text-muted-foreground mb-3 -mt-1">
+                <Text className="text-label text-muted-foreground mb-3 -mt-1">
                   Arth will show the current 6-digit code and can fill it in on the Zerodha Kite login.
                 </Text>
 
@@ -890,10 +890,10 @@ export default function VaultAddScreen() {
                     value={apiKey}
                     onChangeText={setApiKey}
                     placeholder="Broker API key, for portfolio sync"
-                    placeholderTextColor={colors.textSecondary}
+                    placeholderTextColor={theme.mutedForeground}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    className="flex-1 text-sm text-foreground"
+                    className="flex-1 text-meta text-foreground"
                   />
                 </Field>
 
@@ -902,14 +902,14 @@ export default function VaultAddScreen() {
                     value={apiSecret}
                     onChangeText={setApiSecret}
                     placeholder="Broker API secret"
-                    placeholderTextColor={colors.textSecondary}
+                    placeholderTextColor={theme.mutedForeground}
                     secureTextEntry={!showApiSecret}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    className="flex-1 text-sm text-foreground"
+                    className="flex-1 text-meta text-foreground"
                   />
                   <Pressable onPress={() => setShowApiSecret((p) => !p)} hitSlop={8}>
-                    <Ionicons name={showApiSecret ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                    <Ionicons name={showApiSecret ? "eye-off-outline" : "eye-outline"} size={18} color={theme.mutedForeground} />
                   </Pressable>
                 </Field>
 
@@ -918,14 +918,14 @@ export default function VaultAddScreen() {
                     value={statementPwd}
                     onChangeText={setStatementPwd}
                     placeholder="Password to open contract notes / P&L PDFs"
-                    placeholderTextColor={colors.textSecondary}
+                    placeholderTextColor={theme.mutedForeground}
                     secureTextEntry={!showStatementPwd}
                     autoCapitalize="none"
                     autoCorrect={false}
-                    className="flex-1 text-sm text-foreground"
+                    className="flex-1 text-meta text-foreground"
                   />
                   <Pressable onPress={() => setShowStatementPwd((p) => !p)} hitSlop={8}>
-                    <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={colors.textSecondary} />
+                    <Ionicons name={showStatementPwd ? "eye-off-outline" : "eye-outline"} size={18} color={theme.mutedForeground} />
                   </Pressable>
                 </Field>
               </>
@@ -940,28 +940,28 @@ export default function VaultAddScreen() {
                   value={url}
                   onChangeText={setUrl}
                   placeholder="https://"
-                  placeholderTextColor={colors.textSecondary}
+                  placeholderTextColor={theme.mutedForeground}
                   autoCapitalize="none"
                   keyboardType="url"
                   autoCorrect={false}
-                  className="flex-1 text-sm text-foreground"
+                  className="flex-1 text-meta text-foreground"
                 />
               </Field>
             )}
 
             {/* Notes */}
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-1.5">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-4 mb-1.5">
               Notes (optional)
             </Text>
             <TextInput
               value={notes}
               onChangeText={setNotes}
               placeholder="Any extra info — IVR steps, secret questions, etc."
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={theme.mutedForeground}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
-              className="text-sm text-foreground bg-card-light border border-border rounded-xl px-4 py-3 mb-2"
+              className="text-meta text-foreground bg-card-light border border-border rounded-card px-4 py-3 mb-2"
               style={{ minHeight: 80 }}
             />
           </>
@@ -971,13 +971,13 @@ export default function VaultAddScreen() {
         <Pressable
           onPress={handleSave}
           disabled={saving}
-          className="py-4 rounded-2xl items-center mt-4"
+          className="py-4 rounded-card items-center mt-4"
           style={{ backgroundColor: theme.primary }}
         >
           {saving ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text className="text-base font-semibold text-primary-foreground">
+            <Text className="text-body font-semibold text-primary-foreground">
               {editId ? "Save changes" : "Save to Vault"}
             </Text>
           )}
@@ -998,12 +998,11 @@ function Field({
 }) {
   return (
     <View className="mb-3">
-      <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+      <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
         {label}
       </Text>
       <View
-        className="flex-row items-center border border-border rounded-xl px-4 py-3"
-        style={{ backgroundColor: colors.surface }}
+        className="flex-row items-center border border-border rounded-card bg-card px-4 py-3"
       >
         {children}
       </View>

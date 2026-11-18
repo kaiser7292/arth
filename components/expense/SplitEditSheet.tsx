@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, FormulaTextInput, Sheet, Text } from "@/components/ui";
+import { Button, FormulaTextInput, Sheet, Text, SearchField } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import { createPerson, getPersonsWithBalances, type HisaabPersonWithBalance } from "@/services/hisaab";
@@ -85,7 +85,13 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
     { mode: "full", label: draft.paidBy === "me" ? "They owe all" : "You owe all" },
   ];
 
-  const choosable = persons.filter((p) => !draft.people.some((x) => x.personId === p.id));
+  // Most used first (by entries), then by name; the search filters as you type.
+  const choosable = persons
+    .filter((p) => !draft.people.some((x) => x.personId === p.id))
+    .sort((a, b) => (b.entryCount ?? 0) - (a.entryCount ?? 0) || a.name.localeCompare(b.name));
+  const shownPeople = newName.trim()
+    ? choosable.filter((p) => p.name.toLowerCase().includes(newName.trim().toLowerCase()))
+    : choosable;
 
   return (
     <Sheet visible={visible} onClose={onClose}>
@@ -100,23 +106,42 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
         <ScrollView showsVerticalScrollIndicator={false} className="max-h-[440px]" keyboardShouldPersistTaps="handled">
           {picking ? (
             <View className="pb-2">
-              {choosable.map((p) => (
-                <Pressable key={p.id} onPress={() => addPerson(p.id)} className="flex-row items-center py-3 border-b border-border" accessibilityRole="button">
-                  <Text className="text-meta text-foreground flex-1" numberOfLines={1}>{p.name}</Text>
-                  <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
+              <SearchField value={newName} onChangeText={setNewName} placeholder="Search people or type a new name" autoFocus accessibilityLabel="Search people" />
+              <Text className="text-label text-muted-foreground mt-2 mb-1">
+                {newName.trim()
+                  ? `${shownPeople.length} of ${choosable.length}`
+                  : `${choosable.length} ${choosable.length === 1 ? "person" : "people"} · most used first`}
+              </Text>
+              {newName.trim() !== "" && !choosable.some((p) => p.name.trim().toLowerCase() === newName.trim().toLowerCase()) && (
+                <Pressable
+                  onPress={() => void createAndAdd()}
+                  className="flex-row items-center px-3.5 rounded-control border border-dashed my-1"
+                  style={{ minHeight: 48, gap: 10, borderColor: theme.primary }}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="add" size={18} color={theme.primary} />
+                  <Text className="flex-1 text-body font-semibold" style={{ color: theme.primary }} numberOfLines={1}>
+                    Add “{newName.trim()}”
+                  </Text>
+                </Pressable>
+              )}
+              {shownPeople.map((p) => (
+                <Pressable
+                  key={p.id}
+                  onPress={() => {
+                    setNewName("");
+                    addPerson(p.id);
+                  }}
+                  className="flex-row items-center py-3 border-b border-border"
+                  style={{ gap: 10 }}
+                  accessibilityRole="button"
+                >
+                  <Text className="text-body text-foreground flex-1" numberOfLines={1}>{p.name}</Text>
+                  <Text className="text-meta text-muted-foreground">
+                    {p.balance > 0 ? `owes you ${formatAmount(p.balance)}` : p.balance < 0 ? `you owe ${formatAmount(-p.balance)}` : "settled"}
+                  </Text>
                 </Pressable>
               ))}
-              <View className="flex-row items-center mt-3" style={{ gap: 8 }}>
-                <TextInput
-                  className="flex-1 border border-border rounded-control px-4 py-3 text-foreground"
-                  placeholder="New person's name"
-                  placeholderTextColor={theme.faintForeground}
-                  value={newName}
-                  onChangeText={setNewName}
-                  maxLength={40}
-                />
-                <Button title="Add" variant="outline" onPress={() => void createAndAdd()} disabled={!newName.trim()} />
-              </View>
               {draft.people.length > 0 && (
                 <Pressable onPress={() => setPicking(false)} className="items-center py-3" accessibilityRole="button">
                   <Text className="text-body font-medium text-muted-foreground">Back</Text>

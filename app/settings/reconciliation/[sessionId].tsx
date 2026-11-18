@@ -36,6 +36,7 @@ import { generateReconciliationPdf } from "@/services/reconciliation/reconciliat
 import { useTheme } from "@/hooks/use-theme";
 import { shareFile } from "@/services/share-file";
 import { LoadingState } from "@/components/ui";
+import { tint } from "@/constants/brand";
 
 type Tab = "matched" | "missing" | "extra" | "excluded";
 
@@ -334,15 +335,15 @@ export default function ReconciliationSessionScreen() {
         <View className="flex-row items-start justify-between">
           <View className="flex-1">
             <View className="flex-row items-center">
-              <Text className="text-sm font-medium text-foreground flex-1" numberOfLines={1}>
+              <Text className="text-body font-medium text-foreground flex-1" numberOfLines={1}>
                 {item.stmt_narration || "(no narration)"}
               </Text>
-              <Text className="text-sm font-semibold text-foreground ml-2">
+              <Text className="text-body font-semibold text-foreground ml-2">
                 {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
               </Text>
             </View>
             <View className="flex-row items-center mt-0.5">
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-label text-muted-foreground">
                 {formatDate(item.stmt_date)}
               </Text>
               <View
@@ -361,7 +362,7 @@ export default function ReconciliationSessionScreen() {
             </View>
           </View>
           <Pressable onPress={() => handleUnlink(item)} hitSlop={8} className="ml-3 mt-0.5">
-            <Ionicons name="close-circle-outline" size={18} color={colors.textSecondary} />
+            <Ionicons name="close-circle-outline" size={18} color={theme.mutedForeground} />
           </Pressable>
         </View>
         {/* Arth side */}
@@ -371,11 +372,11 @@ export default function ReconciliationSessionScreen() {
             style={{ borderLeftWidth: 2, borderLeftColor: theme.alpha("primary", 0.33) }}
           >
             <View className="flex-row items-center">
-              <Text className="text-xs font-medium text-foreground flex-1" numberOfLines={1}>
+              <Text className="text-label font-medium text-foreground flex-1" numberOfLines={1}>
                 {item.arth_description || "(no description)"}
               </Text>
               {item.arth_amount != null && (
-                <Text className="text-xs font-semibold text-foreground ml-2">
+                <Text className="text-label font-semibold text-foreground ml-2">
                   {amountStr(item.arth_amount)}
                 </Text>
               )}
@@ -395,10 +396,10 @@ export default function ReconciliationSessionScreen() {
     <View className="py-3 border-b border-border">
       <View className="flex-row items-start justify-between">
         <View className="flex-1">
-          <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+          <Text className="text-body font-medium text-foreground" numberOfLines={1}>
             {item.stmt_narration || "(no narration)"}
           </Text>
-          <Text className="text-xs text-muted-foreground mt-0.5">
+          <Text className="text-label text-muted-foreground mt-0.5">
             {formatDate(item.stmt_date)} · {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
           </Text>
         </View>
@@ -406,33 +407,33 @@ export default function ReconciliationSessionScreen() {
       <View className="flex-row gap-2 mt-2.5">
         <Pressable
           onPress={() => handleAddExpense(item)}
-          className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border"
+          className="flex-1 flex-row items-center justify-center py-2 rounded-control border border-border"
         >
           <Ionicons name="add" size={14} color={theme.primary} />
-          <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>Add</Text>
+          <Text className="text-label font-semibold ml-1" style={{ color: theme.primary }}>Add</Text>
         </Pressable>
         <Pressable
           onPress={() => handleManualLink(item)}
-          className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border"
+          className="flex-1 flex-row items-center justify-center py-2 rounded-control border border-border"
         >
-          <Ionicons name="link-outline" size={14} color={colors.textSecondary} />
-          <Text className="text-xs font-semibold ml-1 text-muted-foreground">Link</Text>
+          <Ionicons name="link-outline" size={14} color={theme.mutedForeground} />
+          <Text className="text-label font-semibold ml-1 text-muted-foreground">Link</Text>
         </Pressable>
         {added.length > 0 && (
           <Pressable
             onPress={() => handleLinkMissingToExtra(item)}
-            className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border"
+            className="flex-1 flex-row items-center justify-center py-2 rounded-control border border-border"
           >
             <Ionicons name="git-merge-outline" size={14} color={theme.primary} />
-            <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>Extra</Text>
+            <Text className="text-label font-semibold ml-1" style={{ color: theme.primary }}>Extra</Text>
           </Pressable>
         )}
         <Pressable
           onPress={() => handleExclude(item)}
-          className="flex-1 flex-row items-center justify-center py-2 rounded-lg border border-border"
+          className="flex-1 flex-row items-center justify-center py-2 rounded-control border border-border"
         >
-          <Ionicons name="close-outline" size={14} color={colors.textSecondary} />
-          <Text className="text-xs font-semibold ml-1 text-muted-foreground">Exclude</Text>
+          <Ionicons name="close-outline" size={14} color={theme.mutedForeground} />
+          <Text className="text-label font-semibold ml-1 text-muted-foreground">Exclude</Text>
         </Pressable>
       </View>
     </View>
@@ -441,24 +442,24 @@ export default function ReconciliationSessionScreen() {
   const renderExcluded = ({ item }: { item: ReconciliationItem }) => (
     <View className="py-3 border-b border-border flex-row items-center">
       <View className="flex-1">
-        <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+        <Text className="text-body font-medium text-foreground" numberOfLines={1}>
           {item.stmt_narration || "(no narration)"}
         </Text>
-        <Text className="text-xs text-muted-foreground mt-0.5">
+        <Text className="text-label text-muted-foreground mt-0.5">
           {formatDate(item.stmt_date)} · {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
           {item.exclude_reason ? ` · ${item.exclude_reason.replace("_", " ")}` : ""}
         </Text>
       </View>
       <Pressable onPress={() => handleUndoExclude(item)} hitSlop={8} className="ml-3">
-        <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Undo</Text>
+        <Text className="text-label font-semibold" style={{ color: theme.primary }}>Undo</Text>
       </Pressable>
     </View>
   );
 
   const EmptyTab = ({ label }: { label: string }) => (
     <View className="items-center py-12">
-      <Ionicons name="checkmark-circle-outline" size={36} color={colors.textSecondary} />
-      <Text className="text-sm text-muted-foreground mt-2">{label}</Text>
+      <Ionicons name="checkmark-circle-outline" size={36} color={theme.mutedForeground} />
+      <Text className="text-meta text-muted-foreground mt-2">{label}</Text>
     </View>
   );
 
@@ -503,11 +504,11 @@ export default function ReconciliationSessionScreen() {
         onRequestClose={() => setShowPreArthModal(false)}
       >
         <View className="flex-1 justify-center items-center px-8" style={{ backgroundColor: "#00000066" }}>
-          <View className="w-full rounded-2xl p-6" style={{ backgroundColor: colors.surface }}>
-            <Text className="text-base font-bold text-foreground mb-1">
+          <View className="w-full rounded-card p-6" style={{ backgroundColor: theme.card }}>
+            <Text className="text-body font-bold text-foreground mb-1">
               Set pre-Arth date
             </Text>
-            <Text className="text-sm text-muted-foreground mb-4">
+            <Text className="text-meta text-muted-foreground mb-4">
               Transactions on or before this date will be moved to Excluded. Pick the last date before you started logging in Arth.
             </Text>
             <DateInput
@@ -519,18 +520,18 @@ export default function ReconciliationSessionScreen() {
             <View className="flex-row gap-3 mt-4">
               <Pressable
                 onPress={() => setShowPreArthModal(false)}
-                className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: colors.border + "55" }}
+                className="flex-1 py-3 rounded-card items-center"
+                style={{ backgroundColor: tint(theme.border, 0.33) }}
               >
-                <Text className="text-sm font-medium text-foreground">Cancel</Text>
+                <Text className="text-body font-medium text-foreground">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleApplyPreArth}
                 disabled={!preArthPickerDate}
-                className="flex-1 py-3 rounded-xl items-center"
-                style={{ backgroundColor: preArthPickerDate ? theme.primary : colors.border }}
+                className="flex-1 py-3 rounded-card items-center"
+                style={{ backgroundColor: preArthPickerDate ? theme.primary : theme.border }}
               >
-                <Text className="text-sm font-semibold text-white">Apply</Text>
+                <Text className="text-body font-semibold text-white">Apply</Text>
               </Pressable>
             </View>
           </View>
@@ -542,17 +543,17 @@ export default function ReconciliationSessionScreen() {
         <View className="px-4 pt-4">
           <Card className="mb-4">
             <View className="flex-row items-center justify-between">
-              <Text className="text-base font-bold text-foreground flex-1 mr-2">
+              <Text className="text-body font-bold text-foreground flex-1 mr-2">
                 {account ? (account.account_label || account.bank_name) : "Account"}
               </Text>
               <Pressable onPress={handleExport} disabled={exporting} hitSlop={8}>
                 {exporting
-                  ? <ActivityIndicator size="small" color={colors.textSecondary} />
-                  : <Ionicons name="share-outline" size={18} color={colors.textSecondary} />
+                  ? <ActivityIndicator size="small" color={theme.mutedForeground} />
+                  : <Ionicons name="share-outline" size={18} color={theme.mutedForeground} />
                 }
               </Pressable>
             </View>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className="text-label text-muted-foreground mt-0.5">
               {session.stmt_start_date} – {session.stmt_end_date}
               {session.import_filename ? ` · ${session.import_filename}` : ""}
             </Text>
@@ -570,14 +571,14 @@ export default function ReconciliationSessionScreen() {
                   }}
                 />
               </View>
-              <Text className="text-xs font-semibold ml-3 text-foreground">
+              <Text className="text-label font-semibold ml-3 text-foreground">
                 {matched.length}/{session.total_stmt_count ?? items.length} matched
               </Text>
             </View>
             {session.status === "completed" && session.completed_at && (
               <View className="flex-row items-center mt-2">
                 <Ionicons name="checkmark-circle" size={14} color={theme.success} />
-                <Text className="text-xs font-semibold ml-1" style={{ color: theme.success }}>
+                <Text className="text-label font-semibold ml-1" style={{ color: theme.success }}>
                   Reconciled on {new Date(session.completed_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                 </Text>
               </View>
@@ -587,24 +588,24 @@ export default function ReconciliationSessionScreen() {
             {session.stmt_closing_bal != null && (
               <View className="mt-3 pt-3 border-t border-border">
                 <View className="flex-row justify-between">
-                  <Text className="text-xs text-muted-foreground">Statement closing</Text>
-                  <Text className="text-xs font-semibold text-foreground">
+                  <Text className="text-label text-muted-foreground">Statement closing</Text>
+                  <Text className="text-label font-semibold text-foreground">
                     {amountStr(session.stmt_closing_bal)}
                   </Text>
                 </View>
                 {arthBalance != null && (
                   <View className="flex-row justify-between mt-1">
-                    <Text className="text-xs text-muted-foreground">Arth computed</Text>
-                    <Text className="text-xs font-semibold text-foreground">
+                    <Text className="text-label text-muted-foreground">Arth computed</Text>
+                    <Text className="text-label font-semibold text-foreground">
                       {amountStr(arthBalance)}
                     </Text>
                   </View>
                 )}
                 {balanceDiff !== null && (
                   <View className="flex-row justify-between mt-1">
-                    <Text className="text-xs text-muted-foreground">Difference</Text>
+                    <Text className="text-label text-muted-foreground">Difference</Text>
                     <Text
-                      className="text-xs font-bold"
+                      className="text-label font-bold"
                       style={{ color: Math.abs(balanceDiff) < 1 ? theme.success : theme.danger }}
                     >
                       {Math.abs(balanceDiff) < 1 ? "✓ Match" : amountStr(Math.abs(balanceDiff))}
@@ -618,15 +619,15 @@ export default function ReconciliationSessionScreen() {
             {session.status === "in_progress" && (
               <View className="mt-3 pt-3 border-t border-border flex-row items-center justify-between">
                 <View className="flex-1">
-                  <Text className="text-xs font-semibold text-muted-foreground">
+                  <Text className="text-label font-semibold text-muted-foreground">
                     Pre-Arth baseline
                   </Text>
                   {session.pre_arth_cutoff ? (
-                    <Text className="text-xs font-medium text-foreground mt-0.5">
+                    <Text className="text-label font-medium text-foreground mt-0.5">
                       Up to {new Date(session.pre_arth_cutoff).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} · {preArthItems.length} items excluded
                     </Text>
                   ) : (
-                    <Text className="text-xs text-muted-foreground mt-0.5">
+                    <Text className="text-label text-muted-foreground mt-0.5">
                       Not set
                     </Text>
                   )}
@@ -634,10 +635,10 @@ export default function ReconciliationSessionScreen() {
                 {session.pre_arth_cutoff ? (
                   <View className="flex-row gap-3 ml-3">
                     <Pressable onPress={() => { setPreArthPickerDate(session.pre_arth_cutoff!); setShowPreArthModal(true); }}>
-                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Change</Text>
+                      <Text className="text-label font-semibold" style={{ color: theme.primary }}>Change</Text>
                     </Pressable>
                     <Pressable onPress={handleClearPreArth}>
-                      <Text className="text-xs font-semibold text-muted-foreground">Clear</Text>
+                      <Text className="text-label font-semibold text-muted-foreground">Clear</Text>
                     </Pressable>
                   </View>
                 ) : (
@@ -648,7 +649,7 @@ export default function ReconciliationSessionScreen() {
                     }}
                     className="ml-3"
                   >
-                    <Text className="text-xs font-semibold" style={{ color: theme.primary }}>Set date</Text>
+                    <Text className="text-label font-semibold" style={{ color: theme.primary }}>Set date</Text>
                   </Pressable>
                 )}
               </View>
@@ -663,20 +664,20 @@ export default function ReconciliationSessionScreen() {
                 <Pressable
                   key={tab.key}
                   onPress={() => setActiveTab(tab.key)}
-                  className="flex-1 py-2 rounded-xl items-center"
+                  className="flex-1 py-2 rounded-card items-center"
                   style={{
-                    backgroundColor: active ? theme.primary : colors.border + "44",
+                    backgroundColor: active ? theme.primary : tint(theme.border, 0.27),
                   }}
                 >
                   <Text
-                    className="text-xs font-semibold"
-                    style={{ color: active ? "#fff" : colors.textSecondary }}
+                    className="text-label font-semibold"
+                    style={{ color: active ? "#fff" : theme.mutedForeground }}
                   >
                     {tab.label}
                   </Text>
                   <Text
-                    className="text-base font-bold"
-                    style={{ color: active ? "#fff" : colors.text }}
+                    className="text-body font-bold"
+                    style={{ color: active ? "#fff" : theme.foreground }}
                   >
                     {tab.count}
                   </Text>
@@ -703,16 +704,16 @@ export default function ReconciliationSessionScreen() {
                   <View key={item.id} className="py-3 border-b border-border">
                     <View className="flex-row items-start justify-between">
                       <View className="flex-1">
-                        <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+                        <Text className="text-body font-medium text-foreground" numberOfLines={1}>
                           {item.arth_description || item.stmt_narration || "(no description)"}
                         </Text>
-                        <Text className="text-xs text-muted-foreground mt-0.5">
+                        <Text className="text-label text-muted-foreground mt-0.5">
                           {item.arth_date ? formatDate(item.arth_date) : formatDate(item.stmt_date)}
                           {" · "}{item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.arth_amount ?? item.stmt_amount)}
                           {item.arth_category ? ` · ${item.arth_category}` : ""}
                         </Text>
                         {item.arth_account && (
-                          <Text className="text-xs text-muted-foreground mt-0.5">
+                          <Text className="text-label text-muted-foreground mt-0.5">
                             {item.arth_account}
                           </Text>
                         )}
@@ -726,10 +727,10 @@ export default function ReconciliationSessionScreen() {
                     {missing.length > 0 && (
                       <Pressable
                         onPress={() => handleLinkExtraToMissing(item)}
-                        className="flex-row items-center mt-2.5 py-2 px-3 rounded-lg border border-border self-start"
+                        className="flex-row items-center mt-2.5 py-2 px-3 rounded-control border border-border self-start"
                       >
                         <Ionicons name="git-merge-outline" size={14} color={theme.primary} />
-                        <Text className="text-xs font-semibold ml-1" style={{ color: theme.primary }}>Link to statement row</Text>
+                        <Text className="text-label font-semibold ml-1" style={{ color: theme.primary }}>Link to statement row</Text>
                       </Pressable>
                     )}
                   </View>
@@ -742,18 +743,18 @@ export default function ReconciliationSessionScreen() {
                   {preArthItems.length > 0 && (
                     <>
                       <View className="flex-row items-center mb-2 mt-1">
-                        <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
                           Pre-Arth period ({preArthItems.length})
                         </Text>
-                        <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />
+                        <View className="flex-1 h-px ml-2" style={{ backgroundColor: theme.border }} />
                       </View>
                       {preArthItems.map((item) => (
                         <View key={item.id} className="py-2.5 border-b border-border flex-row items-center opacity-50">
                           <View className="flex-1">
-                            <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+                            <Text className="text-body font-medium text-foreground" numberOfLines={1}>
                               {item.stmt_narration || "(no narration)"}
                             </Text>
-                            <Text className="text-xs text-muted-foreground mt-0.5">
+                            <Text className="text-label text-muted-foreground mt-0.5">
                               {formatDate(item.stmt_date)} · {item.stmt_direction === "debit" ? "−" : "+"}{amountStr(item.stmt_amount)}
                             </Text>
                           </View>
@@ -765,10 +766,10 @@ export default function ReconciliationSessionScreen() {
                     <>
                       {preArthItems.length > 0 && (
                         <View className="flex-row items-center mb-2 mt-3">
-                          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
                             Manually excluded ({excluded.length})
                           </Text>
-                          <View className="flex-1 h-px ml-2" style={{ backgroundColor: colors.border }} />
+                          <View className="flex-1 h-px ml-2" style={{ backgroundColor: theme.border }} />
                         </View>
                       )}
                       {excluded.map((item) => renderExcluded({ item }))}
@@ -785,13 +786,13 @@ export default function ReconciliationSessionScreen() {
           <Pressable
             onPress={handleMarkReconciled}
             disabled={markingDone}
-            className="py-4 rounded-2xl items-center"
+            className="py-4 rounded-card items-center"
             style={{ backgroundColor: missing.length === 0 ? theme.success : theme.primary }}
           >
             {markingDone ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text className="text-base font-semibold text-white">
+              <Text className="text-body font-semibold text-white">
                 {missing.length === 0 ? "✓ Mark Reconciled" : `Mark Reconciled (${missing.length} unresolved)`}
               </Text>
             )}

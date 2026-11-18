@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { FONT_SIZE } from "@/constants/type-sizes";
 import { Pressable, ScrollView, View } from "react-native";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -225,7 +226,7 @@ export default function AiSuggestionsScreen() {
   if (run) return <RunProgress {...run} />;
   if (busy) return <LoadingState message={busy} />;
 
-  const sectionLabel = "text-xs font-semibold uppercase tracking-wider text-muted-foreground";
+  const sectionLabel = "text-label font-semibold uppercase tracking-wider text-muted-foreground";
 
   return (
     <ScreenContainer padTop={false}>
@@ -237,28 +238,28 @@ export default function AiSuggestionsScreen() {
                 <Ionicons name="checkmark-circle" size={48} color={theme.success} />
                 {Object.keys(done.applied).length > 0 ? (
                   <>
-                    <Text style={{ fontSize: 44, fontWeight: "800", color: theme.primary, marginTop: 8 }}>
+                    <Text style={{ fontSize: FONT_SIZE.hero, fontWeight: "800", color: theme.primary, marginTop: 8 }}>
                       {Object.values(done.applied).reduce((n, v) => n + (v ?? 0), 0)}
                     </Text>
-                    <Text className="text-lg font-medium text-foreground">changes made</Text>
+                    <Text className="text-heading font-medium text-foreground">changes made</Text>
                   </>
                 ) : (
-                  <Text className="text-lg font-medium text-foreground mt-3">Nothing was applied</Text>
+                  <Text className="text-heading font-medium text-foreground mt-3">Nothing was applied</Text>
                 )}
               </View>
               <Card>
                 {SUGGESTION_GROUPS.filter((g) => done.applied[g.type]).map((g) => (
-                  <Text key={g.type} className="text-sm text-foreground py-1.5">
+                  <Text key={g.type} className="text-meta text-foreground py-1.5">
                     {plural(done.applied[g.type]!, APPLIED_WORDS[g.type])}
                   </Text>
                 ))}
                 {done.entriesMoved > 0 && (
-                  <Text className="text-sm text-foreground py-1.5">
+                  <Text className="text-meta text-foreground py-1.5">
                     {plural(done.entriesMoved, ["past entry moved to its category", "past entries moved to their categories"])}
                   </Text>
                 )}
                 {done.readFromMessages > 0 && (
-                  <Text className="text-sm text-foreground py-1.5">
+                  <Text className="text-meta text-foreground py-1.5">
                     {plural(done.readFromMessages, [
                       "transaction read from your unread messages, waiting in your review queue",
                       "transactions read from your unread messages, waiting in your review queue",
@@ -267,12 +268,12 @@ export default function AiSuggestionsScreen() {
                 )}
               </Card>
               {done.failed.length > 0 && (
-                <View className="mt-3 p-3 rounded-lg bg-warning/8">
-                  <Text className="text-sm font-medium mb-1" style={{ color: theme.warning }}>
+                <View className="mt-3 p-3 rounded-control bg-warning/8">
+                  <Text className="text-body font-medium mb-1" style={{ color: theme.warning }}>
                     {plural(done.failed.length, ["change couldn't be applied", "changes couldn't be applied"])}
                   </Text>
                   {done.failed.map((f) => (
-                    <Text key={f} className="text-xs text-muted-foreground">{f}</Text>
+                    <Text key={f} className="text-label text-muted-foreground">{f}</Text>
                   ))}
                 </View>
               )}
@@ -288,28 +289,28 @@ export default function AiSuggestionsScreen() {
           ) : pasted ? (
             <>
               <Card>
-                <Text className="text-xs text-muted-foreground">What you pasted</Text>
-                <Text className="text-xs text-foreground mt-2" style={{ fontFamily: "monospace" }} numberOfLines={6}>
+                <Text className="text-label text-muted-foreground">What you pasted</Text>
+                <Text className="text-label text-foreground mt-2" style={{ fontFamily: "monospace" }} numberOfLines={6}>
                   {pasted.text.trim().slice(0, 400)}
                 </Text>
-                <Text className="text-xs mt-2" style={{ color: pasted.info.cutOff ? theme.warning : theme.mutedForeground }}>
+                <Text className="text-label mt-2" style={{ color: pasted.info.cutOff ? theme.warning : theme.mutedForeground }}>
                   {pasted.text.length.toLocaleString("en-IN")} characters ·{" "}
                   {pasted.info.cutOff ? "it stops part way, so the end is missing" : "ends cleanly ✓"}
                 </Text>
               </Card>
               <Card className="mt-3">
-                <Text className="text-lg font-bold text-foreground">{plural(pasted.info.total, ["suggestion", "suggestions"])} found</Text>
+                <Text className="text-heading font-bold text-foreground">{plural(pasted.info.total, ["suggestion", "suggestions"])} found</Text>
                 <View className="flex-row flex-wrap mt-2" style={{ gap: 6 }}>
                   {pasted.info.byType.map((k) => (
                     <View key={k.type} className="rounded-full px-3 py-1" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                      <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                      <Text className="text-label font-medium" style={{ color: theme.primary }}>
                         {k.label} {k.count}
                       </Text>
                     </View>
                   ))}
                 </View>
                 {pasted.info.unreadable > 0 && (
-                  <Text className="text-xs text-muted-foreground mt-2">
+                  <Text className="text-label text-muted-foreground mt-2">
                     {plural(pasted.info.unreadable, ["more isn't", "more aren't"])} in a form Arth can use and will be left out.
                   </Text>
                 )}
@@ -319,21 +320,21 @@ export default function AiSuggestionsScreen() {
             </>
           ) : reply ? (
             <>
-              <Text className="text-xs text-muted-foreground leading-5">
+              <Text className="text-label text-muted-foreground leading-5">
                 {plural(reply.accepted.length, ["suggestion", "suggestions"])} read
                 {reply.alreadySet > 0 ? ` · ${reply.alreadySet} already set` : ""}
                 {reply.rejected.length > 0 ? ` · ${reply.rejected.length} left out` : ""}. Nothing changes until you
                 tap Apply.
               </Text>
               {reply.cutOff && (
-                <Text className="text-xs mt-1" style={{ color: theme.warning }}>
+                <Text className="text-label mt-1" style={{ color: theme.warning }}>
                   The reply was cut off part way. Everything before the cut was read; ask the assistant to continue for
                   the rest.
                 </Text>
               )}
               {reply.rejected.length > 0 && (
                 <Pressable onPress={() => setShowLeftOut((v) => !v)} className="py-2" accessibilityRole="button">
-                  <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                  <Text className="text-label font-medium" style={{ color: theme.primary }}>
                     {showLeftOut ? "Hide what was left out" : "Why were some left out?"}
                   </Text>
                 </Pressable>
@@ -342,8 +343,8 @@ export default function AiSuggestionsScreen() {
                 <Card>
                   {reply.rejected.map((r, i) => (
                     <View key={i} className={`py-2 ${i < reply.rejected.length - 1 ? "border-b border-border" : ""}`}>
-                      <Text className="text-sm text-foreground">{r.reason}</Text>
-                      <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={2}>{r.text}</Text>
+                      <Text className="text-meta text-foreground">{r.reason}</Text>
+                      <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={2}>{r.text}</Text>
                     </View>
                   ))}
                 </Card>
@@ -360,13 +361,13 @@ export default function AiSuggestionsScreen() {
                     <View className="flex-row items-center justify-between mt-5 mb-2">
                       <Text className={sectionLabel}>{group.label} · {items.length}</Text>
                       <Pressable onPress={() => setGroup(keys, !allTicked)} hitSlop={8} accessibilityRole="button">
-                        <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                        <Text className="text-label font-medium" style={{ color: theme.primary }}>
                           {allTicked ? "Untick all" : "Tick all"}
                         </Text>
                       </Pressable>
                     </View>
                     {DELIBERATE_TYPES.has(group.type) && (
-                      <Text className="text-xs text-muted-foreground mb-2">
+                      <Text className="text-label text-muted-foreground mb-2">
                         Tick to apply. These change your plan, so they start unticked.
                       </Text>
                     )}
@@ -380,9 +381,9 @@ export default function AiSuggestionsScreen() {
                           accessibilityState={{ checked: !unticked.has(s.key) }}
                         >
                           <View className="flex-1 mr-3">
-                            <Text className="text-sm text-foreground">{s.title}</Text>
-                            {s.detail && <Text className="text-xs text-muted-foreground mt-0.5">{s.detail}</Text>}
-                            {s.why && <Text className="text-xs text-muted-foreground mt-0.5 italic">{`"${s.why}"`}</Text>}
+                            <Text className="text-meta text-foreground">{s.title}</Text>
+                            {s.detail && <Text className="text-label text-muted-foreground mt-0.5">{s.detail}</Text>}
+                            {s.why && <Text className="text-label text-muted-foreground mt-0.5 italic">{`"${s.why}"`}</Text>}
                           </View>
                           <Ionicons
                             name={unticked.has(s.key) ? "square-outline" : "checkbox"}
@@ -397,7 +398,7 @@ export default function AiSuggestionsScreen() {
                           className="py-2.5"
                           accessibilityRole="button"
                         >
-                          <Text className="text-xs font-medium" style={{ color: theme.primary }}>
+                          <Text className="text-label font-medium" style={{ color: theme.primary }}>
                             Show {items.length - shown.length} more
                           </Text>
                         </Pressable>
@@ -408,7 +409,7 @@ export default function AiSuggestionsScreen() {
               })}
 
               {reply.accepted.length === 0 ? (
-                <Text className="text-sm text-muted-foreground text-center mt-6">
+                <Text className="text-meta text-muted-foreground text-center mt-6">
                   There is nothing to apply from this reply.
                 </Text>
               ) : (
@@ -425,13 +426,13 @@ export default function AiSuggestionsScreen() {
             <>
               <View className="items-center py-6">
                 <Ionicons name="sparkles-outline" size={48} color={theme.primary} />
-                <Text className="text-lg font-medium text-foreground mt-3">Bring the reply back</Text>
-                <Text className="text-sm text-muted-foreground text-center mt-1 leading-5">
+                <Text className="text-heading font-medium text-foreground mt-3">Bring the reply back</Text>
+                <Text className="text-meta text-muted-foreground text-center mt-1 leading-5">
                   In your assistant, tap copy on its reply. Then tap below. Nothing changes until you approve it.
                 </Text>
               </View>
               {message && (
-                <Text className="text-sm text-center mb-3" style={{ color: theme.warning }}>{message}</Text>
+                <Text className="text-meta text-center mb-3" style={{ color: theme.warning }}>{message}</Text>
               )}
               <Button title="Paste AI reply" onPress={pasteFromClipboard} />
               <Button title="Choose a file instead" variant="outline" onPress={chooseFile} className="mt-2" />

@@ -74,8 +74,8 @@ export default function IphoneBankMessagesScreen() {
               color={lastAt ? theme.success : theme.warning}
             />
             <View className="flex-1 ml-3">
-              <Text className="text-sm font-semibold text-foreground">{lastAt ? "Working" : "Nothing received yet"}</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-body font-semibold text-foreground">{lastAt ? "Working" : "Nothing received yet"}</Text>
+              <Text className="text-label text-muted-foreground mt-0.5">
                 {lastAt
                   ? `Last message ${ago(lastAt)} · ${monthCount} this month`
                   : 'Set it up below. If you have, check step 3: "Run Immediately".'}
@@ -96,15 +96,15 @@ export default function IphoneBankMessagesScreen() {
             onPress={() => router.push("/expense/paste-message")}
             className="mt-3"
           />
-          <Text className="text-xs text-muted-foreground mt-2 leading-4">
+          <Text className="text-label text-muted-foreground mt-2 leading-4">
             Missed one? Copy it in Messages and paste it here. In Shortcuts, &quot;Review bank message in Arth&quot; does the
             same.
           </Text>
         </Card>
 
         <Card className="mb-3">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Set it up once</Text>
-          <Text className="text-xs text-muted-foreground mb-2 leading-4">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Set it up once</Text>
+          <Text className="text-label text-muted-foreground mb-2 leading-4">
             iPhone doesn&apos;t let apps read your messages, and only you can create an automation, so this takes two
             minutes in the Shortcuts app.
           </Text>
@@ -115,8 +115,8 @@ export default function IphoneBankMessagesScreen() {
         <Card>
           <View className="flex-row items-center">
             <View className="flex-1 mr-3">
-              <Text className="text-sm font-medium text-foreground">Notify me</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5 leading-4">
+              <Text className="text-body font-medium text-foreground">Notify me</Text>
+              <Text className="text-label text-muted-foreground mt-0.5 leading-4">
                 A notification for each message the Shortcut hands over, like &quot;₹185 debited · ••8689&quot;. Tap it to review.
               </Text>
             </View>

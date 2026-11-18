@@ -395,8 +395,8 @@ export default function MilestoneDetailScreen() {
     return (
       <ScreenContainer centered padTop={false}>
         {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-        <Ionicons name="alert-circle-outline" size={48} color={colors.textSecondary} />
-        <Text className="text-base font-medium text-foreground mt-4">
+        <Ionicons name="alert-circle-outline" size={48} color={theme.mutedForeground} />
+        <Text className="text-body font-medium text-foreground mt-4">
           Milestone not found
         </Text>
       </ScreenContainer>
@@ -443,20 +443,20 @@ export default function MilestoneDetailScreen() {
                   <Ionicons
                     name={isComplete ? "checkmark-circle" : "flag-outline"}
                     size={28}
-                    color={isComplete ? theme.success : colors.blue}
+                    color={isComplete ? theme.success : theme.data.series[3]}
                   />
                 </View>
-                <Text className="text-lg font-bold text-foreground">
+                <Text className="text-heading font-bold text-foreground">
                   {milestone.name}
                 </Text>
                 {milestone.target_date && (
-                  <Text className="text-xs text-muted-foreground mt-1">
+                  <Text className="text-label text-muted-foreground mt-1">
                     Target date: {milestone.target_date}
                   </Text>
                 )}
                 {isComplete && (
                   <View className="mt-2 px-3 py-1 rounded-full" style={{ backgroundColor: theme.alpha("success", 0.08) }}>
-                    <Text className="text-xs font-medium text-success">
+                    <Text className="text-label font-medium text-success">
                       Completed!
                     </Text>
                   </View>
@@ -466,26 +466,26 @@ export default function MilestoneDetailScreen() {
               {/* Saved / Target / Left */}
               <View className="flex-row mt-3">
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground text-center">
+                  <Text className="text-label text-muted-foreground text-center">
                     Saved
                   </Text>
-                  <Text className="text-base font-bold text-success text-center">
+                  <Text className="text-body font-bold text-success text-center">
                     {formatAmount(milestone.current_saved)}
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground text-center">
+                  <Text className="text-label text-muted-foreground text-center">
                     Target
                   </Text>
-                  <Text className="text-base font-bold text-foreground text-center">
+                  <Text className="text-body font-bold text-foreground text-center">
                     {formatAmount(milestone.target_amount)}
                   </Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground text-center">
+                  <Text className="text-label text-muted-foreground text-center">
                     Left
                   </Text>
-                  <Text className="text-base font-bold text-danger text-center">
+                  <Text className="text-body font-bold text-danger text-center">
                     {formatAmount(remaining)}
                   </Text>
                 </View>
@@ -497,11 +497,11 @@ export default function MilestoneDetailScreen() {
                   className="h-3 rounded-full"
                   style={{
                     width: `${pct}%`,
-                    backgroundColor: isComplete ? theme.success : colors.blue,
+                    backgroundColor: isComplete ? theme.success : theme.data.series[3],
                   }}
                 />
               </View>
-              <Text className="text-xs text-muted-foreground mt-1 text-right">
+              <Text className="text-label text-muted-foreground mt-1 text-right">
                 {pct.toFixed(1)}% complete
               </Text>
             </Card>
@@ -554,7 +554,7 @@ export default function MilestoneDetailScreen() {
                   projection.monthsToTarget > 0 &&
                   projection.avgMonthly > 0 && (
                     <View
-                      className="mt-2 flex-row items-center justify-center py-2 rounded-lg"
+                      className="mt-2 flex-row items-center justify-center py-2 rounded-control"
                       style={{
                         backgroundColor:
                           projection.avgMonthly >= projection.monthlyNeeded
@@ -576,7 +576,7 @@ export default function MilestoneDetailScreen() {
                         }
                       />
                       <Text
-                        className="text-xs font-medium ml-1"
+                        className="text-label font-medium ml-1"
                         style={{
                           color:
                             projection.avgMonthly >= projection.monthlyNeeded
@@ -613,7 +613,7 @@ export default function MilestoneDetailScreen() {
                       {/* Row header */}
                       <View className="flex-row items-center justify-between mb-1.5">
                         <View className="flex-row items-center gap-x-2">
-                          <Text className="text-sm font-medium text-foreground">
+                          <Text className="text-body font-medium text-foreground">
                             {row.label}
                           </Text>
                           {row.isCurrent && (
@@ -632,7 +632,7 @@ export default function MilestoneDetailScreen() {
                             </View>
                           )}
                         </View>
-                        <Text className="text-xs text-muted-foreground">
+                        <Text className="text-label text-muted-foreground">
                           <Text className="font-medium text-foreground">
                             {formatAmount(row.actual)}
                           </Text>
@@ -650,7 +650,7 @@ export default function MilestoneDetailScreen() {
                               ? theme.success
                               : row.isCurrent
                               ? theme.primary
-                              : colors.textSecondary} height={8} animated={false} />
+                              : theme.mutedForeground} height={8} animated={false} />
 
                       {/* Bar footer */}
                       <View className="flex-row items-center justify-between mt-1">
@@ -695,7 +695,7 @@ export default function MilestoneDetailScreen() {
                 {/* Footer rule */}
                 {fyBreakdown.some((r) => !r.isPast && r.surplusCarriedIn > 0) && (
                   <View className="mt-2 pt-2 border-t border-border flex-row items-start">
-                    <Ionicons name="lock-closed-outline" size={11} color={colors.textSecondary} style={{ marginTop: 2, marginRight: 5 }} />
+                    <Ionicons name="lock-closed-outline" size={11} color={theme.mutedForeground} style={{ marginTop: 2, marginRight: 5 }} />
                     <Text className="text-label text-faint-foreground flex-1" style={{ lineHeight: 15 }}>
                       Past FY targets are fixed at the original plan. The current FY target reflects what's actually remaining.
                     </Text>
@@ -721,7 +721,7 @@ export default function MilestoneDetailScreen() {
                     showBucketPicker ? "Close bucket picker" : "Manage linked investment buckets"
                   }
                 >
-                  <Text className="text-xs font-semibold" style={{ color: colors.blue }}>
+                  <Text className="text-label font-semibold" style={{ color: theme.data.series[3] }}>
                     {showBucketPicker ? "Done" : "Manage"}
                   </Text>
                 </Pressable>
@@ -730,7 +730,7 @@ export default function MilestoneDetailScreen() {
               {showBucketPicker && (
                 <View className="mb-3">
                   {bucketsByFY.length === 0 ? (
-                    <Text className="text-xs text-muted-foreground py-2">
+                    <Text className="text-label text-muted-foreground py-2">
                       No investment buckets yet. Create one from Goals to Investment Buckets,
                       then link it here.
                     </Text>
@@ -760,11 +760,11 @@ export default function MilestoneDetailScreen() {
                               <Ionicons
                                 name={isLinkedHere ? "checkbox" : "square-outline"}
                                 size={18}
-                                color={isLinkedHere ? colors.blue : colors.textSecondary}
+                                color={isLinkedHere ? theme.data.series[3] : theme.mutedForeground}
                               />
                               <View className="flex-1 ml-2">
                                 <Text
-                                  className="text-sm text-foreground"
+                                  className="text-meta text-foreground"
                                   numberOfLines={1}
                                 >
                                   {b.name}
@@ -775,7 +775,7 @@ export default function MilestoneDetailScreen() {
                                   </Text>
                                 )}
                               </View>
-                              <Text className="text-xs text-muted-foreground ml-2">
+                              <Text className="text-label text-muted-foreground ml-2">
                                 {formatAmount(b.current_contributed)}
                               </Text>
                             </Pressable>
@@ -788,7 +788,7 @@ export default function MilestoneDetailScreen() {
               )}
 
               {linkedBuckets.length === 0 && !showBucketPicker && (
-                <Text className="text-xs text-muted-foreground py-1">
+                <Text className="text-label text-muted-foreground py-1">
                   No buckets feed this milestone yet. Tap Manage to link one, and its
                   contributions will count toward this goal.
                 </Text>
@@ -826,20 +826,20 @@ export default function MilestoneDetailScreen() {
                           <Ionicons
                             name="link-outline"
                             size={14}
-                            color={colors.blue}
+                            color={theme.data.series[3]}
                           />
-                          <Text className="text-sm font-medium text-foreground ml-1.5" numberOfLines={1}>
+                          <Text className="text-body font-medium text-foreground ml-1.5" numberOfLines={1}>
                             {lb.name}
                           </Text>
                         </View>
                         <View className="flex-row items-center">
-                          <Text className="text-sm font-semibold text-success mr-1">
+                          <Text className="text-body font-semibold text-success mr-1">
                             {formatAmount(lb.current_contributed)}
                           </Text>
                           <Ionicons
                             name="chevron-forward"
                             size={14}
-                            color={colors.textSecondary}
+                            color={theme.mutedForeground}
                           />
                         </View>
                       </View>
@@ -849,10 +849,10 @@ export default function MilestoneDetailScreen() {
                 })}
                 <View className="mt-2 pt-2 border-t border-border">
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-xs text-muted-foreground">
+                    <Text className="text-label text-muted-foreground">
                       Total from linked buckets
                     </Text>
-                    <Text className="text-sm font-bold" style={{ color: theme.primary }}>
+                    <Text className="text-body font-bold" style={{ color: theme.primary }}>
                       {formatAmount(linkedBucketTotal)}
                     </Text>
                   </View>
@@ -873,7 +873,7 @@ export default function MilestoneDetailScreen() {
                       }`}
                     >
                       <View className="flex-row items-center">
-                        <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider">
                           {fyGroup.label}
                         </Text>
                         {fyGroup.isCurrent && (
@@ -882,7 +882,7 @@ export default function MilestoneDetailScreen() {
                           </View>
                         )}
                       </View>
-                      <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+                      <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                         {formatAmount(fyGroup.total)}
                       </Text>
                     </View>
@@ -896,15 +896,15 @@ export default function MilestoneDetailScreen() {
                             : ""
                         }`}
                       >
-                        <Text className="text-sm font-medium text-foreground">
+                        <Text className="text-body font-medium text-foreground">
                           {m.label}
                         </Text>
                         <View className="items-end">
-                          <Text className="text-sm font-semibold text-foreground">
+                          <Text className="text-body font-semibold text-foreground">
                             {formatAmount(m.total)}
                           </Text>
                           {m.count > 1 && (
-                            <Text className="text-xs text-faint-foreground">
+                            <Text className="text-label text-faint-foreground">
                               {m.count} entries
                             </Text>
                           )}
@@ -954,15 +954,15 @@ export default function MilestoneDetailScreen() {
             ) : (
               <Pressable
                 onPress={() => setShowAddForm(true)}
-                className="flex-row items-center justify-center py-3 mb-4 rounded-lg border border-dashed"
+                className="flex-row items-center justify-center py-3 mb-4 rounded-control border border-dashed"
                 style={{ borderColor: theme.primary }}
               >
                 <Ionicons
                   name="add-circle-outline"
                   size={18}
-                  color={colors.blue}
+                  color={theme.data.series[3]}
                 />
-                <Text className="text-sm font-medium ml-1" style={{ color: theme.primary }}>
+                <Text className="text-body font-medium ml-1" style={{ color: theme.primary }}>
                   Add contribution
                 </Text>
               </Pressable>
@@ -984,15 +984,15 @@ export default function MilestoneDetailScreen() {
                         : ""
                     }`}
                   >
-                    <Text className="text-sm font-medium text-foreground">
+                    <Text className="text-body font-medium text-foreground">
                       {formatAmount(c.amount)}
                     </Text>
-                    <Text className="text-xs text-muted-foreground">
+                    <Text className="text-label text-muted-foreground">
                       {c.date}
                     </Text>
                   </Pressable>
                 ))}
-                <Text className="text-xs text-faint-foreground mt-2 text-center">
+                <Text className="text-label text-faint-foreground mt-2 text-center">
                   Long-press to edit or delete
                 </Text>
               </Card>

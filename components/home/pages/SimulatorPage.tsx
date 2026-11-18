@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, TextInput } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, LoadingState, Sheet, Text } from "@/components/ui";
+import { Card, LoadingState, Sheet, Text, Chip } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useAlert } from "@/hooks/use-alert";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -30,6 +30,7 @@ import type { SimulationScenario, ScenarioOverview } from "@/services/simulator"
 import { useTheme } from "@/hooks/use-theme";
 import { isoDate } from "@/utils/local-date";
 import { LoadFailed } from "@/components/ui/ListToolbar";
+import { tint } from "@/constants/brand";
 
 /**
  * Scenario list — entry point from the Home card.
@@ -264,10 +265,10 @@ export function SimulatorPage() {
                 <Ionicons name="trending-up-outline" size={20} color={theme.primary} />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-foreground">The next 12 months</Text>
-                <Text className="text-xs text-muted-foreground mt-0.5">Where your money is heading, with these what-ifs switched on or off</Text>
+                <Text className="text-body font-semibold text-foreground">The next 12 months</Text>
+                <Text className="text-label text-muted-foreground mt-0.5">Where your money is heading, with these what-ifs switched on or off</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
             </View>
           </Card>
         </Pressable>
@@ -281,22 +282,22 @@ export function SimulatorPage() {
             >
               <Ionicons name="pulse-outline" size={32} color={theme.primary} />
             </View>
-            <Text className="text-lg font-bold text-center" style={{ color: colors.text }}>
+            <Text className="text-heading font-bold text-center" style={{ color: theme.foreground }}>
               Plan your next month
             </Text>
-            <Text className="text-sm text-center mt-2 leading-5" style={{ color: colors.textSecondary }}>
+            <Text className="text-meta text-center mt-2 leading-5" style={{ color: theme.mutedForeground }}>
               Add outgoings and incomings you expect; Arth projects where your
               balances will land. Your real ledger is never touched.
             </Text>
             <Pressable
               onPress={() => setCreateSheetVisible(true)}
-              className="mt-6 py-3 px-6 rounded-xl flex-row items-center"
+              className="mt-6 py-3 px-6 rounded-card flex-row items-center"
               style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
               accessibilityLabel="Create your first scenario"
             >
               <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-semibold text-primary-foreground ml-1.5">
+              <Text className="text-body font-semibold text-primary-foreground ml-1.5">
                 New scenario
               </Text>
             </Pressable>
@@ -304,7 +305,7 @@ export function SimulatorPage() {
         ) : (
           <>
             <View className="px-4 pt-3 pb-1">
-              <Text className="text-sm" style={{ color: colors.textSecondary }}>
+              <Text className="text-meta" style={{ color: theme.mutedForeground }}>
                 Plan what you expect to happen. See where your accounts will
                 land. Your real ledger is never touched.
               </Text>
@@ -312,8 +313,8 @@ export function SimulatorPage() {
 
             <View className="mx-4 mt-5 mb-2">
               <Text
-                className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: colors.textSecondary }}
+                className="text-label font-semibold uppercase tracking-wider"
+                style={{ color: theme.mutedForeground }}
               >
                 Active scenarios · {active.length}
               </Text>
@@ -333,6 +334,11 @@ export function SimulatorPage() {
               const delta = netWorthEnd - netWorthStart;
               const deltaColor = delta >= 0 ? theme.success : theme.danger;
               const warnings = overview?.simulation.warnings ?? [];
+              // The lowest point on the way (board: "Lowest"), with the same hisaab lift as start and end.
+              const lowest = (overview?.simulation.trajectory ?? []).reduce<{ v: number; date: string } | null>(
+                (lo, pt) => (lo == null || pt.netWorth < lo.v ? { v: pt.netWorth, date: pt.date } : lo),
+                null,
+              );
 
               return (
                 <Card key={scenario.id} className="mx-4 mt-2">
@@ -340,8 +346,8 @@ export function SimulatorPage() {
                     {/* Header — name, default chip, horizon, warning chip */}
                     <View className="flex-row items-center">
                       <Text
-                        className="text-base font-bold flex-1"
-                        style={{ color: colors.text }}
+                        className="text-body font-bold flex-1"
+                        style={{ color: theme.foreground }}
                         numberOfLines={1}
                       >
                         {scenario.name}
@@ -359,19 +365,21 @@ export function SimulatorPage() {
                       <Ionicons
                         name="chevron-forward"
                         size={16}
-                        color={colors.textSecondary}
+                        color={theme.mutedForeground}
                         style={{ marginLeft: 6 }}
                       />
                     </View>
 
                     <View className="flex-row items-center mt-1">
-                      <Text className="text-xs" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label flex-shrink" style={{ color: theme.mutedForeground }} numberOfLines={1}>
                         Until {prettyDate(scenario.horizon_date)}
+                        {lowest ? ` · lowest ${formatAmount(lowest.v + hisaabNet)} on ${prettyDate(lowest.date)}` : ""}
                       </Text>
+                      {overview && warnings.length === 0 && <Chip variant="status" tone="success" label="Safe" className="ml-2" />}
                       {warnings.length > 0 && (
                         <View
                           className="ml-2 flex-row items-center px-2 py-0.5 rounded-full"
-                          style={{ backgroundColor: theme.danger + "14" }}
+                          style={{ backgroundColor: tint(theme.danger, 0.08) }}
                         >
                           <Ionicons name="warning-outline" size={10} color={theme.danger} />
                           <Text className="text-label font-semibold ml-1" style={{ color: theme.danger }}>
@@ -386,25 +394,25 @@ export function SimulatorPage() {
                       <View className="flex-1">
                         <Text
                           className="text-label font-semibold uppercase"
-                          style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
+                          style={{ color: theme.mutedForeground, letterSpacing: 0.5 }}
                           numberOfLines={1}
                         >
                           Today
                         </Text>
-                        <Text className="text-sm font-semibold mt-0.5" style={{ color: colors.text }} numberOfLines={1}>
+                        <Text className="text-body font-semibold mt-0.5" style={{ color: theme.foreground }} numberOfLines={1}>
                           {formatAmount(netWorthStart)}
                         </Text>
                       </View>
-                      <Ionicons name="arrow-forward" size={14} color={colors.textSecondary} style={{ marginBottom: 2, marginHorizontal: 6 }} />
+                      <Ionicons name="arrow-forward" size={14} color={theme.mutedForeground} style={{ marginBottom: 2, marginHorizontal: 6 }} />
                       <View className="flex-1 items-end">
                         <Text
                           className="text-label font-semibold uppercase"
-                          style={{ color: colors.textSecondary, letterSpacing: 0.5 }}
+                          style={{ color: theme.mutedForeground, letterSpacing: 0.5 }}
                           numberOfLines={1}
                         >
                           {prettyDate(scenario.horizon_date)}
                         </Text>
-                        <Text className="text-xl font-bold mt-0.5" style={{ color: colors.text }} numberOfLines={1}>
+                        <Text className="text-title font-bold mt-0.5" style={{ color: theme.foreground }} numberOfLines={1}>
                           {formatAmount(netWorthEnd)}
                         </Text>
                       </View>
@@ -412,7 +420,7 @@ export function SimulatorPage() {
                     <View className="mt-2 flex-row items-center">
                       <View
                         className="px-2 py-0.5 rounded-full flex-row items-center"
-                        style={{ backgroundColor: deltaColor + "14" }}
+                        style={{ backgroundColor: tint(deltaColor, 0.08) }}
                       >
                         <Ionicons
                           name={delta >= 0 ? "arrow-up" : "arrow-down"}
@@ -433,32 +441,32 @@ export function SimulatorPage() {
                   <View className="flex-row mt-4 gap-2 pt-3 border-t border-border">
                     <Pressable
                       onPress={() => handleDuplicate(scenario.id)}
-                      className="flex-1 py-2 items-center rounded-lg"
-                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      className="flex-1 py-2 items-center rounded-control"
+                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
                       accessibilityLabel="Duplicate scenario"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label font-semibold" style={{ color: theme.mutedForeground }}>
                         Duplicate
                       </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => handleArchive(scenario)}
-                      className="flex-1 py-2 items-center rounded-lg flex-row justify-center gap-1"
-                      style={{ backgroundColor: theme.success + "14", borderWidth: 1, borderColor: theme.success + "40" }}
+                      className="flex-1 py-2 items-center rounded-control flex-row justify-center gap-1"
+                      style={{ backgroundColor: tint(theme.success, 0.08), borderWidth: 1, borderColor: tint(theme.success, 0.25) }}
                       accessibilityLabel="Mark scenario as done"
                     >
                       <Ionicons name="checkmark" size={13} color={theme.success} />
-                      <Text className="text-xs font-semibold" style={{ color: theme.success }}>
+                      <Text className="text-label font-semibold" style={{ color: theme.success }}>
                         Mark done
                       </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => handleDelete(scenario)}
-                      className="flex-1 py-2 items-center rounded-lg"
-                      style={{ backgroundColor: theme.danger + "14" }}
+                      className="flex-1 py-2 items-center rounded-control"
+                      style={{ backgroundColor: tint(theme.danger, 0.08) }}
                       accessibilityLabel="Delete scenario"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: theme.danger }}>
+                      <Text className="text-label font-semibold" style={{ color: theme.danger }}>
                         Delete
                       </Text>
                     </Pressable>
@@ -469,13 +477,13 @@ export function SimulatorPage() {
 
             <Pressable
               onPress={() => setCreateSheetVisible(true)}
-              className="mx-4 mt-4 py-3 rounded-xl items-center flex-row justify-center"
+              className="mx-4 mt-4 py-3 rounded-card items-center flex-row justify-center"
               style={{ backgroundColor: theme.primary }}
               accessibilityRole="button"
               accessibilityLabel="Create new scenario"
             >
               <Ionicons name="add" size={18} color="#fff" />
-              <Text className="text-sm font-semibold text-primary-foreground ml-1.5">
+              <Text className="text-body font-semibold text-primary-foreground ml-1.5">
                 New scenario
               </Text>
             </Pressable>
@@ -493,11 +501,11 @@ export function SimulatorPage() {
               <Ionicons
                 name={showArchived ? "chevron-down" : "chevron-forward"}
                 size={14}
-                color={colors.textSecondary}
+                color={theme.mutedForeground}
               />
               <Text
-                className="ml-1 text-xs font-semibold uppercase tracking-wider"
-                style={{ color: colors.textSecondary }}
+                className="ml-1 text-label font-semibold uppercase tracking-wider"
+                style={{ color: theme.mutedForeground }}
               >
                 Completed · {archived.length}
               </Text>
@@ -508,25 +516,25 @@ export function SimulatorPage() {
                   <View className="flex-row items-center">
                     <View
                       className="w-6 h-6 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: theme.success + "22" }}
+                      style={{ backgroundColor: tint(theme.success, 0.13) }}
                     >
                       <Ionicons name="checkmark" size={13} color={theme.success} />
                     </View>
                     <Pressable className="flex-1" onPress={() => handleOpenScenario(s.id)}>
-                      <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                      <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                         {s.name}
                       </Text>
-                      <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                         Horizon · {prettyDate(s.horizon_date)}
                       </Text>
                     </Pressable>
                     <Pressable
                       onPress={async () => { await restoreScenario(s.id); await load(); }}
-                      className="px-3 py-1.5 rounded-lg ml-2"
-                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+                      className="px-3 py-1.5 rounded-control ml-2"
+                      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
                       accessibilityLabel="Restore scenario"
                     >
-                      <Text className="text-xs font-semibold" style={{ color: colors.textSecondary }}>
+                      <Text className="text-label font-semibold" style={{ color: theme.mutedForeground }}>
                         Restore
                       </Text>
                     </Pressable>
@@ -548,7 +556,7 @@ export function SimulatorPage() {
       {/* Duplicate mode picker */}
       <Sheet visible={duplicatePending !== null} onClose={() => setDuplicatePending(null)}>
         <View className="px-5">
-          <Text className="text-base font-bold text-foreground pt-2 pb-4">
+          <Text className="text-body font-bold text-foreground pt-2 pb-4">
             Duplicate "{duplicatePending?.name}"
           </Text>
 
@@ -558,26 +566,26 @@ export function SimulatorPage() {
               <Pressable
                 key={mode}
                 onPress={() => setDuplicateMode(mode)}
-                className="flex-row items-start p-4 rounded-xl mb-3"
+                className="flex-row items-start p-4 rounded-card mb-3"
                 style={{
-                  backgroundColor: isActive ? theme.alpha("primary", 0.07) : colors.surface,
+                  backgroundColor: isActive ? theme.alpha("primary", 0.07) : theme.card,
                   borderWidth: 1.5,
-                  borderColor: isActive ? theme.primary : colors.border,
+                  borderColor: isActive ? theme.primary : theme.border,
                 }}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: isActive }}
               >
                 <View
                   className="w-5 h-5 rounded-full border-2 items-center justify-center mt-0.5 mr-3"
-                  style={{ borderColor: isActive ? theme.primary : colors.border, backgroundColor: isActive ? theme.primary : "transparent" }}
+                  style={{ borderColor: isActive ? theme.primary : theme.border, backgroundColor: isActive ? theme.primary : "transparent" }}
                 >
                   {isActive && <View className="w-2 h-2 rounded-full bg-white" />}
                 </View>
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold" style={{ color: isActive ? theme.primary : colors.text }}>
+                  <Text className="text-body font-semibold" style={{ color: isActive ? theme.primary : theme.foreground }}>
                     {mode === "upcoming" ? "Upcoming only" : "Full setup"}
                   </Text>
-                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                     {mode === "upcoming"
                       ? "Copy only future entries. Dates keep as-is."
                       : "Copy all entries and reset them to upcoming."}
@@ -590,18 +598,18 @@ export function SimulatorPage() {
           <View className="flex-row gap-3 pt-1">
             <Pressable
               onPress={() => setDuplicatePending(null)}
-              className="flex-1 py-3 rounded-xl items-center border border-border"
-              style={{ backgroundColor: colors.surface }}
+              className="flex-1 py-3 rounded-card items-center border border-border"
+              style={{ backgroundColor: theme.card }}
             >
-              <Text className="text-sm font-semibold text-muted-foreground">Cancel</Text>
+              <Text className="text-body font-semibold text-muted-foreground">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={executeDuplicate}
               disabled={duplicating}
-              className="flex-1 py-3 rounded-xl items-center"
+              className="flex-1 py-3 rounded-card items-center"
               style={{ backgroundColor: theme.primary, opacity: duplicating ? 0.6 : 1 }}
             >
-              <Text className="text-sm font-semibold text-primary-foreground">{duplicating ? "Copying…" : "Duplicate"}</Text>
+              <Text className="text-body font-semibold text-primary-foreground">{duplicating ? "Copying…" : "Duplicate"}</Text>
             </Pressable>
           </View>
         </View>
@@ -652,10 +660,10 @@ function NewScenarioSheet({
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           New scenario
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           {copyFromScenario
             ? `Will be a copy of "${copyFromScenario.name}"`
             : "Starts fresh, seeded with your active reminders + open CC bills."}
@@ -668,8 +676,8 @@ function NewScenarioSheet({
       >
       <View className="px-5 pb-3">
         <Text
-          className="text-xs font-semibold uppercase tracking-wider mb-2"
-          style={{ color: colors.textSecondary }}
+          className="text-label font-semibold uppercase tracking-wider mb-2"
+          style={{ color: theme.mutedForeground }}
         >
           Name
         </Text>
@@ -677,26 +685,26 @@ function NewScenarioSheet({
           value={name}
           onChangeText={setName}
           placeholder="e.g. With Goa trip"
-          placeholderTextColor={colors.textSecondary}
-          className="border border-border rounded-lg px-3 py-3 text-sm"
-          style={{ color: colors.text }}
+          placeholderTextColor={theme.mutedForeground}
+          className="border border-border rounded-control px-3 py-3 text-meta"
+          style={{ color: theme.foreground }}
         />
       </View>
       <View className="px-5 pb-3">
         <Text
-          className="text-xs font-semibold uppercase tracking-wider mb-2"
-          style={{ color: colors.textSecondary }}
+          className="text-label font-semibold uppercase tracking-wider mb-2"
+          style={{ color: theme.mutedForeground }}
         >
           Horizon
         </Text>
         <Pressable
           onPress={() => setPicker(true)}
-          className="flex-row items-center justify-between border border-border rounded-lg px-3 py-3"
+          className="flex-row items-center justify-between border border-border rounded-control px-3 py-3"
         >
-          <Text className="text-sm" style={{ color: colors.text }}>
+          <Text className="text-meta" style={{ color: theme.foreground }}>
             {prettyDate(horizon)}
           </Text>
-          <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
+          <Ionicons name="calendar-outline" size={18} color={theme.mutedForeground} />
         </Pressable>
       </View>
 
@@ -704,8 +712,8 @@ function NewScenarioSheet({
       {existingScenarios.length > 0 && (
         <View className="px-5 pb-3">
           <Text
-            className="text-xs font-semibold uppercase tracking-wider mb-2"
-            style={{ color: colors.textSecondary }}
+            className="text-label font-semibold uppercase tracking-wider mb-2"
+            style={{ color: theme.mutedForeground }}
           >
             Copy entries from (optional)
           </Text>
@@ -714,14 +722,14 @@ function NewScenarioSheet({
               onPress={() => setCopyFrom(null)}
               className="px-3 py-2 rounded-full"
               style={{
-                backgroundColor: copyFrom === null ? theme.primary + "26" : colors.surface,
+                backgroundColor: copyFrom === null ? tint(theme.primary, 0.15) : theme.card,
                 borderWidth: 1,
-                borderColor: copyFrom === null ? theme.primary : colors.border,
+                borderColor: copyFrom === null ? theme.primary : theme.border,
               }}
               accessibilityRole="button"
               accessibilityState={{ selected: copyFrom === null }}
             >
-              <Text className="text-xs font-semibold" style={{ color: copyFrom === null ? colors.text : colors.textSecondary }}>
+              <Text className="text-label font-semibold" style={{ color: copyFrom === null ? theme.foreground : theme.mutedForeground }}>
                 Start fresh
               </Text>
             </Pressable>
@@ -733,14 +741,14 @@ function NewScenarioSheet({
                   onPress={() => setCopyFrom(s.id)}
                   className="px-3 py-2 rounded-full"
                   style={{
-                    backgroundColor: active ? theme.primary + "26" : colors.surface,
+                    backgroundColor: active ? tint(theme.primary, 0.15) : theme.card,
                     borderWidth: 1,
-                    borderColor: active ? theme.primary : colors.border,
+                    borderColor: active ? theme.primary : theme.border,
                   }}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text className="text-xs font-semibold" style={{ color: active ? colors.text : colors.textSecondary }} numberOfLines={1}>
+                  <Text className="text-label font-semibold" style={{ color: active ? theme.foreground : theme.mutedForeground }} numberOfLines={1}>
                     {s.name}
                   </Text>
                 </Pressable>
@@ -754,8 +762,8 @@ function NewScenarioSheet({
       {copyFromScenario && (
         <View className="px-5 pb-3">
           <Text
-            className="text-xs font-semibold uppercase tracking-wider mb-2"
-            style={{ color: colors.textSecondary }}
+            className="text-label font-semibold uppercase tracking-wider mb-2"
+            style={{ color: theme.mutedForeground }}
           >
             Dates
           </Text>
@@ -772,18 +780,18 @@ function NewScenarioSheet({
                 onPress={() => setDateMode(opt.key)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                className="flex-row items-center py-3 px-4 rounded-xl mb-2"
+                className="flex-row items-center py-3 px-4 rounded-card mb-2"
                 style={{
-                  backgroundColor: active ? theme.primary + "26" : colors.surface,
+                  backgroundColor: active ? tint(theme.primary, 0.15) : theme.card,
                   borderWidth: active ? 2 : 1,
-                  borderColor: active ? theme.primary : colors.border,
+                  borderColor: active ? theme.primary : theme.border,
                 }}
               >
                 <View className="flex-1">
-                  <Text className="text-sm font-semibold" style={{ color: colors.text }}>
+                  <Text className="text-body font-semibold" style={{ color: theme.foreground }}>
                     {opt.label}
                   </Text>
-                  <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                  <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                     {opt.sub}
                   </Text>
                 </View>
@@ -798,20 +806,20 @@ function NewScenarioSheet({
       <View className="flex-row px-5 pt-3 gap-3">
         <Pressable
           onPress={onClose}
-          className="flex-1 py-3 rounded-xl items-center"
-          style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+          className="flex-1 py-3 rounded-card items-center"
+          style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
         >
-          <Text className="text-sm font-semibold" style={{ color: colors.textSecondary }}>
+          <Text className="text-body font-semibold" style={{ color: theme.mutedForeground }}>
             Cancel
           </Text>
         </Pressable>
         <Pressable
           onPress={() => onCreate(name, horizon, copyFrom, dateMode)}
           disabled={!canSave}
-          className="flex-1 py-3 rounded-xl items-center"
+          className="flex-1 py-3 rounded-card items-center"
           style={{ backgroundColor: theme.primary, opacity: canSave ? 1 : 0.5 }}
         >
-          <Text className="text-sm font-semibold text-primary-foreground">Create</Text>
+          <Text className="text-body font-semibold text-primary-foreground">Create</Text>
         </Pressable>
       </View>
 

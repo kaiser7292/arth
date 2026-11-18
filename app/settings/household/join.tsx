@@ -129,7 +129,7 @@ export default function JoinScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
         {step.kind === "scan" && (
           <>
-            <Text className="text-sm text-muted-foreground mb-3 leading-5">
+            <Text className="text-meta text-muted-foreground mb-3 leading-5">
               On the other phone: Settings → Household → Invite someone. Then scan the code it shows.
             </Text>
             <QrScanner onScanned={onScanned} />
@@ -142,16 +142,16 @@ export default function JoinScreen() {
             <Card className="mb-4">
               <View className="items-center py-2">
                 <Ionicons name="people-outline" size={32} color={theme.primary} />
-                <Text className="text-lg font-semibold text-foreground mt-2 text-center">
+                <Text className="text-heading font-semibold text-foreground mt-2 text-center">
                   Join {step.link.inviterName ? `${step.link.inviterName}'s household` : "the household"} &quot;{step.link.householdName}&quot;?
                 </Text>
-                <Text className="text-xs text-muted-foreground mt-1 text-center">
+                <Text className="text-label text-muted-foreground mt-1 text-center">
                   Nothing is shared yet. You&apos;ll choose what to share next.
                 </Text>
               </View>
             </Card>
             <Input label="Your name" value={name} onChangeText={setName} placeholder="Aastha" maxLength={40} autoFocus />
-            <Text className="text-xs text-muted-foreground mt-1">How the others in the household will see you.</Text>
+            <Text className="text-label text-muted-foreground mt-1">How the others in the household will see you.</Text>
             <View className="flex-row gap-2 mt-6">
               <Button title="Not now" variant="outline" className="flex-1" onPress={() => router.back()} />
               <Button title="Join" className="flex-1" loading={busy} onPress={() => void join(step.link)} />
@@ -162,14 +162,14 @@ export default function JoinScreen() {
         {step.kind === "waiting" && (
           <Card>
             <View className="items-center py-2">
-              <Text className="text-xs text-muted-foreground">Check code</Text>
-              <Text className="text-3xl font-bold text-foreground mt-1" style={{ letterSpacing: 2 }}>
+              <Text className="text-label text-muted-foreground">Check code</Text>
+              <Text className="text-display font-bold text-foreground mt-1" style={{ letterSpacing: 2 }}>
                 {step.code}
               </Text>
-              <Text className="text-sm text-foreground mt-3 text-center">
+              <Text className="text-meta text-foreground mt-3 text-center">
                 Waiting for {step.inviterName || "them"} to approve
               </Text>
-              <Text className="text-xs text-muted-foreground mt-1 text-center leading-4">
+              <Text className="text-label text-muted-foreground mt-1 text-center leading-4">
                 Their phone shows a code too. They should approve only if it matches this one.
               </Text>
               <ActivityIndicator className="mt-4" />

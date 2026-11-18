@@ -116,13 +116,13 @@ export default function TransferReviewScreen() {
         accessibilityState={tickable ? { checked: on } : undefined}
       >
         <View className="flex-1 mr-3">
-          <Text className="text-sm font-medium text-foreground" numberOfLines={1}>{c.merchant ?? "Payment"}</Text>
-          <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
+          <Text className="text-body font-medium text-foreground" numberOfLines={1}>{c.merchant ?? "Payment"}</Text>
+          <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
             {formatDisplayDate(c.date)} · {names.get(c.fromAccountId)?.name ?? "Account"}
             {c.toAccountId ? ` → ${names.get(c.toAccountId)?.name ?? "your account"}` : ""}
           </Text>
         </View>
-        <Text className="text-sm font-semibold text-foreground mr-2">{formatAmount(c.amount)}</Text>
+        <Text className="text-body font-semibold text-foreground mr-2">{formatAmount(c.amount)}</Text>
         {tickable && <Ionicons name={on ? "checkbox" : "square-outline"} size={22} color={on ? theme.primary : theme.border} />}
       </Pressable>
     );
@@ -131,14 +131,14 @@ export default function TransferReviewScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Text className="text-xs text-muted-foreground mb-3 px-1">
+        <Text className="text-label text-muted-foreground mb-3 px-1">
           These are counted as spending, but the money went to one of your own accounts or cards. As transfers they leave your
           spending and budgets.
         </Text>
 
         {ready.length > 0 && (
           <>
-            <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
               Ready to convert · {ready.length}
             </Text>
             <Card>
@@ -160,14 +160,14 @@ export default function TransferReviewScreen() {
           const card = items.some((c) => c.kind === "card");
           return (
             <View key={digits} className="mt-5">
-              <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">
                 To ··{digits} · not in Arth yet
               </Text>
               <Card>
                 {items.map((c) => (
                   <Row key={c.expenseId} c={c} tickable={false} />
                 ))}
-                <Text className="text-xs text-muted-foreground mt-3">
+                <Text className="text-label text-muted-foreground mt-3">
                   If ··{digits} is yours, add it and {items.length === 1 ? "this payment becomes a transfer." : "the first becomes a transfer; the rest move up to Ready to convert."}
                 </Text>
                 <View className="mt-2">

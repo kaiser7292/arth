@@ -45,14 +45,14 @@ export function HisaabNetWorthSheet({ visible, onClose }: { visible: boolean; on
   return (
     <Sheet visible={visible} onClose={onClose}>
       <View className="px-5 pt-2 pb-6">
-        <Text className="text-lg font-bold text-foreground">Hisaab in Net Worth</Text>
-        <Text className="text-sm text-muted-foreground mt-1 mb-3">
+        <Text className="text-heading font-bold text-foreground">Hisaab in Net Worth</Text>
+        <Text className="text-meta text-muted-foreground mt-1 mb-3">
           Switch off anyone whose balance you don't expect to get back or pay. Their Hisaab stays
           as it is - only net worth changes.
         </Text>
 
         {persons === null ? null : persons.length === 0 ? (
-          <Text className="text-sm text-muted-foreground py-4">No people in Hisaab yet.</Text>
+          <Text className="text-meta text-muted-foreground py-4">No people in Hisaab yet.</Text>
         ) : (
           <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
             {persons.map((p) => {
@@ -61,11 +61,11 @@ export function HisaabNetWorthSheet({ visible, onClose }: { visible: boolean; on
               return (
                 <View key={p.id} className="flex-row items-center py-3 border-b border-border">
                   <View className="flex-1 mr-3">
-                    <Text className="text-sm font-medium text-foreground" numberOfLines={1}>
+                    <Text className="text-body font-medium text-foreground" numberOfLines={1}>
                       {p.name}
                     </Text>
                     <Text
-                      className="text-xs mt-0.5"
+                      className="text-label mt-0.5"
                       style={{ color: p.balance === 0 ? theme.mutedForeground : owesMe ? theme.success : theme.danger }}
                     >
                       {p.balance === 0

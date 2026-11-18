@@ -220,16 +220,16 @@ export default function SyncReviewScreen() {
       <ScreenContainer padTop={false}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-            <Text className="text-base font-semibold text-foreground">What are these worth today?</Text>
-            <Text className="text-sm text-muted-foreground mt-1 mb-3">
+            <Text className="text-body font-semibold text-foreground">What are these worth today?</Text>
+            <Text className="text-meta text-muted-foreground mt-1 mb-3">
               These don't sync on their own. Change what's changed, or carry on with what's here. Clear both boxes to skip one for today.
             </Text>
             {manual.map((a) => {
               const move = moves.get(a.id);
               return (
                 <Card key={a.id} className="mb-2">
-                  <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>{a.name}</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5 mb-2">
+                  <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{a.name}</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5 mb-2">
                     {move?.updatedToday
                       ? "Filled in from today's earlier sync"
                       : move?.lastDate
@@ -275,7 +275,7 @@ export default function SyncReviewScreen() {
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {accounts.length === 0 ? (
           <Card>
-            <Text className="text-sm text-muted-foreground">Add a demat, mutual fund, gold or crypto investment to see how it moves each day.</Text>
+            <Text className="text-meta text-muted-foreground">Add a demat, mutual fund, gold or crypto investment to see how it moves each day.</Text>
           </Card>
         ) : (
           <Card className="mb-3">
@@ -285,27 +285,27 @@ export default function SyncReviewScreen() {
                   <Ionicons name={review.change >= 0 ? "arrow-up" : "arrow-down"} size={22} color={color} />
                   <Text className="text-title font-bold ml-1" style={{ color }}>{formatAmount(Math.abs(review.change))}</Text>
                   {review.changePct != null && (
-                    <Text className="text-sm font-semibold ml-2" style={{ color }}>{signedPct(review.changePct)}</Text>
+                    <Text className="text-body font-semibold ml-2" style={{ color }}>{signedPct(review.changePct)}</Text>
                   )}
                 </View>
-                <Text className="text-sm text-muted-foreground mt-1">
+                <Text className="text-meta text-muted-foreground mt-1">
                   {review.change >= 0 ? "Up" : "Down"} {sincePhrase(review.since, today)}
                 </Text>
               </>
             ) : (
-              <Text className="text-sm text-muted-foreground">Nothing to compare yet. Today's values are saved, and tomorrow's sync will show the move.</Text>
+              <Text className="text-meta text-muted-foreground">Nothing to compare yet. Today's values are saved, and tomorrow's sync will show the move.</Text>
             )}
             <View className="flex-row justify-between mt-3 pt-3 border-t border-border">
-              <Text className="text-sm text-muted-foreground">Total now</Text>
-              <Text className="text-sm font-semibold text-foreground">{formatAmount(review.total)}</Text>
+              <Text className="text-meta text-muted-foreground">Total now</Text>
+              <Text className="text-body font-semibold text-foreground">{formatAmount(review.total)}</Text>
             </View>
             {review.added !== 0 && (
-              <Text className="text-xs text-muted-foreground mt-2">
+              <Text className="text-label text-muted-foreground mt-2">
                 You moved {formatAmount(Math.abs(review.added))} {review.added > 0 ? "in" : "out"} in this time. That isn't counted as a gain or a loss.
               </Text>
             )}
             {leftOut > 0 && review.compared > 0 && (
-              <Text className="text-xs text-muted-foreground mt-2">
+              <Text className="text-label text-muted-foreground mt-2">
                 {leftOut} {leftOut === 1 ? "investment isn't" : "investments aren't"} in this, because {leftOut === 1 ? "it wasn't" : "they weren't"} updated today.
               </Text>
             )}
@@ -318,8 +318,8 @@ export default function SyncReviewScreen() {
               <View key={r.broker} className={`flex-row items-center ${i > 0 ? "mt-3 pt-3 border-t border-border" : ""}`}>
                 <Ionicons name={r.status === "failed" ? "alert-circle" : "information-circle"} size={18} color={r.status === "failed" ? theme.danger : theme.warning} />
                 <View className="flex-1 ml-2 mr-2">
-                  <Text className="text-sm font-medium text-foreground">{SYNC_BROKER_NAMES[r.broker]}</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">
+                  <Text className="text-body font-medium text-foreground">{SYNC_BROKER_NAMES[r.broker]}</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5">
                     {r.status === "needs_login"
                       ? "Its login ends every day, so this one needs you"
                       : r.status === "needs_account"
@@ -331,7 +331,7 @@ export default function SyncReviewScreen() {
                 </View>
                 {(r.status === "needs_login" || r.status === "needs_account") && (
                   <Pressable onPress={() => void fix(r)} disabled={linking} hitSlop={8} accessibilityRole="button">
-                    <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+                    <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                       {r.status === "needs_login" ? "Log in" : "Link"}
                     </Text>
                   </Pressable>
@@ -342,7 +342,7 @@ export default function SyncReviewScreen() {
         )}
 
         {review.lines.length > 0 && (
-          <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-1">Each investment</Text>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2 mt-1">Each investment</Text>
         )}
         {review.lines.map((l) => {
           const up = (l.change ?? 0) >= 0;
@@ -357,8 +357,8 @@ export default function SyncReviewScreen() {
               <Card className="mb-2">
                 <View className="flex-row items-center">
                   <View className="flex-1 mr-2">
-                    <Text className="text-sm font-semibold text-foreground" numberOfLines={1}>{l.name}</Text>
-                    <Text className="text-xs text-muted-foreground mt-0.5" numberOfLines={1}>
+                    <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{l.name}</Text>
+                    <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
                       {l.status === "moved"
                         ? `${formatAmount(l.current)} now${review.since ? "" : `, ${sincePhrase(l.previousDate, today)}`}`
                         : l.status === "first"
@@ -370,7 +370,7 @@ export default function SyncReviewScreen() {
                   </View>
                   {l.status === "moved" && l.change != null && (
                     <View className="items-end">
-                      <Text className="text-sm font-bold" style={{ color: up ? theme.success : theme.danger }}>{signed(l.change)}</Text>
+                      <Text className="text-body font-bold" style={{ color: up ? theme.success : theme.danger }}>{signed(l.change)}</Text>
                       {l.changePct != null && (
                         <Text className="text-label" style={{ color: up ? theme.success : theme.danger }}>{signedPct(l.changePct)}</Text>
                       )}
@@ -382,7 +382,7 @@ export default function SyncReviewScreen() {
             </Pressable>
           );
         })}
-        <Text className="text-xs text-muted-foreground mt-2">
+        <Text className="text-label text-muted-foreground mt-2">
           Fixed deposits and pension aren't here, because they don't change with the market each day.
         </Text>
         {/* Where to go next. dismissTo pops back if the screen is already in the stack (it usually

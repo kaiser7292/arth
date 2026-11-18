@@ -28,7 +28,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
       {/* Tax Comparison */}
       <Card title="Tax Comparison" className="mb-4">
         {/* Regime tabs */}
-        <View className="flex-row rounded-lg border border-border overflow-hidden mb-3">
+        <View className="flex-row rounded-control border border-border overflow-hidden mb-3">
           <Pressable
             onPress={() => setCompareTab("new")}
             className={`flex-1 py-2 items-center ${
@@ -39,7 +39,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             style={compareTab === "new" ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
-              className={`text-sm font-medium ${
+              className={`text-body font-medium ${
                 compareTab === "new"
                   ? "text-primary-foreground"
                   : "text-muted-foreground"
@@ -58,7 +58,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
             style={compareTab === "old" ? { backgroundColor: theme.primary } : undefined}
           >
             <Text
-              className={`text-sm font-medium ${
+              className={`text-body font-medium ${
                 compareTab === "old"
                   ? "text-primary-foreground"
                   : "text-muted-foreground"
@@ -81,13 +81,13 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
           return (
             <>
               {isSelected && (
-                <View className="flex-row items-center mb-2 px-2 py-1.5 rounded-lg bg-success/8">
+                <View className="flex-row items-center mb-2 px-2 py-1.5 rounded-control bg-success/8">
                   <Ionicons
                     name="checkmark-circle"
                     size={16}
                     color={theme.success}
                   />
-                  <Text className="text-xs font-medium text-success ml-1">
+                  <Text className="text-label font-medium text-success ml-1">
                     Better regime - saves you{" "}
                     {formatAmount(
                       Math.abs(
@@ -140,7 +140,7 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
               <TaxRow
                 label="Effective Rate"
                 value={`${tax.effectiveRate}%`}
-                color={colors.blue}
+                color={theme.data.series[3]}
               />
             </>
           );
@@ -151,13 +151,13 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
       <Card title="Regime Summary" className="mb-4">
         <View className="flex-row">
           <View className="flex-1 items-center py-2">
-            <Text className="text-xs text-muted-foreground mb-1">
+            <Text className="text-label text-muted-foreground mb-1">
               New Regime
             </Text>
-            <Text className="text-base font-bold text-foreground">
+            <Text className="text-body font-bold text-foreground">
               {formatAmount(calculation.newRegimeTax.totalTax)}
             </Text>
-            <Text className="text-xs text-faint-foreground">
+            <Text className="text-label text-faint-foreground">
               {calculation.newRegimeTax.effectiveRate}% eff.
             </Text>
             {calculation.selectedRegime === "new" && (
@@ -170,13 +170,13 @@ export function TaxBreakdown({ calculation }: TaxBreakdownProps) {
           </View>
           <View className="w-px bg-border" />
           <View className="flex-1 items-center py-2">
-            <Text className="text-xs text-muted-foreground mb-1">
+            <Text className="text-label text-muted-foreground mb-1">
               Old Regime
             </Text>
-            <Text className="text-base font-bold text-foreground">
+            <Text className="text-body font-bold text-foreground">
               {formatAmount(calculation.oldRegimeTax.totalTax)}
             </Text>
-            <Text className="text-xs text-faint-foreground">
+            <Text className="text-label text-faint-foreground">
               {calculation.oldRegimeTax.effectiveRate}% eff.
             </Text>
             {calculation.selectedRegime === "old" && (

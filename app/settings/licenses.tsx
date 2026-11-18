@@ -39,7 +39,7 @@ export default function LicensesScreen() {
         ListHeaderComponent={
           <View className="pt-4">
 
-            <Text className="text-sm text-muted-foreground mb-3 leading-5">
+            <Text className="text-meta text-muted-foreground mb-3 leading-5">
               Arth is built on {all.length} open-source packages and data sets. Tap one to read its
               licence.
             </Text>
@@ -56,22 +56,22 @@ export default function LicensesScreen() {
             >
               <View className="flex-row items-center">
                 <View className="flex-1 mr-2">
-                  <Text className="text-sm text-foreground">{item.name}</Text>
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-meta text-foreground">{item.name}</Text>
+                  <Text className="text-label text-muted-foreground">
                     {item.version ? `${item.version} · ` : ""}{item.license}
                   </Text>
                 </View>
                 <Ionicons name={open ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
               </View>
               {open && (
-                <Text className="text-xs text-muted-foreground mt-2 leading-4" selectable>
+                <Text className="text-label text-muted-foreground mt-2 leading-4" selectable>
                   {item.text ?? `Licensed under ${item.license}. This package ships no separate licence file.`}
                 </Text>
               )}
             </Pressable>
           );
         }}
-        ListEmptyComponent={<Text className="text-sm text-muted-foreground py-6 text-center">No matches</Text>}
+        ListEmptyComponent={<Text className="text-meta text-muted-foreground py-6 text-center">No matches</Text>}
       />
     </ScreenContainer>
   );

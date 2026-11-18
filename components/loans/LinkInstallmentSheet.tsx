@@ -128,18 +128,18 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
   const renderCandidate = ({ item: c }: { item: Candidate }) => (
     <Pressable
       onPress={() => handleLink(c.id)}
-      className="flex-row items-center py-2.5 px-3 rounded-lg mb-1.5"
-      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}
+      className="flex-row items-center py-2.5 px-3 rounded-control mb-1.5"
+      style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
     >
       <View className="flex-1">
-        <Text className="text-sm font-semibold" style={{ color: colors.text }} numberOfLines={1}>
+        <Text className="text-body font-semibold" style={{ color: theme.foreground }} numberOfLines={1}>
           {c.merchant || c.description || "Transaction"}
         </Text>
-        <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
           {prettyDate(c.date)}
         </Text>
       </View>
-      <Text className="text-sm font-bold ml-2" style={{ color: colors.text }}>
+      <Text className="text-body font-bold ml-2" style={{ color: theme.foreground }}>
         {formatAmount(c.amount)}
       </Text>
     </Pressable>
@@ -148,10 +148,10 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
   return (
     <Sheet visible={visible} onClose={handleClose}>
       <View className="px-5 pb-3">
-        <Text className="text-base font-bold" style={{ color: colors.text }}>
+        <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           Installment #{installment.installment_num}
         </Text>
-        <Text className="text-sm mt-0.5" style={{ color: colors.textSecondary }}>
+        <Text className="text-meta mt-0.5" style={{ color: theme.mutedForeground }}>
           {formatAmount(installment.emi_amount)} due {prettyDate(installment.due_date)}
         </Text>
       </View>
@@ -159,17 +159,17 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
       {isPaid ? (
         <View className="px-5 pb-4">
           <View
-            className="flex-row items-center px-3 py-3 rounded-xl mb-3"
+            className="flex-row items-center px-3 py-3 rounded-card mb-3"
             style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.2) }}
           >
             <Ionicons name="checkmark-circle" size={18} color={theme.primary} />
             <View className="flex-1 ml-2">
-              <Text className="text-sm" style={{ color: colors.text }}>
+              <Text className="text-meta" style={{ color: theme.foreground }}>
                 Paid {installment.paid_amount != null ? formatAmount(installment.paid_amount) : ""}
                 {installment.paid_date ? ` on ${prettyDate(installment.paid_date)}` : ""}
               </Text>
               {installment.linked_expense_id && (
-                <Text className="text-xs mt-0.5" style={{ color: colors.textSecondary }}>
+                <Text className="text-label mt-0.5" style={{ color: theme.mutedForeground }}>
                   Linked to a transaction in your ledger
                 </Text>
               )}
@@ -186,11 +186,11 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
                   });
                 }, 220);
               }}
-              className="flex-row items-center justify-center py-3 rounded-xl mb-2"
+              className="flex-row items-center justify-center py-3 rounded-card mb-2"
               style={{ backgroundColor: theme.primary }}
             >
               <Ionicons name="receipt-outline" size={18} color="#FFFFFF" />
-              <Text className="text-sm font-semibold ml-2" style={{ color: "#FFFFFF" }}>
+              <Text className="text-body font-semibold ml-2" style={{ color: "#FFFFFF" }}>
                 View expense
               </Text>
             </Pressable>
@@ -198,45 +198,45 @@ export function LinkInstallmentSheet({ visible, installment, onClose, onLinked }
           <Pressable
             onPress={handleUnlink}
             disabled={working}
-            className="flex-row items-center justify-center py-3 rounded-xl"
-            style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: theme.danger }}
+            className="flex-row items-center justify-center py-3 rounded-card"
+            style={{ backgroundColor: theme.card, borderWidth: 1, borderColor: theme.danger }}
           >
             <Ionicons name="unlink-outline" size={18} color={theme.danger} />
-            <Text className="text-sm font-semibold ml-2" style={{ color: theme.danger }}>
+            <Text className="text-body font-semibold ml-2" style={{ color: theme.danger }}>
               Unlink
             </Text>
           </Pressable>
-          <Text className="text-xs mt-2" style={{ color: colors.textSecondary }}>
+          <Text className="text-label mt-2" style={{ color: theme.mutedForeground }}>
             Unlinking will mark this installment as scheduled. Any auto-created prepayment from over-payment will remain - delete it manually if needed.
           </Text>
         </View>
       ) : (
         <View className="px-5 pb-4">
-          <View className="flex-row items-center mb-2 border rounded-lg px-3 py-2" style={{ borderColor: colors.border }}>
-            <Ionicons name="search-outline" size={16} color={colors.textSecondary} />
+          <View className="flex-row items-center mb-2 border rounded-control px-3 py-2" style={{ borderColor: theme.border }}>
+            <Ionicons name="search-outline" size={16} color={theme.mutedForeground} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search by merchant, description, amount..."
-              placeholderTextColor={colors.textSecondary}
-              className="flex-1 ml-2 text-sm text-foreground"
+              placeholderTextColor={theme.mutedForeground}
+              className="flex-1 ml-2 text-meta text-foreground"
               autoCapitalize="none"
               autoCorrect={false}
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery("")} hitSlop={8}>
-                <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+                <Ionicons name="close-circle" size={16} color={theme.mutedForeground} />
               </Pressable>
             )}
           </View>
-          <Text className="text-label mb-1.5" style={{ color: colors.textSecondary }}>
+          <Text className="text-label mb-1.5" style={{ color: theme.mutedForeground }}>
             Showing realized expenses ±60 days from due date, not linked to any loan ({filtered.length}{query ? ` of ${candidates.length}` : ""})
           </Text>
 
           {loading ? (
             <LoadingState rows={3} />
           ) : filtered.length === 0 ? (
-            <Text className="text-sm py-4" style={{ color: colors.textSecondary }}>
+            <Text className="text-meta py-4" style={{ color: theme.mutedForeground }}>
               {query ? "No transactions match your search." : "No matching expenses found in the last 60 days."}
             </Text>
           ) : (

@@ -257,8 +257,8 @@ export default function TransactionMessagesScreen() {
             <Card>
               <View className="flex-row items-center">
                 <View className="flex-1 mr-3">
-                  <Text className="text-base font-medium text-foreground">Read transaction messages</Text>
-                  <Text className="text-xs text-muted-foreground mt-0.5">
+                  <Text className="text-body font-medium text-foreground">Read transaction messages</Text>
+                  <Text className="text-label text-muted-foreground mt-0.5">
                     {enabled
                       ? lastRun
                         ? `Last scan ${timeAgo(lastRun.created_at)}`
@@ -266,7 +266,7 @@ export default function TransactionMessagesScreen() {
                       : "Off. Turn on to add transactions from the messages you receive."}
                   </Text>
                 </View>
-                <Switch value={enabled} onValueChange={toggle} trackColor={{ false: colors.border, true: theme.primary }} thumbColor="#FFFFFF" />
+                <Switch value={enabled} onValueChange={toggle} trackColor={{ false: theme.border, true: theme.primary }} thumbColor="#FFFFFF" />
               </View>
               <View className="mt-3">
                 <LearnMoreChip contextKey="sms-settings" label="Is message access safe?" />
@@ -282,7 +282,7 @@ export default function TransactionMessagesScreen() {
                     <Chip icon="wallet-outline" label={accountsLabel} onPress={() => setAccountSheet(true)} />
                   </View>
                   {getStartDate() && (
-                    <Text className="text-xs text-muted-foreground mt-2">
+                    <Text className="text-label text-muted-foreground mt-2">
                       Messages before {formatDisplayDate(getStartDate()!)} are skipped. Change your start date in Settings.
                     </Text>
                   )}
@@ -292,16 +292,16 @@ export default function TransactionMessagesScreen() {
                         <View className="flex-1 mr-2"><DateInput label="From" value={customFrom} onChange={setCustomFrom} maximumDate={null} /></View>
                         <View className="flex-1"><DateInput label="To" value={customTo} onChange={setCustomTo} maximumDate={null} /></View>
                       </View>
-                      {customError && <Text className="text-xs text-danger mt-1">{customError}</Text>}
-                      <Pressable onPress={applyCustom} className="py-2 rounded-lg items-center mt-2" style={{ backgroundColor: theme.alpha("primary", 0.12) }}>
-                        <Text className="text-sm font-medium" style={{ color: theme.primary }}>Use these dates</Text>
+                      {customError && <Text className="text-label text-danger mt-1">{customError}</Text>}
+                      <Pressable onPress={applyCustom} className="py-2 rounded-control items-center mt-2" style={{ backgroundColor: theme.alpha("primary", 0.12) }}>
+                        <Text className="text-body font-medium" style={{ color: theme.primary }}>Use these dates</Text>
                       </Pressable>
                     </View>
                   )}
                   <Pressable
                     onPress={() => void scan()}
                     disabled={scanning}
-                    className="flex-row items-center justify-center py-3 mt-3 rounded-lg"
+                    className="flex-row items-center justify-center py-3 mt-3 rounded-control"
                     style={{ backgroundColor: theme.primary }}
                     accessibilityRole="button"
                   >
@@ -310,26 +310,26 @@ export default function TransactionMessagesScreen() {
                     ) : (
                       <>
                         <Ionicons name="scan-outline" size={17} color={theme.primaryForeground} />
-                        <Text className="text-sm font-medium text-primary-foreground ml-2">Scan now</Text>
+                        <Text className="text-body font-medium text-primary-foreground ml-2">Scan now</Text>
                       </>
                     )}
                   </Pressable>
                   {scanResult ? (
                     <View className="mt-2">
-                      <Text className="text-xs text-muted-foreground text-center">{scanResult}</Text>
+                      <Text className="text-label text-muted-foreground text-center">{scanResult}</Text>
                       {scanCreated > 0 && (
-                        <Pressable onPress={() => router.push("/expense/review-queue")} className="flex-row items-center justify-center mt-2 py-2 rounded-lg" style={{ backgroundColor: theme.alpha("success", 0.1) }}>
+                        <Pressable onPress={() => router.push("/expense/review-queue")} className="flex-row items-center justify-center mt-2 py-2 rounded-control" style={{ backgroundColor: theme.alpha("success", 0.1) }}>
                           <Ionicons name="checkmark-circle-outline" size={16} color={theme.success} />
-                          <Text className="text-sm font-medium ml-1.5" style={{ color: theme.success }}>Review {scanCreated}</Text>
+                          <Text className="text-body font-medium ml-1.5" style={{ color: theme.success }}>Review {scanCreated}</Text>
                         </Pressable>
                       )}
                     </View>
                   ) : lastRun ? (
                     <Pressable onPress={() => router.push("/settings/sms-scan-runs")} className="mt-2" accessibilityRole="button">
-                      <Text className="text-xs text-muted-foreground">
+                      <Text className="text-label text-muted-foreground">
                         Last run {timeAgo(lastRun.created_at)} · {lastRun.sms_read_count} read · {runAdded} added
                         {lastRun.unrecognized_count > 0 ? ` · ${lastRun.unrecognized_count} unread` : ""}
-                        <Text className="text-xs" style={{ color: theme.primary }}>  See run</Text>
+                        <Text className="text-label" style={{ color: theme.primary }}>  See run</Text>
                       </Text>
                     </Pressable>
                   ) : null}
@@ -380,8 +380,8 @@ export default function TransactionMessagesScreen() {
           />
           {isAndroid && (
             <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
-              <Text className="text-sm font-medium text-foreground">Your name in messages</Text>
-              <Text className="text-xs text-muted-foreground mt-0.5">
+              <Text className="text-body font-medium text-foreground">Your name in messages</Text>
+              <Text className="text-label text-muted-foreground mt-0.5">
                 Spots money moved between your own accounts, so it isn't counted as spending
               </Text>
               <View className="flex-row flex-wrap mt-2" style={{ gap: 6 }}>
@@ -389,12 +389,12 @@ export default function TransactionMessagesScreen() {
                   <Pressable
                     key={n}
                     onPress={() => removeName(n)}
-                    className="flex-row items-center rounded-md px-2 py-1"
+                    className="flex-row items-center rounded-control px-2 py-1"
                     style={{ backgroundColor: theme.alpha("primary", 0.1) }}
                     accessibilityRole="button"
                     accessibilityLabel={`Remove ${n}`}
                   >
-                    <Text className="text-xs font-medium" style={{ color: theme.primary }}>{n}</Text>
+                    <Text className="text-label font-medium" style={{ color: theme.primary }}>{n}</Text>
                     <Ionicons name="close" size={12} color={theme.primary} style={{ marginLeft: 4 }} />
                   </Pressable>
                 ))}
@@ -409,36 +409,36 @@ export default function TransactionMessagesScreen() {
                     onSubmitEditing={saveName}
                     onBlur={saveName}
                     returnKeyType="done"
-                    className="text-xs text-foreground rounded-md px-2 py-1 border"
+                    className="text-label text-foreground rounded-control px-2 py-1 border"
                     style={{ borderColor: theme.primary, minWidth: 150 }}
                     accessibilityLabel="Your name as it appears in messages"
                   />
                 ) : (
                   <Pressable
                     onPress={() => setAddingName(true)}
-                    className="rounded-md px-2 py-1 border border-dashed"
+                    className="rounded-control px-2 py-1 border border-dashed"
                     style={{ borderColor: theme.border }}
                     accessibilityRole="button"
                   >
-                    <Text className="text-xs text-muted-foreground">+ Add a name</Text>
+                    <Text className="text-label text-muted-foreground">+ Add a name</Text>
                   </Pressable>
                 )}
               </View>
             </View>
           )}
           <View className="py-3" style={{ borderTopWidth: 1, borderTopColor: theme.border }}>
-            <Text className="text-sm font-medium text-foreground">Duplicates</Text>
-            <Text className="text-xs text-muted-foreground mt-0.5">
+            <Text className="text-body font-medium text-foreground">Duplicates</Text>
+            <Text className="text-label text-muted-foreground mt-0.5">
               Arth checks for duplicates after every scan: same amount, account, merchant and day.
             </Text>
             <Pressable onPress={() => void checkDuplicates(false)} disabled={dupChecking} className="mt-2 self-start" accessibilityRole="button">
               {dupChecking ? (
                 <ActivityIndicator size="small" color={theme.primary} />
               ) : (
-                <Text className="text-sm font-medium" style={{ color: theme.primary }}>Check for duplicates now</Text>
+                <Text className="text-body font-medium" style={{ color: theme.primary }}>Check for duplicates now</Text>
               )}
             </Pressable>
-            {dupResult && <Text className="text-xs text-muted-foreground mt-1">{dupResult}</Text>}
+            {dupResult && <Text className="text-label text-muted-foreground mt-1">{dupResult}</Text>}
           </View>
         </Card>
 
@@ -459,7 +459,7 @@ export default function TransactionMessagesScreen() {
 
       <Sheet visible={accountSheet} onClose={() => setAccountSheet(false)}>
         <View className="px-4 pb-4">
-          <Text className="text-lg font-semibold text-foreground mb-3">Which accounts</Text>
+          <Text className="text-heading font-semibold text-foreground mb-3">Which accounts</Text>
           <ScrollView style={{ maxHeight: 380 }}>
             <AccountOption label="All accounts" sub="Read messages for every account" selected={accountIds.length === 0} onPress={() => toggleAccount(null)} />
             {accounts.map((a) => (
@@ -472,8 +472,8 @@ export default function TransactionMessagesScreen() {
               />
             ))}
           </ScrollView>
-          <Pressable onPress={() => setAccountSheet(false)} className="items-center py-3 mt-3 rounded-lg" style={{ backgroundColor: theme.primary }}>
-            <Text className="text-sm font-medium text-primary-foreground">Done</Text>
+          <Pressable onPress={() => setAccountSheet(false)} className="items-center py-3 mt-3 rounded-control" style={{ backgroundColor: theme.primary }}>
+            <Text className="text-body font-medium text-primary-foreground">Done</Text>
           </Pressable>
         </View>
       </Sheet>
@@ -482,15 +482,15 @@ export default function TransactionMessagesScreen() {
 }
 
 function SectionLabel({ children }: { children: string }) {
-  return <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-2 px-1">{children}</Text>;
+  return <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-5 mb-2 px-1">{children}</Text>;
 }
 
 function Chip({ icon, label, onPress }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }) {
   const theme = useTheme();
   return (
-    <Pressable onPress={onPress} className="flex-row items-center rounded-lg border px-3 py-1.5" style={{ borderColor: theme.border }} accessibilityRole="button">
+    <Pressable onPress={onPress} className="flex-row items-center rounded-control border px-3 py-1.5" style={{ borderColor: theme.border }} accessibilityRole="button">
       <Ionicons name={icon} size={13} color={theme.mutedForeground} />
-      <Text className="text-xs text-foreground mx-1.5">{label}</Text>
+      <Text className="text-label text-foreground mx-1.5">{label}</Text>
       <Ionicons name="chevron-down" size={12} color={theme.mutedForeground} />
     </Pressable>
   );
@@ -506,11 +506,11 @@ function Row({ title, subtitle, onPress, badge, first }: { title: string; subtit
       accessibilityRole="button"
     >
       <View className="flex-1 mr-2">
-        <Text className="text-sm font-medium text-foreground">{title}</Text>
-        {subtitle ? <Text className="text-xs text-muted-foreground mt-0.5">{subtitle}</Text> : null}
+        <Text className="text-body font-medium text-foreground">{title}</Text>
+        {subtitle ? <Text className="text-label text-muted-foreground mt-0.5">{subtitle}</Text> : null}
       </View>
       {badge ? (
-        <View className="rounded-md px-2 py-0.5 mr-1" style={{ backgroundColor: theme.alpha("warning", 0.15) }}>
+        <View className="rounded-control px-2 py-0.5 mr-1" style={{ backgroundColor: theme.alpha("warning", 0.15) }}>
           <Text className="text-label font-semibold" style={{ color: theme.warning }}>{badge}</Text>
         </View>
       ) : null}
@@ -524,14 +524,14 @@ function AccountOption({ label, sub, selected, onPress }: { label: string; sub: 
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center py-3 px-3 rounded-lg mb-2 border"
+      className="flex-row items-center py-3 px-3 rounded-control mb-2 border"
       style={selected ? { borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.08) } : { borderColor: theme.border }}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
     >
       <View className="flex-1">
-        <Text className="text-sm font-medium text-foreground">{label}</Text>
-        {sub ? <Text className="text-xs text-muted-foreground mt-0.5">{sub}</Text> : null}
+        <Text className="text-body font-medium text-foreground">{label}</Text>
+        {sub ? <Text className="text-label text-muted-foreground mt-0.5">{sub}</Text> : null}
       </View>
       <Ionicons name={selected ? "checkbox" : "square-outline"} size={20} color={selected ? theme.primary : theme.mutedForeground} />
     </Pressable>

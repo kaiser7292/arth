@@ -110,7 +110,7 @@ export default function StartDateScreen() {
     return (
       <ScreenContainer padTop={false}>
         <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
-          <Text className="text-sm text-muted-foreground mb-4 leading-5">
+          <Text className="text-meta text-muted-foreground mb-4 leading-5">
             What was in each account on {on}? Arth adds up from there. An account you leave blank keeps the balance it would otherwise work out, which may be off.
           </Text>
           {accounts.length > 0 ? (
@@ -128,7 +128,7 @@ export default function StartDateScreen() {
               ))}
             </Card>
           ) : (
-            <Text className="text-sm text-muted-foreground mb-4">No bank or wallet accounts yet.</Text>
+            <Text className="text-meta text-muted-foreground mb-4">No bank or wallet accounts yet.</Text>
           )}
           <Button title="Done" onPress={() => void done()} loading={saving} />
         </ScrollView>
@@ -139,17 +139,17 @@ export default function StartDateScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
-        <Text className="text-sm text-muted-foreground mb-4 leading-5">
+        <Text className="text-meta text-muted-foreground mb-4 leading-5">
           If your older data is incomplete, Arth can ignore it so it doesn't skew your figures. Starting on the 1st of a month gives the cleanest numbers.
         </Text>
         <Card className="mb-4">
           <DateInput label="Ignore transactions before" value={date} onChange={setDate} />
-          <Text className="text-sm text-foreground mt-3">
+          <Text className="text-meta text-foreground mt-3">
             {count == null
               ? " "
               : `${count.toLocaleString("en-IN")} transaction${count === 1 ? "" : "s"} before this date will be ignored. You can undo this any time.`}
           </Text>
-          <Text className="text-xs text-muted-foreground mt-2">Loans, investments and Hisaab stay as they are.</Text>
+          <Text className="text-label text-muted-foreground mt-2">Loans, investments and Hisaab stay as they are.</Text>
         </Card>
         <Button title="Confirm" onPress={() => void confirm()} loading={saving} className="mb-3" />
         {current && <Button title="Count everything again" variant="ghost" onPress={countAll} />}

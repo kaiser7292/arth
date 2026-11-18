@@ -5,7 +5,7 @@ import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { ListToolbar, ScreenContainer, Text } from "@/components/ui";
+import { Chip, ListToolbar, ScreenContainer, Text } from "@/components/ui";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
@@ -309,6 +309,24 @@ export default function RecycleBinScreen() {
     [purging, colorScheme],
   );
 
+  // Select several deleted or rejected transactions to restore / delete together (board: "Select").
+  const [selecting, setSelecting] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const togglePick = useCallback((id: string) => {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const stopSelecting = useCallback(() => {
+    setSelecting(false);
+    setPicked(new Set());
+  }, []);
+  // Switching tabs ends a selection.
+  useEffect(() => stopSelecting(), [activeFilter, stopSelecting]);
+
   // ═══════════════════════════════════════
   // Render items per section
   // ═══════════════════════════════════════
@@ -319,8 +337,9 @@ export default function RecycleBinScreen() {
       category={item.category_id ? categoryMap.get(item.category_id) : undefined}
       paymentMode={item.payment_mode_id ? paymentModeMap.get(item.payment_mode_id) : undefined}
       account={item.account_id ? accountMap.get(item.account_id) : undefined}
-      onPress={() => router.push(`/expense/${item.id}`)}
-      rightElement={
+      selected={selecting && picked.has(item.id)}
+      onPress={() => (selecting ? togglePick(item.id) : router.push(`/expense/${item.id}`))}
+      rightElement={selecting ? undefined :
         <View className="flex-row items-center ml-2">
           {item.deleted_at && <Text className="text-label text-faint-foreground mr-2">{daysAgo(item.deleted_at)}</Text>}
           <Pressable onPress={() => confirm("Restore", `Restore "${item.description || "Expense"}"?`, "Restore", false, async () => {
@@ -336,7 +355,7 @@ export default function RecycleBinScreen() {
         </View>
       }
     />
-  ), [categoryMap, paymentModeMap, accountMap, colorScheme, router, confirm]);
+  ), [categoryMap, paymentModeMap, accountMap, colorScheme, router, confirm, selecting, picked, togglePick]);
 
   const renderRejectedItem = useCallback(({ item }: { item: Expense }) => (
     <ExpenseListItem
@@ -344,8 +363,9 @@ export default function RecycleBinScreen() {
       category={item.category_id ? categoryMap.get(item.category_id) : undefined}
       paymentMode={item.payment_mode_id ? paymentModeMap.get(item.payment_mode_id) : undefined}
       account={item.account_id ? accountMap.get(item.account_id) : undefined}
-      onPress={() => router.push(`/expense/${item.id}`)}
-      rightElement={
+      selected={selecting && picked.has(item.id)}
+      onPress={() => (selecting ? togglePick(item.id) : router.push(`/expense/${item.id}`))}
+      rightElement={selecting ? undefined :
         <View className="flex-row items-center ml-2">
           <View className="px-1.5 py-0.5 rounded mr-2 bg-danger/8">
             <Text className="text-label font-semibold" style={{ color: theme.danger }}>REJECTED</Text>
@@ -363,7 +383,7 @@ export default function RecycleBinScreen() {
         </View>
       }
     />
-  ), [categoryMap, paymentModeMap, accountMap, colorScheme, router, confirm, loadData]);
+  ), [categoryMap, paymentModeMap, accountMap, colorScheme, router, confirm, loadData, selecting, picked, togglePick]);
 
   const renderCategoryItem = useCallback(({ item }: { item: Category }) => (
     <SimpleRow
@@ -735,13 +755,94 @@ export default function RecycleBinScreen() {
                 <Text className="text-title font-bold text-foreground mt-1">
                   {formatAmount(section.data.reduce((sum: number, e: any) => sum + (e.amount ?? 0), 0))}
                 </Text>
-                <Text className="text-label text-muted-foreground mt-0.5">
-                  {section.data.length} {section.data.length === 1 ? "expense" : "expenses"}
-                </Text>
+                <View className="flex-row items-center justify-between mt-0.5">
+                  <Text className="text-label text-muted-foreground">
+                    {section.data.length} {section.data.length === 1 ? "expense" : "expenses"}
+                  </Text>
+                  <Chip
+                    label={selecting ? "Cancel" : "Select"}
+                    icon={selecting ? "close" : "checkbox-outline"}
+                    on={selecting}
+                    onPress={() => (selecting ? stopSelecting() : setSelecting(true))}
+                  />
+                </View>
               </View>
             ) : null
           }
         />
+      )}
+      {selecting && (activeFilter === "deleted" || activeFilter === "rejected") && (
+        <View className="bg-card border-t border-border px-4 pt-3 pb-6" style={{ gap: 10 }}>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-meta text-foreground">{picked.size === 0 ? "Tap transactions to pick them" : `${picked.size} selected`}</Text>
+            <Pressable
+              onPress={() => setPicked(picked.size === tools.rows.length ? new Set() : new Set(tools.rows.map((r: any) => r.id)))}
+              hitSlop={8}
+              accessibilityRole="button"
+            >
+              <Text className="text-body font-semibold text-primary">{picked.size === tools.rows.length ? "Select none" : `Select all ${tools.rows.length}`}</Text>
+            </Pressable>
+          </View>
+          <View className="flex-row" style={{ gap: 10 }}>
+            <Pressable
+              disabled={picked.size === 0}
+              onPress={() => {
+                const ids = [...picked];
+                const restoreVerb = activeFilter === "deleted" ? "Restore" : "Approve";
+                confirm(restoreVerb, `${restoreVerb} ${ids.length} ${ids.length === 1 ? "transaction" : "transactions"}?`, restoreVerb, false, async () => {
+                  for (const id of ids) {
+                    if (activeFilter === "deleted") await restoreExpense(id);
+                    else await approveExpense(id);
+                  }
+                  if (activeFilter === "deleted") setDeletedExpenses((p) => p.filter((e) => !picked.has(e.id)));
+                  else setRejectedExpenses((p) => p.filter((e) => !picked.has(e.id)));
+                  stopSelecting();
+                });
+              }}
+              className="flex-1 rounded-pill border border-border items-center justify-center"
+              style={{ height: 48, opacity: picked.size === 0 ? 0.5 : 1 }}
+              accessibilityRole="button"
+            >
+              <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+                {activeFilter === "deleted" ? "Restore" : "Approve"}
+                {picked.size > 0 ? ` ${picked.size}` : ""}
+              </Text>
+            </Pressable>
+            <Pressable
+              disabled={picked.size === 0}
+              onPress={() => {
+                const ids = [...picked];
+                const forever = activeFilter === "deleted";
+                confirm(
+                  forever ? "Delete forever" : "Delete",
+                  forever ? `Permanently delete ${ids.length} ${ids.length === 1 ? "transaction" : "transactions"}? Cannot be undone.` : `Move ${ids.length} to the recycle bin?`,
+                  "Delete",
+                  true,
+                  async () => {
+                    for (const id of ids) {
+                      if (forever) await permanentlyDeleteExpense(id);
+                      else await deleteExpense(id);
+                    }
+                    if (forever) setDeletedExpenses((p) => p.filter((e) => !picked.has(e.id)));
+                    else {
+                      setRejectedExpenses((p) => p.filter((e) => !picked.has(e.id)));
+                      loadData();
+                    }
+                    stopSelecting();
+                  },
+                );
+              }}
+              className="flex-1 rounded-pill items-center justify-center bg-danger"
+              style={{ height: 48, opacity: picked.size === 0 ? 0.5 : 1 }}
+              accessibilityRole="button"
+            >
+              <Text className="text-body font-bold text-white" numberOfLines={1}>
+                {activeFilter === "deleted" ? "Delete forever" : "Delete"}
+                {picked.size > 0 ? ` ${picked.size}` : ""}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
       )}
     </ScreenContainer>
   );

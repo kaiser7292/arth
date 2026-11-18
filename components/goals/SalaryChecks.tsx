@@ -50,7 +50,7 @@ export function SalaryChecks({
         <View key={c.month} className={i > 0 ? "mt-3 pt-3 border-t border-border" : ""}>
           <View className="flex-row items-start">
             <Ionicons name="information-circle-outline" size={18} color={theme.warning} />
-            <Text className="text-sm text-foreground ml-2 flex-1">{line(c)}</Text>
+            <Text className="text-meta text-foreground ml-2 flex-1">{line(c)}</Text>
           </View>
           <View className="flex-row justify-end mt-2" style={{ gap: 16 }}>
             <Pressable
@@ -61,11 +61,11 @@ export function SalaryChecks({
               hitSlop={8}
               accessibilityRole="button"
             >
-              <Text className="text-xs font-medium text-muted-foreground">Dismiss</Text>
+              <Text className="text-label font-medium text-muted-foreground">Dismiss</Text>
             </Pressable>
             {c.status === "missing" ? (
               <Pressable onPress={() => router.push({ pathname: "/(tabs)/expenses", params: { preset: "credits" } })} hitSlop={8} accessibilityRole="button">
-                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>See credits</Text>
+                <Text className="text-label font-semibold" style={{ color: theme.primary }}>See credits</Text>
               </Pressable>
             ) : (
               <Pressable
@@ -77,7 +77,7 @@ export function SalaryChecks({
                 hitSlop={8}
                 accessibilityRole="button"
               >
-                <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+                <Text className="text-label font-semibold" style={{ color: theme.primary }}>
                   {c.adopts === "month" ? "Update calculator" : "Use as my in-hand"}
                 </Text>
               </Pressable>
