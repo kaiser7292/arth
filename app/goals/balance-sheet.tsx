@@ -19,6 +19,7 @@ import { NetWorthTrendCard } from "@/components/goals/NetWorthTrendCard";
 import { getNetWorthHistory, peekNetWorthHistory, type NetWorthPoint } from "@/services/net-worth-history";
 import { getDataVersion } from "@/services/settings";
 import { LinkRow } from "@/components/ui/LinkRow";
+import { PickerSheet } from "@/components/expense/PickerSheet";
 
 const preloaded = consumeBalanceSheetPreload();
 
@@ -123,32 +124,53 @@ export default function BalanceSheetScreen() {
     return formatLocalDate(start).slice(0, 7);
   }, []);
 
-  // "Next addable FY" = the most recent FY with data that isn't already a
-  // column. Tracked explicitly (rather than derived from earliest-1) so that
-  // removing a column can re-surface it as a candidate.
-  const [nextAddableFY, setNextAddableFY] = useState<number | null>(null);
-
-  const addPriorFYColumn = useCallback(async () => {
-    if (nextAddableFY == null) return;
-    const startMonth = getFYStartMonth();
-    const range = getFYRange(nextAddableFY, startMonth);
-    const fyStartStr = formatLocalDate(range.start);
-    const fyEndStr = formatLocalDate(range.end);
-    const newSpec: ColumnSpec = {
-      asOfDate: fyEndStr,
-      label: getFYLabel(nextAddableFY, startMonth),
-      isLive: false,
-      fyYear: nextAddableFY,
-      minDate: fyStartStr,
+  // Every earlier financial year that has data (newest first), worked out once. + lists the ones
+  // not shown yet and asks which to add (owner, Nov 2026).
+  const [yearsWithData, setYearsWithData] = useState<number[]>([]);
+  const [yearSheetOpen, setYearSheetOpen] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const MAX_LOOKBACK_YEARS = 25;
+    (async () => {
+      const startMonth = getFYStartMonth();
+      const currentFY = getCurrentFY(startMonth);
+      const found: number[] = [];
+      for (let fy = currentFY - 1; fy >= currentFY - MAX_LOOKBACK_YEARS; fy--) {
+        const range = getFYRange(fy, startMonth);
+        try {
+          if (await hasDataInRange(DEFAULT_USER_ID, formatLocalDate(range.start), formatLocalDate(range.end))) found.push(fy);
+        } catch (e) {
+          console.warn("[balance-sheet] year check failed", e);
+        }
+      }
+      if (!cancelled) setYearsWithData(found);
+    })();
+    return () => {
+      cancelled = true;
     };
-    // Today first, then each earlier year to its right, newest to oldest.
-    const merged = [...columnSpecs, newSpec].sort((a, b) => {
-      const ay = a.fyYear ?? Number.POSITIVE_INFINITY; // live = infinity → leftmost
-      const by = b.fyYear ?? Number.POSITIVE_INFINITY;
-      return by - ay;
-    });
-    setColumnSpecs(merged);
-  }, [nextAddableFY, columnSpecs]);
+  }, []);
+
+  const addableYears = useMemo(() => {
+    const shown = new Set(columnSpecs.map((c) => c.fyYear).filter((y): y is number => y != null));
+    return yearsWithData.filter((fy) => !shown.has(fy));
+  }, [yearsWithData, columnSpecs]);
+
+  const addFYColumn = useCallback(
+    (fy: number) => {
+      const startMonth = getFYStartMonth();
+      const range = getFYRange(fy, startMonth);
+      const newSpec: ColumnSpec = {
+        asOfDate: formatLocalDate(range.end),
+        label: getFYLabel(fy, startMonth),
+        isLive: false,
+        fyYear: fy,
+        minDate: formatLocalDate(range.start),
+      };
+      // In date order: a year that ended before today sits to the left of Today, one after it to the right.
+      setColumnSpecs([...columnSpecs, newSpec].sort((a, b) => a.asOfDate.localeCompare(b.asOfDate)));
+    },
+    [columnSpecs],
+  );
 
   const removeColumn = useCallback(
     (asOfDate: string) => {
@@ -159,39 +181,7 @@ export default function BalanceSheetScreen() {
     [columnSpecs],
   );
 
-  // Find the next FY that (a) has data and (b) isn't already a column.
-  // Walk backward from (current FY - 1) a bounded number of years; stop when
-  // we find a year with data. If we run out, no candidate.
-  useEffect(() => {
-    let cancelled = false;
-    const MAX_LOOKBACK_YEARS = 25;
-    (async () => {
-      const startMonth = getFYStartMonth();
-      const currentFY = getCurrentFY(startMonth);
-      const presentFYs = new Set(
-        columnSpecs.map((c) => c.fyYear).filter((y): y is number => y != null),
-      );
-      for (let fy = currentFY - 1; fy >= currentFY - MAX_LOOKBACK_YEARS; fy--) {
-        if (presentFYs.has(fy)) continue;
-        const range = getFYRange(fy, startMonth);
-        const has = await hasDataInRange(
-          DEFAULT_USER_ID,
-          formatLocalDate(range.start),
-          formatLocalDate(range.end),
-        );
-        if (has) {
-          if (!cancelled) setNextAddableFY(fy);
-          return;
-        }
-      }
-      if (!cancelled) setNextAddableFY(null);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [columnSpecs]);
-
-  const canAddEarlierFY = nextAddableFY != null;
+  const canAddEarlierFY = addableYears.length > 0;
 
   // Group assets & liabilities by row label across columns so we show a single
   // row-per-line even though different columns may include different accounts.
@@ -447,7 +437,7 @@ export default function BalanceSheetScreen() {
       {/* Header: Today, earlier years with ✕, and + for one more */}
       <View className="flex-row items-center px-3 py-2.5">
         <Text className="text-body font-bold text-foreground" style={{ width: labelWidth }} numberOfLines={1}>
-          Balance sheet
+          Net worth
         </Text>
         {columns.map((col) => (
           <View key={col.asOfDate} style={{ width: colWidth }} className="flex-row items-center justify-end">
@@ -472,15 +462,13 @@ export default function BalanceSheetScreen() {
           </View>
         ))}
         <Pressable
-          onPress={canAddEarlierFY ? addPriorFYColumn : undefined}
+          onPress={canAddEarlierFY ? () => setYearSheetOpen(true) : undefined}
           hitSlop={10}
           className="ml-1 w-7 h-7 rounded-control border items-center justify-center"
           style={{ borderColor: canAddEarlierFY ? theme.primary : theme.border }}
           accessibilityRole="button"
           accessibilityLabel={
-            nextAddableFY != null
-              ? `Compare with the end of ${getFYLabel(nextAddableFY, getFYStartMonth())}`
-              : "No earlier financial year with data"
+            canAddEarlierFY ? "Add a financial year" : "No earlier financial year with data"
           }
           accessibilityState={{ disabled: !canAddEarlierFY }}
           disabled={!canAddEarlierFY}
@@ -718,7 +706,7 @@ export default function BalanceSheetScreen() {
           )}
           <Text className="text-label text-muted-foreground px-3 pb-3 pt-1">
             {!multi
-              ? "Tap + to compare with the end of an earlier financial year. Tap a row to open those accounts."
+              ? "Tap + to add a financial year: it shows how things stood at that year's end. Tap a row to open those accounts."
               : canAddEarlierFY
                 ? "Tap + for another year, ✕ to hide one."
                 : "No earlier financial year with data. Tap ✕ to hide a year."}
@@ -748,6 +736,34 @@ export default function BalanceSheetScreen() {
         </View>
       </ScrollView>
       <HisaabNetWorthSheet visible={hisaabSheetOpen} onClose={() => setHisaabSheetOpen(false)} />
+      <PickerSheet
+        visible={yearSheetOpen}
+        onClose={() => setYearSheetOpen(false)}
+        title="Add a financial year"
+        sections={[
+          {
+            key: "years",
+            items: addableYears.map((fy) => {
+              const startMonth = getFYStartMonth();
+              const end = getFYRange(fy, startMonth).end;
+              return {
+                id: String(fy),
+                label: getFYLabel(fy, startMonth),
+                sub: `As on ${end.getDate()} ${SHORT_MONTHS[end.getMonth()]} ${end.getFullYear()}`,
+                icon: "calendar-outline" as const,
+                color: theme.primary,
+              };
+            }),
+          },
+        ]}
+        selectedId={null}
+        onSelect={(id) => {
+          setYearSheetOpen(false);
+          if (id) addFYColumn(Number(id));
+        }}
+        searchPlaceholder="Search years"
+        noun={{ one: "year", many: "years" }}
+      />
     </ScreenContainer>
   );
 }
