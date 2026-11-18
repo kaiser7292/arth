@@ -242,6 +242,8 @@ export default function AccountLedgerScreen() {
     searchPlaceholder: "Search name or >5000",
     sorts: LEDGER_SORTS,
     amountOf: ledgerAmount,
+    // Grouped by day unless you pick another grouping (owner, Nov 2026).
+    defaultGroup: "date",
   });
   const filteredEntries = tools.rows;
   const ledgerRows = tools.grouped;

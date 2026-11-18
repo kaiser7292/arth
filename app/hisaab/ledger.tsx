@@ -5,6 +5,7 @@
  * Running balance, add entry form, edit/delete entries.
  */
 
+import { transactionDayLabel } from "@/utils/day-label";
 import { useState, useCallback, useMemo, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getDatabase } from "@/database";
@@ -329,6 +330,7 @@ export default function LedgerScreen() {
 
   const fields = useMemo<ListField<HisaabEntry>[]>(
     () => [
+      { id: "date", label: "Date", keyOf: (e) => e.date.slice(0, 10), labelOf: transactionDayLabel, group: true, groupOrder: "first" },
       { id: "month", label: "Month", keyOf: (e) => e.date.slice(0, 7), labelOf: (k) => formatMonthLabel(k, "long"), group: true, groupOrder: "first" },
       { id: "type", label: "Transaction type", keyOf: (e) => e.type, labelOf: (k) => HISAAB_TYPE_LABELS[k] ?? k, group: true, filter: true },
       {
@@ -358,6 +360,8 @@ export default function LedgerScreen() {
     searchPlaceholder: "Search name or >5000",
     sorts: HISAAB_SORTS,
     amountOf: hisaabAmount,
+    // Grouped by day unless you pick another grouping (owner, Nov 2026).
+    defaultGroup: "date",
     // Dates decide what gets loaded and the opening and closing balance, so they stay this screen's.
     extraFilter: {
       sections: [{ key: "dates", label: "Dates", type: "dates", options: [], selectedIds: filterActive ? [appliedFrom, appliedTo] : [] }],
@@ -585,8 +589,8 @@ export default function LedgerScreen() {
   }
 
   const actions: ActionRowItem[] = [
-    { key: "lent", label: "Lent", icon: "arrow-up-outline", onPress: () => startEntry("debit") },
-    { key: "borrowed", label: "Borrowed", icon: "arrow-down-outline", onPress: () => startEntry("credit") },
+    { key: "lent", label: "Lent", icon: "return-up-forward-outline", onPress: () => startEntry("debit") },
+    { key: "borrowed", label: "Borrowed", icon: "return-down-back-outline", onPress: () => startEntry("credit") },
     {
       key: "settle",
       label: "Settle",
