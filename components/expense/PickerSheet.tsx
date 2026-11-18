@@ -7,7 +7,7 @@ import { useTheme } from "@/hooks/use-theme";
 
 /**
  * The one picker for the add / edit transaction form (board "Add / edit transaction"): a sheet
- * with the search box focused, how many there are, groups (recent, most used, a category's
+ * with a search box (the keyboard opens only when you tap it), how many there are, groups (recent, most used, a category's
  * sub-categories, account kinds), live filtering, and "+ Add <typed name>" when nothing matches.
  */
 
@@ -109,7 +109,7 @@ export function PickerSheet({
             {q ? `${matchCount} of ${total}` : `${total} ${total === 1 ? noun.one : noun.many}`}
           </Text>
         </View>
-        <SearchField value={query} onChangeText={setQuery} placeholder={searchPlaceholder} autoFocus accessibilityLabel={searchPlaceholder} />
+        <SearchField value={query} onChangeText={setQuery} placeholder={searchPlaceholder} accessibilityLabel={searchPlaceholder} />
         {filters && filters.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} keyboardShouldPersistTaps="handled">
             <Chip label="All" on={filter === null} onPress={() => setFilter(null)} />

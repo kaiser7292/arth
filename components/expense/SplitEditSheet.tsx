@@ -106,7 +106,7 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
         <ScrollView showsVerticalScrollIndicator={false} className="max-h-[440px]" keyboardShouldPersistTaps="handled">
           {picking ? (
             <View className="pb-2">
-              <SearchField value={newName} onChangeText={setNewName} placeholder="Search people or type a new name" autoFocus accessibilityLabel="Search people" />
+              <SearchField value={newName} onChangeText={setNewName} placeholder="Search people or type a new name" accessibilityLabel="Search people" />
               <Text className="text-label text-muted-foreground mt-2 mb-1">
                 {newName.trim()
                   ? `${shownPeople.length} of ${choosable.length}`
