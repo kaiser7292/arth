@@ -133,6 +133,9 @@ interface AccountPickerProps {
   placeholder?: string;
   /** Small note next to the label, e.g. "From merchant". */
   hint?: string | null;
+  /** Show as a row of the form's card. */
+  row?: boolean;
+  divider?: boolean;
 }
 
 // Every account type, not just spending ones: the same picker chooses both sides of a transfer.
@@ -165,6 +168,8 @@ export function AccountPicker({
   label = "Account",
   placeholder = "Select account (optional)",
   hint,
+  row,
+  divider,
 }: AccountPickerProps) {
   const theme = useTheme();
   const router = useRouter();
@@ -188,14 +193,17 @@ export function AccountPicker({
   }, [accounts, balances, theme]);
 
   return (
-    <View className="mb-4">
-      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
-        {label}
-        {hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
-      </Text>
+    <View className={row ? "" : "mb-4"}>
+      {!row && (
+        <Text className="text-label font-semibold text-muted-foreground mb-1.5">
+          {label}
+          {hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
+        </Text>
+      )}
       {accounts.length > 0 ? (
         <>
           <FieldButton
+            row={row ? { label, color: selectedAccount ? theme.data.accountType[selectedAccount.account_type] ?? theme.primary : theme.primary, tag: hint, divider } : undefined}
             icon="business-outline"
             on={!!selectedAccount}
             text={selectedAccount ? selectedAccount.account_label ?? `${selectedAccount.bank_name} ····${selectedAccount.account_identifier}` : placeholder}
@@ -235,8 +243,18 @@ export function AccountPicker({
   );
 }
 
+/** Shown as one row of the form's card: an icon square, the label over the value, a tag, a chevron. */
+export interface FieldRowLook {
+  label: string;
+  /** The icon square's colour (hex). */
+  color: string;
+  /** "From merchant" and the like. */
+  tag?: string | null;
+  divider?: boolean;
+}
+
 /** The closed field: what's picked (or the placeholder) and a chevron. Tapping opens the sheet. */
-function FieldButton({
+export function FieldButton({
   icon,
   on,
   text,
@@ -244,6 +262,8 @@ function FieldButton({
   accessibilityLabel,
   leading,
   right,
+  row,
+  trailing,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   on: boolean;
@@ -252,8 +272,44 @@ function FieldButton({
   accessibilityLabel: string;
   leading?: React.ReactNode;
   right?: string;
+  /** Render as a row of the form's card instead of a bordered box. */
+  row?: FieldRowLook;
+  /** Something before the chevron (a clear button). */
+  trailing?: React.ReactNode;
 }) {
   const theme = useTheme();
+  if (row) {
+    return (
+      <Pressable
+        onPress={onPress}
+        className={`flex-row items-center px-3.5 ${row.divider ? "border-t border-border" : ""}`}
+        style={{ minHeight: 60, gap: 12 }}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+      >
+        <View className="w-9 h-9 rounded-control items-center justify-center" style={{ backgroundColor: tint(row.color, 0.1) }}>
+          <Ionicons name={icon} size={17} color={row.color} />
+        </View>
+        <View className="flex-1" style={{ minWidth: 0 }}>
+          <Text className="text-label text-muted-foreground" numberOfLines={1}>
+            {row.label}
+          </Text>
+          <Text className={`text-body ${on ? "font-semibold text-foreground" : "text-faint-foreground"}`} numberOfLines={1}>
+            {text}
+          </Text>
+        </View>
+        {row.tag ? (
+          <View className="rounded-pill px-2 justify-center" style={{ height: 24, backgroundColor: theme.alpha("primary", 0.1) }}>
+            <Text className="text-label font-semibold text-primary" numberOfLines={1}>
+              {row.tag}
+            </Text>
+          </View>
+        ) : null}
+        {trailing}
+        <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} />
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       onPress={onPress}
@@ -272,6 +328,7 @@ function FieldButton({
         {text}
       </Text>
       {right ? <Text className="text-label text-muted-foreground">{right}</Text> : null}
+      {trailing}
       <Ionicons name="chevron-down" size={18} color={theme.mutedForeground} />
     </Pressable>
   );
@@ -408,6 +465,9 @@ interface CategoryPickerProps {
   hint?: string | null;
   /** The category usually used with the merchant picked, shown on top. */
   usualId?: string | null;
+  /** Show as a row of the form's card. */
+  row?: boolean;
+  divider?: boolean;
 }
 
 export function CategoryPicker({
@@ -420,8 +480,11 @@ export function CategoryPicker({
   allowNone = false,
   hint,
   usualId,
+  row,
+  divider,
 }: CategoryPickerProps) {
   const router = useRouter();
+  const theme = useTheme();
   const sections = useMemo<PickerSheetSection[]>(() => {
     const out: PickerSheetSection[] = [];
     const usual = usualId ? categories.find((c) => c.id === usualId) : undefined;
@@ -440,12 +503,15 @@ export function CategoryPicker({
   }, [categories, usualId]);
 
   return (
-    <View className="mb-4">
-      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
-        Category{hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
-      </Text>
+    <View className={row ? "" : "mb-4"}>
+      {!row && (
+        <Text className="text-label font-semibold text-muted-foreground mb-1.5">
+          Category{hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
+        </Text>
+      )}
       <FieldButton
-        icon="pricetags-outline"
+        row={row ? { label: "Category", color: selectedCategory?.color ?? theme.data.series[1], tag: hint, divider } : undefined}
+        icon={selectedCategory && row ? (selectedCategory.icon as keyof typeof Ionicons.glyphMap) : "pricetags-outline"}
         on={!!selectedCategory}
         text={selectedCategory ? categoryPath(selectedCategory, new Map(categories.map((c) => [c.id, c]))) : "Select category"}
         onPress={onToggle}
@@ -494,6 +560,11 @@ interface PaymentModePickerProps {
   /** How often each mode is used, for "Most used" on top. */
   usage?: Map<string, number>;
   hint?: string | null;
+  /** The row's label ("Paid by"). */
+  label?: string;
+  /** Show as a row of the form's card. */
+  row?: boolean;
+  divider?: boolean;
 }
 
 export function PaymentModePicker({
@@ -506,8 +577,12 @@ export function PaymentModePicker({
   allowNone = false,
   usage,
   hint,
+  label = "Payment mode",
+  row,
+  divider,
 }: PaymentModePickerProps) {
   const router = useRouter();
+  const theme = useTheme();
   const sections = useMemo<PickerSheetSection[]>(() => {
     const item = (pm: PaymentMode) => ({
       id: pm.id,
@@ -524,11 +599,15 @@ export function PaymentModePicker({
   }, [paymentModes, usage]);
 
   return (
-    <View className="mb-4">
-      <Text className="text-label font-semibold text-muted-foreground mb-1.5">
-        Payment mode{hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
-      </Text>
+    <View className={row ? "" : "mb-4"}>
+      {!row && (
+        <Text className="text-label font-semibold text-muted-foreground mb-1.5">
+          {label}
+          {hint ? <Text className="text-label text-primary"> · {hint}</Text> : null}
+        </Text>
+      )}
       <FieldButton
+        row={row ? { label, color: theme.data.series[3], tag: hint, divider } : undefined}
         icon={selectedPaymentMode ? TYPE_ICONS[selectedPaymentMode.type as PaymentModeType] : "card-outline"}
         on={!!selectedPaymentMode}
         text={selectedPaymentMode ? selectedPaymentMode.name : "Select payment mode"}
@@ -576,6 +655,9 @@ interface MerchantPickerProps {
   describe?: (u: MerchantUsage) => string;
   /** Picked a merchant that has a usual category / account / mode: the form fills them. */
   onPickUsage?: (u: MerchantUsage) => void;
+  /** Show as a row of the form's card. */
+  row?: boolean;
+  divider?: boolean;
 }
 
 export function MerchantPicker({
@@ -590,6 +672,8 @@ export function MerchantPicker({
   usage,
   describe,
   onPickUsage,
+  row,
+  divider,
 }: MerchantPickerProps) {
   const theme = useTheme();
   const byName = useMemo(() => {
@@ -612,24 +696,44 @@ export function MerchantPicker({
   }, [usage, merchantNames, describe]);
 
   return (
-    <View className="mb-4">
-      <Text className="text-label font-semibold text-muted-foreground mb-1.5">{label}</Text>
-      <View className="flex-row items-center" style={{ gap: 8 }}>
-        <View className="flex-1">
-          <FieldButton
-            icon="storefront-outline"
-            on={value.trim() !== ""}
-            text={value.trim() !== "" ? value : placeholder}
-            onPress={onToggleSuggestions}
-            accessibilityLabel={`${label}${value ? `, ${value}` : ""}`}
-          />
-        </View>
-        {value.trim() !== "" && (
-          <Pressable onPress={() => onChangeText("")} hitSlop={8} className="p-1" accessibilityRole="button" accessibilityLabel={`Clear ${label}`}>
-            <Ionicons name="close-circle" size={20} color={theme.mutedForeground} />
-          </Pressable>
-        )}
-      </View>
+    <View className={row ? "" : "mb-4"}>
+      {row ? (
+        <FieldButton
+          row={{ label, color: theme.data.series[1], divider }}
+          icon="storefront-outline"
+          on={value.trim() !== ""}
+          text={value.trim() !== "" ? value : placeholder}
+          onPress={onToggleSuggestions}
+          accessibilityLabel={`${label}${value ? `, ${value}` : ""}`}
+          trailing={
+            value.trim() !== "" ? (
+              <Pressable onPress={() => onChangeText("")} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Clear ${label}`}>
+                <Ionicons name="close-circle" size={18} color={theme.faintForeground} />
+              </Pressable>
+            ) : null
+          }
+        />
+      ) : (
+        <>
+          <Text className="text-label font-semibold text-muted-foreground mb-1.5">{label}</Text>
+          <View className="flex-row items-center" style={{ gap: 8 }}>
+            <View className="flex-1">
+              <FieldButton
+                icon="storefront-outline"
+                on={value.trim() !== ""}
+                text={value.trim() !== "" ? value : placeholder}
+                onPress={onToggleSuggestions}
+                accessibilityLabel={`${label}${value ? `, ${value}` : ""}`}
+              />
+            </View>
+            {value.trim() !== "" && (
+              <Pressable onPress={() => onChangeText("")} hitSlop={8} className="p-1" accessibilityRole="button" accessibilityLabel={`Clear ${label}`}>
+                <Ionicons name="close-circle" size={20} color={theme.mutedForeground} />
+              </Pressable>
+            )}
+          </View>
+        </>
+      )}
       <PickerSheet
         visible={showSuggestions}
         onClose={onCloseSuggestions}

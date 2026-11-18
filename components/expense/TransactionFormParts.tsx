@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { PickerSheet } from "./PickerSheet";
+import { FieldButton } from "./ExpenseFormFields";
 import { Pressable, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -106,15 +107,31 @@ export function TransactionTypeSwitch({
 export function CreditKindChips({
   value,
   onChange,
+  row,
+  divider,
 }: {
   value: CreditKind | null;
   onChange: (k: CreditKind | null) => void;
+  /** Show as a row of the form's card. */
+  row?: boolean;
+  divider?: boolean;
 }) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
   const look = value ? CREDIT_KIND_LOOKS[value] : null;
   return (
-    <View className="mb-4">
+    <View className={row ? "" : "mb-4"}>
+      {row ? (
+        <FieldButton
+          row={{ label: "Kind of money in", color: theme.success, divider }}
+          icon={(look?.icon ?? "arrow-down-outline") as keyof typeof Ionicons.glyphMap}
+          on={!!value}
+          text={value ? CREDIT_KIND_LABELS[value] : "Salary, refund, interest…"}
+          onPress={() => setOpen(true)}
+          accessibilityLabel={`Kind of money in${value ? `, ${CREDIT_KIND_LABELS[value]}` : ""}`}
+        />
+      ) : (
+      <>
       <Text className="text-label font-semibold text-muted-foreground mb-1.5">Kind of money in</Text>
       <Pressable
         onPress={() => setOpen(true)}
@@ -138,6 +155,8 @@ export function CreditKindChips({
         </Text>
         <Ionicons name="chevron-down" size={18} color={theme.mutedForeground} />
       </Pressable>
+      </>
+      )}
       <PickerSheet
         visible={open}
         onClose={() => setOpen(false)}

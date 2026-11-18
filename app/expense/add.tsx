@@ -1,10 +1,13 @@
 import { applyStartDate, isBeforeStartDate } from "@/services/start-date";
+import { formatDateForDisplay } from "@/utils/expense-validation";
+import { FormFooter } from "@/components/ui/FormParts";
 import { isPartOn } from "@/services/customise";
 import { CreditSalaryMonth } from "@/components/expense/CreditSalaryMonth";
 import { setCreditSalaryMonth } from "@/services/salary-periods";
 import { AmountInput } from "@/components/expense/AmountInput";
 import {
     AccountPicker,
+    FieldButton,
     CategoryPicker,
     DateSelector,
     MerchantPicker,
@@ -33,7 +36,7 @@ import type { CreditKind } from "@/services/expense-types";
 import { getLastAccount, rememberAccount, type FormAccountSlot } from "@/services/form-memory";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
 import { inferCreditKind } from "@/services/sms/money-signals";
-import { Input, ScreenContainer, SectionTitle, Text } from "@/components/ui";
+import { Input, ScreenContainer, SectionTitle, Text, Chip } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { getLinkedModesForAccount } from "@/services/account-master";
@@ -155,6 +158,10 @@ export default function AddExpenseScreen() {
   const [toAccountId, setToAccountId] = useState<string | null>(params.prefillToAccountId ?? null);
   const [showToAccounts, setShowToAccounts] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [tagsOpen, setTagsOpen] = useState(false);
+  const [classOpen, setClassOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
 
   // Tags state
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -802,35 +809,58 @@ export default function AddExpenseScreen() {
   const dateField = (
     <>
       <DateQuickChips date={date} onSetDate={setDate} />
-              <DateSelector
-                date={date}
-                showDatePicker={showDatePicker}
-                onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
-                onDateShift={handleDateShift}
-                onSetDate={setDate}
-                onCloseDatePicker={() => setShowDatePicker(false)}
-                dateError={errors.date}
-              />
-
+      <DateSelector
+        date={date}
+        showDatePicker={showDatePicker}
+        onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
+        onDateShift={handleDateShift}
+        onSetDate={setDate}
+        onCloseDatePicker={() => setShowDatePicker(false)}
+        dateError={errors.date}
+      />
     </>
   );
+  const addLeg = () =>
+    setExtraLegs((prev) => [
+      ...prev,
+      {
+        key: `leg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        amount: "",
+        accountId: null,
+        paymentModeId: null,
+        showAccounts: false,
+        showPaymentModes: false,
+      },
+    ]);
+  const saveTitle = isRefund
+    ? "Save refund"
+    : txType === "spent" && extraLegs.length > 0
+      ? "Save purchase"
+      : `Save ${TYPE_LABEL[txType].noun}`;
+  // The chips under the card: each opens one extra (note, tags, needed or optional, another payment source).
+  const extraChip = (key: string, label: string, on: boolean, onPress: () => void) => (
+    <Chip key={key} label={label} on={on} onPress={onPress} />
+  );
+  const noteShown = noteOpen || description.trim() !== "";
+  const tagsShown = tagsOpen || selectedTagIds.length > 0;
 
   return (
     <ScreenContainer>
       {loadFailed && <LoadFailedBanner />}
-      <KeyboardAvoidingView
-        behavior="padding"
-        className="flex-1"
-      >
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-          <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-            <Ionicons name="close" size={24} color={theme.mutedForeground} />
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
+        {/* Header: close, and Spent / Received / Transfer (or the fixed type's name) */}
+        <View className="flex-row items-center px-4 py-2" style={{ gap: 8 }}>
+          <Pressable onPress={() => router.back()} className="w-11 h-11 items-center justify-center -ml-2" accessibilityRole="button" accessibilityLabel="Close">
+            <Ionicons name="close" size={24} color={theme.foreground} />
           </Pressable>
-          <Text className="text-heading font-semibold text-foreground">
-            {isRefund ? "New refund" : `New ${TYPE_LABEL[txType].noun}`}
-          </Text>
-          <View className="w-10" />
+          <View className="flex-1">
+            {showTypeSwitch ? (
+              <TransactionTypeSwitch value={txType} onChange={changeType} />
+            ) : (
+              <Text className="text-heading font-bold text-foreground text-center">{isRefund ? "New refund" : `New ${TYPE_LABEL[txType].noun}`}</Text>
+            )}
+          </View>
+          {!showTypeSwitch && <View className="w-9" />}
         </View>
         <ScrollView
           ref={scrollRef}
@@ -839,10 +869,8 @@ export default function AddExpenseScreen() {
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ paddingBottom: tagPickerOpen ? 320 : 24 }}
         >
-          <View className="p-4">
-            {showTypeSwitch && <TransactionTypeSwitch value={txType} onChange={changeType} />}
-
-            {/* Amount — Large prominent input */}
+          <View className="px-4 pb-4">
+            {/* Amount, large */}
             <AmountInput
               value={amount}
               onChangeText={(text) => {
@@ -852,132 +880,284 @@ export default function AddExpenseScreen() {
               error={errors.amount}
               autoFocus={!params.prefillAmount && !params.prefillMerchant && !params.prefillPaymentModeId}
             />
-            <Text className="text-label text-center mb-4" style={{ color: typeColor }}>
+            <Text className="text-label text-center mb-2" style={{ color: typeColor }}>
               {TYPE_LABEL[txType].amountHint}
             </Text>
 
+            {/* Date pill: Today / Yesterday, calendar and the start-date warning open under it */}
+            <View className="items-center mb-3">
+              <Pressable
+                onPress={() => setDateOpen(!dateOpen)}
+                className="flex-row items-center rounded-pill border border-border bg-card px-3.5"
+                style={{ height: 36, gap: 6 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Date, ${formatDateForDisplay(date)}`}
+              >
+                <Ionicons name="calendar-outline" size={15} color={theme.mutedForeground} />
+                <Text className="text-meta font-semibold text-foreground">{formatDateForDisplay(date)}</Text>
+                <Ionicons name={dateOpen ? "chevron-up" : "chevron-down"} size={14} color={theme.mutedForeground} />
+              </Pressable>
+              {errors.date && !dateOpen ? <Text className="text-label text-danger mt-1">{errors.date}</Text> : null}
+            </View>
+            {dateOpen && <View className="mb-3">{dateField}</View>}
+
+            {txType === "received" && (
+              <>
+                {/* Other person's refund share — only for exact-amount splits */}
+                {isRefund && linkedExpenseSplitMode === 'exact' && (
+                  <View className="mb-4 p-4 rounded-control border border-border bg-card">
+                    <View className="flex-row items-center mb-3">
+                      <Ionicons name="people-outline" size={16} color={theme.mutedForeground} />
+                      <Text className="ml-2 text-body font-semibold text-foreground">
+                        Split refund
+                      </Text>
+                    </View>
+                    <Text className="text-label text-muted-foreground mb-3">
+                      This expense was split by exact amount. How much of this refund goes back to the other person?
+                    </Text>
+                    <Input
+                      label="Other person's share of this refund"
+                      value={otherPersonRefundShare}
+                      onChangeText={setOtherPersonRefundShare}
+                      placeholder="0.00"
+                      keyboardType="decimal-pad" formula
+                    />
+                    <Text className="text-label text-faint-foreground mt-1">
+                      Leave at 0 if the other person doesn't get any of this refund.
+                    </Text>
+                  </View>
+                )}
+              </>
+            )}
+
+            {/* One card, one row per pick */}
+            <View className="rounded-card bg-card border border-border overflow-hidden mb-3">
+              {txType === "spent" && (
+                <>
+                  <MerchantPicker {...merchantProps} row label="Paid to" placeholder={`Search ${merchantNames.length || ""} merchants`.replace("  ", " ")} />
+                  <CategoryPicker
+                    row
+                    divider
+                    categories={categories}
+                    categoryId={categoryId}
+                    selectedCategory={selectedCategory}
+                    showCategories={showCategories}
+                    hint={categoryHint}
+                    usualId={usualCategoryId}
+                    onToggle={() => {
+                      setShowCategories(!showCategories);
+                      setShowPaymentModes(false);
+                    }}
+                    onSelect={(catId) => {
+                      categoryTouched.current = true;
+                      setCategoryHint(null);
+                      setCategoryId(catId);
+                      setShowCategories(false);
+                      // Auto-set unavoidable/discretionary based on category classification
+                      const cat = categories.find((c) => c.id === catId);
+                      if (cat) setIsRightSpend(cat.is_unavoidable === 1);
+                    }}
+                  />
+                  <AccountPicker
+                    row
+                    divider
+                    accounts={accounts}
+                    accountId={accountId}
+                    selectedAccount={selectedAccount}
+                    showAccounts={showAccounts}
+                    label="Paid from"
+                    placeholder="Pick an account"
+                    hint={accountHint}
+                    onToggle={() => {
+                      setShowAccounts(!showAccounts);
+                      setShowCategories(false);
+                      setShowPaymentModes(false);
+                    }}
+                    onSelect={handleAccountSelect}
+                  />
+                  <PaymentModePicker
+                    row
+                    divider
+                    label="Paid by"
+                    paymentModes={paymentModes}
+                    paymentModeId={paymentModeId}
+                    usage={modeUsage}
+                    hint={modeHint}
+                    selectedPaymentMode={selectedPaymentMode}
+                    showPaymentModes={showPaymentModes}
+                    onToggle={() => {
+                      setShowPaymentModes(!showPaymentModes);
+                      setShowCategories(false);
+                    }}
+                    onSelect={(pmId) => {
+                      modeTouched.current = true;
+                      setModeHint(null);
+                      setPaymentModeId(pmId);
+                      setShowPaymentModes(false);
+                    }}
+                  />
+                  {/* Split with someone — not for refunds */}
+                  {!isRefund && isPartOn("hisaab") && (
+                    <FieldButton
+                      row={{ label: "Split with", color: theme.data.series[4], divider: true }}
+                      icon="people-outline"
+                      on={!!splitConfig}
+                      text={splitConfig ? `${splitPerson?.name ?? "Someone"} · ${splitConfig.splitMode === "equal" ? "equal" : splitConfig.splitMode}` : "Just me"}
+                      onPress={() => setShowSplitSheet(true)}
+                      accessibilityLabel={splitConfig ? `Split with ${splitPerson?.name ?? "someone"}` : "Split with, just me"}
+                      trailing={
+                        splitConfig ? (
+                          <Pressable onPress={() => setSplitConfig(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Remove the split">
+                            <Ionicons name="close-circle" size={18} color={theme.faintForeground} />
+                          </Pressable>
+                        ) : null
+                      }
+                    />
+                  )}
+                </>
+              )}
+              {txType === "received" && (
+                <>
+                  <MerchantPicker {...merchantProps} row label="Received from" placeholder="Employer, bank, friend" />
+                  <CreditKindChips
+                    row
+                    divider
+                    value={creditKind}
+                    onChange={(k) => {
+                      creditKindTouched.current = true;
+                      setCreditKind(k);
+                      if (k === "refund" && !isRefund && !pickedRefund) setRefundPickerOpen(true);
+                    }}
+                  />
+                  <AccountPicker
+                    row
+                    divider
+                    accounts={accounts}
+                    accountId={accountId}
+                    selectedAccount={selectedAccount}
+                    showAccounts={showAccounts}
+                    label="Into account"
+                    placeholder="Pick an account"
+                    onToggle={() => setShowAccounts(!showAccounts)}
+                    onSelect={(id) => {
+                      setAccountId(id);
+                      setShowAccounts(false);
+                    }}
+                  />
+                </>
+              )}
+              {txType === "transfer" && (
+                <>
+                  <AccountPicker
+                    row
+                    accounts={accounts}
+                    accountId={accountId}
+                    selectedAccount={selectedAccount}
+                    showAccounts={showAccounts}
+                    label="From"
+                    placeholder="Account the money left"
+                    onToggle={() => {
+                      setShowAccounts(!showAccounts);
+                      setShowToAccounts(false);
+                    }}
+                    onSelect={(id) => {
+                      setAccountId(id);
+                      setShowAccounts(false);
+                    }}
+                  />
+                  <AccountPicker
+                    row
+                    divider
+                    accounts={accounts}
+                    accountId={toAccountId}
+                    selectedAccount={accounts.find((a) => a.id === toAccountId)}
+                    showAccounts={showToAccounts}
+                    label="To"
+                    placeholder="Account the money went to"
+                    onToggle={() => {
+                      setShowToAccounts(!showToAccounts);
+                      setShowAccounts(false);
+                    }}
+                    onSelect={(id) => {
+                      setToAccountId(id);
+                      setShowToAccounts(false);
+                    }}
+                  />
+                </>
+              )}
+            </View>
+
+            {/* What the split means for your budget and the person's balance */}
+            {txType === "spent" && splitConfig && splitPreview && (
+              <Text className="text-label text-muted-foreground mb-3 px-1">
+                Your budget: {"\u20B9"}{splitPreview.myBudgetAmount.toLocaleString("en-IN")} · {splitPreview.hisaabType === "debit" ? `${splitPerson?.name ?? "They"} owe${splitPerson ? "s" : ""} you` : `you owe ${splitPerson?.name ?? "them"}`} {"\u20B9"}{splitPreview.hisaabAmount.toLocaleString("en-IN")}
+              </Text>
+            )}
+
+            {txType === "received" && (
+              <>
+                {creditKind === "refund" && !isRefund && (
+                  <Pressable
+                    onPress={() => setRefundPickerOpen(true)}
+                    className="flex-row items-center rounded-control border border-border bg-card px-4 py-3 mb-4"
+                  >
+                    <Ionicons name="link-outline" size={18} color={theme.mutedForeground} />
+                    <Text className="flex-1 ml-3 text-meta text-foreground" numberOfLines={1}>
+                      {pickedRefund ? pickedRefund.summary : "Refund of which expense? (optional)"}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+                  </Pressable>
+                )}
+                {creditKind === "salary" && (
+                  <CreditSalaryMonth date={date} override={salaryForMonth} onChange={setSalaryForMonth} className="mb-4" />
+                )}
+              </>
+            )}
+
+            {/* Extras, as chips */}
+            <View className="flex-row flex-wrap mb-3" style={{ gap: 8 }}>
+              {extraChip("note", txType === "transfer" ? (noteShown ? "What it's for" : "+ What it's for") : noteShown ? "Note" : "+ Note", noteShown, () => setNoteOpen(!noteOpen))}
+              {txType !== "transfer" && extraChip("tags", tagsShown ? `Tags${selectedTagIds.length ? ` · ${selectedTagIds.length}` : ""}` : "+ Tags", tagsShown, () => setTagsOpen(!tagsOpen))}
+              {txType === "spent" && extraChip("class", isRightSpend ? "Needed" : "Could have been avoided", classOpen, () => setClassOpen(!classOpen))}
+              {txType === "spent" && !isRefund && !splitConfig && extraLegs.length < MAX_EXTRA_LEGS &&
+                extraChip("leg", "+ Another payment source", false, addLeg)}
+              {txType === "transfer" &&
+                extraChip("swap", "⇅ Swap", false, () => {
+                  setAccountId(toAccountId);
+                  setToAccountId(accountId);
+                })}
+            </View>
+
+            {noteShown && (
+              <Input
+                label={txType === "transfer" ? "What it's for" : "Note"}
+                value={description}
+                onChangeText={setDescription}
+                placeholder={txType === "spent" ? "What was it for?" : txType === "received" ? "What's this money for?" : "Moving savings, card bill…"}
+                maxLength={200}
+                containerClassName="mb-4"
+              />
+            )}
+            {txType !== "transfer" && tagsShown && <View className="mb-4"><TagPicker
+                    selectedTagIds={selectedTagIds}
+                    onSelectionChange={setSelectedTagIds}
+                    onOpen={() => {
+                      setTagPickerOpen(true);
+                      const sub = Keyboard.addListener("keyboardDidShow", () => {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                        sub.remove();
+                      });
+                      setTimeout(() => {
+                        scrollRef.current?.scrollToEnd({ animated: true });
+                      }, 400);
+                    }}
+                    onClose={() => setTagPickerOpen(false)}
+                  /></View>}
+            {txType === "spent" && classOpen && (
+              <RightSpendToggle isRightSpend={isRightSpend} onToggle={() => setIsRightSpend(!isRightSpend)} />
+            )}
             {txType === "spent" && (
               <>
-                <SectionTitle icon="pricetags-outline" title="What" className="mb-3" />
-                <MerchantPicker {...merchantProps} label="Paid to" placeholder="Swiggy, rent, electricity bill (optional)" />
-                <CategoryPicker
-                  categories={categories}
-                  categoryId={categoryId}
-                  selectedCategory={selectedCategory}
-                  showCategories={showCategories}
-                  hint={categoryHint}
-                  usualId={usualCategoryId}
-                  onToggle={() => {
-                    setShowCategories(!showCategories);
-                    setShowPaymentModes(false);
-                  }}
-                  onSelect={(catId) => {
-                    categoryTouched.current = true;
-                    setCategoryHint(null);
-                    setCategoryId(catId);
-                    setShowCategories(false);
-                    // Auto-set unavoidable/discretionary based on category classification
-                    const cat = categories.find((c) => c.id === catId);
-                    if (cat) setIsRightSpend(cat.is_unavoidable === 1);
-                  }}
-                />
-                <SectionTitle icon="business-outline" title="Where" className="mb-3 mt-1" />
-                <AccountPicker
-                  accounts={accounts}
-                  accountId={accountId}
-                  selectedAccount={selectedAccount}
-                  showAccounts={showAccounts}
-                  label="Paid from"
-                  hint={accountHint}
-                  onToggle={() => {
-                    setShowAccounts(!showAccounts);
-                    setShowCategories(false);
-                    setShowPaymentModes(false);
-                  }}
-                  onSelect={handleAccountSelect}
-                />
-                {dateField}
-                <MoreOptions
-                  open={moreOpen}
-                  onToggle={() => setMoreOpen(!moreOpen)}
-                  summary={splitConfig || extraLegs.length > 0 ? "split or extra payment added" : "note, payment mode, split, tags"}
-                >
-                <Input
-                  label="Note"
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="What was it for?"
-                  maxLength={200}
-                  containerClassName="mb-4"
-                />
-                {/* Payment mode picker */}
-                <PaymentModePicker
-                  paymentModes={paymentModes}
-                  paymentModeId={paymentModeId}
-                  usage={modeUsage}
-                  hint={modeHint}
-                  selectedPaymentMode={selectedPaymentMode}
-                  showPaymentModes={showPaymentModes}
-                  onToggle={() => {
-                    setShowPaymentModes(!showPaymentModes);
-                    setShowCategories(false);
-                  }}
-                  onSelect={(pmId) => {
-                    modeTouched.current = true;
-                    setModeHint(null);
-                    setPaymentModeId(pmId);
-                    setShowPaymentModes(false);
-                  }}
-                />
-
-                {/* Split with someone — hidden for refunds (doesn't make sense to split a refund) */}
-                {!isRefund && isPartOn("hisaab") && (
-                <View className="mb-4">
-                  {splitConfig && splitPreview ? (
-                    <Pressable
-                      onPress={() => setShowSplitSheet(true)}
-                      className="p-4 rounded-control border"
-                      style={{ backgroundColor: theme.alpha("primary", 0.1), borderColor: theme.alpha("primary", 0.25) }}
-                    >
-                      <View className="flex-row items-center justify-between mb-2">
-                        <View className="flex-row items-center">
-                          <Ionicons name="people" size={18} color={theme.primary} />
-                          <Text className="ml-2 text-body font-semibold" style={{ color: theme.primary }}>
-                            Split with {splitPerson?.name ?? "someone"}
-                          </Text>
-                        </View>
-                        <Pressable
-                          onPress={() => setSplitConfig(null)}
-                          className="p-1"
-                        >
-                          <Ionicons name="close-circle" size={20} color={theme.mutedForeground} />
-                        </Pressable>
-                      </View>
-                      <View className="flex-row items-center justify-between">
-                        <Text className="text-label text-muted-foreground">
-                          My budget: {"\u20B9"}{splitPreview.myBudgetAmount.toLocaleString("en-IN")}
-                        </Text>
-                        <Text className="text-label text-warning">
-                          {splitPreview.hisaabType === "debit" ? "They owe" : "I owe"}: {"\u20B9"}{splitPreview.hisaabAmount.toLocaleString("en-IN")}
-                        </Text>
-                      </View>
-                      <Text className="text-label text-faint-foreground mt-1">Tap to change</Text>
-                    </Pressable>
-                  ) : (
-                    <Pressable
-                      onPress={() => setShowSplitSheet(true)}
-                      className="flex-row items-center rounded-control border border-border bg-card px-4 py-3"
-                    >
-                      <Ionicons name="people-outline" size={20} color={theme.mutedForeground} />
-                      <Text className="ml-3 text-body font-medium text-foreground">
-                        Split with someone?
-                      </Text>
-                      <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: "auto" }} />
-                    </Pressable>
-                  )}
-                </View>
-                )}
-
                 {!isRefund && (
                 <SplitEditSheet
                   visible={showSplitSheet}
@@ -992,7 +1172,6 @@ export default function AddExpenseScreen() {
                   onRemove={splitConfig ? () => { setSplitConfig(null); setShowSplitSheet(false); } : undefined}
                 />
                 )}
-
                 {/* Split-tender: extra payment legs + "Add another payment source" */}
                 {!isRefund && !splitConfig && (
                   <View className="mb-4">
@@ -1121,36 +1300,10 @@ export default function AddExpenseScreen() {
                       </View>
                     )}
 
-                    {extraLegs.length < MAX_EXTRA_LEGS && (
-                      <Pressable
-                        onPress={() =>
-                          setExtraLegs((prev) => [
-                            ...prev,
-                            {
-                              key: `leg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                              amount: "",
-                              accountId: null,
-                              paymentModeId: null,
-                              showAccounts: false,
-                              showPaymentModes: false,
-                            },
-                          ])
-                        }
-                        className="flex-row items-center justify-center py-3 rounded-control border border-dashed border-border"
-                        accessibilityRole="button"
-                        accessibilityLabel="Add another payment source"
-                      >
-                        <Ionicons
-                          name="add-circle-outline"
-                          size={18}
-                          color={theme.primary}
-                        />
-                        <Text
-                          className="ml-2 text-body font-medium"
-                          style={{ color: theme.primary }}
-                        >
-                          Add another payment source
-                        </Text>
+                    {extraLegs.length > 0 && extraLegs.length < MAX_EXTRA_LEGS && (
+                      <Pressable onPress={addLeg} className="flex-row items-center justify-center py-3 rounded-control border border-dashed border-border" accessibilityRole="button" accessibilityLabel="Add another payment source">
+                        <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
+                        <Text className="ml-2 text-body font-medium" style={{ color: theme.primary }}>Add another payment source</Text>
                       </Pressable>
                     )}
                     {extraLegs.length > 0 && (
@@ -1160,217 +1313,11 @@ export default function AddExpenseScreen() {
                     )}
                   </View>
                 )}
-
-                {/* Spend classification toggle */}
-                <RightSpendToggle
-                  isRightSpend={isRightSpend}
-                  onToggle={() => setIsRightSpend(!isRightSpend)}
-                />
-
-                {/* Tags */}
-                <View className="mb-4">
-                  <Text className="text-label font-medium text-muted-foreground mb-2">
-                    Tags (optional)
-                  </Text>
-                  <TagPicker
-                    selectedTagIds={selectedTagIds}
-                    onSelectionChange={setSelectedTagIds}
-                    onOpen={() => {
-                      setTagPickerOpen(true);
-                      const sub = Keyboard.addListener("keyboardDidShow", () => {
-                        scrollRef.current?.scrollToEnd({ animated: true });
-                        sub.remove();
-                      });
-                      setTimeout(() => {
-                        scrollRef.current?.scrollToEnd({ animated: true });
-                      }, 400);
-                    }}
-                    onClose={() => setTagPickerOpen(false)}
-                  />
-                </View>
-
-                </MoreOptions>
-              </>
-            )}
-
-            {txType === "received" && (
-              <>
-                {/* Other person's refund share — only for exact-amount splits */}
-                {isRefund && linkedExpenseSplitMode === 'exact' && (
-                  <View className="mb-4 p-4 rounded-control border border-border bg-card">
-                    <View className="flex-row items-center mb-3">
-                      <Ionicons name="people-outline" size={16} color={theme.mutedForeground} />
-                      <Text className="ml-2 text-body font-semibold text-foreground">
-                        Split refund
-                      </Text>
-                    </View>
-                    <Text className="text-label text-muted-foreground mb-3">
-                      This expense was split by exact amount. How much of this refund goes back to the other person?
-                    </Text>
-                    <Input
-                      label="Other person's share of this refund"
-                      value={otherPersonRefundShare}
-                      onChangeText={setOtherPersonRefundShare}
-                      placeholder="0.00"
-                      keyboardType="decimal-pad" formula
-                    />
-                    <Text className="text-label text-faint-foreground mt-1">
-                      Leave at 0 if the other person doesn't get any of this refund.
-                    </Text>
-                  </View>
-                )}
-
-                <SectionTitle icon="pricetags-outline" title="What" className="mb-3" />
-                <MerchantPicker {...merchantProps} label="Received from" placeholder="Employer, bank, friend (optional)" />
-                <CreditKindChips
-                  value={creditKind}
-                  onChange={(k) => {
-                    creditKindTouched.current = true;
-                    setCreditKind(k);
-                    if (k === "refund" && !isRefund && !pickedRefund) setRefundPickerOpen(true);
-                  }}
-                />
-                {creditKind === "refund" && !isRefund && (
-                  <Pressable
-                    onPress={() => setRefundPickerOpen(true)}
-                    className="flex-row items-center rounded-control border border-border bg-card px-4 py-3 mb-4"
-                  >
-                    <Ionicons name="link-outline" size={18} color={theme.mutedForeground} />
-                    <Text className="flex-1 ml-3 text-meta text-foreground" numberOfLines={1}>
-                      {pickedRefund ? pickedRefund.summary : "Refund of which expense? (optional)"}
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
-                  </Pressable>
-                )}
-                {creditKind === "salary" && (
-                  <CreditSalaryMonth date={date} override={salaryForMonth} onChange={setSalaryForMonth} className="mb-4" />
-                )}
-                <SectionTitle icon="business-outline" title="Where" className="mb-3 mt-1" />
-                <AccountPicker
-                  accounts={accounts}
-                  accountId={accountId}
-                  selectedAccount={selectedAccount}
-                  showAccounts={showAccounts}
-                  label="Into account"
-                  onToggle={() => setShowAccounts(!showAccounts)}
-                  onSelect={(id) => {
-                    setAccountId(id);
-                    setShowAccounts(false);
-                  }}
-                />
-                {dateField}
-                <MoreOptions open={moreOpen} onToggle={() => setMoreOpen(!moreOpen)} summary="note, tags">
-                <Input
-                  label="Note"
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="What's this money for?"
-                  maxLength={200}
-                  containerClassName="mb-4"
-                />
-                {/* Tags */}
-                <View className="mb-4">
-                  <Text className="text-label font-medium text-muted-foreground mb-2">
-                    Tags (optional)
-                  </Text>
-                  <TagPicker
-                    selectedTagIds={selectedTagIds}
-                    onSelectionChange={setSelectedTagIds}
-                    onOpen={() => {
-                      setTagPickerOpen(true);
-                      const sub = Keyboard.addListener("keyboardDidShow", () => {
-                        scrollRef.current?.scrollToEnd({ animated: true });
-                        sub.remove();
-                      });
-                      setTimeout(() => {
-                        scrollRef.current?.scrollToEnd({ animated: true });
-                      }, 400);
-                    }}
-                    onClose={() => setTagPickerOpen(false)}
-                  />
-                </View>
-
-                </MoreOptions>
-              </>
-            )}
-
-            {txType === "transfer" && (
-              <>
-                <SectionTitle icon="swap-horizontal-outline" title="Where it moved" className="mb-3" />
-                <AccountPicker
-                  accounts={accounts}
-                  accountId={accountId}
-                  selectedAccount={selectedAccount}
-                  showAccounts={showAccounts}
-                  label="From"
-                  placeholder="Account the money left"
-                  onToggle={() => {
-                    setShowAccounts(!showAccounts);
-                    setShowToAccounts(false);
-                  }}
-                  onSelect={(id) => {
-                    setAccountId(id);
-                    setShowAccounts(false);
-                  }}
-                />
-                {/* Tap to swap: money into the account instead of out of it. */}
-                <View className="items-center -mt-2 mb-2">
-                  <Pressable
-                    onPress={() => {
-                      setAccountId(toAccountId);
-                      setToAccountId(accountId);
-                    }}
-                    hitSlop={10}
-                    className="flex-row items-center px-3 py-1 rounded-full"
-                    accessibilityRole="button"
-                    accessibilityLabel="Swap from and to accounts"
-                  >
-                    <Ionicons name="swap-vertical" size={18} color={theme.mutedForeground} />
-                    <Text className="text-label text-muted-foreground ml-1">Swap</Text>
-                  </Pressable>
-                </View>
-                <AccountPicker
-                  accounts={accounts}
-                  accountId={toAccountId}
-                  selectedAccount={accounts.find((a) => a.id === toAccountId)}
-                  showAccounts={showToAccounts}
-                  label="To"
-                  placeholder="Account the money went to"
-                  onToggle={() => {
-                    setShowToAccounts(!showToAccounts);
-                    setShowAccounts(false);
-                  }}
-                  onSelect={(id) => {
-                    setToAccountId(id);
-                    setShowToAccounts(false);
-                  }}
-                />
-                {dateField}
-                <MoreOptions open={moreOpen} onToggle={() => setMoreOpen(!moreOpen)} summary="note">
-                <Input
-                  label="Note"
-                  value={description}
-                  onChangeText={setDescription}
-                  placeholder="Moving savings, card bill…"
-                  maxLength={200}
-                  containerClassName="mb-4"
-                />
-                </MoreOptions>
               </>
             )}
           </View>
         </ScrollView>
-        <StickySaveBar
-          title={
-            isRefund
-              ? "Save refund"
-              : txType === "spent" && extraLegs.length > 0
-                ? "Save purchase"
-                : `Save ${TYPE_LABEL[txType].noun}`
-          }
-          onPress={handleSave}
-          loading={saving}
-        />
+        <FormFooter primary={saving ? "Saving…" : saveTitle} onPrimary={handleSave} onCancel={() => router.back()} disabled={saving} />
       </KeyboardAvoidingView>
       <RefundExpensePickerSheet
         visible={refundPickerOpen}
