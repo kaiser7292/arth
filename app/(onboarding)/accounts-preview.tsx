@@ -31,12 +31,12 @@ const TYPE_LABEL: Record<string, string> = {
 };
 
 const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
-  savings: "wallet-outline",
+  savings: "business-outline",
   credit_card: "card-outline",
-  loan: "document-text-outline",
+  loan: "home-outline",
   wallet: "phone-portrait-outline",
   demat: "trending-up-outline",
-  pension: "business-outline",
+  pension: "shield-checkmark-outline",
 };
 
 /** "demat"/"pension" resolved through the Phase-2 alias, else the raw account_type. */

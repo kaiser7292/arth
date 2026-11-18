@@ -56,12 +56,12 @@ import { LoadingState } from "@/components/ui";
 import { tint } from "@/constants/brand";
 
 const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  savings: "wallet-outline",
+  savings: "business-outline",
   credit_card: "card-outline",
-  loan: "document-text-outline",
+  loan: "home-outline",
   wallet: "phone-portrait-outline",
   demat: "trending-up-outline",
-  pension: "briefcase-outline",
+  pension: "shield-checkmark-outline",
   // Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4) unified type —
   // covers FD/demat/pension alike, disambiguated at render time by
   // investment_products.valuation (see resolveInvestmentIcon below). This
@@ -502,12 +502,12 @@ export default function AccountDetailScreen() {
   }
 
   const ACCOUNT_TYPES: Array<{ key: AccountType; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
-    { key: "savings", label: "Savings", icon: "wallet-outline" },
+    { key: "savings", label: "Savings", icon: "business-outline" },
     { key: "credit_card", label: "Credit Card", icon: "card-outline" },
-    { key: "loan", label: "Loan", icon: "document-text-outline" },
+    { key: "loan", label: "Loan", icon: "home-outline" },
     { key: "wallet", label: "Wallet", icon: "phone-portrait-outline" },
     { key: "demat", label: "Demat", icon: "trending-up-outline" },
-    { key: "pension", label: "Pension", icon: "briefcase-outline" },
+    { key: "pension", label: "Pension", icon: "shield-checkmark-outline" },
   ];
 
   return (
