@@ -386,6 +386,7 @@ export default function SmartRulesListScreen() {
 
         <FAB
           icon="add"
+          label="Rule"
           onPress={() => router.push("/settings/smart-rules/new")}
           accessibilityLabel="Create new smart rule"
         />

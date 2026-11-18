@@ -175,7 +175,7 @@ export default function ReconciliationHubScreen() {
           }
         />
       )}
-      <FAB icon="add" onPress={() => router.push("/settings/reconciliation/new")} />
+      <FAB icon="add" label="Reconcile" onPress={() => router.push("/settings/reconciliation/new")} />
     </ScreenContainer>
   );
 }

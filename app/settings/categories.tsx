@@ -1,7 +1,7 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 
 import { View, FlatList, Pressable } from "react-native";
-import { useRouter, useFocusEffect, Stack } from "expo-router";
+import { useRouter, useFocusEffect, Stack, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { EmptyState, FAB, ListSeparator, ScreenContainer, Text } from "@/components/ui";
@@ -43,6 +43,8 @@ export default function CategoriesScreen() {
     [shown, categories],
   );
 
+  const { deleteId } = useLocalSearchParams<{ deleteId?: string }>();
+  const deleteHandled = useRef<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const loadCategories = useCallback(async () => {
     try {
@@ -184,6 +186,14 @@ export default function CategoriesScreen() {
     },
     [loadCategories, confirmMerchantRules],
   );
+
+  useEffect(() => {
+    if (!deleteId || deleteHandled.current === deleteId) return;
+    const cat = categories.find((c) => c.id === deleteId);
+    if (!cat) return;
+    deleteHandled.current = deleteId;
+    void handleDelete(cat);
+  }, [deleteId, categories, handleDelete]);
 
   const renderItem = ({ item }: { item: Category }) => {
     const editing = !reordering;

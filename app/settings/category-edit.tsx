@@ -412,10 +412,24 @@ export default function CategoryEditScreen() {
           </View>
 
           <Button
-            title={isEditing ? "Update Category" : "Add Category"}
+            title={isEditing ? "Save category" : "Add category"}
             onPress={handleSave}
             loading={loading}
           />
+          {isEditing && id && (
+            <Pressable
+              onPress={() => router.dismissTo({ pathname: "/settings/categories", params: { deleteId: id } })}
+              className="flex-row items-center justify-center mt-3"
+              style={{ minHeight: 48, gap: 8 }}
+              accessibilityRole="button"
+              accessibilityLabel="Delete this category"
+            >
+              <Ionicons name="trash-outline" size={18} color={theme.danger} />
+              <Text className="text-body font-semibold" style={{ color: theme.danger }}>
+                Delete category
+              </Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
 

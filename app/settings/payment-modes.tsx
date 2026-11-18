@@ -158,7 +158,7 @@ export default function PaymentModesScreen() {
           />
         }
       />
-      <FAB icon="add" onPress={() => router.push("/settings/payment-mode-edit")} />
+      <FAB icon="add" label="Mode" onPress={() => router.push("/settings/payment-mode-edit")} />
     </ScreenContainer>
   );
 }

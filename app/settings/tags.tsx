@@ -277,7 +277,7 @@ export default function TagsSettingsScreen() {
 
       {/* FAB */}
       {!showAdd && (
-        <FAB icon="add" onPress={() => setShowAdd(true)} />
+        <FAB icon="add" label="Tag" onPress={() => setShowAdd(true)} />
       )}
     </ScreenContainer>
   );

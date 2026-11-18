@@ -205,7 +205,7 @@ export default function MerchantCategoriesScreen() {
         />
       )}
 
-      <FAB icon="add" accessibilityLabel="Add merchant" onPress={() => { setNewMerchant(""); setAddCategory(null); setAdding(true); }} />
+      <FAB icon="add" label="Merchant" accessibilityLabel="Add merchant" onPress={() => { setNewMerchant(""); setAddCategory(null); setAdding(true); }} />
 
       {/* Edit a rule */}
       <Sheet visible={editing != null && picker == null} onClose={() => setEditing(null)}>

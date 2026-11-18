@@ -87,7 +87,7 @@ export default function ImageTemplatesScreen() {
           </Pressable>
         ))}
       </ScrollView>
-      <FAB icon="add" onPress={addTemplate} accessibilityLabel="Add a template" />
+      <FAB icon="add" label="Picture" onPress={addTemplate} accessibilityLabel="Add a template" />
     </ScreenContainer>
   );
 }

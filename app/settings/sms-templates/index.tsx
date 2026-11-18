@@ -343,6 +343,7 @@ export default function SmartSmsTemplatesListScreen() {
 
         <FAB
           icon="add"
+          label="Teach"
           onPress={() => router.push("/settings/sms-templates/new")}
           accessibilityLabel="Teach Arth a new SMS"
         />
