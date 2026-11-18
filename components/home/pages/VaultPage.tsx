@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, ScrollView, SectionList, TextInput, View } from "react-native";
+import { Pressable, ScrollView, TextInput, View } from "react-native";
 import { Chip, ListSeparator, LoadingState, Text } from "@/components/ui";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { Chevron } from "@/components/motion/Chevron";
@@ -104,27 +104,37 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
     [entries],
   );
 
-  const renderEntry = ({ item }: { item: VaultEntry }) => {
+  // Every entry that matches the search and the kind chip, in one list (board "Vault").
+  const shown = useMemo(
+    () => entries.filter((e) => (!only || e.category === only) && vaultEntryMatches(e, query)),
+    [entries, only, query],
+  );
+
+  const renderEntry = ({ item, index }: { item: VaultEntry; index: number }) => {
     const needsLink = LINK_CATEGORIES.includes(item.category) && !item.linked_account_id;
     return (
       <Pressable
         onPress={() => router.push(`/vault/${item.id}`)}
-        className="flex-row items-center py-3"
+        className={`flex-row items-center px-3.5 bg-card ${index > 0 ? "border-t border-border" : ""}`}
+        style={{ minHeight: 64, gap: 12 }}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.title}, ${VAULT_CATEGORY_LABELS[item.category]}${needsLink ? ", not linked to an account yet" : ""}`}
       >
+        <View className="w-10 h-10 rounded-control items-center justify-center" style={{ backgroundColor: tint(theme.primary, 0.1) }}>
+          <Ionicons name={VAULT_CATEGORY_ICONS[item.category] as keyof typeof Ionicons.glyphMap} size={18} color={theme.primary} />
+        </View>
         <View className="flex-1 min-w-0">
-          <Text className="text-body font-medium text-foreground">
+          <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
             {item.title}
           </Text>
           {(item.email || item.username || item.phone) && (
-            <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
+            <Text className="text-meta text-muted-foreground" numberOfLines={1}>
               {item.email || item.username || item.phone}
             </Text>
           )}
         </View>
-        {needsLink && (
-          <View className="w-2 h-2 rounded-full mr-2 shrink-0" style={{ backgroundColor: theme.warning }} />
-        )}
-        <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+        {needsLink && <View className="w-2 h-2 rounded-pill shrink-0" style={{ backgroundColor: theme.warning }} />}
+        <Chip variant="status" className="self-center" label={VAULT_CATEGORY_LABELS[item.category]} />
       </Pressable>
     );
   };
@@ -133,94 +143,63 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
   if (!loaded) return <LoadingState message="Loading vault..." icon="lock-closed-outline" />;
 
   const empty = entries.length === 0;
+  // On the Home tab there is no round button, so "Add entry" goes under the list.
+  const addBelow = showInlineAdd ? (
+    <Pressable
+      onPress={() => router.push("/vault/add")}
+      className="mt-3 flex-row items-center justify-center rounded-card border border-dashed"
+      style={{ minHeight: 52, gap: 6, borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.04) }}
+      accessibilityRole="button"
+    >
+      <Ionicons name="add" size={18} color={theme.primary} />
+      <Text className="text-body font-semibold" style={{ color: theme.primary }}>
+        Add entry
+      </Text>
+    </Pressable>
+  ) : null;
 
   return (
     <View style={{ flex: 1 }}>
+      {!empty && (
+        <View className="mx-4 mt-2 mb-1 flex-row items-center rounded-control px-3 py-2.5" style={{ gap: 8, backgroundColor: theme.alpha("primary", 0.08) }}>
+          <Ionicons name="lock-closed-outline" size={15} color={theme.primary} />
+          <Text className="text-meta text-foreground flex-1">Encrypted and kept only on this phone.</Text>
+        </View>
+      )}
       <ListToolbar
         search={{ value: query, onChangeText: setQuery, placeholder: "Search vault", input: { autoCapitalize: "none", autoCorrect: false } }}
       />
-      {!empty && (
-        <View className="px-4 pb-2" style={{ gap: 8 }}>
-          <Text className="text-meta text-muted-foreground">Encrypted and kept only on this phone.</Text>
-          {kinds.length > 1 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-              <Chip label={`All ${entries.length}`} on={only === null} onPress={() => setOnly(null)} />
-              {kinds.map((k) => (
-                <Chip
-                  key={k.c}
-                  label={`${VAULT_CATEGORY_LABELS[k.c]} ${k.n}`}
-                  on={only === k.c}
-                  onPress={() => setOnly(only === k.c ? null : k.c)}
-                />
-              ))}
-            </ScrollView>
-          )}
+      {!empty && kinds.length > 1 && (
+        <View className="pb-2">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
+            <Chip label={`All ${entries.length}`} on={only === null} onPress={() => setOnly(null)} />
+            {kinds.map((k) => (
+              <Chip key={k.c} label={`${VAULT_CATEGORY_LABELS[k.c]} ${k.n}`} on={only === k.c} onPress={() => setOnly(only === k.c ? null : k.c)} />
+            ))}
+          </ScrollView>
         </View>
-      )}
-
-      {showInlineAdd && (
-        <Pressable
-          onPress={() => router.push("/vault/add")}
-          className="mx-4 mb-2 flex-row items-center justify-center py-2 rounded-control border border-border"
-        >
-          <Ionicons name="add" size={16} color={theme.mutedForeground} />
-          <Text className="text-meta text-muted-foreground ml-1">Add entry</Text>
-        </Pressable>
       )}
 
       {empty ? (
-        <View className="flex-1 items-center justify-center pb-16">
+        <View className="flex-1 items-center justify-center pb-16 px-4">
           <VaultIcon size={48} color={theme.mutedForeground} />
-          <Text className="text-heading font-semibold text-foreground mt-4">
-            Vault is empty
-          </Text>
-          <Text className="text-meta text-muted-foreground mt-1 text-center px-10">
+          <Text className="text-heading font-semibold text-foreground mt-4">Vault is empty</Text>
+          <Text className="text-meta text-muted-foreground mt-1 text-center px-6">
             Store your banking logins, card PINs, subscriptions, and any other credentials here — all encrypted on your device.
           </Text>
+          <View className="self-stretch">{addBelow}</View>
         </View>
       ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={renderEntry}
-          ItemSeparatorComponent={ListSeparator}
-          keyboardShouldPersistTaps="handled"
-          renderSectionHeader={({ section }) => (
-            <Pressable
-              onPress={() => toggle(section.category)}
-              disabled={section.locked}
-              accessibilityRole="button"
-              accessibilityState={{ expanded: section.open }}
-              accessibilityLabel={`${section.title}, ${section.total} ${section.total === 1 ? "entry" : "entries"}`}
-              className="flex-row items-center py-3 mt-2 border-b border-border"
-            >
-              <View
-                className="w-6 h-6 rounded-control items-center justify-center mr-2"
-                style={{ backgroundColor: tint(theme.primary, 0.13) }}
-              >
-                <Ionicons name={section.icon as any} size={13} color={theme.primary} />
-              </View>
-              <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>
-                {section.title}
-              </Text>
-              {/* An account still to link would otherwise be hidden inside a closed drawer. */}
-              {!section.open && section.needsLink && (
-                <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: theme.warning }} />
-              )}
-              <Text className="text-label text-muted-foreground mr-2">{section.total}</Text>
-              {!section.locked && <Chevron open={section.open} size={16} color={theme.mutedForeground} />}
-            </Pressable>
-          )}
-          ListEmptyComponent={
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }} style={{ flex: 1 }}>
+          {shown.length === 0 ? (
             <View className="items-center py-12">
-              <Text className="text-meta text-muted-foreground">
-                No results for "{query}"
-              </Text>
+              <Text className="text-meta text-muted-foreground">No results for "{query}"</Text>
             </View>
-          }
-          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
-          stickySectionHeadersEnabled={false}
-        />
+          ) : (
+            <View className="rounded-card border border-border overflow-hidden">{shown.map((item, index) => <View key={item.id}>{renderEntry({ item, index })}</View>)}</View>
+          )}
+          {addBelow}
+        </ScrollView>
       )}
     </View>
   );
