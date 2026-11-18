@@ -798,7 +798,14 @@ function EntryRow({
   const isSettlement = entry.type === "settlement";
 
   // They owe you more: green (money coming to you). They paid / settled: ink.
-  const icon = isDebit ? "arrow-up-outline" : isSettlement ? "checkmark-outline" : "arrow-down-outline";
+  // One icon per meaning: a split bill, money you paid them, money they paid you, a settlement.
+  const icon = isSettlement
+    ? "checkmark-done-outline"
+    : linkedType === "Split"
+      ? "git-network-outline"
+      : isDebit
+        ? "return-up-forward-outline"
+        : "return-down-back-outline";
   const color = isDebit ? theme.success : theme.foreground;
   const prefix = isDebit ? "+" : "−";
   const label = isDebit ? "They owe" : isSettlement ? "Settlement" : "They paid";
