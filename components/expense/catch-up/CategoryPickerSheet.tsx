@@ -32,7 +32,7 @@ export function CategoryPickerSheet({
   onSelect,
   onClose,
   merchantName,
-  allowCreate = false,
+  allowCreate = true,
 }: CategoryPickerSheetProps) {
   const theme = useTheme();
   const [query, setQuery] = useState("");
@@ -74,6 +74,22 @@ export function CategoryPickerSheet({
 
   const pick = (id: string) => onSelect(id);
 
+  /** A new main category, typed at the top (or from a search with no match). */
+  const addMain = async () => {
+    const name = newName.trim();
+    if (!name || saving) return;
+    setSaving(true);
+    try {
+      const id = await createCategory({ user_id: DEFAULT_USER_ID, name });
+      setAddingUnder(null);
+      setNewName("");
+      setQuery("");
+      onSelect(id);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const addChild = async (parent: Category) => {
     const name = newName.trim();
     if (!name || saving) return;
@@ -97,6 +113,52 @@ export function CategoryPickerSheet({
         <SearchField value={query} onChangeText={setQuery} placeholder="Search categories" accessibilityLabel="Search categories" />
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+        {allowCreate && (
+          <View className="px-4 pt-1 pb-2">
+            {addingUnder === "__main" ? (
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                <TextInput
+                  value={newName}
+                  onChangeText={setNewName}
+                  placeholder="New category name"
+                  placeholderTextColor={theme.mutedForeground}
+                  autoFocus
+                  maxLength={40}
+                  returnKeyType="done"
+                  onSubmitEditing={() => void addMain()}
+                  className="flex-1 rounded-control border bg-card px-3 text-body text-foreground"
+                  style={{ minHeight: 44, borderColor: theme.primary }}
+                  accessibilityLabel="New category name"
+                />
+                <Pressable
+                  onPress={() => void addMain()}
+                  disabled={!newName.trim() || saving}
+                  className="rounded-pill px-4 justify-center"
+                  style={{ minHeight: 44, backgroundColor: theme.primary, opacity: !newName.trim() || saving ? 0.5 : 1 }}
+                  accessibilityRole="button"
+                >
+                  <Text className="text-meta font-semibold text-primary-foreground">Add</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => {
+                  setAddingUnder("__main");
+                  setNewName(query.trim());
+                }}
+                className="flex-row items-center rounded-control border border-dashed px-3.5"
+                style={{ minHeight: 46, gap: 10, borderColor: theme.primary }}
+                accessibilityRole="button"
+              >
+                <Ionicons name="add" size={18} color={theme.primary} />
+                <Text className="flex-1 text-body font-semibold" style={{ color: theme.primary }} numberOfLines={1}>
+                  {q ? `Add a category “${query.trim()}”` : "New category"}
+                </Text>
+                <Text className="text-label text-muted-foreground">or + New under one below</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
         {recent.length > 0 && !q && (
           <View className="px-4 pt-2 pb-3 border-b border-border">
             <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">

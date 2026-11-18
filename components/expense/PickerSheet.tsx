@@ -43,6 +43,7 @@ export function PickerSheet({
   searchPlaceholder = "Search",
   onAdd,
   addLabel,
+  addAlways,
   filters,
   noun = { one: "item", many: "items" },
 }: {
@@ -59,6 +60,8 @@ export function PickerSheet({
   onAdd?: (typed: string) => void;
   /** Label for the add row; gets the typed text. Default: Add "<typed>". */
   addLabel?: (typed: string) => string;
+  /** Show the add row even with nothing typed, with this label (e.g. "New category"). */
+  addAlways?: string;
   /** Filter chips over the sections, by section key ("Savings", "Cards"). */
   filters?: { key: string; label: string }[];
   noun?: { one: string; many: string };
@@ -120,6 +123,19 @@ export function PickerSheet({
         )}
       </View>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 24 }} style={{ maxHeight: 520 }}>
+        {onAdd && addAlways && q === "" && (
+          <Pressable
+            onPress={() => onAdd("")}
+            className="flex-row items-center mx-4 mb-2 px-3.5 rounded-control border border-dashed"
+            style={{ minHeight: 48, gap: 10, borderColor: theme.primary }}
+            accessibilityRole="button"
+          >
+            <Ionicons name="add" size={18} color={theme.primary} />
+            <Text className="flex-1 text-body font-semibold" style={{ color: theme.primary }} numberOfLines={1}>
+              {addAlways}
+            </Text>
+          </Pressable>
+        )}
         {onAdd && q !== "" && !exact && (
           <Pressable
             onPress={() => {
