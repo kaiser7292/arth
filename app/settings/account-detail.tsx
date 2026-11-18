@@ -534,19 +534,29 @@ export default function AccountDetailScreen() {
           }
         >
           <View className="px-4 py-4">
-          {/* Back to this account's ledger (the ledger's name and gear open this screen). Loans keep their loan details instead. */}
-          {account.account_type !== "loan" && (
-            <View className="rounded-card bg-card border border-border overflow-hidden mb-3">
-              <LinkRow
-                divider={false}
-                icon="list-outline"
-                color={theme.primary}
-                title="Open ledger"
-                sub="This month's money in and out, and the running balance"
-                onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId } })}
-              />
-            </View>
-          )}
+          {/* Hero: the account, with its ledger one tap away under the name (board "Account settings"). */}
+          {(() => {
+            const typeKey = account.account_type === "investment" ? "demat" : account.account_type;
+            const col = theme.data.accountType[typeKey] ?? theme.primary;
+            return (
+              <View className="items-center mb-4" style={{ gap: 6 }}>
+                <View className="items-center justify-center" style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: tint(col, 0.12) }}>
+                  <Ionicons name={ACCOUNT_TYPES.find((t) => t.key === account.account_type)?.icon ?? "wallet-outline"} size={26} color={col} />
+                </View>
+                <Text className="text-title font-bold text-foreground text-center" numberOfLines={2}>{headerTitle}</Text>
+                {account.account_type === "loan" ? null : (
+                  <Pressable
+                    onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId } })}
+                    hitSlop={8}
+                    accessibilityRole="link"
+                    accessibilityLabel="Open this account's ledger"
+                  >
+                    <Text className="text-meta font-semibold" style={{ color: theme.primary }}>Open ledger ›</Text>
+                  </Pressable>
+                )}
+              </View>
+            );
+          })()}
           {/* Closed account banner */}
           {account.closed_at && (
             <View className="bg-warning/10 border border-warning/30 rounded-card px-4 py-3 mb-3 flex-row items-center gap-3">
