@@ -196,6 +196,11 @@ export default function AccountLedgerScreen() {
   }, []);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
+  /** "1 Nov" and the month's last day, for the statement's labels (board "Account ledger"). */
+  const dayLabel = (iso: string) => {
+    const [, m, d] = iso.slice(0, 10).split("-").map(Number);
+    return `${d} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1]}`;
+  };
 
   const ledgerRowsIn = useMemo(
     () => (filterMode === "transfers" ? entries.filter(isLedgerTransfer) : entries),
@@ -233,6 +238,22 @@ export default function AccountLedgerScreen() {
     (e: LedgerEntry) => ({ texts: [e.description, e.merchant, e.counterAccountName, e.splitPersonName], amounts: [e.amount] }),
     [],
   );
+  const balanceAfter = useMemo(() => {
+    const m = new Map<string, number>();
+    // The list arrives newest first; walk it oldest first, keeping the order within a day.
+    const asc = entries
+      .map((e, i) => ({ e, i }))
+      .sort((a, b) => (a.e.date.slice(0, 10) === b.e.date.slice(0, 10) ? b.i - a.i : a.e.date < b.e.date ? -1 : 1));
+    let bal = opening;
+    for (const { e } of asc) {
+      const up = e.type === "credit" || e.type === "transfer_in";
+      // A card counts what you owe: spending raises it, money in lowers it.
+      bal += (isCreditCard ? !up : up) ? e.amount : -e.amount;
+      m.set(e.id, Math.round(bal * 100) / 100);
+    }
+    return m;
+  }, [entries, opening, isCreditCard]);
+
   const tools = useListTools<LedgerEntry>({
     screen: "account_ledger",
     noun: { one: "transaction", many: "transactions" },
@@ -791,17 +812,26 @@ const loadData = useCallback(async () => {
                 ? opening + totalExpenses - totalCredits
                 : opening - totalExpenses + totalCredits - totalTransfersOut + totalTransfersIn;
               const adj = Math.round((closing - listed) * 100) / 100;
+              // Each line says how many rows it adds up, and the ends say which day (board "Account ledger").
+              const n = (pred: (e: LedgerEntry) => boolean) => entries.filter(pred).length;
+              const nCredits = n((e) => e.type === "credit" && !e.isAdjustment);
+              const nExpenses = n((e) => e.type === "debit" && !e.isAdjustment);
+              const nOut = n((e) => e.type === "transfer_out");
+              const nIn = n((e) => e.type === "transfer_in");
+              const plural = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
+              const isThisMonth = month === getCurrentMonth();
+              const endLabel = isThisMonth ? "today" : dayLabel(endDate);
               const lines: { label: string; amount: string; sign?: "+" | "−" | "" }[] = [
-                { label: isCreditCard ? "Started the cycle at" : "Opening balance", amount: formatAmount(opening) },
+                { label: `${isCreditCard ? "Started the cycle at" : "Opening balance"} · ${dayLabel(startDate)}`, amount: formatAmount(opening) },
               ];
               if (totalCredits > 0)
-                lines.push({ label: isCreditCard ? "Paid back" : "Money in", sign: isCreditCard ? "−" : "+", amount: formatAmount(totalCredits) });
+                lines.push({ label: `${isCreditCard ? "Paid back" : "Money in"}${nCredits ? ` · ${plural(nCredits, "credit", "credits")}` : ""}`, sign: isCreditCard ? "−" : "+", amount: formatAmount(totalCredits) });
               if (totalExpenses > 0)
-                lines.push({ label: isCreditCard ? "Spent this cycle" : "Money out", sign: sign < 0 ? "−" : "+", amount: formatAmount(totalExpenses) });
-              if (!isCreditCard && totalTransfersOut > 0) lines.push({ label: "Transfers out", sign: "−", amount: formatAmount(totalTransfersOut) });
-              if (!isCreditCard && totalTransfersIn > 0) lines.push({ label: "Transfers in", sign: "+", amount: formatAmount(totalTransfersIn) });
+                lines.push({ label: `${isCreditCard ? "Spent this cycle" : "Money out"}${nExpenses ? ` · ${plural(nExpenses, "expense", "expenses")}` : ""}`, sign: sign < 0 ? "−" : "+", amount: formatAmount(totalExpenses) });
+              if (!isCreditCard && totalTransfersOut > 0) lines.push({ label: `Transfers out${nOut ? ` · ${nOut}` : ""}`, sign: "−", amount: formatAmount(totalTransfersOut) });
+              if (!isCreditCard && totalTransfersIn > 0) lines.push({ label: `Transfers in${nIn ? ` · ${nIn}` : ""}`, sign: "+", amount: formatAmount(totalTransfersIn) });
               if (Math.abs(adj) >= 0.01) lines.push({ label: "Balance adjustments", sign: adj >= 0 ? "+" : "−", amount: formatAmount(Math.abs(adj)) });
-              return <Statement lines={lines} total={{ label: isCreditCard ? "Utilized" : "Closing balance", amount: formatAmount(closing) }} />;
+              return <Statement lines={lines} total={{ label: `${isCreditCard ? "Utilized" : "Closing balance"} · ${endLabel}`, amount: formatAmount(closing) }} />;
             })()}
 
             {/* Reconcile + Vault shortcuts */}
@@ -1123,6 +1153,16 @@ const loadData = useCallback(async () => {
                       className="text-body font-bold"
                       style={{ color: isTransfer ? transferColor : entryColor }}
                     />
+                    {/* The balance after this row, worked forward from the opening. */}
+                    {balanceAfter.has(entry.id) && (
+                      <Text
+                        className="text-label text-muted-foreground mt-0.5"
+                        style={{ fontVariant: ["tabular-nums"] }}
+                        accessibilityLabel={`${isCreditCard ? "Owed after" : "Balance after"}: ${formatAmount(balanceAfter.get(entry.id)!)}`}
+                      >
+                        {formatAmount(balanceAfter.get(entry.id)!)}
+                      </Text>
+                    )}
                     {entry.splitPersonName && (
                       <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1} style={{ maxWidth: 130 }}>
                         Split with {entry.splitPersonName}
