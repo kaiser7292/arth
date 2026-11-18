@@ -3,8 +3,8 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable } from "react-native";
 import { Stack, useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, Chip, FieldRow, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, SectionTitle, Segmented, Text } from "@/components/ui";
-import { HeaderPill, StatTile, Statement } from "@/components/ui/LinkRow";
+import { Card, Chip, FieldRow, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, SectionTitle, Text } from "@/components/ui";
+import { StatTile, Statement } from "@/components/ui/LinkRow";
 import {
   deriveYearlyPlan,
 } from "@/services/yearly-plan";
@@ -63,7 +63,6 @@ let lastPlan: { stamp: string; data: PlanData } | null = null;
 export default function YearlyPlanScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const [view, setView] = useState<"plan" | "actual">("actual");
   const { fy } = useLocalSearchParams<{ fy?: string }>();
   const startMonth = getFYStartMonth();
 
@@ -200,9 +199,6 @@ export default function YearlyPlanScreen() {
     <Stack.Screen
       options={{
         title: "Yearly plan",
-        headerRight: () => (
-          <HeaderPill label="Edit plan" onPress={() => router.push("/settings/budget-config")} accessibilityLabel="Edit plan, budget configuration" />
-        ),
       }}
     />
   );
@@ -218,7 +214,7 @@ export default function YearlyPlanScreen() {
 
   const fyLabel = getFYLabel(targetFYNum, startMonth);
   const hasActuals = realityCheck != null && realityCheck.monthsElapsed > 0;
-  const showActual = view === "actual" && hasActuals;
+  const showActual = hasActuals;
 
   // Debt servicing is a real outflow too (INR loans only), rolled into the totals.
   const inrLoans = loanForecast.filter((r) => r.currency === "INR");
@@ -272,16 +268,6 @@ export default function YearlyPlanScreen() {
         <View className="px-4 py-3" style={{ gap: 12 }}>
           <PeriodNavigator mode="fy" value={targetFYNum} onChange={navigateToFY} variant="inline" />
 
-          {hasActuals && (
-            <Segmented
-              options={[
-                { value: "plan", label: "Plan" },
-                { value: "actual", label: realityCheck!.isPastFY ? "Year-end review" : "Plan vs actual" },
-              ]}
-              value={view}
-              onChange={setView}
-            />
-          )}
 
           {/* ── Hero: the year's surplus, as income − outflow ── */}
           <Card>
@@ -304,7 +290,7 @@ export default function YearlyPlanScreen() {
               <Text className="text-meta text-muted-foreground mt-0.5">Plan: {fmtFull(netSurplusPlanned)}</Text>
             )}
             <View className="flex-row mt-3.5" style={{ gap: 8 }}>
-              <StatTile label="Income" value={formatAmount(totalIncome)} />
+              <StatTile label="Inflow" value={formatAmount(totalIncome)} />
               <StatTile label="Outflow" value={formatAmount(outflowWithDebt)} />
             </View>
             {realityCheck && !realityCheck.isPastFY && hasActuals && (
@@ -339,7 +325,7 @@ export default function YearlyPlanScreen() {
           <Card>
             <SectionTitle
               icon="arrow-down-outline"
-              title="Income"
+              title="Inflow"
               right={
                 <View className="flex-row items-center" style={{ gap: 8 }}>
                   {profile?.status === "draft" && <Chip variant="status" className="self-center" tone="warning" label="Draft" />}
@@ -475,134 +461,7 @@ export default function YearlyPlanScreen() {
                 </View>
               )}
             </Card>
-          ) : (
-            <>
-              {/* ── Investment buckets ── */}
-              <Card>
-                <SectionTitle
-                  icon="pie-chart-outline"
-                  title="Investments"
-                  hint={`${buckets.length} ${buckets.length === 1 ? "bucket" : "buckets"} · ${formatAmount(derived?.total_planned_investments ?? 0)} a year`}
-                  className="mb-1"
-                />
-                {buckets.length > 0 ? (
-                  buckets.map((b, i) => {
-                    const linkedMs = b.linked_milestone_id ? milestones.find((m) => m.id === b.linked_milestone_id) : null;
-                    return (
-                      <View key={b.id} className={`py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
-                        <View className="flex-row items-center justify-between">
-                          <Text className="text-body text-foreground flex-1" numberOfLines={1}>
-                            {b.name}
-                          </Text>
-                          <Text className="text-body text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                            {formatAmount(b.annual_target)}
-                          </Text>
-                        </View>
-                        {linkedMs && <Text className="text-label text-muted-foreground">Feeds {linkedMs.name}</Text>}
-                      </View>
-                    );
-                  })
-                ) : (
-                  <Text className="text-meta text-muted-foreground py-2">No investment buckets for this FY</Text>
-                )}
-                <FieldRow
-                  label="Open investment buckets"
-                  onPress={() => router.push({ pathname: "/goals/investment-buckets", params: { fy: targetFY } })}
-                />
-              </Card>
-
-              {/* ── Milestones ── */}
-              <Card>
-                <SectionTitle icon="flag-outline" title="Milestones" className="mb-1" />
-                {milestones.length > 0 ? (
-                  milestones.map((m, i) => {
-                    const linkedBuckets = buckets.filter((b) => b.linked_milestone_id === m.id);
-                    const parts: string[] = [];
-                    if (linkedBuckets.length > 0) parts.push(`Fed by ${linkedBuckets.map((b) => b.name).join(", ")}`);
-                    const totalMo = getMilestoneTotalMonths(m);
-                    if (totalMo > 12) {
-                      const yrs = m.duration_years || 0;
-                      const mos = m.duration_months || 0;
-                      parts.push(yrs > 0 && mos > 0 ? `${yrs}yr ${mos}mo` : yrs > 0 ? `${yrs}yr` : `${mos}mo`);
-                    }
-                    return (
-                      <View key={m.id} className={`py-2.5 ${i > 0 ? "border-t border-border" : ""}`}>
-                        <View className="flex-row items-center justify-between">
-                          <Text className="text-body text-foreground flex-1" numberOfLines={1}>
-                            {m.name}
-                          </Text>
-                          <Text className="text-body text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                            {formatAmount(getMilestoneContributionForFY(m, targetFY))}
-                          </Text>
-                        </View>
-                        {parts.length > 0 && <Text className="text-label text-muted-foreground">{parts.join(" · ")}</Text>}
-                      </View>
-                    );
-                  })
-                ) : (
-                  <Text className="text-meta text-muted-foreground py-2">No active milestones for this FY</Text>
-                )}
-                {milestones.length > 0 && (
-                  <View className="border-t border-border mt-1 pt-1">
-                    <Statement
-                      lines={[
-                        { label: "Milestones need this year", amount: formatAmount(totalMilestoneNeed) },
-                        { label: "Covered by linked buckets", amount: formatAmount(coveredByBuckets), sign: "−" },
-                      ]}
-                      total={{ label: "Paid directly", amount: formatAmount(derived?.total_planned_milestones ?? 0) }}
-                    />
-                  </View>
-                )}
-                <FieldRow label="Open life milestones" onPress={() => router.push("/goals/milestones")} />
-              </Card>
-
-              {/* ── Loans & debt ── */}
-              <Card>
-                <SectionTitle icon="business-outline" title="Loans & debt" className="mb-1" />
-                {loanForecast.length === 0 ? (
-                  <Text className="text-meta text-muted-foreground py-2">No active loans.</Text>
-                ) : (
-                  loanForecast.map((row, i) => (
-                    <Pressable
-                      key={row.loanId}
-                      onPress={() => router.push({ pathname: "/loans/[id]", params: { id: row.loanId } })}
-                      className={`py-2.5 ${i > 0 ? "border-t border-border" : ""}`}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${row.bankName} ${row.loanType}, open loan`}
-                    >
-                      <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>
-                          {row.bankName} · {row.loanType}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={14} color={theme.faintForeground} />
-                      </View>
-                      <MiniLine label="Monthly EMI" value={fmtLoan(row, row.currentEMI)} />
-                      <MiniLine label="EMIs this FY" value={fmtLoan(row, row.annualEmiTotal)} />
-                      {row.annualPrepaymentTotal > 0 && <MiniLine label="Prepayments this FY" value={fmtLoan(row, row.annualPrepaymentTotal)} />}
-                      <MiniLine label="Paid out this FY" value={fmtLoan(row, row.annualOutflowTotal)} bold />
-                    </Pressable>
-                  ))
-                )}
-                {debtServicingInr > 0 && (
-                  <View className="border-t border-border pt-2.5 mt-1">
-                    <View className="flex-row justify-between">
-                      <Text className="text-body font-bold text-foreground">Debt servicing this year</Text>
-                      <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                        {formatAmount(debtServicingInr)}
-                      </Text>
-                    </View>
-                    {totalIncome > 0 && Math.round((debtServicingInr / totalIncome) * 100) > 0 && (
-                      <Text className="text-label text-muted-foreground mt-0.5">
-                        {Math.round((debtServicingInr / totalIncome) * 100)}% of your annual income goes to EMIs + prepayments
-                      </Text>
-                    )}
-                  </View>
-                )}
-                <FieldRow label="Add a loan" onPress={() => router.push("/loans/add")} />
-                <FieldRow label="Open loans & debt" onPress={() => router.push("/goals/loans")} />
-              </Card>
-            </>
-          )}
+          ) : null}
 
           {/* Data sources */}
           {derived && derived.sources.length > 0 && (
