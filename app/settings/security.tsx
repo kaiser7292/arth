@@ -116,12 +116,14 @@ export default function SecuritySettingsScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 py-4">
-          <Card title="App Lock" className="mb-4">
+          <Card className="mb-4">
             <View className="flex-row items-center py-3">
-              <Ionicons name="lock-closed" size={20} color={accentColor} />
+              <View className="w-10 h-10 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                <Ionicons name="finger-print-outline" size={20} color={accentColor} />
+              </View>
               <View className="flex-1 ml-3">
                 <Text className="text-body text-foreground font-semibold">
-                  Enable app lock
+                  App lock
                 </Text>
                 <Text className="text-label text-faint-foreground mt-0.5">
                   {canEnable
@@ -146,21 +148,21 @@ export default function SecuritySettingsScreen() {
 
           {enabled && (
             <>
-              <Card title="Lock When" className="mb-4">
+              <Card title="Lock when you leave Arth" className="mb-4">
                 {LOCK_TIMEOUT_OPTIONS.map((opt) => (
                   <Pressable
                     key={opt}
                     onPress={() => onSelectTimeout(opt)}
                     className="flex-row items-center py-3 border-b border-border last:border-b-0"
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: timeout === opt }}
                   >
+                    <Ionicons name={timeout === opt ? "radio-button-on" : "radio-button-off"} size={20} color={timeout === opt ? accentColor : theme.mutedForeground} style={{ marginRight: 12 }} />
                     <View className="flex-1">
                       <Text className="text-body text-foreground">
                         {LOCK_TIMEOUT_LABELS[opt]}
                       </Text>
                     </View>
-                    {timeout === opt && (
-                      <Ionicons name="checkmark" size={20} color={accentColor} />
-                    )}
                   </Pressable>
                 ))}
                 <Text className="text-label text-faint-foreground mt-3">
