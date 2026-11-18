@@ -142,25 +142,23 @@ export default function CleanUpScreen() {
   return (
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Card className="mb-3">
-          <View className="flex-row items-start">
-            <Ionicons name="warning-outline" size={18} color={uiTheme.danger} />
-            <Text className="text-label text-muted-foreground ml-2 flex-1">
-              This deletes for good, not to the recycle bin. Make a backup first if you might want any of it back.
-            </Text>
-          </View>
-        </Card>
+        <View className="mb-3 rounded-card px-3.5 py-3 flex-row items-start" style={{ backgroundColor: uiTheme.alpha("danger", 0.08), gap: 8 }}>
+          <Ionicons name="warning-outline" size={18} color={uiTheme.danger} />
+          <Text className="text-meta flex-1" style={{ color: uiTheme.danger }}>
+            This deletes for good. It can't be undone, and nothing goes to the recycle bin. Make a backup first if you might want any of it back.
+          </Text>
+        </View>
         {cleaning ? (
           <View className="items-center py-10"><ActivityIndicator color={uiTheme.danger} /></View>
         ) : (
           <Card>
             <View>
-              <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-2 mt-1">1. Time Range</Text>
+              <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-1">Date range</Text>
               <View className="flex-row flex-wrap gap-1.5 mb-3">
                 {([
                   { scope: "day" as CleanupScope, label: "Today" },
-                  { scope: "week" as CleanupScope, label: "This Week" },
-                  { scope: "month" as CleanupScope, label: "This Month" },
+                  { scope: "week" as CleanupScope, label: "This week" },
+                  { scope: "month" as CleanupScope, label: "This month" },
                   { scope: "quarter" as CleanupScope, label: "Quarter" },
                   { scope: "all" as CleanupScope, label: "Everything" },
                   { scope: "custom" as CleanupScope, label: "Custom" },
@@ -198,20 +196,20 @@ export default function CleanUpScreen() {
 
               {cleanupScope && (cleanupScope !== "custom" || cleanupCustomRange) && (
                 <>
-                  <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-2">2. What to Delete</Text>
+                  <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mb-2">What to delete</Text>
                   {([
                     { type: "expenses" as CleanupObjectType, label: "Expenses", icon: "receipt-outline" as keyof typeof Ionicons.glyphMap },
-                    { type: "credits" as CleanupObjectType, label: "Credits (Salary, Refunds)", icon: "arrow-down-outline" as keyof typeof Ionicons.glyphMap },
+                    { type: "credits" as CleanupObjectType, label: "Credits (salary, refunds)", icon: "arrow-down-outline" as keyof typeof Ionicons.glyphMap },
                     { type: "budgets" as CleanupObjectType, label: "Budgets", icon: "pie-chart-outline" as keyof typeof Ionicons.glyphMap },
                     { type: "categories" as CleanupObjectType, label: "Categories", icon: "grid-outline" as keyof typeof Ionicons.glyphMap },
-                    { type: "payment_modes" as CleanupObjectType, label: "Payment Modes", icon: "card-outline" as keyof typeof Ionicons.glyphMap },
-                    { type: "pending_sms" as CleanupObjectType, label: "Pending SMS", icon: "chatbubble-outline" as keyof typeof Ionicons.glyphMap },
-                    { type: "merchant_aliases" as CleanupObjectType, label: "Merchant Aliases", icon: "swap-horizontal-outline" as keyof typeof Ionicons.glyphMap },
-                    { type: "hisaab" as CleanupObjectType, label: "Hisaab Entries", icon: "people-outline" as keyof typeof Ionicons.glyphMap },
+                    { type: "payment_modes" as CleanupObjectType, label: "Payment modes", icon: "card-outline" as keyof typeof Ionicons.glyphMap },
+                    { type: "pending_sms" as CleanupObjectType, label: "Pending messages", icon: "chatbubble-outline" as keyof typeof Ionicons.glyphMap },
+                    { type: "merchant_aliases" as CleanupObjectType, label: "Merchant names", icon: "swap-horizontal-outline" as keyof typeof Ionicons.glyphMap },
+                    { type: "hisaab" as CleanupObjectType, label: "Hisaab entries", icon: "people-outline" as keyof typeof Ionicons.glyphMap },
                     { type: "tags" as CleanupObjectType, label: "Tags", icon: "pricetags-outline" as keyof typeof Ionicons.glyphMap },
-                    { type: "salary_profiles" as CleanupObjectType, label: "Salary / Income Calculator", icon: "calculator-outline" as keyof typeof Ionicons.glyphMap },
-                    { type: "accounts" as CleanupObjectType, label: "Accounts & Ledger", icon: "wallet-outline" as keyof typeof Ionicons.glyphMap },
-                    { type: "audit_log" as CleanupObjectType, label: "Audit Log", icon: "document-text-outline" as keyof typeof Ionicons.glyphMap },
+                    { type: "salary_profiles" as CleanupObjectType, label: "Income calculator", icon: "calculator-outline" as keyof typeof Ionicons.glyphMap },
+                    { type: "accounts" as CleanupObjectType, label: "Accounts and ledgers", icon: "wallet-outline" as keyof typeof Ionicons.glyphMap },
+                    { type: "audit_log" as CleanupObjectType, label: "Audit log", icon: "document-text-outline" as keyof typeof Ionicons.glyphMap },
                   ]).map((item) => {
                     const checked = cleanupObjects.has(item.type);
                     const count = cleanupPreview?.[item.type] ?? 0;
