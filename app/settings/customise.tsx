@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, Switch, View } from "react-native";
+import { DragHandle } from "@/components/ui/DragHandle";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -50,15 +51,9 @@ export default function CustomiseScreen() {
     </View>
   );
 
-  const arrows = (label: string, first: boolean, last: boolean, move: (by: -1 | 1) => void) => (
-    <View className="mr-2.5 items-center">
-      <Pressable onPress={() => move(-1)} disabled={first} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Move ${label} up`}>
-        <Ionicons name="chevron-up" size={18} color={first ? theme.border : theme.primary} />
-      </Pressable>
-      <Pressable onPress={() => move(1)} disabled={last} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Move ${label} down`}>
-        <Ionicons name="chevron-down" size={18} color={last ? theme.border : theme.primary} />
-      </Pressable>
-    </View>
+  // Drag the ⋮⋮ to reorder (board "Customise"); it replaces the up / down arrows.
+  const arrows = (label: string, first: boolean, last: boolean, move: (by: -1 | 1) => void, step?: number) => (
+    <DragHandle label={label} first={first} last={last} onMove={move} step={step} />
   );
 
   const cardRow = (id: HomeCardId, place: { first: boolean; last: boolean } | null) => {
@@ -72,7 +67,7 @@ export default function CustomiseScreen() {
         {place ? (
           arrows(card.label, place.first, place.last, (by) => moveHomeCard(id, by))
         ) : (
-          <View style={{ width: 28 }} />
+          <View style={{ width: 40 }} />
         )}
         <View className="flex-1 mr-3">
           <Text className="text-body font-semibold text-foreground">{card.label}</Text>
@@ -136,12 +131,12 @@ export default function CustomiseScreen() {
 
         <Card title="Home cards" className="mb-4">
           <Text className="text-label text-muted-foreground mb-1">
-            The arrows beside a title move those cards together. The arrows beside a card move just that card, anywhere you like. A card moved out of its group brings its title along.
+            Drag ⋮⋮ to order. Beside a title it moves those cards together; beside a card it moves just that card, anywhere you like. A card moved out of its group brings its title along.
           </Text>
           {blocks.map((b, bi) => (
             <View key={b.cards[0]}>
               <View className="flex-row items-center pt-3 pb-2 border-b border-border">
-                {arrows(b.title, bi === 0, bi === blocks.length - 1, (by) => moveHomeBlock(b.cards[0], by))}
+                {arrows(b.title, bi === 0, bi === blocks.length - 1, (by) => moveHomeBlock(b.cards[0], by), 56 * (b.cards.length + 1))}
                 <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground flex-1">{b.title}</Text>
               </View>
               {b.cards.flatMap((id) => {
