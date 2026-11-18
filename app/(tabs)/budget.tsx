@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, Chip, ChipWrap, ContextualHeader, FieldRow, PeriodNavigator, ProgressBar, ScreenContainer, SwipePager, Text } from "@/components/ui";
 import { Statement } from "@/components/ui/LinkRow";
+import { FoldGroup } from "@/components/ui/FormParts";
 import { tint } from "@/constants/brand";
 import { AnimatedNumber, Nudge, PressableScale } from "@/components/motion";
 import { staggerDelay } from "@/components/motion/motion";
@@ -552,6 +553,17 @@ export default function BudgetScreen() {
               ) : (
                 <FieldRow label="Per day left" value={rs(perDayRemaining)} />
               )}
+            </Card>
+          )}
+
+          {/* Month-end projection: a small card that opens on tap (owner, Nov 2026) */}
+          {visibleWidgets.includes("projection") && totalBudget > 0 && (
+            <FoldGroup
+              icon={isCurrentMonth ? "trending-up-outline" : "checkmark-done-outline"}
+              title={isCurrentMonth ? "Month-end projection" : "How the month ended"}
+              sub={isCurrentMonth ? (projected != null ? `${rs(projected)} at this pace${v2Forecast ? ` · ${v2Forecast.confidence} confidence` : ""}` : "Not enough to go on yet") : `${left >= 0 ? "Saved" : "Overspent"} ${rs(Math.abs(left))}`}
+            >
+              <View>
               {isCurrentMonth && projected != null && (
                 <FieldRow label="Projected spend" value={rs(projected)} valueColor={projectedOver ? theme.danger : undefined} />
               )}
@@ -613,7 +625,8 @@ export default function BudgetScreen() {
                   />
                 </View>
               )}
-            </Card>
+              </View>
+            </FoldGroup>
           )}
 
           {/* ── Review-queue nudge: uncategorised spending ── */}
