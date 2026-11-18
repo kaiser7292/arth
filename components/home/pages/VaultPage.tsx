@@ -1,12 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
-import { Chip, ListSeparator, LoadingState, Text } from "@/components/ui";
+import { LoadingState, Text } from "@/components/ui";
+import { FastScrollRail } from "@/components/ui/FastScrollRail";
 import { VaultIcon } from "@/components/ui/VaultIcon";
-import { Chevron } from "@/components/motion/Chevron";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
 import {
@@ -40,15 +39,13 @@ const ALL_CATEGORIES: VaultCategory[] = [...VAULT_CATEGORY_GROUPS.flatMap((g) =>
  */
 export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean } = {}) {
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [entries, setEntries] = useState<VaultEntry[]>([]);
   const [query, setQuery] = useState("");
-  /** One kind only (the chips under the search), or every kind. */
-  const [only, setOnly] = useState<VaultCategory | null>(null);
   const [loaded, setLoaded] = useState(false);
-  // Drawers start closed, so opening the Vault doesn't show every login at once.
-  const [openCategories, setOpenCategories] = useState<Set<VaultCategory>>(new Set());
+  const scrollRef = useRef<ScrollView>(null);
+  /** Where each type's heading sits in the list, for the thumb rail. */
+  const groupY = useRef<Record<string, number>>({});
 
   const [loadFailed, setLoadFailed] = useState(false);
   const load = useCallback(async () => {
@@ -66,49 +63,22 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
 
   useDataRefresh(load);
 
-  const toggle = useCallback((category: VaultCategory) => {
-    setOpenCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(category)) next.delete(category);
-      else next.add(category);
-      return next;
-    });
-  }, []);
-
-  const sections = useMemo(() => {
-    const searching = query.trim().length > 0;
-    const grouped = ALL_CATEGORIES.filter((c) => !only || c === only).map((category) => ({
-      category,
-      matches: entries.filter((e) => e.category === category && vaultEntryMatches(e, query)),
-    })).filter((g) => g.matches.length > 0);
-    // Searching opens the drawers with matches. With only one drawer there is nothing to choose.
-    const locked = searching || grouped.length === 1 || only !== null;
-    return grouped.map(({ category, matches }) => {
-      const open = locked || openCategories.has(category);
-      return {
+  // Always grouped by type (owner, Nov 2026), in the order the add form lists them; search keeps
+  // only the types with a match.
+  const groups = useMemo(
+    () =>
+      ALL_CATEGORIES.map((category) => ({
         category,
-        title: VAULT_CATEGORY_LABELS[category],
-        icon: VAULT_CATEGORY_ICONS[category],
-        total: matches.length,
-        needsLink: matches.some((e) => LINK_CATEGORIES.includes(e.category) && !e.linked_account_id),
-        locked,
-        open,
-        data: open ? matches : [],
-      };
-    });
-  }, [entries, query, openCategories, only]);
-
-  // The chips: All, then each kind that has entries, with how many.
-  const kinds = useMemo(
-    () => ALL_CATEGORIES.map((c) => ({ c, n: entries.filter((e) => e.category === c).length })).filter((k) => k.n > 0),
-    [entries],
+        items: entries.filter((e) => e.category === category && vaultEntryMatches(e, query)),
+      })).filter((g) => g.items.length > 0),
+    [entries, query],
   );
 
-  // Every entry that matches the search and the kind chip, in one list (board "Vault").
-  const shown = useMemo(
-    () => entries.filter((e) => (!only || e.category === only) && vaultEntryMatches(e, query)),
-    [entries, only, query],
-  );
+  const jumpTo = (index: number) => {
+    const g = groups[index];
+    const y = g ? groupY.current[g.category] : undefined;
+    if (y != null) scrollRef.current?.scrollTo({ y: Math.max(0, y - 4), animated: false });
+  };
 
   const renderEntry = ({ item, index }: { item: VaultEntry; index: number }) => {
     const needsLink = LINK_CATEGORIES.includes(item.category) && !item.linked_account_id;
@@ -134,7 +104,6 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
           )}
         </View>
         {needsLink && <View className="w-2 h-2 rounded-pill shrink-0" style={{ backgroundColor: theme.warning }} />}
-        <Chip variant="status" className="self-center" label={VAULT_CATEGORY_LABELS[item.category]} />
       </Pressable>
     );
   };
@@ -169,17 +138,6 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
       <ListToolbar
         search={{ value: query, onChangeText: setQuery, placeholder: "Search vault", input: { autoCapitalize: "none", autoCorrect: false } }}
       />
-      {!empty && kinds.length > 1 && (
-        <View className="pb-2">
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
-            <Chip label={`All ${entries.length}`} on={only === null} onPress={() => setOnly(null)} />
-            {kinds.map((k) => (
-              <Chip key={k.c} label={`${VAULT_CATEGORY_LABELS[k.c]} ${k.n}`} on={only === k.c} onPress={() => setOnly(only === k.c ? null : k.c)} />
-            ))}
-          </ScrollView>
-        </View>
-      )}
-
       {empty ? (
         <View className="flex-1 items-center justify-center pb-16 px-4">
           <VaultIcon size={48} color={theme.mutedForeground} />
@@ -190,16 +148,51 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
           <View className="self-stretch">{addBelow}</View>
         </View>
       ) : (
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 96 }} style={{ flex: 1 }}>
-          {shown.length === 0 ? (
-            <View className="items-center py-12">
-              <Text className="text-meta text-muted-foreground">No results for "{query}"</Text>
-            </View>
-          ) : (
-            <View className="rounded-card border border-border overflow-hidden">{shown.map((item, index) => <View key={item.id}>{renderEntry({ item, index })}</View>)}</View>
-          )}
-          {addBelow}
-        </ScrollView>
+        <View style={{ flex: 1 }}>
+          <ScrollView
+            ref={scrollRef}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingLeft: 16, paddingRight: groups.length > 1 ? 40 : 16, paddingBottom: 96 }}
+            style={{ flex: 1 }}
+          >
+            {groups.length === 0 ? (
+              <View className="items-center py-12">
+                <Text className="text-meta text-muted-foreground">No results for "{query}"</Text>
+              </View>
+            ) : (
+              groups.map((g) => (
+                <View
+                  key={g.category}
+                  onLayout={(e) => {
+                    groupY.current[g.category] = e.nativeEvent.layout.y;
+                  }}
+                >
+                  <View className="flex-row items-center pt-4 pb-2" style={{ gap: 8 }}>
+                    <Ionicons name={VAULT_CATEGORY_ICONS[g.category] as keyof typeof Ionicons.glyphMap} size={15} color={theme.primary} />
+                    <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground flex-1" numberOfLines={1}>
+                      {VAULT_CATEGORY_LABELS[g.category]}
+                    </Text>
+                    <Text className="text-label font-semibold text-muted-foreground">{g.items.length}</Text>
+                  </View>
+                  <View className="rounded-card border border-border overflow-hidden">
+                    {g.items.map((item, index) => (
+                      <View key={item.id}>{renderEntry({ item, index })}</View>
+                    ))}
+                  </View>
+                </View>
+              ))
+            )}
+            {addBelow}
+          </ScrollView>
+          <FastScrollRail
+            items={groups.map((g) => ({
+              key: g.category,
+              label: VAULT_CATEGORY_LABELS[g.category],
+              icon: VAULT_CATEGORY_ICONS[g.category] as keyof typeof Ionicons.glyphMap,
+            }))}
+            onSelect={jumpTo}
+          />
+        </View>
       )}
     </View>
   );
