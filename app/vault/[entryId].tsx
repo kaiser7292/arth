@@ -1,7 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import * as Clipboard from "expo-clipboard";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { HeaderPill } from "@/components/ui/LinkRow";
+import { getAccountById } from "@/services/financial-account";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Card, ScreenContainer, Text } from "@/components/ui";
@@ -46,6 +48,22 @@ export default function VaultEntryScreen() {
   const [customFields, setCustomFields] = useState<Record<string, string>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [clipboardSecsLeft, setClipboardSecsLeft] = useState(0);
+  /** The account this entry is linked to, for "Linked to account …" under the name. */
+  const [linkedName, setLinkedName] = useState<string | null>(null);
+  const linkedId = entry?.linked_account_id ?? null;
+  useEffect(() => {
+    if (!linkedId) {
+      setLinkedName(null);
+      return;
+    }
+    let live = true;
+    getAccountById(linkedId)
+      .then((a) => live && setLinkedName(a ? a.account_label ?? `${a.bank_name} ··${a.account_identifier}` : null))
+      .catch(() => live && setLinkedName(null));
+    return () => {
+      live = false;
+    };
+  }, [linkedId]);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -159,50 +177,23 @@ export default function VaultEntryScreen() {
       )}
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        {/* Header card */}
-        <Card className="mb-4">
-          <View className="flex-row items-center mb-3">
-            <View
-              className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: theme.alpha("primary", 0.13) }}
-            >
-              <Ionicons
-                name={VAULT_CATEGORY_ICONS[entry.category as keyof typeof VAULT_CATEGORY_ICONS] as any}
-                size={20}
-                color={theme.primary}
-              />
-            </View>
-            <View className="flex-1">
-              <Text className="text-heading font-bold text-foreground">
-                {entry.title}
-              </Text>
-              <Text className="text-label text-muted-foreground">
-                {VAULT_CATEGORY_LABELS[entry.category as keyof typeof VAULT_CATEGORY_LABELS]}
-                {" · "}
-                {LOGIN_METHOD_LABELS[entry.login_method as keyof typeof LOGIN_METHOD_LABELS]}
-              </Text>
-            </View>
+        {/* Hero: what it is and which account it belongs to (board "Vault entry"). Edit is in the header. */}
+        <Stack.Screen
+          options={{
+            headerRight: () => (
+              <HeaderPill label="Edit" icon="pencil-outline" onPress={() => router.push({ pathname: "/vault/add", params: { id: entry.id } })} accessibilityLabel={`Edit ${entry.title}`} />
+            ),
+          }}
+        />
+        <View className="items-center mb-4" style={{ gap: 6 }}>
+          <View className="items-center justify-center" style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: theme.alpha("primary", 0.12) }}>
+            <Ionicons name={VAULT_CATEGORY_ICONS[entry.category as keyof typeof VAULT_CATEGORY_ICONS] as any} size={26} color={theme.primary} />
           </View>
-
-          {/* Action row */}
-          <View className="flex-row gap-2">
-            <Pressable
-              onPress={() => router.push({ pathname: "/vault/add", params: { id: entry.id } })}
-              className="flex-1 flex-row items-center justify-center py-2.5 rounded-card border border-border"
-            >
-              <Ionicons name="pencil-outline" size={14} color={theme.mutedForeground} />
-              <Text className="text-body font-medium text-muted-foreground ml-1.5">
-                Edit
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={handleDelete}
-              className="flex-row items-center justify-center px-4 py-2.5 rounded-card border border-border"
-            >
-              <Ionicons name="trash-outline" size={14} color={theme.danger} />
-            </Pressable>
-          </View>
-        </Card>
+          <Text className="text-title font-bold text-foreground text-center">{entry.title}</Text>
+          <Text className="text-meta text-muted-foreground text-center">
+            {linkedName ? `Linked to account ${linkedName}` : `${VAULT_CATEGORY_LABELS[entry.category as keyof typeof VAULT_CATEGORY_LABELS]} · ${LOGIN_METHOD_LABELS[entry.login_method as keyof typeof LOGIN_METHOD_LABELS]}`}
+          </Text>
+        </View>
 
         {/* Card-specific fields */}
         {isCard && customFields.card_holder && (
@@ -454,7 +445,18 @@ export default function VaultEntryScreen() {
           </View>
         )}
 
-        <Text className="text-label text-faint-foreground text-center mt-6">
+        <Text className="text-label text-muted-foreground text-center mt-6">Copied values clear from the clipboard after 30 seconds.</Text>
+        <Pressable
+          onPress={handleDelete}
+          className="self-center flex-row items-center rounded-pill px-4 mt-4"
+          style={{ height: 40, gap: 6, borderWidth: 1, borderColor: theme.alpha("danger", 0.35) }}
+          accessibilityRole="button"
+          accessibilityLabel="Delete this entry"
+        >
+          <Ionicons name="trash-outline" size={15} color={theme.danger} />
+          <Text className="text-meta font-semibold" style={{ color: theme.danger }}>Delete entry</Text>
+        </Pressable>
+        <Text className="text-label text-faint-foreground text-center mt-4">
           Added {new Date(entry.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           {entry.updated_at ? ` · Updated ${new Date(entry.updated_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}
         </Text>
