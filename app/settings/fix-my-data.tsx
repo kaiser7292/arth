@@ -420,75 +420,83 @@ export default function FixMyDataScreen() {
     <ScreenContainer padTop={false}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
 
+        {/* Board "Fix my data": one card, how many to fix and how many areas are clean, then each issue */}
         <Card className="mb-3">
-          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Data health</Text>
-          {!health ? (
-            <ActivityIndicator className="mt-3" color={theme.primary} />
-          ) : (
-            <>
-              <View className="flex-row items-end mt-1">
-                <Text className="text-title font-bold" style={{ color: scoreColor }}>{health.score}%</Text>
-                <Text className="text-meta text-muted-foreground ml-2 mb-1">tidy · {health.transactions.toLocaleString("en-IN")} transactions</Text>
-              </View>
-              <Text className="text-label text-muted-foreground mt-1">
-                {issues.length === 0 ? "Nothing Arth can see needs fixing." : `${issues.length} thing${issues.length === 1 ? "" : "s"} to look at.`}
+          <View className="flex-row items-end">
+            <View className="flex-1">
+              <Text className="text-meta text-muted-foreground">Data health</Text>
+              {!health ? (
+                <ActivityIndicator className="mt-2 self-start" color={theme.primary} />
+              ) : (
+                <Text className="text-title font-bold" style={{ color: scoreColor }}>
+                  {issues.length === 0 ? "All tidy" : `${issues.reduce((n, c) => n + c.count, 0).toLocaleString("en-IN")} to fix`}
+                </Text>
+              )}
+            </View>
+            {health && (
+              <Text className="text-meta text-muted-foreground text-right">
+                {health.score}% tidy{"\n"}
+                {clean.length} area{clean.length === 1 ? "" : "s"} all fixed
               </Text>
-            </>
-          )}
-        </Card>
-
-        {issues.map((c) => {
-          const isGaps = c.id === "balance_gaps";
-          return (
-            <Card key={c.id} className="mb-2 py-3">
-              <Pressable
-                onPress={() =>
-                  isGaps ? setShowGaps((v) => !v) : router.push({ pathname: "/settings/data-health-issue", params: { check: c.id } })
-                }
-                className="flex-row items-center"
-                accessibilityRole="button"
-              >
-                <View className="w-8 h-8 rounded-full items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("warning", 0.14) }}>
-                  <Text className="text-label font-bold" style={{ color: theme.warning }}>{c.count > 999 ? "999+" : c.count}</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="text-body font-medium text-foreground">{c.label}</Text>
-                  <Text className="text-label text-muted-foreground mt-0.5">{c.hint}</Text>
-                </View>
-                <Ionicons name={isGaps && showGaps ? "chevron-up" : isGaps ? "chevron-down" : "chevron-forward"} size={15} color={theme.mutedForeground} />
-              </Pressable>
-              {isGaps && showGaps &&
-                health?.balanceGaps.map((g) => (
-                  <View key={g.accountId} className="mt-3 pt-3 border-t border-border">
-                    <Pressable
-                      onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: g.accountId } })}
-                      className="flex-row items-center"
-                      accessibilityRole="button"
-                      accessibilityLabel={`Open ${g.name}'s ledger`}
-                    >
-                      <Text className="text-meta text-foreground flex-1">{g.name}</Text>
-                      <Text className="text-label font-semibold" style={{ color: theme.primary }}>Ledger</Text>
-                    </Pressable>
-                    <Text className="text-label text-muted-foreground mt-0.5">
-                      Bank said {formatAmount(g.bank)} on {formatDisplayDate(g.bankDate)}; Arth makes it {formatAmount(g.arth)} ({g.gap > 0 ? "+" : "−"}
-                      {formatAmount(Math.abs(g.gap))})
-                    </Text>
-                    <Pressable
-                      onPress={() => matchBank(g.accountId, g.name, g.bank, g.arth)}
-                      disabled={matching === g.accountId}
-                      className="self-start mt-2 px-3 py-1.5 rounded-full"
-                      style={{ backgroundColor: theme.alpha("primary", 0.12) }}
-                      accessibilityRole="button"
-                    >
-                      <Text className="text-label font-semibold" style={{ color: theme.primary }}>
-                        {matching === g.accountId ? "Matching…" : "Match the bank"}
-                      </Text>
-                    </Pressable>
+            )}
+          </View>
+          {issues.map((c) => {
+            const isGaps = c.id === "balance_gaps";
+            return (
+              <View key={c.id} className="py-3 border-t border-border">
+                <Pressable
+                  onPress={() =>
+                    isGaps ? setShowGaps((v) => !v) : router.push({ pathname: "/settings/data-health-issue", params: { check: c.id } })
+                  }
+                  className="flex-row items-center"
+                  accessibilityRole="button"
+                >
+                  <View className="w-8 h-8 rounded-control items-center justify-center mr-3" style={{ backgroundColor: theme.alpha("warning", 0.12) }}>
+                    <Ionicons name="alert-circle-outline" size={17} color={theme.warning} />
                   </View>
-                ))}
-            </Card>
-          );
-        })}
+                  <View className="flex-1">
+                    <Text className="text-body font-semibold text-foreground">{c.label}</Text>
+                    <Text className="text-meta text-muted-foreground mt-0.5">{c.hint}</Text>
+                  </View>
+                  <View className="rounded-pill px-2 justify-center mr-1.5" style={{ height: 24, backgroundColor: theme.alpha("warning", 0.12) }}>
+                    <Text className="text-label font-bold" style={{ color: theme.warning }}>{c.count > 999 ? "999+" : c.count}</Text>
+                  </View>
+                  <Ionicons name={isGaps && showGaps ? "chevron-up" : isGaps ? "chevron-down" : "chevron-forward"} size={15} color={theme.mutedForeground} />
+                </Pressable>
+                {isGaps && showGaps &&
+                  health?.balanceGaps.map((g) => (
+                    <View key={g.accountId} className="mt-3 pt-3 border-t border-border">
+                      <Pressable
+                        onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: g.accountId } })}
+                        className="flex-row items-center"
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${g.name}'s ledger`}
+                      >
+                        <Text className="text-meta text-foreground flex-1">{g.name}</Text>
+                        <Text className="text-label font-semibold" style={{ color: theme.primary }}>Ledger</Text>
+                      </Pressable>
+                      <Text className="text-label text-muted-foreground mt-0.5">
+                        Bank said {formatAmount(g.bank)} on {formatDisplayDate(g.bankDate)}; Arth makes it {formatAmount(g.arth)} ({g.gap > 0 ? "+" : "−"}
+                        {formatAmount(Math.abs(g.gap))})
+                      </Text>
+                      <Pressable
+                        onPress={() => matchBank(g.accountId, g.name, g.bank, g.arth)}
+                        disabled={matching === g.accountId}
+                        className="self-start mt-2 px-3 py-1.5 rounded-full"
+                        style={{ backgroundColor: theme.alpha("primary", 0.12) }}
+                        accessibilityRole="button"
+                      >
+                        <Text className="text-label font-semibold" style={{ color: theme.primary }}>
+                          {matching === g.accountId ? "Matching…" : "Match the bank"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  ))}
+              </View>
+            );
+          })}
+
+        </Card>
         {clean.length > 0 && (
           <Text className="text-label text-muted-foreground mb-3 mt-1">
             All good: {clean.map((c) => c.label.toLowerCase()).join(", ")}.
