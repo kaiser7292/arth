@@ -24,6 +24,12 @@ import {
 } from "@/services/investment-accounts";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { GroupSortLine } from "@/components/ui/GroupSortLine";
+import { getBalanceSheetColumn } from "@/services/balance-sheet";
+import { formatAmount, formatCompact } from "@/utils/format";
+import { formatLocalDate } from "@/utils/fiscal-year";
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const preloaded = consumeAccountsPreload();
 
@@ -70,6 +76,8 @@ export default function AccountMasterScreen() {
     return m;
   });
   const [investmentProducts, setInvestmentProducts] = useState<Map<string, InvestmentProduct>>(new Map());
+  /** Each account's balance today (what it holds, or what you owe on it), from the Net worth sum. */
+  const [balances, setBalances] = useState<Map<string, number>>(new Map());
 
   /** "demat"/"pension"/"fd" resolved through the Phase-2 alias, else the raw account_type. */
   const resolvedType = useCallback(
@@ -104,6 +112,22 @@ export default function AccountMasterScreen() {
       const investmentIds = accts.filter((a) => a.account.account_type === "investment").map((a) => a.account.id);
       setInvestmentProducts(await batchInvestmentProducts(investmentIds));
       setLoadFailed(false);
+      // Balances are extra: a failure leaves the rows without them, never the list empty.
+      try {
+        const col = await getBalanceSheetColumn(DEFAULT_USER_ID, formatLocalDate(new Date()), "Today", true, null);
+        const m = new Map<string, number>();
+        const add = (id: string | undefined, v: number) => {
+          if (id) m.set(id, (m.get(id) ?? 0) + v);
+        };
+        for (const r of col.assets) {
+          add(r.accountId, r.amount);
+          for (const c of r.children ?? []) add(c.accountId, c.amount);
+        }
+        for (const r of col.liabilities) add(r.accountId, r.amount);
+        setBalances(m);
+      } catch (e) {
+        console.warn("[accounts] balances failed", e);
+      }
     } catch {
       setLoadFailed(true);
       // Database not ready
@@ -172,22 +196,27 @@ export default function AccountMasterScreen() {
     const typeLabel =
       ACCOUNT_TYPE_LABELS[resolvedType(account)] ?? account.account_type;
 
-    const subtitleParts = [typeLabel];
-    if (isDemat) {
-      if (account.account_number) subtitleParts.push(account.account_number);
+    // Type shows only when the list isn't grouped by type; the bank when the name doesn't say it.
+    const subtitleParts: string[] = [];
+    if (tools.groupBy !== "type") subtitleParts.push(typeLabel);
+    if (account.account_label && account.account_type !== "wallet" && !isDemat) subtitleParts.push(account.bank_name);
+    const bal = balances.get(account.id);
+    const typeNow = resolvedType(account);
+    if (account.closed_at) {
+      const d = new Date(account.closed_at);
+      subtitleParts.push(isNaN(d.getTime()) ? "Closed" : `Closed ${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`);
+    } else if (typeNow === "credit_card") {
+      subtitleParts.push(bal != null && bal >= 1 ? `Owes ${formatAmount(Math.round(bal))}` : "Nothing due");
+    } else if (typeNow === "loan") {
+      if (bal != null && bal >= 1) subtitleParts.push(`₹${formatCompact(bal)} left`);
+    } else if (bal != null) {
+      subtitleParts.push(formatAmount(Math.round(bal)));
+    } else if (isDemat) {
       const dematInfo = dematSummaries.get(account.id);
-      if (dematInfo && dematInfo.snapshotCount > 0) {
-        subtitleParts.push(
-          `${dematInfo.snapshotCount} snapshot${dematInfo.snapshotCount !== 1 ? "s" : ""}`,
-        );
-      }
-    } else if (account.account_type !== "wallet") {
-      subtitleParts.push(`${account.bank_name} ****${account.account_identifier}`);
+      subtitleParts.push(dematInfo && dematInfo.snapshotCount > 0 ? `${dematInfo.snapshotCount} snapshot${dematInfo.snapshotCount !== 1 ? "s" : ""}` : "No snapshot yet");
     }
     if (linkedModes.length > 0) {
-      subtitleParts.push(
-        `${linkedModes.length} mode${linkedModes.length !== 1 ? "s" : ""}`,
-      );
+      subtitleParts.push(`${linkedModes.length} mode${linkedModes.length !== 1 ? "s" : ""}`);
     }
 
     const handleTap = async () => {
@@ -229,7 +258,7 @@ export default function AccountMasterScreen() {
             {displayName}
           </Text>
           <Text className="text-meta text-muted-foreground" numberOfLines={1}>
-            {account.account_type === "loan" ? `${subtitleParts.join(" · ")} · opens loan details` : subtitleParts.join(" · ")}
+            {account.account_type === "loan" ? ["Opens loan details", ...subtitleParts].join(" · ") : subtitleParts.join(" · ")}
           </Text>
         </View>
         {/* Open or closed at a glance. */}
@@ -272,6 +301,7 @@ export default function AccountMasterScreen() {
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <View className="flex-1">
         <ListToolbar {...tools.toolbar} />
+        <GroupSortLine group={tools.groupChoice} sort={tools.sortChoice} />
         {tools.filterSheet}
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96, paddingHorizontal: 16, paddingTop: 4 }}>
           {duplicateGroups > 0 &&
@@ -293,11 +323,6 @@ export default function AccountMasterScreen() {
               () => router.push("/settings/transfer-review"),
             )}
 
-          <Text className="text-meta text-muted-foreground px-1 mb-2">
-            {filteredAccounts.length}
-            {filteredAccounts.length !== accounts.length ? ` of ${accounts.length}` : ""} {filteredAccounts.length === 1 ? "account" : "accounts"} · tap one
-            for its details, money settings and payment modes
-          </Text>
 
           {isEmpty ? (
             <View className="items-center py-16">

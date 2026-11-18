@@ -198,6 +198,9 @@ export function useListTools<T>({
     toolbar,
     filterSheet,
     groupBy,
+    /** The grouping and sorting choices, for a "Grouped by … sorted …" line under the search. */
+    groupChoice,
+    sortChoice,
     query,
     setQuery,
     /** Search or a filter is narrowing the list. */
