@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable, TextInput, FlatList, Switch, useWindowDimensions, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Input, ScreenContainer, SelectSheet, Sheet, Text } from "@/components/ui";
@@ -179,6 +180,7 @@ function PickerDrawer({ visible, onClose, title, children }: PickerDrawerProps) 
 }
 
 export default function CategoryEditScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const alert = useAlert();
   const { colorScheme } = useColorScheme();
@@ -305,40 +307,55 @@ export default function CategoryEditScreen() {
     </Pressable>
   ), [icon, colorScheme, theme.primary]);
 
+  // Board "Category editor": twelve icons and eight colours right here, the current one always
+  // among them; "All icons" and "More colours" open the full pickers.
+  const quickIcons = [icon, ...ICON_OPTIONS.filter((i) => i !== icon)].slice(0, 12);
+  const quickColors = [color, ...COLOR_OPTIONS.filter((c) => c.toLowerCase() !== color.toLowerCase())].slice(0, 8);
+  const previewName = name.trim() || "New category";
+
   return (
     <ScreenContainer padTop={false} keyboardAware>
-      <ScrollView ref={scrollRef} className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <View className="px-4 py-4">
-          <Input
-            label="Category Name"
-            value={name}
-            onChangeText={setName}
-            placeholder="e.g., Food, Transport"
-            maxLength={50}
-            containerClassName="mb-6"
-          />
+      <ScrollView ref={scrollRef} className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+        {/* How it looks in lists */}
+        <View className="items-center px-4 pt-2 pb-4" style={{ gap: 8 }}>
+          <View className="items-center justify-center" style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: tint(color, 0.12) }}>
+            <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={30} color={color} />
+          </View>
+          <View className="rounded-pill px-3 justify-center" style={{ height: 32, backgroundColor: tint(color, 0.12) }}>
+            <Text className="text-meta font-semibold" style={{ color }} numberOfLines={1}>
+              {parentName ? `${parentName} › ${previewName}` : previewName}
+            </Text>
+          </View>
+          <Text className="text-label text-muted-foreground">How it looks in lists</Text>
+        </View>
 
-          {/* Sits under: makes this a sub-category (one level only) */}
-          <Text className="text-label font-semibold text-muted-foreground mb-1.5">Sits under</Text>
-          <Pressable
-            onPress={() => setShowParentSheet(true)}
-            disabled={hasChildren}
-            className="flex-row items-center px-4 py-3 rounded-control border border-border bg-card"
-            style={{ opacity: hasChildren ? 0.6 : 1 }}
-            accessibilityRole="button"
-            accessibilityLabel={`Sits under: ${parentName ?? "nothing, it's a main category"}`}
-          >
-            <Ionicons name="git-merge-outline" size={18} color={theme.mutedForeground} />
-            <Text className="flex-1 ml-3 text-body text-foreground">{parentName ?? "Nothing - a main category"}</Text>
-            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
-          </Pressable>
-          <Text className="text-label text-muted-foreground mt-1 ml-1 mb-6">
-            {hasChildren
-              ? "This has sub-categories, so it stays a main category."
-              : parentName
-                ? `A sub-category of ${parentName}. Its spending counts toward ${parentName}'s budget.`
-                : "Pick a category to make this a sub-category of it, like Food › Groceries."}
-          </Text>
+        <View className="px-4" style={{ gap: 12 }}>
+          <View className="rounded-card bg-card border border-border p-4" style={{ gap: 14 }}>
+            <Input label="Name" value={name} onChangeText={setName} placeholder="e.g., Food, Transport" maxLength={50} />
+
+            {/* Sits under: makes this a sub-category (one level only) */}
+            <View>
+              <Text className="text-label font-semibold text-muted-foreground mb-1.5">Sits under</Text>
+              <Pressable
+                onPress={() => setShowParentSheet(true)}
+                disabled={hasChildren}
+                className="flex-row items-center px-3 rounded-control border border-border bg-card"
+                style={{ minHeight: 44, opacity: hasChildren ? 0.6 : 1 }}
+                accessibilityRole="button"
+                accessibilityLabel={`Sits under: ${parentName ?? "nothing, it's a main category"}`}
+              >
+                <Text className="flex-1 text-body text-foreground">{parentName ?? "Nothing - a main category"}</Text>
+                <Ionicons name="chevron-down" size={18} color={theme.mutedForeground} />
+              </Pressable>
+              <Text className="text-label text-muted-foreground mt-1.5">
+                {hasChildren
+                  ? "This has sub-categories, so it stays a main category."
+                  : parentName
+                    ? `A sub-category of ${parentName}. Its spending counts toward ${parentName}'s budget. Pick "Nothing" to make it a main category.`
+                    : "Pick a category to make this a sub-category of it, like Food › Groceries."}
+              </Text>
+            </View>
+          </View>
           <SelectSheet<string>
             visible={showParentSheet}
             title="Sits under"
@@ -349,89 +366,115 @@ export default function CategoryEditScreen() {
             searchable={parentOptions.length > 8}
           />
 
-          {/* Icon picker — tap to open drawer */}
-          <Text className="text-body font-medium text-muted-foreground mb-2">
-            Icon
-          </Text>
-          <Pressable
-            onPress={() => setShowIconDrawer(true)}
-            className="flex-row items-center px-4 py-3 rounded-control border border-border mb-6"
-          >
-            <View
-              className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: tint(color, 0.08) }}
-            >
-              <Ionicons
-                name={icon as keyof typeof Ionicons.glyphMap}
-                size={22}
-                color={color}
-              />
+          {/* Icon */}
+          <View className="rounded-card bg-card border border-border p-4" style={{ gap: 12 }}>
+            <Text className="text-heading font-bold text-foreground">Icon</Text>
+            <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+              {quickIcons.map((ic) => {
+                const on = ic === icon;
+                return (
+                  <Pressable
+                    key={ic}
+                    onPress={() => {
+                      styleTouched.current = true;
+                      setIcon(ic);
+                    }}
+                    className="items-center justify-center rounded-control"
+                    style={{
+                      width: "14.5%",
+                      height: 44,
+                      borderWidth: on ? 2 : 1,
+                      borderColor: on ? color : theme.border,
+                      backgroundColor: on ? tint(color, 0.1) : theme.card,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={ic.replace(/-outline$/, "").replace(/-/g, " ")}
+                  >
+                    <Ionicons name={ic as keyof typeof Ionicons.glyphMap} size={20} color={on ? color : theme.mutedForeground} />
+                  </Pressable>
+                );
+              })}
             </View>
-            <Text className="flex-1 text-meta text-foreground">
-              {icon.replace(/-outline$/, "").replace(/-/g, " ")}
-            </Text>
-            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
-          </Pressable>
+            <Pressable onPress={() => setShowIconDrawer(true)} hitSlop={8} accessibilityRole="button" className="self-start">
+              <Text className="text-meta font-semibold" style={{ color: theme.primary }}>
+                All icons ›
+              </Text>
+            </Pressable>
+          </View>
 
-          {/* Color picker — tap to open drawer */}
-          <Text className="text-body font-medium text-muted-foreground mb-2">
-            Color
-          </Text>
-          <Pressable
-            onPress={() => setShowColorDrawer(true)}
-            className="flex-row items-center px-4 py-3 rounded-control border border-border mb-6"
-          >
-            <View
-              className="w-10 h-10 rounded-full mr-3 items-center justify-center"
-              style={{ backgroundColor: color }}
-            >
-              <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+          {/* Colour */}
+          <View className="rounded-card bg-card border border-border p-4" style={{ gap: 12 }}>
+            <Text className="text-heading font-bold text-foreground">Colour</Text>
+            <View className="flex-row flex-wrap items-center" style={{ gap: 10 }}>
+              {quickColors.map((c) => {
+                const on = c.toLowerCase() === color.toLowerCase();
+                return (
+                  <Pressable
+                    key={c}
+                    onPress={() => {
+                      styleTouched.current = true;
+                      setColor(c);
+                      setShowCustomColor(false);
+                    }}
+                    className="rounded-pill items-center justify-center"
+                    style={{ width: 36, height: 36, backgroundColor: c, borderWidth: on ? 3 : 0, borderColor: theme.card }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`Colour ${c}`}
+                  >
+                    {on && <Ionicons name="checkmark" size={18} color="#FFFFFF" />}
+                  </Pressable>
+                );
+              })}
+              <Pressable
+                onPress={() => setShowColorDrawer(true)}
+                className="rounded-pill items-center justify-center px-3"
+                style={{ height: 36, borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.border }}
+                accessibilityRole="button"
+                accessibilityLabel="More colours or a custom colour"
+              >
+                <Text className="text-meta font-semibold text-muted-foreground">More · Custom #</Text>
+              </Pressable>
             </View>
-            <Text className="flex-1 text-meta text-foreground">
-              {color}
-            </Text>
-            <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
-          </Pressable>
+          </View>
 
-          {/* Unavoidable toggle */}
-          <View className="flex-row items-center justify-between px-1 py-3 mb-6 border-b border-border">
-            <View className="flex-1 mr-3">
-              <Text className="text-body font-medium text-foreground">
-                Unavoidable Expense
-              </Text>
-              <Text className="text-label text-muted-foreground mt-0.5">
-                Rent, insurance, EMIs - expenses you can't skip
-              </Text>
+          {/* Unavoidable */}
+          <View className="rounded-card bg-card border border-border px-4 py-3.5 flex-row items-center" style={{ gap: 12 }}>
+            <View className="flex-1">
+              <Text className="text-body font-semibold text-foreground">Unavoidable</Text>
+              <Text className="text-meta text-muted-foreground">Rent, insurance, EMIs. New spends here start as unavoidable in the Spending split</Text>
             </View>
             <Switch
               value={isUnavoidable}
               onValueChange={setIsUnavoidable}
-              trackColor={{ false: "#E5E5E3", true: theme.primary }}
-              thumbColor={isUnavoidable ? "#FFFFFF" : "#9CA3AF"}
+              trackColor={{ false: theme.border, true: theme.primary }}
+              thumbColor="#FFFFFF"
+              accessibilityLabel="Unavoidable"
             />
           </View>
-
-          <Button
-            title={isEditing ? "Save category" : "Add category"}
-            onPress={handleSave}
-            loading={loading}
-          />
-          {isEditing && id && (
-            <Pressable
-              onPress={() => router.dismissTo({ pathname: "/settings/categories", params: { deleteId: id } })}
-              className="flex-row items-center justify-center mt-3"
-              style={{ minHeight: 48, gap: 8 }}
-              accessibilityRole="button"
-              accessibilityLabel="Delete this category"
-            >
-              <Ionicons name="trash-outline" size={18} color={theme.danger} />
-              <Text className="text-body font-semibold" style={{ color: theme.danger }}>
-                Delete category
-              </Text>
-            </Pressable>
-          )}
         </View>
       </ScrollView>
+
+      {/* Light footer: Delete (when editing) and Save */}
+      <View className="bg-card border-t border-border px-4 pt-3 flex-row" style={{ gap: 10, paddingBottom: Math.max(insets.bottom, 12) }}>
+        {isEditing && id && (
+          <Pressable
+            onPress={() => router.dismissTo({ pathname: "/settings/categories", params: { deleteId: id } })}
+            className="rounded-pill items-center justify-center px-5"
+            style={{ height: 48, borderWidth: 1, borderColor: theme.alpha("danger", 0.35), backgroundColor: theme.card }}
+            accessibilityRole="button"
+            accessibilityLabel="Delete this category"
+          >
+            <Text className="text-body font-semibold" style={{ color: theme.danger }}>
+              Delete
+            </Text>
+          </Pressable>
+        )}
+        <View className="flex-1">
+          <Button title={isEditing ? "Save category" : "Add category"} onPress={handleSave} loading={loading} />
+        </View>
+      </View>
 
       {/* Icon Picker Drawer */}
       <PickerDrawer
