@@ -9,6 +9,8 @@ import { useAlert } from "@/hooks/use-alert";
 import {
   completeFDDetails,
   updateFDDetails,
+  updateFDPrincipal,
+  getFDDeposit,
   setFDMaturityOverride,
   linkFDToBucket,
   unlinkFDFromBucket,
@@ -67,6 +69,9 @@ export function CompleteFDDetailsSheet({
   const isFirstTime = product.interest_rate_pa == null;
 
   const [interestRate, setInterestRate] = useState("");
+  /** What was deposited (the principal now plus any partial withdrawals), editable before maturity. */
+  const [deposit, setDeposit] = useState("");
+  const [depositWas, setDepositWas] = useState<number | null>(null);
   const [interestMethod, setInterestMethod] = useState<InterestMethod>("compound");
   const [compoundingFreq, setCompoundingFreq] = useState<CompoundingFreq>("quarterly");
   const [maturityDate, setMaturityDate] = useState("");
@@ -80,6 +85,12 @@ export function CompleteFDDetailsSheet({
   useEffect(() => {
     if (!visible) return;
     setInterestRate(product.interest_rate_pa != null ? String(product.interest_rate_pa) : "");
+    getFDDeposit(product.financial_account_id)
+      .then((d) => {
+        setDepositWas(d);
+        setDeposit(d != null ? String(d) : "");
+      })
+      .catch(() => setDepositWas(null));
     setInterestMethod(product.interest_method ?? "compound");
     setCompoundingFreq(product.compounding_freq ?? "quarterly");
     setMaturityDate(product.maturity_date ?? "");
@@ -143,6 +154,9 @@ export function CompleteFDDetailsSheet({
   const handleSave = useCallback(async () => {
     const errors: string[] = [];
     const r = parseFloat(interestRate);
+    const depositValue = parseFloat(deposit);
+    const depositChanged = editable && depositWas != null && deposit.trim() !== "" && Math.abs(depositValue - depositWas) >= 0.01;
+    if (depositChanged && !(depositValue > 0)) errors.push("Principal must be a positive number.");
     if (editable) {
       if (!(r > 0)) errors.push("Interest rate must be a positive number.");
       if (!maturityDate) errors.push("Maturity date is required.");
@@ -160,6 +174,8 @@ export function CompleteFDDetailsSheet({
 
     setSaving(true);
     try {
+      // The principal first: the schedule below is then worked out on the new amount.
+      if (depositChanged) await updateFDPrincipal(product.financial_account_id, depositValue);
       if (editable) {
         const details = {
           interest_rate_pa: r,
@@ -193,7 +209,7 @@ export function CompleteFDDetailsSheet({
       setSaving(false);
     }
   }, [
-    editable, isFirstTime, interestRate, maturityDate, interestMethod, compoundingFreq, maturityOverride, renewalMode,
+    editable, isFirstTime, deposit, depositWas, interestRate, maturityDate, interestMethod, compoundingFreq, maturityOverride, renewalMode,
     bucketId, product, alert, onDone,
   ]);
 
@@ -220,6 +236,15 @@ export function CompleteFDDetailsSheet({
               </Text>
             </View>
           )}
+          <Input
+            label="Principal (amount deposited)"
+            value={deposit}
+            onChangeText={setDeposit}
+            keyboardType="decimal-pad"
+            prefix="₹"
+            editable={editable}
+            containerClassName="mb-4"
+          />
           <Input
             label="Interest rate (% per year)"
             value={interestRate}

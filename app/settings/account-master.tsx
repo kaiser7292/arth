@@ -24,7 +24,6 @@ import {
 } from "@/services/investment-accounts";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
-import { GroupSortLine } from "@/components/ui/GroupSortLine";
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import { formatAmount, formatCompact } from "@/utils/format";
 import { formatLocalDate } from "@/utils/fiscal-year";
@@ -301,7 +300,6 @@ export default function AccountMasterScreen() {
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <View className="flex-1">
         <ListToolbar {...tools.toolbar} />
-        <GroupSortLine group={tools.groupChoice} sort={tools.sortChoice} />
         {tools.filterSheet}
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96, paddingHorizontal: 16, paddingTop: 4 }}>
           {duplicateGroups > 0 &&
@@ -349,7 +347,13 @@ export default function AccountMasterScreen() {
                   />
                 )}
                 {b.rows.length > 0 && (
-                  <View className="rounded-card bg-card border border-border overflow-hidden">{b.rows.map((r, i) => renderAccount(r, i > 0))}</View>
+                  // Under a group heading the rows continue its card; without grouping they are one card.
+                  <View
+                    className={b.heading ? "bg-card border-x border-b border-border overflow-hidden" : "rounded-card bg-card border border-border overflow-hidden"}
+                    style={b.heading ? { borderBottomLeftRadius: 16, borderBottomRightRadius: 16 } : undefined}
+                  >
+                    {b.rows.map((r, i) => renderAccount(r, i > 0))}
+                  </View>
                 )}
               </View>
             ))

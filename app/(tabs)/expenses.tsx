@@ -302,7 +302,7 @@ export default function ExpensesScreen() {
   const [filterRefundedStatus, setFilterRefundedStatus] = useState<"" | "refunded" | "not_refunded">("");
   const [filterStatus, setFilterStatus] = useState<"" | "pending_review" | "approved">("");
   const [filterAvoidability, setFilterAvoidability] = useState<"" | "avoidable" | "unavoidable" | "unclassified">("");
-  const [filterNature, setFilterNature] = useState<"realized" | "committed" | "credit" | "transfers" | "all">("realized");
+  const [filterNature, setFilterNature] = useState<"realized" | "committed" | "credit" | "transfers" | "all">("all");
   const [savedViews, setSavedViews] = useState<SavedFilterView[]>(() => getSavedFilterViews());
   const [activeViewId, setActiveViewId] = useState<string | null>(null);
   const [bulkMode, setBulkMode] = useState(false);
@@ -789,7 +789,7 @@ export default function ExpensesScreen() {
     setFilterAvoidability("");
     setFilterRuleIds([]);
     setFilterStatus("");
-    setFilterNature("realized");
+    setFilterNature("all");
   }, []);
 
   const applyFilterView = useCallback((view: SavedFilterView) => {
@@ -959,7 +959,7 @@ export default function ExpensesScreen() {
   const activeNatureIndex = Math.max(0, natureTabs.findIndex((t) => t.key === filterNature));
   // The tab showing was just switched off, or a saved view points at one that is.
   useEffect(() => {
-    if (!natureTabs.some((t) => t.key === filterNature)) setFilterNature("realized");
+    if (!natureTabs.some((t) => t.key === filterNature)) setFilterNature("all");
   }, [natureTabs, filterNature]);
   const hasActiveFilters = hasNonDateFilters || datePreset !== DEFAULT_PRESET;
 

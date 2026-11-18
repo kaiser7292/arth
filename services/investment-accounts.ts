@@ -20,6 +20,8 @@
  */
 
 import { getDatabase } from "@/database";
+import { DEFAULT_USER_ID } from "@/constants/app";
+import { round2 } from "@/utils/math";
 import { createManualAccount, getActiveAccounts, getDematAccountsWithSummary } from "@/services/financial-account";
 import type { FinancialAccount } from "@/services/financial-account";
 import { createTransfer } from "@/services/account-transfer";
@@ -540,6 +542,145 @@ export async function updateFDDetails(
     );
   }
 
+  bumpDataVersion();
+}
+
+/**
+ * Redoes the current term's (never-materialised) schedule for a new principal. The schedule runs
+ * from the FD's start date, so money taken out partway earns nothing at all: only what stays in
+ * accrues interest. Callers check isFDEditable first.
+ */
+async function regenerateFDScheduleForPrincipal(product: InvestmentProduct, principal: number): Promise<void> {
+  const db = getDatabase();
+  await db.runAsync(
+    "UPDATE investment_products SET principal = ?, updated_at = datetime('now') WHERE id = ?;",
+    principal,
+    product.id,
+  );
+  // A shell FD without rate / maturity has no schedule yet: the principal is all there is.
+  if (product.interest_rate_pa == null || !product.maturity_date || !product.start_date || !product.interest_method) return;
+  await db.runAsync("DELETE FROM investment_schedule_entries WHERE product_id = ? AND status != 'materialised';", product.id);
+  const lastEvent = await db.getFirstAsync<{ n: number | null }>(
+    "SELECT MAX(event_num) AS n FROM investment_schedule_entries WHERE product_id = ?;",
+    product.id,
+  );
+  const eventOffset = lastEvent?.n ?? 0;
+  const schedule = generateFDSchedule({
+    principal,
+    interest_rate_pa: product.interest_rate_pa,
+    start_date: product.start_date,
+    maturity_date: product.maturity_date,
+    interest_method: product.interest_method,
+    compounding_freq: product.compounding_freq ?? undefined,
+  });
+  for (const entry of schedule) {
+    await db.runAsync(
+      `INSERT INTO investment_schedule_entries (
+        id, product_id, event_num, event_date, kind,
+        principal_component, interest_component, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled');`,
+      entry.id,
+      product.id,
+      entry.event_num + eventOffset,
+      entry.event_date,
+      entry.kind,
+      entry.principal_component,
+      entry.interest_component,
+    );
+  }
+}
+
+/**
+ * Money taken out of an FD before maturity: transfers out of the FD account that no schedule
+ * entry (interest payout, maturity) made.
+ */
+async function getFDPartialWithdrawals(financialAccountId: string, productId: string): Promise<number> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ total: number | null }>(
+    `SELECT SUM(t.amount) AS total FROM account_transfers t
+      WHERE t.from_account_id = ? AND t.deleted_at IS NULL
+        AND t.id NOT IN (SELECT linked_transfer_id FROM investment_schedule_entries
+                          WHERE product_id = ? AND linked_transfer_id IS NOT NULL);`,
+    financialAccountId,
+    productId,
+  );
+  return row?.total ?? 0;
+}
+
+/** What was deposited in an FD: the principal now plus any partial withdrawals. */
+export async function getFDDeposit(financialAccountId: string): Promise<number | null> {
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || product.principal == null) return null;
+  return round2(product.principal + (await getFDPartialWithdrawals(financialAccountId, product.id)));
+}
+
+/**
+ * Changes how much was deposited in an FD (owner, Nov 2026: "option to edit principal"). The
+ * deposit transfer into the FD changes to match, and the interest schedule is redone on what's in
+ * the FD now (the deposit less any partial withdrawals). Only before anything has matured.
+ */
+export async function updateFDPrincipal(financialAccountId: string, deposit: number): Promise<void> {
+  const db = getDatabase();
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || product.valuation !== "contract") throw new Error("This account is not a fixed deposit");
+  if (!(Number.isFinite(deposit) && deposit > 0)) throw new Error("Principal must be a positive number");
+  if (!(await isFDEditable(product.id))) throw new Error("This fixed deposit has already matured, so its principal can't change");
+  const withdrawn = await getFDPartialWithdrawals(financialAccountId, product.id);
+  const remaining = round2(deposit - withdrawn);
+  if (!(remaining > 0)) throw new Error("The principal must be more than what was already withdrawn");
+
+  await db.withTransactionAsync(async () => {
+    // The deposit: the first transfer into the FD account.
+    const depositTransfer = await db.getFirstAsync<{ id: string }>(
+      `SELECT id FROM account_transfers WHERE to_account_id = ? AND deleted_at IS NULL
+        ORDER BY date ASC, created_at ASC LIMIT 1;`,
+      financialAccountId,
+    );
+    if (depositTransfer) {
+      await db.runAsync(
+        "UPDATE account_transfers SET amount = ?, updated_at = datetime('now') WHERE id = ?;",
+        deposit,
+        depositTransfer.id,
+      );
+    }
+    await regenerateFDScheduleForPrincipal(product, remaining);
+  });
+  bumpDataVersion();
+}
+
+/**
+ * Takes part of an FD out before maturity (owner, Nov 2026). The amount goes back to the savings
+ * account the FD was funded from, on the given date; what stays in is the new principal, and the
+ * interest schedule is redone on it from the start date, so the withdrawn part earns no interest.
+ */
+export async function partialWithdrawFD(financialAccountId: string, amount: number, date: string, toAccountId?: string): Promise<void> {
+  const db = getDatabase();
+  const product = await getInvestmentProduct(financialAccountId);
+  if (!product || product.valuation !== "contract" || product.principal == null) throw new Error("This account is not a fixed deposit");
+  if (product.status !== "active") throw new Error("This fixed deposit is no longer active");
+  if (!(await isFDEditable(product.id))) throw new Error("This fixed deposit has already matured");
+  if (!(Number.isFinite(amount) && amount > 0)) throw new Error("Enter how much to withdraw");
+  if (!(amount < product.principal)) throw new Error("To take it all out, close the fixed deposit instead");
+  if (product.start_date && date < product.start_date) throw new Error("The withdrawal can't be before the FD started");
+  if (product.maturity_date && date >= product.maturity_date) throw new Error("The withdrawal must be before the maturity date");
+  const to = toAccountId ?? product.source_account_id;
+  if (!to) throw new Error("Pick the account the money goes to");
+  const account = await db.getFirstAsync<{ bank_name: string; account_label: string | null }>(
+    "SELECT bank_name, account_label FROM financial_accounts WHERE id = ?;",
+    financialAccountId,
+  );
+  const name = account?.account_label ?? `${account?.bank_name ?? ""} FD`;
+
+  await createTransfer({
+    userId: DEFAULT_USER_ID,
+    fromAccountId: financialAccountId,
+    toAccountId: to,
+    amount: round2(amount),
+    description: `${name} — partial withdrawal`,
+    date,
+    source: "manual",
+  });
+  await regenerateFDScheduleForPrincipal(product, round2(product.principal - amount));
   bumpDataVersion();
 }
 

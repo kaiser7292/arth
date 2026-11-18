@@ -35,6 +35,7 @@ import {
 import type { FinancialAccount, AccountType } from "@/services/financial-account";
 import { getInvestmentProduct, isDematLikeAccountById, isFDIncomplete, isFDEditable, type InvestmentProduct } from "@/services/investment-accounts";
 import { CompleteFDDetailsSheet } from "@/components/account/CompleteFDDetailsSheet";
+import { FDPartialWithdrawSheet } from "@/components/account/FDPartialWithdrawSheet";
 import { getAllActiveBuckets } from "@/services/yearly-plan";
 import { formatAsOf, formatDate } from "@/utils/date";
 import {
@@ -131,6 +132,7 @@ export default function AccountDetailScreen() {
   const [isDematAccount, setIsDematAccount] = useState(false);
   const [investmentProduct, setInvestmentProduct] = useState<InvestmentProduct | null>(null);
   const [fdEditable, setFdEditable] = useState(true);
+  const [withdrawVisible, setWithdrawVisible] = useState(false);
   const [fdBucketName, setFdBucketName] = useState<string | null>(null);
   const [completeFDVisible, setCompleteFDVisible] = useState(false);
   const [creditLimitValue, setCreditLimitValue] = useState("");
@@ -897,6 +899,20 @@ export default function AccountDetailScreen() {
                   {fdEditable ? "Edit fixed deposit" : "Correct amount / bucket"}
                 </Text>
               </Pressable>
+              {/* Take part of it out before maturity: only while it's active and nothing has matured. */}
+              {fdEditable && investmentProduct.status === "active" && (investmentProduct.principal ?? 0) > 0 && (
+                <Pressable
+                  onPress={() => setWithdrawVisible(true)}
+                  className="flex-row items-center justify-center py-2.5 rounded-control border mt-2"
+                  style={{ borderColor: theme.border }}
+                  accessibilityRole="button"
+                >
+                  <Ionicons name="arrow-undo-outline" size={16} color={theme.data.series[3]} />
+                  <Text className="text-body font-semibold ml-2" style={{ color: theme.data.series[3] }}>
+                    Partial withdrawal
+                  </Text>
+                </Pressable>
+              )}
             </Card>
           )}
 
@@ -1199,6 +1215,17 @@ export default function AccountDetailScreen() {
             loadData();
           }}
           onClose={() => setCompleteFDVisible(false)}
+        />
+      )}
+      {account && investmentProduct && (
+        <FDPartialWithdrawSheet
+          visible={withdrawVisible}
+          product={investmentProduct}
+          onDone={() => {
+            setWithdrawVisible(false);
+            loadData();
+          }}
+          onClose={() => setWithdrawVisible(false)}
         />
       )}
     </>

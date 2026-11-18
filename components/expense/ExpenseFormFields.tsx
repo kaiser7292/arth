@@ -1,4 +1,5 @@
 import { tint } from "@/constants/brand";
+import { QuickAddCategorySheet } from "@/components/expense/QuickAddCategorySheet";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { Pop } from "@/components/motion/Pop";
 
@@ -473,7 +474,7 @@ interface CategoryPickerProps {
 export function CategoryPicker({
   categories,
   categoryId,
-  selectedCategory,
+  selectedCategory: selectedFromForm,
   showCategories,
   onToggle,
   onSelect,
@@ -483,14 +484,22 @@ export function CategoryPicker({
   row,
   divider,
 }: CategoryPickerProps) {
-  const router = useRouter();
   const theme = useTheme();
+  // Added here: until the form reloads its categories, they're kept in this list.
+  const [added, setAdded] = useState<Category[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addName, setAddName] = useState("");
+  const allCategories = useMemo(
+    () => [...categories, ...added.filter((a) => !categories.some((c) => c.id === a.id))],
+    [categories, added],
+  );
+  const shownCategory = selectedFromForm ?? (categoryId ? added.find((c) => c.id === categoryId) : undefined);
   const sections = useMemo<PickerSheetSection[]>(() => {
     const out: PickerSheetSection[] = [];
     const usual = usualId ? categories.find((c) => c.id === usualId) : undefined;
     if (usual) out.push({ key: "usual", title: "Usually for this merchant", items: [{ id: usual.id, label: usual.name, icon: usual.icon as keyof typeof Ionicons.glyphMap, color: usual.color }] });
     // Each main category, then its sub-categories (095); search finds a sub-category by its parent too.
-    for (const { parent, children } of buildCategoryTree(categories)) {
+    for (const { parent, children } of buildCategoryTree(allCategories)) {
       out.push({
         key: parent.id,
         items: [
@@ -500,7 +509,8 @@ export function CategoryPicker({
       });
     }
     return out;
-  }, [categories, usualId]);
+  }, [allCategories, categories, usualId]);
+  const selectedCategory = shownCategory;
 
   return (
     <View className={row ? "" : "mb-4"}>
@@ -513,7 +523,7 @@ export function CategoryPicker({
         row={row ? { label: "Category", color: selectedCategory?.color ?? theme.data.series[1], tag: hint, divider } : undefined}
         icon={selectedCategory && row ? (selectedCategory.icon as keyof typeof Ionicons.glyphMap) : "pricetags-outline"}
         on={!!selectedCategory}
-        text={selectedCategory ? categoryPath(selectedCategory, new Map(categories.map((c) => [c.id, c]))) : "Select category"}
+        text={selectedCategory ? categoryPath(selectedCategory, new Map(allCategories.map((c) => [c.id, c]))) : "Select category"}
         onPress={onToggle}
         accessibilityLabel={`Category${selectedCategory ? `, ${selectedCategory.name}` : ""}`}
         leading={
@@ -533,12 +543,25 @@ export function CategoryPicker({
         onSelect={(id) => onSelect(id)}
         allowNone={allowNone}
         searchPlaceholder="Search categories and sub-categories"
-        onAdd={() => {
+        onAdd={(typed) => {
+          setAddName(typed);
           onToggle();
-          router.push("/settings/category-edit");
+          setAddOpen(true);
         }}
         addLabel={(t) => `Add a category “${t}”`}
+        addAlways="New category or sub-category"
         noun={{ one: "category", many: "categories" }}
+      />
+      <QuickAddCategorySheet
+        visible={addOpen}
+        initialName={addName}
+        categories={allCategories}
+        onClose={() => setAddOpen(false)}
+        onCreated={(cat) => {
+          setAdded((list) => (list.some((c) => c.id === cat.id) ? list : [...list, cat]));
+          setAddOpen(false);
+          onSelect(cat.id);
+        }}
       />
     </View>
   );
