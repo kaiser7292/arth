@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
+import { Toggle } from "@/components/ui/Toggle";
 
-import { View, ScrollView, Pressable, Switch } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -129,13 +130,7 @@ export default function PaymentModesScreen() {
             {off ? "Inactive" : PAYMENT_MODE_TYPE_LABELS[item.type as PaymentModeType]}
           </Text>
         </Pressable>
-        <Switch
-          value={!off}
-          onValueChange={() => handleToggleActive(item)}
-          trackColor={{ false: theme.border, true: theme.primary }}
-          thumbColor="#FFFFFF"
-          accessibilityLabel={`${item.name} on`}
-        />
+        <Toggle value={!off} onValueChange={() => handleToggleActive(item)} accessibilityLabel={`${item.name} on`} />
         <Pressable onPress={() => handleDelete(item)} className="w-10 h-10 items-center justify-center" accessibilityRole="button" accessibilityLabel={`Delete ${item.name}`}>
           <Ionicons name="trash-outline" size={17} color={theme.mutedForeground} />
         </Pressable>

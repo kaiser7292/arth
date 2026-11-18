@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { Toggle } from "@/components/ui/Toggle";
 
-import { View, ScrollView, Pressable, Switch } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
 import { useRouter, useFocusEffect, Stack, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -284,13 +285,7 @@ export default function CategoriesScreen() {
           </Pressable>
           {!reordering && (
             <>
-              <Switch
-                value={!off}
-                onValueChange={() => handleToggleActive(parent)}
-                trackColor={{ false: theme.border, true: theme.primary }}
-                thumbColor="#FFFFFF"
-                accessibilityLabel={`${parent.name} on`}
-              />
+              <Toggle value={!off} onValueChange={() => handleToggleActive(parent)} accessibilityLabel={`${parent.name} on`} />
               <Pressable
                 onPress={() => handleDelete(parent)}
                 className="w-9 h-9 items-center justify-center"

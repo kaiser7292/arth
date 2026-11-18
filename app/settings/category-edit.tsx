@@ -1,7 +1,8 @@
 import { tint } from "@/constants/brand";
+import { Toggle } from "@/components/ui/Toggle";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { View, ScrollView, Pressable, TextInput, FlatList, Switch, useWindowDimensions, Keyboard } from "react-native";
+import { View, ScrollView, Pressable, TextInput, FlatList, useWindowDimensions, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAlert } from "@/hooks/use-alert";
@@ -445,13 +446,7 @@ export default function CategoryEditScreen() {
               <Text className="text-body font-semibold text-foreground">Unavoidable</Text>
               <Text className="text-meta text-muted-foreground">Rent, insurance, EMIs. New spends here start as unavoidable in the Spending split</Text>
             </View>
-            <Switch
-              value={isUnavoidable}
-              onValueChange={setIsUnavoidable}
-              trackColor={{ false: theme.border, true: theme.primary }}
-              thumbColor="#FFFFFF"
-              accessibilityLabel="Unavoidable"
-            />
+            <Toggle value={isUnavoidable} onValueChange={setIsUnavoidable} accessibilityLabel="Unavoidable" />
           </View>
         </View>
       </ScrollView>
