@@ -1,4 +1,5 @@
 import { ScreenContainer, Text } from "@/components/ui";
+import { bumpDataVersion } from "@/services/settings";
 import {
     CURRENCIES,
     DATE_FORMATS,
@@ -16,6 +17,9 @@ import {
     setCurrency,
     setDateFormat,
     setNumberGrouping,
+    getShortAmountStyle,
+    setShortAmountStyle,
+    type ShortAmountStyle,
     setTimezone,
 } from "@/services/locale-preferences";
 import { getFYStartMonth, setFYStartMonth } from "@/services/settings";
@@ -67,6 +71,7 @@ export default function RegionSettingsScreen() {
   const theme = useTheme();
   const [currency, setCurrencyState] = useState<CurrencyCode>(getCurrency());
   const [grouping, setGroupingState] = useState<NumberGrouping>(getNumberGrouping());
+  const [shortStyle, setShortStyleState] = useState<ShortAmountStyle>(getShortAmountStyle());
   const [dateFormat, setDateFormatState] = useState<DateFormat>(getDateFormat());
   const [timezoneState, setTimezoneState] = useState<string>(getTimezone());
 
@@ -174,6 +179,42 @@ export default function RegionSettingsScreen() {
                 <Text className="text-label text-muted-foreground mt-0.5">
                   Sample: {formatAmountPreview(1234567.89, currency, g)}
                 </Text>
+              </View>
+              {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
+            </Pressable>
+          );
+        })}
+
+        {/* Short amounts */}
+        <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground px-4 mt-6 mb-2">
+          Short amounts
+        </Text>
+        <Text className="text-label text-muted-foreground px-4 mb-2">
+          Where there is little room, like month headings, amounts are shortened.
+        </Text>
+        {(
+          [
+            { value: "lakh", label: "Lakh and crore", sample: "₹14.9K · ₹2.3L · ₹1.2Cr" },
+            { value: "million", label: "Million and billion", sample: "₹14.9K · ₹2.3M · ₹1.2B" },
+          ] as { value: ShortAmountStyle; label: string; sample: string }[]
+        ).map((o) => {
+          const isSelected = shortStyle === o.value;
+          return (
+            <Pressable
+              key={o.value}
+              onPress={() => {
+                setShortAmountStyle(o.value);
+                setShortStyleState(o.value);
+                bumpDataVersion();
+              }}
+              className="mx-4 mt-2 rounded-card p-4 flex-row items-center"
+              style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: isSelected ? 1 : 0, borderColor: theme.primary }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isSelected }}
+            >
+              <View className="flex-1">
+                <Text className="text-body font-semibold text-foreground">{o.label}</Text>
+                <Text className="text-label text-muted-foreground mt-0.5">Sample: {o.sample}</Text>
               </View>
               {isSelected && <Ionicons name="checkmark" size={18} color={theme.primary} />}
             </Pressable>

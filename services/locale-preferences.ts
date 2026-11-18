@@ -28,6 +28,7 @@ const KEYS = {
   NUMBER_GROUPING: "locale_number_grouping",
   DATE_FORMAT: "locale_date_format",
   TIMEZONE: "locale_timezone",
+  SHORT_AMOUNTS: "locale_short_amounts",
 } as const;
 
 export const LOCALE_PREFERENCES_KEYS = [
@@ -35,11 +36,19 @@ export const LOCALE_PREFERENCES_KEYS = [
   KEYS.NUMBER_GROUPING,
   KEYS.DATE_FORMAT,
   KEYS.TIMEZONE,
+  KEYS.SHORT_AMOUNTS,
 ] as const;
+
+/**
+ * How short amounts read ("₹14.9K"): lakh and crore (K, L, Cr) or million and billion (K, M, B).
+ * Owner, Nov 2026. Until chosen it follows the number format: Indian grouping gives lakh.
+ */
+export type ShortAmountStyle = "lakh" | "million";
 
 interface LocalePreferences {
   currency: CurrencyCode;
   numberGrouping: NumberGrouping;
+  shortAmounts: ShortAmountStyle;
   dateFormat: DateFormat;
   timezone: string;
 }
@@ -63,14 +72,14 @@ function readFromStorage(): LocalePreferences {
   const groupingRaw = settingsStorage.getString(KEYS.NUMBER_GROUPING);
   const dateRaw = settingsStorage.getString(KEYS.DATE_FORMAT);
   const timezoneRaw = settingsStorage.getString(KEYS.TIMEZONE);
+  const shortRaw = settingsStorage.getString(KEYS.SHORT_AMOUNTS);
 
   const currency = currencyRaw && isCurrencyCode(currencyRaw) ? currencyRaw : DEFAULT_CURRENCY;
+  const numberGrouping = groupingRaw && isNumberGrouping(groupingRaw) ? groupingRaw : getCurrencyDef(currency).defaultGrouping;
   return {
     currency,
-    numberGrouping:
-      groupingRaw && isNumberGrouping(groupingRaw)
-        ? groupingRaw
-        : getCurrencyDef(currency).defaultGrouping,
+    numberGrouping,
+    shortAmounts: shortRaw === "lakh" || shortRaw === "million" ? shortRaw : numberGrouping === "indian" ? "lakh" : "million",
     dateFormat: dateRaw && isDateFormat(dateRaw) ? dateRaw : DEFAULT_DATE_FORMAT,
     timezone: timezoneRaw || Intl.DateTimeFormat().resolvedOptions().timeZone,
   };
@@ -87,6 +96,15 @@ export function getCurrency(): CurrencyCode {
 
 export function getNumberGrouping(): NumberGrouping {
   return getLocalePreferences().numberGrouping;
+}
+
+export function getShortAmountStyle(): ShortAmountStyle {
+  return getLocalePreferences().shortAmounts;
+}
+
+export function setShortAmountStyle(style: ShortAmountStyle): void {
+  settingsStorage.set(KEYS.SHORT_AMOUNTS, style);
+  cache = null;
 }
 
 export function getDateFormat(): DateFormat {

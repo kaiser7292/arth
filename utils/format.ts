@@ -8,7 +8,7 @@
  * sublabels, not primary values.
  */
 
-import { getCurrency, getNumberGrouping } from "@/services/locale-preferences";
+import { getCurrency, getNumberGrouping, getShortAmountStyle, type ShortAmountStyle } from "@/services/locale-preferences";
 import { isAmountsHidden } from "@/services/privacy-mode";
 import { getCurrencyDef, type CurrencyCode, type NumberGrouping } from "@/constants/currencies";
 
@@ -64,27 +64,46 @@ export function formatAmount(amount: number, currencyOverride?: CurrencyCode): s
   return `${sign}${def.symbol}${body}`;
 }
 
+const SHORT_STEPS: Record<ShortAmountStyle, { at: number; suffix: string }[]> = {
+  lakh: [
+    { at: 1e7, suffix: "Cr" },
+    { at: 1e5, suffix: "L" },
+    { at: 1e3, suffix: "K" },
+  ],
+  million: [
+    { at: 1e9, suffix: "B" },
+    { at: 1e6, suffix: "M" },
+    { at: 1e3, suffix: "K" },
+  ],
+};
+
+/** The short body of an amount, without a symbol: "14.9K", "2.3L", "1.2Cr" or "1.2M". */
+export function shortAmountBody(abs: number, style: ShortAmountStyle): string {
+  for (const step of SHORT_STEPS[style]) {
+    if (abs >= step.at) return (abs / step.at).toFixed(1) + step.suffix;
+  }
+  return String(Math.round(abs));
+}
+
 /**
- * Compact format for sublabels/messaging (Rule: never for primary amounts).
- * Uses lakh/thousand abbreviations regardless of user locale \u2014 the compact
- * form is about density, not locale.
+ * Compact format for sublabels/messaging (Rule: never for primary amounts). Lakh and crore or
+ * million and billion, as chosen in Settings → Region ("Short amounts"). No currency symbol.
  */
 export function formatCompact(n: number): string {
   if (isAmountsHidden()) return AMOUNT_MASK;
-  const abs = Math.abs(n);
-  if (abs >= 100000) {
-    const body = (abs / 100000).toFixed(1) + "L";
-    const sign = n < 0 && !body.replace(/[0,.L]/g, "") ? "" : n < 0 ? "-" : "";
-    return `${sign}${body}`;
-  }
-  if (abs >= 1000) {
-    const body = (abs / 1000).toFixed(1) + "K";
-    const sign = n < 0 && !body.replace(/[0,.K]/g, "") ? "" : n < 0 ? "-" : "";
-    return `${sign}${body}`;
-  }
-  const rounded = Math.round(abs);
-  const sign = n < 0 && rounded !== 0 ? "-" : "";
-  return `${sign}${rounded}`;
+  const body = shortAmountBody(Math.abs(n), getShortAmountStyle());
+  const sign = n < 0 && /[1-9]/.test(body) ? "-" : "";
+  return `${sign}${body}`;
+}
+
+/** A short amount with the currency symbol: "₹14.9K". For dense places like month headings. */
+export function formatShortAmount(n: number): string {
+  const code = getCurrency();
+  const def = getCurrencyDef(code);
+  if (isAmountsHidden()) return code === "NONE" || !def.symbol ? AMOUNT_MASK : `${def.symbol}${AMOUNT_MASK}`;
+  const body = shortAmountBody(Math.abs(n), getShortAmountStyle());
+  const sign = n < 0 && /[1-9]/.test(body) ? "-" : "";
+  return code === "NONE" || !def.symbol ? `${sign}${body}` : `${sign}${def.symbol}${body}`;
 }
 
 /**
