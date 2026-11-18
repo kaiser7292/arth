@@ -93,7 +93,9 @@ function ExpenseListItemInner({
   const effectiveDisplayAmount = Math.max(0, Math.round((originalForRefund - refundedAmount) * myProportion * 100) / 100);
 
   const status = rowStatus(expense, refundState);
-  const tone = moneyTone(theme, expense.money_event === "self_transfer" ? "moved" : isCredit ? "in" : "out");
+  const baseTone = moneyTone(theme, expense.money_event === "self_transfer" ? "moved" : isCredit ? "in" : "out");
+  // Money out shows in red on transaction rows (owner, Nov 2026), money in green, transfers purple.
+  const tone = !isCredit && expense.money_event !== "self_transfer" ? { ...baseTone, fg: theme.danger } : baseTone;
 
   // Line 2: category chip · paid by · account.
   const meta: string[] = [];

@@ -82,7 +82,8 @@ export function TotalsPill({ parts }: { parts: { tone: MoneyToneName; amount: nu
       accessibilityLabel={shown.map((p) => `${formatShortAmount(p.amount)} ${p.label}`).join(", ")}
     >
       {shown.map((p) => {
-        const { fg } = moneyTone(theme, p.tone);
+        // Money out in red, as on the rows under it (owner, Nov 2026).
+        const fg = p.tone === "out" ? theme.danger : moneyTone(theme, p.tone).fg;
         return (
           <View key={p.label} className="flex-row items-center">
             <Ionicons
