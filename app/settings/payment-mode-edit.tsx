@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { ChoiceField } from "@/components/ui/ChoiceField";
+import { TYPE_ICONS } from "@/constants/icons";
 import { View, ScrollView, Pressable, Keyboard } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
@@ -96,37 +98,15 @@ export default function PaymentModeEditScreen() {
             containerClassName="mb-6"
           />
 
-          <Text className="text-body font-medium text-muted-foreground mb-2">
-            Type
-          </Text>
-          <View className="flex-row flex-wrap mb-8">
-            {TYPE_OPTIONS.map((t) => (
-              <Pressable
-                key={t}
-                onPress={() => setType(t)}
-                className={`px-4 py-3 rounded-control mr-2 mb-2 border ${
-                  type === t
-                    ? ""
-                    : "bg-card border-transparent"
-                }`}
-                style={type === t ? {
-                  backgroundColor: theme.alpha("primary", 0.1),
-                  borderColor: theme.primary,
-                } : undefined}
-              >
-                <Text
-                  className={`text-meta ${
-                    type === t
-                      ? "font-medium"
-                      : "text-muted-foreground"
-                  }`}
-                  style={type === t ? { color: theme.primary } : undefined}
-                >
-                  {PAYMENT_MODE_TYPE_LABELS[t]}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <ChoiceField
+            label="Type"
+            className="mb-8"
+            value={type}
+            options={TYPE_OPTIONS.map((t) => ({ value: t, label: PAYMENT_MODE_TYPE_LABELS[t], icon: TYPE_ICONS[t] }))}
+            onChange={setType}
+            title="Payment mode type"
+            searchPlaceholder="Search types"
+          />
 
           <Button
             title={isEditing ? "Update Payment Mode" : "Add Payment Mode"}

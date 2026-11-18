@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { ChoiceField } from "@/components/ui/ChoiceField";
 import { View, ScrollView, KeyboardAvoidingView, Pressable, Platform } from "react-native";
 import { useHeaderHeight } from "@react-navigation/elements";
 import { Stack, useRouter, useLocalSearchParams } from "expo-router";
@@ -33,6 +34,17 @@ const LOAN_TYPES: { label: string; value: LoanType }[] = [
   { label: "Against FD", value: "against_fd" },
   { label: "Other", value: "other" },
 ];
+
+const LOAN_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  personal: "person-outline",
+  home: "home-outline",
+  auto: "car-outline",
+  education: "school-outline",
+  business: "briefcase-outline",
+  gold: "diamond-outline",
+  against_fd: "lock-closed-outline",
+  other: "document-text-outline",
+};
 
 export default function AddLoanScreen() {
   const router = useRouter();
@@ -297,11 +309,14 @@ export default function AddLoanScreen() {
         >
           {/* Basics */}
           <FormGroup icon="business-outline" title="Basics" hint="Who lent it and what for">
-            <ChipWrap>
-              {LOAN_TYPES.map((t) => (
-                <Chip key={t.value} label={t.label} on={loanType === t.value} onPress={() => setLoanType(t.value)} />
-              ))}
-            </ChipWrap>
+            <ChoiceField
+              label="Loan type"
+              value={loanType}
+              options={LOAN_TYPES.map((t) => ({ value: t.value, label: t.label, icon: LOAN_TYPE_ICONS[t.value] ?? "document-text-outline" }))}
+              onChange={setLoanType}
+              color={theme.warning}
+              searchPlaceholder="Search loan types"
+            />
             <Input label="Bank or lender" value={bankName} onChangeText={setBankName} placeholder="e.g. Axis Bank" />
             <View>
               <Input

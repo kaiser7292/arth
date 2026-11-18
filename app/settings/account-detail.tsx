@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { ChoiceField } from "@/components/ui/ChoiceField";
 
 import { logger } from "@/utils/logger";
 import { View, ScrollView, Pressable, Keyboard, RefreshControl, TextInput } from "react-native";
@@ -594,39 +595,18 @@ export default function AccountDetailScreen() {
                 option). */}
             {account.account_type !== "loan" && account.account_type !== "investment" && (
               <>
-                <Text className="text-label font-medium text-muted-foreground mb-2">
-                  Type
-                </Text>
-                <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
-                  {ACCOUNT_TYPES.map((t) => {
-                    const isSelected = accountType === t.key;
-                    return (
-                      <Pressable
-                        key={t.key}
-                        onPress={() => { setAccountType(t.key); setDirty(true); }}
-                        className="flex-row items-center px-3 py-2.5 rounded-control border"
-                        style={{
-                          width: "48%",
-                          backgroundColor: isSelected ? theme.primary : undefined,
-                          borderColor: isSelected ? theme.primary : theme.border,
-                        }}
-                      >
-                        <Ionicons
-                          name={t.icon}
-                          size={16}
-                          color={isSelected ? "#FFFFFF" : theme.mutedForeground}
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          className="text-label font-semibold"
-                          style={{ color: isSelected ? "#FFFFFF" : theme.mutedForeground }}
-                        >
-                          {t.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <ChoiceField
+                  label="Type"
+                  className="mb-4"
+                  value={accountType}
+                  options={ACCOUNT_TYPES.map((t) => ({ value: t.key, label: t.label, icon: t.icon }))}
+                  onChange={(v) => {
+                    setAccountType(v);
+                    setDirty(true);
+                  }}
+                  title="Account type"
+                  searchPlaceholder="Search account types"
+                />
               </>
             )}
 
