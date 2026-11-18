@@ -104,7 +104,14 @@ export function DrawerCell({ row, inset = true, children }: { row: { inDrawer?: 
         overflow: "hidden",
       }}
     >
-      {children}
+      {row.last ? (
+        // No divider under a group's last row: the row's own bottom line is clipped off.
+        <View style={{ overflow: "hidden" }}>
+          <View style={{ marginBottom: -1 }}>{children}</View>
+        </View>
+      ) : (
+        children
+      )}
     </View>
   );
 }
