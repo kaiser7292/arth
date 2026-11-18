@@ -394,7 +394,7 @@ export default function InvestmentDetailScreen() {
               {linkedMilestoneName ? ` · linked to milestone ${linkedMilestoneName}` : ""}
               {remaining > 0 ? ` · ${formatAmount(remaining)} left` : ""}
             </Text>
-            {isComplete && <Chip variant="status" tone="success" label="Target reached" className="mt-1" />}
+            {isComplete && <Chip variant="status" tone="success" label="Target reached" className="self-center mt-1" />}
             {bucket.annual_target > 0 && (
               <View className="w-full mt-2.5">
                 <ProgressBar value={pct / 100} color={color} height={8} animated={false} />
@@ -519,7 +519,7 @@ export default function InvestmentDetailScreen() {
                     >
                       <View className="flex-1" style={{ gap: 4 }}>
                         <View className="flex-row items-center" style={{ gap: 6 }}>
-                          <Chip variant="status" label={sourceLabel} />
+                          <Chip variant="status" className="self-center" label={sourceLabel} />
                           <Text className="text-meta text-muted-foreground">{c.date}</Text>
                         </View>
                         {c.notes ? (

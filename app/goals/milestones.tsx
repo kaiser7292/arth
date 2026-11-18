@@ -626,7 +626,7 @@ function MilestoneCard({
             {when}
           </Text>
         </View>
-        <Chip variant="status" tone={status.tone} label={status.label} />
+        <Chip variant="status" className="self-center" tone={status.tone} label={status.label} />
         <Pressable onPress={onEdit} hitSlop={8} className="p-1" accessibilityRole="button" accessibilityLabel={`Edit ${milestone.name}`}>
           <Ionicons name="create-outline" size={18} color={theme.mutedForeground} />
         </Pressable>

@@ -581,7 +581,7 @@ export default function AccountDetailScreen() {
                   ····{account.account_identifier}
                 </Text>
               </View>
-              <Chip variant="status" tone={account.closed_at ? "neutral" : "success"} label={account.closed_at ? "Closed" : "Open"} />
+              <Chip variant="status" className="self-center" tone={account.closed_at ? "neutral" : "success"} label={account.closed_at ? "Closed" : "Open"} />
             </View>
 
             {/* Account type picker — hidden for loans (switching type would

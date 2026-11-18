@@ -727,7 +727,7 @@ export default function InvestmentBucketsScreen() {
                         {sub}
                       </Text>
                     </View>
-                    {tag && <Chip variant="status" tone={tag.tone} label={tag.label} />}
+                    {tag && <Chip variant="status" className="self-center" tone={tag.tone} label={tag.label} />}
                     <Pressable onPress={() => handleEditBucket(bucket)} hitSlop={8} className="p-1" accessibilityRole="button" accessibilityLabel={`Edit ${bucket.name}`}>
                       <Ionicons name="create-outline" size={18} color={theme.mutedForeground} />
                     </Pressable>

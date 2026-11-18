@@ -330,7 +330,7 @@ export default function LedgerScreen() {
   const fields = useMemo<ListField<HisaabEntry>[]>(
     () => [
       { id: "month", label: "Month", keyOf: (e) => e.date.slice(0, 7), labelOf: (k) => formatMonthLabel(k, "long"), group: true, groupOrder: "first" },
-      { id: "type", label: "Type", keyOf: (e) => e.type, labelOf: (k) => HISAAB_TYPE_LABELS[k] ?? k, group: true, filter: true },
+      { id: "type", label: "Transaction type", keyOf: (e) => e.type, labelOf: (k) => HISAAB_TYPE_LABELS[k] ?? k, group: true, filter: true },
       {
         id: "category",
         label: "Category",
@@ -848,15 +848,14 @@ function EntryRow({
             {meta}
           </Text>
           {entry.linked_expense_id && onViewExpense ? (
-            <Chip
-              variant="status"
+            <Chip variant="status" className="self-center"
               tone="primary"
               icon="receipt-outline"
               label={linkedType ?? "Transaction"}
               onPress={() => onViewExpense(entry.linked_expense_id!)}
             />
           ) : isSettlement ? (
-            <Chip variant="status" label="Settlement" />
+            <Chip variant="status" className="self-center" label="Settlement" />
           ) : null}
         </View>
       </View>

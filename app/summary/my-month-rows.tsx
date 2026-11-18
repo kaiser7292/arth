@@ -77,6 +77,13 @@ export default function MyMonthRowsScreen() {
       { id: "figure", label: "This figure's parts", keyOf: (r) => r.figure, group: true, groupOrder: "first" },
       { id: "date", label: "Date", keyOf: (r) => dateOf(r).slice(0, 10), labelOf: transactionDayLabel, group: true, groupOrder: "first" },
       {
+        id: "type",
+        label: "Transaction type",
+        keyOf: ({ row: r }) => (r.kind === "transfer" ? "Transfer" : r.expense.nature === "credit" ? "Credit" : r.expense.nature === "ledger_adjustment" ? "Adjustment" : "Expense"),
+        group: true,
+        filter: true,
+      },
+      {
         id: "category",
         label: "Category or type",
         keyOf: ({ row: r }) => {

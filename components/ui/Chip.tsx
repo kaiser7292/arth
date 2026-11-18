@@ -105,7 +105,9 @@ export function Chip({
     </>
   );
 
-  const cls = `${S.base} ${border ? (variant === "add" ? COMPONENTS.chip.add : "border") : ""} ${className}`;
+  // Inline chips align to the start of a column by default; a chip given its own self-* class (self-center in a row) uses that instead.
+  const base = /(^|\s)self-/.test(className) ? S.base.replace("self-start", "") : S.base;
+  const cls = `${base} ${border ? (variant === "add" ? COMPONENTS.chip.add : "border") : ""} ${className}`;
   const style = { backgroundColor: bg, borderColor: border };
 
   if (!onPress && !onLongPress) {

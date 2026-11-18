@@ -289,7 +289,7 @@ export default function YearlyPlanScreen() {
               <Text className="text-meta text-muted-foreground flex-1" numberOfLines={1}>
                 {fyLabel} · {showActual ? (realityCheck!.isPastFY ? "how it ended" : "year-end projection") : "plan"}
               </Text>
-              <Chip variant="status" tone={status.tone} label={status.label} />
+              <Chip variant="status" className="self-center" tone={status.tone} label={status.label} />
             </View>
             <Text className="text-meta text-muted-foreground mt-3">{heroSurplus >= 0 ? "Surplus" : "Deficit"}</Text>
             <Text
@@ -342,7 +342,7 @@ export default function YearlyPlanScreen() {
               title="Income"
               right={
                 <View className="flex-row items-center" style={{ gap: 8 }}>
-                  {profile?.status === "draft" && <Chip variant="status" tone="warning" label="Draft" />}
+                  {profile?.status === "draft" && <Chip variant="status" className="self-center" tone="warning" label="Draft" />}
                   <Text className="text-body font-bold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
                     {formatAmount(totalIncome)}
                   </Text>
@@ -665,7 +665,7 @@ function ActualRow({
         <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>
           {label}
         </Text>
-        <Chip variant="status" tone={tone} label={gapLabel} />
+        <Chip variant="status" className="self-center" tone={tone} label={gapLabel} />
       </View>
       <MiniLine label={isPastFY ? "Planned" : "Expected so far"} value={fmtFull(isPastFY ? planned : proratedTarget)} />
       <MiniLine label="Actual" value={fmtFull(actualYTD)} bold />

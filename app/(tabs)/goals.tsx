@@ -307,8 +307,7 @@ export default function GoalsScreen() {
                     title="Financial health"
                     hint={soFar}
                     right={
-                      <Chip
-                        variant="status"
+                      <Chip variant="status" className="self-center"
                         tone={gradeTone}
                         icon="information-circle-outline"
                         label={cockpitData.healthProvisional ? "Early days" : `Grade ${cockpitData.healthGrade}`}

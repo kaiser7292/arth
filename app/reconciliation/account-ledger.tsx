@@ -204,7 +204,7 @@ export default function AccountLedgerScreen() {
   const ledgerFields = useMemo<ListField<LedgerEntry>[]>(
     () => [
       { id: "date", label: "Date", keyOf: (e) => e.date.slice(0, 10), labelOf: transactionDayLabel, group: true, groupOrder: "first" },
-      { id: "kind", label: "Expense, credit or transfer", keyOf: ledgerKind, group: true, filter: true },
+      { id: "kind", label: "Transaction type", keyOf: ledgerKind, group: true, filter: true },
       {
         id: "category",
         label: "Category or type",
