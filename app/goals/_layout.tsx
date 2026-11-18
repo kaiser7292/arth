@@ -26,7 +26,7 @@ export default function GoalsLayout() {
       />
       <Stack.Screen
         name="milestones"
-        options={{ title: "Life milestones" }}
+        options={{ title: "Life Milestones" }}
       />
       <Stack.Screen
         name="milestone-detail"

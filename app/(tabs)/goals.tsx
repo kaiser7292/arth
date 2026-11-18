@@ -1,6 +1,6 @@
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
-import { Card, Chip, ContextualHeader, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, SectionTitle, Text } from "@/components/ui";
+import { Card, Chip, ContextualHeader, LoadingState, ProgressBar, ScreenContainer, SectionTitle, Text } from "@/components/ui";
 import { GroupLabel, LinkRow } from "@/components/ui/LinkRow";
 import { AnimatedNumber, Appear, PressableScale } from "@/components/motion";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -41,9 +41,7 @@ export default function GoalsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const startMonth = getFYStartMonth();
-  const todayFY = getCurrentFY(startMonth);
-  // The year being looked at: this FY by default, any other from the picker under the header.
-  const [currentFY, setViewFY] = useState(todayFY);
+  const currentFY = getCurrentFY(startMonth);
   const fyLabel = getFYLabel(currentFY, startMonth);
 
   // Initialise from preload so the page renders instantly on first open
@@ -243,7 +241,6 @@ export default function GoalsScreen() {
     <ScreenContainer>
       {loadFailed && <LoadFailedBanner onRetry={loadGoals} />}
       <ContextualHeader title="Goals" subtitle={`${fyLabel} · ${fyRange}`} />
-      <PeriodNavigator mode="fy" value={currentFY} onChange={setViewFY} variant="inline" />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
