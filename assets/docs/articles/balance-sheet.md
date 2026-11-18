@@ -27,12 +27,9 @@ phrasings:
 
 ## Columns
 
-When you open it, you see two columns:
+When you open it, you see one column, **Today**: your net worth right now, worked out fresh every time the screen loads.
 
-- **Previous FY close** - your net worth on the last day of the previous financial year.
-- **Today** - your net worth right now, worked out fresh every time the screen loads.
-
-Tap **+** to add an earlier financial year's closing column. Tap a column you added to remove it. Today and the previous FY close are always there.
+Tap **+** and choose a financial year to add a column showing your net worth on that year's last day. Only years with data are listed. Columns sit in date order, so an earlier year appears to the left of Today. Tap **✕** on a year to hide it. Today is always there.
 
 ## Sections
 

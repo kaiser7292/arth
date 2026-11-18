@@ -17,7 +17,7 @@ const CATEGORY_LABEL: Record<ExpenseListKind, string> = { spend: "Category", cre
 export function expenseGroupLabels(kind: ExpenseListKind): Record<ExpenseGroupBy, string> {
   return {
     none: "None",
-    date: "Day",
+    date: "Date",
     month: "Month",
     year: "Year",
     category: CATEGORY_LABEL[kind],

@@ -14,7 +14,8 @@ import { View, ScrollView, Pressable, KeyboardAvoidingView } from "react-native"
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ActionRow, Card, Chip, DateInput, GroupHeading, Input, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Segmented, Text, type ActionRowItem } from "@/components/ui";
-import { HeaderPill, Statement } from "@/components/ui/LinkRow";
+import { Statement } from "@/components/ui/LinkRow";
+import { DrawerCell } from "@/components/ui/GroupBy";
 import { FormFooter, FormGroup } from "@/components/ui/FormParts";
 import { useListTools } from "@/hooks/use-list-tools";
 import { formatMonthLabel } from "@/utils/date";
@@ -621,7 +622,6 @@ export default function LedgerScreen() {
       <Stack.Screen
         options={{
           title: "",
-          headerRight: person ? () => <HeaderPill label="Edit" onPress={openEditPerson} accessibilityLabel={`Edit ${name}`} /> : undefined,
         }}
       />
       {(entries.length > 0 || filterActive) && <ListToolbar {...tools.toolbar} />}
@@ -709,23 +709,20 @@ export default function LedgerScreen() {
               </View>
             </Card>
           ) : (
-            <View className="rounded-card bg-card border border-border overflow-hidden">
+            // Grouped: each group is its own drawer card. Ungrouped: one card holds every row.
+            <View className={groupedEntries.some((r) => r.type === "heading") ? "" : "rounded-card bg-card border border-border overflow-hidden"}>
               {groupedEntries.map((row, i) => {
                 if (row.type === "heading") {
-                  return (
-                    <View key={`group-${row.key}`} className={`px-3.5 pt-2 ${i > 0 ? "border-t border-border" : ""}`}>
-                      <GroupHeading label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />
-                    </View>
-                  );
+                  return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
                 }
                 const entry = row.item;
                 const linkedAccountId = accountIdMap.get(entry.id);
                 const isSettlementWithAccount = entry.type === "settlement" && !!linkedAccountId;
                 return (
+                  <DrawerCell key={entry.id} row={row} inset={false}>
                   <EntryRow
-                    key={entry.id}
                     entry={entry}
-                    divider={i > 0}
+                    divider={i > 0 && groupedEntries[i - 1].type !== "heading"}
                     onPress={() => {
                       if (isSettlementWithAccount) {
                         router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: linkedAccountId!, month: entry.date.slice(0, 7) } });
@@ -749,6 +746,7 @@ export default function LedgerScreen() {
                     accountMap={accountMap}
                     linkedType={entry.linked_expense_id ? linkedTypes.get(entry.linked_expense_id) : undefined}
                   />
+                  </DrawerCell>
                 );
               })}
             </View>

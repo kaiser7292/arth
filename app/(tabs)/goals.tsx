@@ -522,11 +522,11 @@ export default function GoalsScreen() {
               <LinkRow
                 icon="scale-outline"
                 color={theme.success}
-                title="Balance sheet"
+                title="Net worth"
                 sub={
                   netWorthFYChange != null && netWorthFYChange !== 0 && netWorth != null
-                    ? `Net worth · ${netWorthFYChange > 0 ? "up" : "down"} ${formatCompact(Math.abs(netWorthFYChange))} this FY`
-                    : "Net worth"
+                    ? `${netWorthFYChange > 0 ? "Up" : "Down"} ${formatCompact(Math.abs(netWorthFYChange))} this FY`
+                    : "What you own and owe"
                 }
                 value={netWorth != null ? formatCompact(netWorth) : null}
                 onPress={() => router.push("/goals/balance-sheet")}
