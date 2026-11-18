@@ -1,10 +1,10 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 
-import { View, FlatList, Pressable } from "react-native";
+import { View, ScrollView, Pressable, Switch } from "react-native";
 import { useRouter, useFocusEffect, Stack, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { EmptyState, FAB, ListSeparator, ScreenContainer, Text } from "@/components/ui";
+import { EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
 import { tint } from "@/constants/brand";
 import { buildCategoryTree } from "@/utils/category-tree";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -12,6 +12,7 @@ import {
   getAllCategories,
   updateCategory,
   getCategoryExpenseCount,
+  getCategoryExpenseCounts,
   swapCategoryOrder,
   hardDeleteCategory,
 } from "@/services/category";
@@ -27,6 +28,8 @@ export default function CategoriesScreen() {
   const router = useRouter();
   const alert = useAlert();
   const [categories, setCategories] = useState<Category[]>([]);
+  /** Spends per category, for the count under each name. */
+  const [counts, setCounts] = useState<Map<string, number>>(new Map());
   // Shown as a tree: each main category, then its sub-categories indented under it (095).
   const shown = useMemo(
     () => buildCategoryTree(categories).flatMap(({ parent, children }) => [parent, ...children]),
@@ -51,6 +54,9 @@ export default function CategoriesScreen() {
       const cats = await getAllCategories(DEFAULT_USER_ID);
       setCategories(cats);
       setLoadFailed(false);
+      getCategoryExpenseCounts(DEFAULT_USER_ID)
+        .then(setCounts)
+        .catch(() => setCounts(new Map()));
     } catch {
       setLoadFailed(true);
       // Database not initialized
@@ -195,72 +201,18 @@ export default function CategoriesScreen() {
     void handleDelete(cat);
   }, [deleteId, categories, handleDelete]);
 
-  const renderItem = ({ item }: { item: Category }) => {
-    const editing = !reordering;
-    const isChild = !!item.parent_id && categories.some((c) => c.id === item.parent_id);
-    const subCount = categories.filter((c) => c.parent_id === item.id).length;
+  const tree = useMemo(() => buildCategoryTree(categories), [categories]);
+  const countLine = (id: string) => {
+    const n = counts.get(id) ?? 0;
+    return n === 0 ? "No transactions yet" : `${n} transaction${n === 1 ? "" : "s"}`;
+  };
+
+  /** Up / down arrows for Reorder mode. */
+  const arrows = (item: Category) => {
     const canUp = !!siblingOf(item, -1);
     const canDown = !!siblingOf(item, 1);
     return (
-    <Pressable
-      onPress={() =>
-        router.push({
-          pathname: "/settings/category-edit",
-          params: { id: item.id },
-        })
-      }
-      className={`flex-row items-center py-3 ${isChild ? "pl-14 pr-4" : "px-4"} ${
-        item.is_active === 0 ? "opacity-40" : ""
-      }`}
-      accessibilityLabel={isChild ? `${item.name}, a sub-category` : item.name}
-    >
-      <View
-        className={`${isChild ? "w-8 h-8" : "w-10 h-10"} rounded-control items-center justify-center mr-3`}
-        style={{ backgroundColor: tint(item.color, 0.12) }}
-      >
-        <Ionicons
-          name={item.icon as keyof typeof Ionicons.glyphMap}
-          size={isChild ? 16 : 20}
-          color={item.color}
-        />
-      </View>
-      <View className="flex-1">
-        <Text className={`${isChild ? "text-meta" : "text-body"} font-medium text-foreground`}>
-          {item.name}
-        </Text>
-        <View className="flex-row items-center">
-          {!isChild && subCount > 0 && (
-            <Text className="text-label text-muted-foreground mr-2">
-              {subCount} sub-categor{subCount === 1 ? "y" : "ies"}
-            </Text>
-          )}
-          {item.is_unavoidable === 1 && (
-            <Text className="text-label text-muted-foreground mr-2">
-              Unavoidable
-            </Text>
-          )}
-          {item.is_active === 0 && (
-            <Text className="text-label text-danger">Inactive</Text>
-          )}
-        </View>
-      </View>
-
-      {/* Add a sub-category under a main category */}
-      {editing && !isChild && item.is_active === 1 && (
-        <Pressable
-          onPress={() => router.push({ pathname: "/settings/category-edit", params: { parentId: item.id } })}
-          className="p-2"
-          hitSlop={4}
-          accessibilityRole="button"
-          accessibilityLabel={`Add a sub-category under ${item.name}`}
-        >
-          <Ionicons name="add-circle-outline" size={18} color={theme.primary} />
-        </Pressable>
-      )}
-
-      {/* Reorder buttons: only in Reorder mode, so they don't crowd every row */}
-      {reordering && (
-      <View className="flex-row mr-1" style={{ gap: 4 }}>
+      <View className="flex-row" style={{ gap: 4 }}>
         <Pressable
           onPress={() => handleMoveUp(item)}
           disabled={!canUp}
@@ -268,11 +220,7 @@ export default function CategoriesScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Move ${item.name} up`}
         >
-          <Ionicons
-            name="chevron-up"
-            size={22}
-            color={!canUp ? theme.faintForeground : theme.mutedForeground}
-          />
+          <Ionicons name="chevron-up" size={22} color={!canUp ? theme.faintForeground : theme.mutedForeground} />
         </Pressable>
         <Pressable
           onPress={() => handleMoveDown(item)}
@@ -281,34 +229,125 @@ export default function CategoriesScreen() {
           accessibilityRole="button"
           accessibilityLabel={`Move ${item.name} down`}
         >
-          <Ionicons
-            name="chevron-down"
-            size={22}
-            color={!canDown ? theme.faintForeground : theme.mutedForeground}
-          />
+          <Ionicons name="chevron-down" size={22} color={!canDown ? theme.faintForeground : theme.mutedForeground} />
         </Pressable>
       </View>
-      )}
+    );
+  };
 
-      {/* Active/Inactive toggle */}
-      {editing && (
-      <Pressable onPress={() => handleToggleActive(item)} className="p-2" accessibilityRole="switch" accessibilityState={{ checked: item.is_active === 1 }} accessibilityLabel={`${item.name} active`}>
-        <Ionicons
-          name={item.is_active === 1 ? "eye-outline" : "eye-off-outline"}
-          size={18}
-          color={item.is_active === 1 ? theme.primary : theme.faintForeground}
-        />
-      </Pressable>
+  const openEdit = (id: string) => router.push({ pathname: "/settings/category-edit", params: { id } });
 
-      )}
+  /** A sub-category's long-press: everything its row used to offer. */
+  const subMenu = (sub: Category) =>
+    alert(sub.name, undefined, [
+      { text: "Edit", onPress: () => openEdit(sub.id) },
+      { text: sub.is_active === 1 ? "Turn off" : "Turn on", onPress: () => handleToggleActive(sub) },
+      { text: "Delete", style: "destructive", onPress: () => handleDelete(sub) },
+      { text: "Cancel", style: "cancel" },
+    ]);
 
-      {/* Delete button */}
-      {editing && (
-      <Pressable onPress={() => handleDelete(item)} className="p-2" accessibilityRole="button" accessibilityLabel={`Delete ${item.name}`}>
-        <Ionicons name="trash-outline" size={18} color={theme.danger} />
-      </Pressable>
-      )}
-    </Pressable>
+  /** Board "Categories": each main category is its own card, its sub-categories as pills under it. */
+  const renderMain = ({ parent, children }: { parent: Category; children: Category[] }) => {
+    const off = parent.is_active === 0;
+    return (
+      <View key={parent.id} className="mx-4 mb-3 rounded-card bg-card border border-border overflow-hidden" style={{ opacity: off ? 0.7 : 1 }}>
+        <View className="flex-row items-center pl-3.5 pr-2.5" style={{ minHeight: 60, gap: 10 }}>
+          {reordering && arrows(parent)}
+          <View className="w-9 h-9 rounded-control items-center justify-center" style={{ backgroundColor: tint(parent.color, 0.12) }}>
+            <Ionicons name={parent.icon as keyof typeof Ionicons.glyphMap} size={18} color={parent.color} />
+          </View>
+          <Pressable
+            onPress={() => openEdit(parent.id)}
+            className="flex-1 py-2"
+            style={{ minWidth: 0, gap: 3 }}
+            accessibilityRole="button"
+            accessibilityLabel={`${parent.name}, ${countLine(parent.id)}${off ? ", off" : ""}. Edit`}
+          >
+            <Text className="text-body font-bold text-foreground" numberOfLines={1}>
+              {parent.name}
+            </Text>
+            <View className="flex-row flex-wrap items-center" style={{ gap: 6 }}>
+              {parent.is_unavoidable === 1 && (
+                <View className="rounded-pill px-1.5" style={{ backgroundColor: theme.alpha("foreground", 0.07) }}>
+                  <Text className="text-label font-semibold text-muted-foreground">Unavoidable</Text>
+                </View>
+              )}
+              {off && (
+                <View className="rounded-pill px-1.5" style={{ backgroundColor: theme.alpha("danger", 0.08) }}>
+                  <Text className="text-label font-semibold" style={{ color: theme.danger }}>
+                    Inactive
+                  </Text>
+                </View>
+              )}
+              <Text className="text-label text-muted-foreground">{countLine(parent.id)}</Text>
+            </View>
+          </Pressable>
+          {!reordering && (
+            <>
+              <Switch
+                value={!off}
+                onValueChange={() => handleToggleActive(parent)}
+                trackColor={{ false: theme.border, true: theme.primary }}
+                thumbColor="#FFFFFF"
+                accessibilityLabel={`${parent.name} on`}
+              />
+              <Pressable
+                onPress={() => handleDelete(parent)}
+                className="w-9 h-9 items-center justify-center"
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${parent.name}`}
+              >
+                <Ionicons name="trash-outline" size={17} color={theme.mutedForeground} />
+              </Pressable>
+            </>
+          )}
+        </View>
+
+        {reordering ? (
+          // Sub-categories keep their own order: one row each, with arrows, while reordering.
+          children.map((sub) => (
+            <View key={sub.id} className="flex-row items-center border-t border-border pl-14 pr-2.5" style={{ minHeight: 52, gap: 10 }}>
+              <Text className="flex-1 text-meta font-semibold text-foreground" numberOfLines={1}>
+                {sub.name}
+              </Text>
+              {arrows(sub)}
+            </View>
+          ))
+        ) : (
+          <View className="flex-row flex-wrap pb-3" style={{ gap: 8, paddingLeft: 60, paddingRight: 14 }}>
+            {children.map((sub) => {
+              const subOff = sub.is_active === 0;
+              return (
+                <Pressable
+                  key={sub.id}
+                  onPress={() => openEdit(sub.id)}
+                  onLongPress={() => subMenu(sub)}
+                  className="rounded-pill flex-row items-center px-3"
+                  style={{ height: 30, gap: 5, backgroundColor: tint(sub.color, subOff ? 0.05 : 0.12), opacity: subOff ? 0.6 : 1 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${sub.name}, ${countLine(sub.id)}${subOff ? ", off" : ""}. Edit; long-press for more`}
+                >
+                  <Ionicons name={sub.icon as keyof typeof Ionicons.glyphMap} size={13} color={sub.color} />
+                  <Text className="text-meta font-semibold" style={{ color: sub.color, textDecorationLine: subOff ? "line-through" : "none" }} numberOfLines={1}>
+                    {sub.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+            {!off && (
+              <Pressable
+                onPress={() => router.push({ pathname: "/settings/category-edit", params: { parentId: parent.id } })}
+                className="rounded-pill items-center justify-center px-3"
+                style={{ height: 30, borderWidth: 1.5, borderStyle: "dashed", borderColor: theme.border }}
+                accessibilityRole="button"
+                accessibilityLabel={`Add a sub-category under ${parent.name}`}
+              >
+                <Text className="text-meta font-semibold text-muted-foreground">+ Sub-category</Text>
+              </Pressable>
+            )}
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -327,11 +366,11 @@ export default function CategoriesScreen() {
         }}
       />
       {loadFailed && <LoadFailedBanner onRetry={loadCategories} />}
-      <FlatList
-        ListHeaderComponent={
+      <ScrollView contentContainerStyle={{ paddingBottom: 96 }} showsVerticalScrollIndicator={false}>
           <Pressable
             onPress={() => router.push("/settings/category-organise")}
-            className="mx-4 mt-3 mb-2 flex-row items-center rounded-card border border-border bg-card px-4 py-3"
+            className="mx-4 mt-3 mb-3 flex-row items-center rounded-card px-4 py-3"
+            style={{ backgroundColor: theme.alpha("primary", 0.08) }}
             accessibilityRole="button"
             accessibilityLabel="Organise categories into main and sub-categories"
           >
@@ -342,23 +381,17 @@ export default function CategoriesScreen() {
             </View>
             <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} />
           </Pressable>
-        }
-        initialNumToRender={12}
-        maxToRenderPerBatch={10}
-        windowSize={7}
-        data={shown}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={ListSeparator}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 80 }}
-        ListEmptyComponent={
+        {tree.length === 0 ? (
           <EmptyState
             icon="pricetag-outline"
             title="No categories yet"
             subtitle="Categories are how spending gets grouped in Budget and Insights. Tap + to add your first."
           />
-        }
-      />
+        ) : (
+          tree.map(renderMain)
+        )}
+        <Text className="text-label text-faint-foreground text-center mt-1 px-6">Tap a sub-category to edit it. Long-press it to turn it off or delete it.</Text>
+      </ScrollView>
       {!reordering && <FAB icon="add" label="Category" onPress={() => router.push("/settings/category-edit")} />}
     </ScreenContainer>
   );
