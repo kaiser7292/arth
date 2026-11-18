@@ -33,15 +33,15 @@ const TYPE_OPTIONS: AddType[] = [
 ];
 
 const ADD_TYPE_ICONS: Record<AddType, keyof typeof Ionicons.glyphMap> = {
-  savings: "wallet-outline",
-  bank: "wallet-outline",
+  savings: "business-outline",
+  bank: "business-outline",
   credit_card: "card-outline",
-  loan: "document-text-outline",
+  loan: "home-outline",
   wallet: "phone-portrait-outline",
   demat: "trending-up-outline",
-  pension: "briefcase-outline",
+  pension: "shield-checkmark-outline",
   investment: "pie-chart-outline",
-  fd: "lock-closed-outline",
+  fd: "business-outline",
 } as Record<AddType, keyof typeof Ionicons.glyphMap>;
 
 const ACCOUNT_TYPE_LABELS: Record<AddType, string> = {

@@ -27,12 +27,12 @@ interface AccountPickerSheetProps {
 }
 
 const ACCOUNT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  savings: "wallet-outline",
+  savings: "business-outline",
   credit_card: "card-outline",
   wallet: "phone-portrait-outline",
-  loan: "cash-outline",
+  loan: "home-outline",
   demat: "trending-up-outline",
-  pension: "briefcase-outline",
+  pension: "shield-checkmark-outline",
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {

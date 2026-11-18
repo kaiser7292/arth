@@ -34,16 +34,16 @@ const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "S
 const preloaded = consumeAccountsPreload();
 
 const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  savings: "wallet-outline",
+  savings: "business-outline",
   credit_card: "card-outline",
-  loan: "document-text-outline",
+  loan: "home-outline",
   wallet: "phone-portrait-outline",
   demat: "trending-up-outline",
-  pension: "briefcase-outline",
+  pension: "shield-checkmark-outline",
   // Phase 2 unified type (account_type='investment') resolved to "fd" below
   // when valuation='contract' — a bare FD otherwise fell through to
   // account_type="investment", which isn't a key here, showing "help-outline".
-  fd: "cash-outline",
+  fd: "business-outline",
 };
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
