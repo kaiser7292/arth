@@ -19,7 +19,9 @@ import {
   setMerchantRule,
 } from "@/services/merchant-categories";
 import { dismissMerchantUndo, undoMerchantChange, usePendingMerchantUndo, withMerchantUndo } from "@/services/merchant-undo";
-import { listMerchants, type MerchantSummary } from "@/services/merchants-overview";
+import { getMerchantSpendTotal, listMerchants, type MerchantSummary } from "@/services/merchants-overview";
+import { tint } from "@/constants/brand";
+import { formatAmount } from "@/utils/format";
 
 const s = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
@@ -40,6 +42,7 @@ export default function MerchantDetailScreen() {
   const [all, setAll] = useState<MerchantSummary[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [past, setPast] = useState(0);
+  const [spendTotal, setSpendTotal] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const [catPicker, setCatPicker] = useState(false);
@@ -53,6 +56,7 @@ export default function MerchantDetailScreen() {
   const lastFound = useRef(found);
   if (found) lastFound.current = found;
   const merchant = found ?? (renaming ? lastFound.current : null);
+  const categoryColors = useMemo(() => new Map(categories.map((c) => [c.name, c.color])), [categories]);
 
   const load = useCallback(async () => {
     const [list, cats] = await Promise.all([listMerchants(DEFAULT_USER_ID), getCategories(DEFAULT_USER_ID)]);
@@ -60,6 +64,7 @@ export default function MerchantDetailScreen() {
     setCategories(cats);
     const m = list.find((x) => x.name.toLowerCase() === name.toLowerCase());
     setPast(m?.rule ? await countPastTransactionsForRule(m.rule.keyword, m.rule.categoryName) : 0);
+    getMerchantSpendTotal(DEFAULT_USER_ID, name).then(setSpendTotal).catch(() => setSpendTotal(null));
   }, [name]);
   useDataRefresh(load);
 
@@ -179,6 +184,7 @@ export default function MerchantDetailScreen() {
   }
 
   const others = all.filter((m) => m.name.toLowerCase() !== merchant.name.toLowerCase());
+  const heroColor = (merchant.category ? categoryColors.get(merchant.category) : undefined) ?? theme.primary;
   const rule = merchant.rule;
   const canReset = rule && rule.source !== "builtin";
   const canForget = merchant.categorySource === "learned" && merchant.learned;
@@ -187,6 +193,21 @@ export default function MerchantDetailScreen() {
     <ScreenContainer padTop={false}>
       <Stack.Screen options={{ title: merchant.name }} />
       <ScrollView contentContainerStyle={{ paddingBottom: pendingUndo ? 120 : 40 }} keyboardShouldPersistTaps="handled">
+        {/* Hero: its initial, name, and how much has gone there (board "Merchant detail") */}
+        <View className="items-center px-4 pt-3 pb-1" style={{ gap: 6 }}>
+          <View className="items-center justify-center" style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: tint(heroColor, 0.12) }}>
+            <Text className="text-title font-bold" style={{ color: heroColor }}>
+              {merchant.name.trim().charAt(0).toUpperCase() || "?"}
+            </Text>
+          </View>
+          <Text className="text-heading font-bold text-foreground text-center" numberOfLines={2}>
+            {merchant.name}
+          </Text>
+          <Text className="text-meta text-muted-foreground">
+            {s(merchant.txCount, "transaction")}
+            {spendTotal != null && spendTotal > 0 ? ` · ${formatAmount(Math.round(spendTotal))} in total` : ""}
+          </Text>
+        </View>
         {/* Name */}
         <Card className="mx-4 mt-3">
           <Text className="text-label text-muted-foreground">Shown as</Text>

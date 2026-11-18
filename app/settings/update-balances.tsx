@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { FormFooter } from "@/components/ui/FormParts";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, Card, EmptyState, Input, ScreenContainer, Text, useToast } from "@/components/ui";
@@ -160,20 +161,19 @@ export default function UpdateBalancesScreen() {
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 48 }} keyboardShouldPersistTaps="handled">
           <Text className="text-meta text-muted-foreground mb-3 leading-5">
-            Each box starts at your bank&apos;s latest SMS figure where there is one, otherwise at Arth&apos;s. Check them against your bank
-            and card apps. Wherever a box differs from Arth&apos;s figure, the difference is recorded in that account&apos;s ledger as money
-            out or money in. Money out stays out of your budget unless you switch on Count in budget.
+            Type what your bank and card apps show. Where it differs from Arth, the difference is recorded in that account as money in or
+            out, kept out of your budget unless you switch on Count in budget.
           </Text>
           {section("balance", "Bank accounts and wallets")}
-          {section("card_due", "Credit cards")}
-          <Button
-            title={changed.length === 0 ? "Nothing changed" : `Update ${changed.length} ${changed.length === 1 ? "account" : "accounts"}`}
-            onPress={() => void save()}
-            disabled={changed.length === 0}
-            loading={saving}
-            className="mt-3"
-          />
+          {section("card_due", "Credit cards · owed now")}
         </ScrollView>
+        {/* Light footer: how many changes, and Save */}
+        <FormFooter
+          primary={saving ? "Saving…" : changed.length === 0 ? "Nothing changed" : `Save ${changed.length} ${changed.length === 1 ? "change" : "changes"}`}
+          onPrimary={() => void save()}
+          disabled={changed.length === 0 || saving}
+          onCancel={() => router.back()}
+        />
       </KeyboardAvoidingView>
     </ScreenContainer>
   );

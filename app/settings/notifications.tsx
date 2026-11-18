@@ -154,11 +154,12 @@ export default function NotificationPreferencesScreen() {
           </View>
         )}
 
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mx-4 mb-2">Money</Text>
         <Card className="mx-4 mb-3">
           <NotifToggle
             icon="chatbubble-ellipses-outline"
             iconColor={theme.primary}
-            title="New Transactions"
+            title="New transactions"
             subtitle="Checks bank SMS in the background (about every 30 min) and lets you approve or reject from the notification"
             category="new_transaction"
             enabled={newTransaction}
@@ -168,7 +169,7 @@ export default function NotificationPreferencesScreen() {
           <NotifToggle
             icon="alert-circle-outline"
             iconColor={theme.danger}
-            title="Overdue Payments"
+            title="Overdue payments"
             subtitle="Daily 9:10 AM digest when payments are overdue"
             category="overdue_forecast"
             enabled={overdue}
@@ -178,27 +179,18 @@ export default function NotificationPreferencesScreen() {
           <NotifToggle
             icon="time-outline"
             iconColor={theme.warning}
-            title="Upcoming Dues"
+            title="Upcoming dues"
             subtitle="Daily 9:10 AM digest for payments due within 2 days"
             category="upcoming_due"
             enabled={upcoming}
             onToggle={handleToggle}
           />
 
-          <NotifToggle
-            icon="cloud-upload-outline"
-            iconColor="#0D9488"
-            title="Auto Backup"
-            subtitle="Notify when a scheduled backup completes"
-            category="scheduled_backup"
-            enabled={scheduledBackup}
-            onToggle={handleToggle}
-          />
         </Card>
 
         {isBrokerHistoryOn() && (
           <>
-            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mx-4 mb-2">Save today's trades</Text>
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mx-4 mb-2">Brokers · save today's trades</Text>
             <Card className="mx-4 mb-3">
               {BROKER_REMINDERS.map((b, i) => (
                 <BrokerReminderRow key={b.broker} broker={b.broker} title={b.title} subtitle={b.subtitle} lastRow={i === BROKER_REMINDERS.length - 1} />
@@ -206,6 +198,19 @@ export default function NotificationPreferencesScreen() {
             </Card>
           </>
         )}
+
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mx-4 mb-2">App</Text>
+        <Card className="mx-4 mb-3">
+          <NotifToggle
+            icon="cloud-upload-outline"
+            iconColor={theme.primary}
+            title="Auto-backup"
+            subtitle="When a scheduled backup completes"
+            category="scheduled_backup"
+            enabled={scheduledBackup}
+            onToggle={handleToggle}
+          />
+        </Card>
 
         <View className="mx-4 px-3 py-2.5 rounded-card" style={{ backgroundColor: theme.alpha("warning", 0.08) }}>
           <Text className="text-label text-muted-foreground">

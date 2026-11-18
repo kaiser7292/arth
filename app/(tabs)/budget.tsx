@@ -6,8 +6,7 @@ import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput }
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, Chip, ChipWrap, ContextualHeader, FieldRow, PeriodNavigator, ProgressBar, ScreenContainer, SwipePager, Text } from "@/components/ui";
-import { StatTile, Statement } from "@/components/ui/LinkRow";
-import { FoldGroup } from "@/components/ui/FormParts";
+import { Statement } from "@/components/ui/LinkRow";
 import { tint } from "@/constants/brand";
 import { AnimatedNumber, Nudge, PressableScale } from "@/components/motion";
 import { staggerDelay } from "@/components/motion/motion";
@@ -303,7 +302,6 @@ export default function BudgetScreen() {
   const left = totalBudget - totalSpent;
   const projected = isCurrentMonth ? v2Forecast?.projectedTotal ?? compliance?.projectedMonthEnd ?? null : null;
   const projectedOver = projected != null && totalBudget > 0 && projected > totalBudget;
-  const dailyPace = v2Forecast?.variable.dailyPace ?? (compliance ? compliance.dailySpendRate : null);
   const openBucket = (avoidability: "unavoidable" | "avoidable" | "unclassified", title: string) =>
     router.push({ pathname: "/budget/transactions", params: { filterMonth: month, filterAvoidability: avoidability, title } });
   const saveQuickBudget = async () => {
@@ -313,7 +311,9 @@ export default function BudgetScreen() {
     bumpDataVersion();
     setQuickBudgetRow(null);
   };
-  const signedAmt = (n: number) => (n >= 0 ? formatAmount(n) : `−${formatAmount(Math.abs(n))}`);
+  // Whole rupees on the Budget tab: paise made the figures wrap or get cut (owner, Nov 2026).
+  const rs = (n: number) => formatAmount(Math.round(n));
+  const signedAmt = (n: number) => (n >= 0 ? rs(n) : `−${rs(Math.abs(n))}`);
 
   return (
     <ScreenContainer>
@@ -413,7 +413,7 @@ export default function BudgetScreen() {
                 <View className="flex-1">
                   <Text className="text-meta text-muted-foreground">{left >= 0 ? "Left to spend" : "Over budget by"}</Text>
                   <AnimatedNumber
-                    value={Math.abs(left)}
+                    value={Math.round(Math.abs(left))}
                     className="text-hero font-bold"
                     style={{ color: left >= 0 ? theme.foreground : theme.danger }}
                   />
@@ -421,7 +421,7 @@ export default function BudgetScreen() {
                 <View className="items-end" style={{ gap: 4 }}>
                   <Chip variant="status" className="self-end" tone={budgetBadgeTone} label={budgetBadgeLabel} />
                   <Text className="text-meta text-muted-foreground text-right">
-                    of {formatAmount(totalBudget)}
+                    of {rs(totalBudget)}
                     {"\n"}
                     {isPastMonth ? `${daysTotal} days` : `${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left`}
                   </Text>
@@ -456,7 +456,7 @@ export default function BudgetScreen() {
                     <SplitRow
                       dot={theme.mutedForeground}
                       label="Loan EMIs"
-                      note={emis.prepaid > 0 ? `includes ${formatAmount(emis.prepaid)} prepaid` : "from your loans, no budget to set"}
+                      note={emis.prepaid > 0 ? `includes ${rs(emis.prepaid)} prepaid` : "from your loans"}
                       value={emis.paid}
                       of={emis.due}
                       onPress={() => router.push("/goals/loans")}
@@ -498,10 +498,10 @@ export default function BudgetScreen() {
                   style={{ backgroundColor: projectedOver ? theme.alpha("warning", 0.08) : theme.alpha("success", 0.08) }}
                 >
                   <Text className="text-meta text-foreground">
-                    At this pace you&apos;ll spend <Text className="text-meta font-bold">{formatAmount(Math.round(projected))}</Text>.
+                    At this pace you&apos;ll spend <Text className="text-meta font-bold">{rs(Math.round(projected))}</Text>.
                     {left > 0 && daysRemaining > 0 ? (
                       <>
-                        {" "}Keep to <Text className="text-meta font-bold">{formatAmount(perDayRemaining)} a day</Text> to stay on budget.
+                        {" "}Keep to <Text className="text-meta font-bold">{rs(perDayRemaining)} a day</Text> to stay on budget.
                       </>
                     ) : null}
                   </Text>
@@ -524,91 +524,88 @@ export default function BudgetScreen() {
             </Card>
           )}
 
-          {/* ── Three tiles ── */}
-          {visibleWidgets.includes("summary") && (
-            <View className="flex-row" style={{ gap: 8 }}>
-              <StatTile label={hasEmis ? "Money out" : "Spent"} value={formatAmount(moneyOut)} sub={hasEmis ? `of ${formatAmount(planned)} planned` : undefined} />
+          {/* ── This month: the three tiles and "More numbers" in one card of full-width rows, so no
+               amount is ever cut off (owner, Nov 2026). The two widgets still switch their parts. */}
+          {(visibleWidgets.includes("summary") || (visibleWidgets.includes("projection") && totalBudget > 0)) && (
+            <Card>
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">This month</Text>
+              {totalBudget > 0 ? (
+                <Statement
+                  lines={[
+                    { label: "Budget", amount: rs(totalBudget) },
+                    { label: "Spent", sign: "−", amount: rs(totalSpent) },
+                  ]}
+                  total={{
+                    label: isPastMonth ? (left >= 0 ? "Saved" : "Overspent") : left >= 0 ? "Left to spend" : "Over budget",
+                    amount: signedAmt(Math.round(left)),
+                    color: left < 0 ? theme.danger : isPastMonth ? theme.success : undefined,
+                  }}
+                />
+              ) : (
+                <FieldRow label="Spent" value={rs(totalSpent)} divider={false} />
+              )}
+              {hasEmis && <FieldRow label="Money out, with EMIs" value={`${rs(moneyOut)} of ${rs(planned)}`} />}
               {isPastMonth ? (
-                <StatTile label="Spent per day" value={formatAmount(Math.round((totalSpent / daysTotal) * 100) / 100)} />
+                <FieldRow label="Average a day" value={rs(totalSpent / daysTotal)} />
               ) : totalBudget > 0 && totalSpent >= totalBudget ? (
-                <StatTile label="Per day" value="Over" valueColor={theme.danger} />
+                <FieldRow label="Per day left" value="None" valueColor={theme.danger} />
               ) : (
-                <StatTile label="Per day left" value={formatAmount(perDayRemaining)} />
+                <FieldRow label="Per day left" value={rs(perDayRemaining)} />
               )}
-              {isCurrentMonth && projected != null ? (
-                <StatTile label="Projected" value={formatAmount(Math.round(projected))} valueColor={projectedOver ? theme.danger : undefined} />
-              ) : (
-                <StatTile label={left >= 0 ? "Saved" : "Overspent"} value={formatAmount(Math.abs(left))} valueColor={left < 0 ? theme.danger : undefined} />
+              {isCurrentMonth && projected != null && (
+                <FieldRow label="Projected spend" value={rs(projected)} valueColor={projectedOver ? theme.danger : undefined} />
               )}
-            </View>
-          )}
 
-          {/* ── More numbers (the projection widget) ── */}
-          {visibleWidgets.includes("projection") && totalBudget > 0 && (
-            <FoldGroup
-              title="More numbers"
-              sub={
-                isCurrentMonth
-                  ? `Projection${v2Forecast ? ` · ${v2Forecast.confidence} confidence` : ""}${dailyPace != null ? ` · ${formatAmount(Math.round(dailyPace))} a day` : ""}`
-                  : `Month-end actual${rollingSurplus !== 0 ? ` · FY ${rollingSurplus >= 0 ? "surplus" : "deficit"}` : ""}`
-              }
-              icon={isCurrentMonth ? "trending-up-outline" : "checkmark-done-outline"}
-            >
-              {isCurrentMonth ? (
-                v2Forecast ? (
+              {visibleWidgets.includes("projection") && totalBudget > 0 && (
+                isCurrentMonth ? (
+                  v2Forecast ? (
+                    <View>
+                      <FieldRow
+                        label={(v2Forecast.breathingRoom ?? 0) >= 0 ? "Projected savings" : "Projected deficit"}
+                        value={signedAmt(Math.round(v2Forecast.breathingRoom ?? 0))}
+                        valueColor={(v2Forecast.breathingRoom ?? 0) >= 0 ? theme.success : theme.danger}
+                      />
+                      <FieldRow label="Fixed" value={rs(v2Forecast.fixedDone.total + v2Forecast.fixedPending.total)} />
+                      <FieldRow label="Variable" value={rs(v2Forecast.variable.projected)} />
+                      <FieldRow label="Daily pace" value={`${rs(v2Forecast.variable.dailyPace)} a day`} />
+                      <FieldRow label="Days gone / left" value={`${v2Forecast.variable.daysElapsed} / ${v2Forecast.variable.daysLeft}`} />
+                      <FieldRow label="Confidence" value={v2Forecast.confidence.charAt(0).toUpperCase() + v2Forecast.confidence.slice(1)} />
+                    </View>
+                  ) : compliance ? (
+                    <View>
+                      <FieldRow
+                        label={compliance.monthlyProjectedSavings >= 0 ? "Projected savings" : "Projected deficit"}
+                        value={signedAmt(Math.round(compliance.monthlyProjectedSavings))}
+                        valueColor={compliance.monthlyProjectedSavings >= 0 ? theme.success : theme.danger}
+                      />
+                      <FieldRow label="Daily rate" value={`${rs(compliance.dailySpendRate)} a day`} />
+                      <FieldRow label="Days left" value={String(compliance.daysRemaining)} />
+                    </View>
+                  ) : null
+                ) : (
                   <View>
-                    <FieldRow label="Projected spend" value={formatAmount(v2Forecast.projectedTotal)} valueColor={v2Forecast.projectedTotal > totalBudget ? theme.danger : undefined} divider={false} />
-                    <FieldRow
-                      label={(v2Forecast.breathingRoom ?? 0) >= 0 ? "Projected savings" : "Projected deficit"}
-                      value={signedAmt(v2Forecast.breathingRoom ?? 0)}
-                      valueColor={(v2Forecast.breathingRoom ?? 0) >= 0 ? theme.success : theme.danger}
-                    />
-                    <FieldRow label="Fixed" value={formatAmount(v2Forecast.fixedDone.total + v2Forecast.fixedPending.total)} />
-                    <FieldRow label="Variable" value={formatAmount(v2Forecast.variable.projected)} />
-                    <FieldRow label="Daily pace" value={`${formatAmount(v2Forecast.variable.dailyPace)} a day`} />
-                    <FieldRow label="Days elapsed / left" value={`${v2Forecast.variable.daysElapsed} / ${v2Forecast.variable.daysLeft}`} />
-                    <FieldRow label="Confidence" value={v2Forecast.confidence.charAt(0).toUpperCase() + v2Forecast.confidence.slice(1)} />
+                    <FieldRow label="Days" value={String(daysTotal)} />
+                    {rollingSurplus !== 0 && (
+                      <FieldRow
+                        label={`FY ${rollingSurplus >= 0 ? "surplus" : "deficit"} so far`}
+                        value={signedAmt(Math.round(rollingSurplus))}
+                        valueColor={rollingSurplus >= 0 ? theme.success : theme.danger}
+                      />
+                    )}
+                    {rollingSurplus !== 0 && <Text className="text-label text-muted-foreground">Savings against budget from the FY start to this month</Text>}
                   </View>
-                ) : compliance ? (
-                  <View>
-                    <FieldRow label="Projected spend" value={formatAmount(Math.round(compliance.projectedMonthEnd))} valueColor={compliance.monthlyOnTrack ? undefined : theme.danger} divider={false} />
-                    <FieldRow
-                      label={compliance.monthlyProjectedSavings >= 0 ? "Projected savings" : "Projected deficit"}
-                      value={signedAmt(Math.round(compliance.monthlyProjectedSavings))}
-                      valueColor={compliance.monthlyProjectedSavings >= 0 ? theme.success : theme.danger}
-                    />
-                    <FieldRow label="Daily rate" value={`${formatAmount(Math.round(compliance.dailySpendRate))} a day`} />
-                    <FieldRow label="Days left" value={String(compliance.daysRemaining)} />
-                  </View>
-                ) : null
-              ) : (
-                <View>
-                  <Statement
-                    lines={[{ label: "Budget", amount: formatAmount(totalBudget) }, { label: "Spent", sign: "−", amount: formatAmount(totalSpent) }]}
-                    total={{ label: left >= 0 ? "Saved" : "Overspent", amount: signedAmt(left), color: left >= 0 ? theme.success : theme.danger }}
-                  />
-                  <FieldRow label="Average a day" value={formatAmount(Math.round(totalSpent / daysTotal))} />
-                  <FieldRow label="Days" value={String(daysTotal)} />
-                  {rollingSurplus !== 0 && (
-                    <FieldRow
-                      label={`Rolling ${rollingSurplus >= 0 ? "surplus" : "deficit"} this FY`}
-                      value={signedAmt(rollingSurplus)}
-                      valueColor={rollingSurplus >= 0 ? theme.success : theme.danger}
-                    />
-                  )}
-                  {rollingSurplus !== 0 && <Text className="text-label text-muted-foreground">Savings against budget from the FY start to this month</Text>}
-                </View>
+                )
               )}
 
               {/* Annual projection (if a yearly plan exists), current month only */}
-              {isCurrentMonth && compliance && compliance.annualOnTrack !== null && (
+              {visibleWidgets.includes("projection") && isCurrentMonth && compliance && compliance.annualOnTrack !== null && (
                 <View className="border-t border-border pt-2">
                   <View className="flex-row items-center justify-between">
                     <Text className="text-body font-semibold text-foreground">Annual projection</Text>
                     <Chip variant="status" className="self-center" tone={compliance.annualOnTrack ? "success" : "danger"} label={compliance.annualOnTrack ? "On track" : "Over budget"} />
                   </View>
-                  <FieldRow label="Projected" value={formatAmount(Math.round(compliance.annualProjectedSpend ?? 0))} divider={false} />
-                  <FieldRow label="Annual budget" value={formatAmount(compliance.annualBudget ?? 0)} />
+                  <FieldRow label="Projected" value={rs(Math.round(compliance.annualProjectedSpend ?? 0))} divider={false} />
+                  <FieldRow label="Annual budget" value={rs(compliance.annualBudget ?? 0)} />
                   <FieldRow
                     label={(compliance.annualProjectedSavings ?? 0) >= 0 ? "Under budget" : "Over budget"}
                     value={signedAmt(Math.round(compliance.annualProjectedSavings ?? 0))}
@@ -616,7 +613,7 @@ export default function BudgetScreen() {
                   />
                 </View>
               )}
-            </FoldGroup>
+            </Card>
           )}
 
           {/* ── Review-queue nudge: uncategorised spending ── */}
@@ -630,7 +627,7 @@ export default function BudgetScreen() {
               <Ionicons name="help-circle-outline" size={20} color={theme.primary} />
               <View className="flex-1">
                 <Text className="text-body font-semibold text-foreground">
-                  {uncategorizedCount} uncategorised · {formatAmount(uncategorized)}
+                  {uncategorizedCount} uncategorised · {rs(uncategorized)}
                 </Text>
                 <Text className="text-meta text-muted-foreground">Tap to review and give them categories</Text>
               </View>
@@ -649,7 +646,7 @@ export default function BudgetScreen() {
                 <PressableScale
                   onPress={() => router.push("/goals/loans")}
                   accessibilityRole="button"
-                  accessibilityLabel={`Loan EMIs ${formatAmount(monthSplit.emis.paid)} paid. Open loans`}
+                  accessibilityLabel={`Loan EMIs ${rs(monthSplit.emis.paid)} paid. Open loans`}
                   style={{ paddingHorizontal: 16, paddingVertical: 10 }}
                   className="border-t border-border"
                 >
@@ -665,7 +662,7 @@ export default function BudgetScreen() {
                     </View>
                     <View className="items-end">
                       <Text className="text-body font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-                        {formatAmount(monthSplit.emis.paid)}
+                        {rs(monthSplit.emis.paid)}
                       </Text>
                       {(() => {
                         const { paid, prepaid, due } = monthSplit.emis;
@@ -678,9 +675,9 @@ export default function BudgetScreen() {
                               : "Paid"
                             : done
                               ? prepaid > 0
-                                ? `Paid + ${formatAmount(prepaid)} prepaid`
+                                ? `Paid + ${rs(prepaid)} prepaid`
                                 : "Paid"
-                              : `${formatAmount(due - emiPaid)} still due`;
+                              : `${rs(due - emiPaid)} still due`;
                         return (
                           <Text className="text-label" style={{ color: done ? theme.success : theme.warning }}>
                             {status}
@@ -718,15 +715,15 @@ export default function BudgetScreen() {
                               {item.category.name}
                             </Text>
                             <Text className="text-body font-semibold" style={{ color: status === "over" ? theme.danger : theme.foreground, fontVariant: ["tabular-nums"] }}>
-                              {formatAmount(item.spent)}
+                              {rs(item.spent)}
                             </Text>
-                            {item.budget > 0 && <Text className="text-meta text-muted-foreground"> / {formatAmount(item.budget)}</Text>}
+                            {item.budget > 0 && <Text className="text-meta text-muted-foreground"> / {rs(item.budget)}</Text>}
                           </View>
                           {item.budget > 0 && <ProgressBar value={pct} color={barColor} height={6} delay={200 + staggerDelay(rowIndex)} />}
                           {item.budget > 0 && (
                             <View className="flex-row justify-between">
                               <Text className="text-label text-muted-foreground">
-                                {remaining >= 0 ? `${formatAmount(remaining)} left` : `${formatAmount(Math.abs(remaining))} over`}
+                                {remaining >= 0 ? `${rs(remaining)} left` : `${rs(Math.abs(remaining))} over`}
                               </Text>
                               <Text className="text-label text-muted-foreground">{Math.round(pct * 100)}%</Text>
                             </View>
@@ -781,7 +778,7 @@ export default function BudgetScreen() {
                   <View className="flex-1">
                     <Text className="text-body font-semibold text-foreground">{quickBudgetRow?.category.name}</Text>
                     <Text className="text-meta text-muted-foreground">
-                      {formatAmount(quickBudgetRow?.spent ?? 0)} spent · {monthLabel} only
+                      {rs(quickBudgetRow?.spent ?? 0)} spent · {monthLabel} only
                     </Text>
                   </View>
                 </View>
@@ -855,7 +852,7 @@ function SplitRow({ dot, label, note, value, of, onPress }: { dot: string; label
       className="flex-row items-center py-2 border-t border-border"
       style={{ gap: 8 }}
       accessibilityRole="button"
-      accessibilityLabel={`${label} ${formatAmount(value)}${of ? ` of ${formatAmount(of)}` : ""}. Open transactions`}
+      accessibilityLabel={`${label} ${formatAmount(Math.round(value))}${of ? ` of ${formatAmount(Math.round(of))}` : ""}. Open transactions`}
     >
       <View className="w-2 h-2 rounded-pill" style={{ backgroundColor: dot }} />
       <View className="flex-1">
@@ -863,9 +860,9 @@ function SplitRow({ dot, label, note, value, of, onPress }: { dot: string; label
         {note ? <Text className="text-label text-muted-foreground">{note}</Text> : null}
       </View>
       <Text className="text-meta font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-        {formatAmount(value)}
+        {formatAmount(Math.round(value))}
       </Text>
-      {of != null && of > 0 && <Text className="text-label text-muted-foreground">/ {formatAmount(of)}</Text>}
+      {of != null && of > 0 && <Text className="text-label text-muted-foreground">/ {formatAmount(Math.round(of))}</Text>}
       <Ionicons name="chevron-forward" size={12} color={theme.faintForeground} />
     </Pressable>
   );

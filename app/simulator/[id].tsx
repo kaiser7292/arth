@@ -43,7 +43,7 @@ import {
 
 import { todayIso } from "@/utils/date";
 import { formatError } from "@/utils/error-message";
-import { formatAmount } from "@/utils/format";
+import { formatAmount, formatShortAmount } from "@/utils/format";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -470,19 +470,7 @@ export default function ScenarioDetailScreen() {
         contentContainerStyle={{ paddingBottom: 96 }}
       >
         {/* Header actions — horizon + menu */}
-        <View className="mx-4 mt-3 mb-1 flex-row items-center justify-between">
-          <Pressable
-            onPress={() => setHorizonPickerVisible(true)}
-            className="flex-row items-center py-1.5 px-3 rounded-full"
-            style={{ backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.alpha("primary", 0.25) }}
-            accessibilityRole="button"
-            accessibilityLabel="Change horizon date"
-          >
-            <Ionicons name="calendar-outline" size={14} color={theme.primary} />
-            <Text className="text-label font-semibold ml-1.5" style={{ color: theme.primary }}>
-              Until {prettyDate(scenario.horizon_date)}
-            </Text>
-          </Pressable>
+        <View className="mx-4 mt-1 flex-row items-center justify-end">
           <Pressable
             onPress={() => setMenuVisible(true)}
             hitSlop={8}
@@ -501,12 +489,18 @@ export default function ScenarioDetailScreen() {
             Warnings live in their own tinted strip BELOW the card (see below). */}
         <Card className="mx-4 mt-3">
           <View className="flex-row items-center justify-between">
-            <Text
-              className="text-label font-semibold uppercase tracking-wider"
-              style={{ color: theme.mutedForeground }}
-            >
-              Projected balance · {prettyDate(scenario.horizon_date)}
-            </Text>
+            <Text className="text-meta text-muted-foreground">Balance on {prettyDate(scenario.horizon_date)}</Text>
+            {!recomputing && (
+              <Pressable
+                onPress={() => setHorizonPickerVisible(true)}
+                className="rounded-pill border border-border px-3 justify-center"
+                style={{ height: 32 }}
+                accessibilityRole="button"
+                accessibilityLabel="Change the end date"
+              >
+                <Text className="text-meta font-semibold text-foreground">Change date</Text>
+              </Pressable>
+            )}
             {recomputing && (
               <View
                 className="flex-row items-center px-2 py-0.5 rounded-full"
@@ -541,6 +535,22 @@ export default function ScenarioDetailScreen() {
               ? "No planned entries yet - same as starting balance."
               : `Starts at ${formatAmount(adjustedNetStart)} today, after ${entries.upcoming.length} planned ${entries.upcoming.length === 1 ? "entry" : "entries"}.`}
           </Text>
+
+          {/* Available now, money in, money out (board "Scenario"), short so they never get cut */}
+          <View className="flex-row mt-3" style={{ gap: 8 }}>
+            {[
+              { label: "Available now", value: formatShortAmount(adjustedNetStart), color: theme.foreground },
+              { label: "Money in", value: `+${formatShortAmount(incomingTotal)}`, color: theme.success },
+              { label: "Money out", value: `−${formatShortAmount(outgoingTotal)}`, color: theme.foreground },
+            ].map((t) => (
+              <View key={t.label} className="flex-1 rounded-control px-2.5 py-2" style={{ backgroundColor: theme.alpha("foreground", 0.04) }}>
+                <Text className="text-label text-muted-foreground" numberOfLines={1}>{t.label}</Text>
+                <Text className="text-body font-bold" style={{ color: t.color, fontVariant: ["tabular-nums"] }} numberOfLines={1}>
+                  {t.value}
+                </Text>
+              </View>
+            ))}
+          </View>
 
           {/* Warnings strip — overdraft, min balance breach, CC over limit */}
           {simulation.warnings.length > 0 && (

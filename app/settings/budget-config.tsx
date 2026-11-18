@@ -224,11 +224,11 @@ export default function BudgetConfigScreen() {
         onPress: () => saveBudgetsToMonths([month]),
       },
       {
-        text: `This Month Onwards (${onwardsMonths.length} months)`,
+        text: `This month onwards (${onwardsMonths.length} months)`,
         onPress: () => saveBudgetsToMonths(onwardsMonths),
       },
       {
-        text: `All Months in ${fyLabel}`,
+        text: `All months in ${fyLabel}`,
         onPress: () => saveBudgetsToMonths(getFYMonths()),
       },
       { text: "Cancel", style: "cancel" as const },
@@ -240,8 +240,15 @@ export default function BudgetConfigScreen() {
     0,
   );
 
-  const renderItem = ({ item }: { item: BudgetRow }) => (
-    <View className="flex-row items-center px-4 py-3 border-b border-border">
+  // Unavoidable vs flexible, under the total (board "Budget configuration").
+  const unavoidableTotal = rows.reduce((sum, r) => sum + (r.category.is_unavoidable === 1 ? parseFloat(r.editAmount) || 0 : 0), 0);
+
+  const renderItem = ({ item, index }: { item: BudgetRow; index: number }) => {
+    const saved = item.budget ? item.budget.amount : 0;
+    const now = parseFloat(item.editAmount) || 0;
+    const changed = Math.abs(now - saved) >= 0.01;
+    return (
+    <View className={`flex-row items-center px-3.5 py-2.5 ${index > 0 ? "border-t border-border" : ""}`} style={{ minHeight: 60 }}>
       <View
         className="w-9 h-9 rounded-full items-center justify-center mr-3"
         style={{ backgroundColor: tint(item.category.color, 0.08) }}
@@ -259,25 +266,32 @@ export default function BudgetConfigScreen() {
         >
           {item.category.name}
         </Text>
-        {item.category.is_unavoidable === 1 && (
-          <Text className="text-label text-faint-foreground">Unavoidable</Text>
-        )}
+        {changed ? (
+          <Text className="text-label" style={{ color: theme.warning }}>
+            Changed from {formatAmount(saved)}
+          </Text>
+        ) : item.category.is_unavoidable === 1 ? (
+          <Text className="text-label text-muted-foreground">Unavoidable</Text>
+        ) : null}
       </View>
-      <View className="flex-row items-center">
-        <Text className="text-meta text-faint-foreground mr-1">
-          {"\u20B9"}
-        </Text>
+      <View
+        className="flex-row items-center rounded-control bg-card px-2.5"
+        style={{ height: 40, borderWidth: 1, borderColor: changed ? theme.warning : theme.border }}
+      >
+        <Text className="text-meta text-muted-foreground mr-1">{"\u20B9"}</Text>
         <FormulaTextInput
           value={item.editAmount}
           onChangeText={(text) => handleAmountChange(item.category.id, text)}
           keyboardType="numeric"
-          className="w-20 text-right text-body font-medium text-foreground border-b border-border py-1"
+          className="w-20 text-right text-body font-semibold text-foreground"
           placeholderTextColor={theme.mutedForeground}
           selectTextOnFocus
+          accessibilityLabel={`${item.category.name} budget`}
         />
       </View>
     </View>
-  );
+    );
+  };
 
   return (
     <ScreenContainer padTop={false} keyboardAware>
@@ -303,17 +317,32 @@ export default function BudgetConfigScreen() {
         </View>
       )}
 
-      {/* Total */}
-      <View className="px-4 py-3 bg-card">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-meta text-muted-foreground">
-            Total Monthly Budget
-          </Text>
-          <Text className="text-heading font-bold text-foreground">
-            {formatAmount(totalBudget)}
-          </Text>
+      {!hasNoBudget && rows.length > 0 && (
+        <View className="flex-row justify-end px-4">
+          <Pressable
+            onPress={copyFromPreviousMonth}
+            className="rounded-pill border border-border bg-card px-3 justify-center"
+            style={{ height: 34 }}
+            accessibilityRole="button"
+            accessibilityLabel={`Copy budgets from ${previousMonthLabel}`}
+          >
+            <Text className="text-meta font-semibold text-foreground">Copy last month</Text>
+          </Pressable>
         </View>
+      )}
+
+      {/* Total, and how much of it is unavoidable */}
+      <View className="mx-4 mt-2 rounded-card bg-card border border-border px-4 py-3.5 flex-row items-center">
+        <View className="flex-1">
+          <Text className="text-meta text-muted-foreground">Monthly budget</Text>
+          <Text className="text-hero font-bold text-foreground">{formatAmount(totalBudget)}</Text>
+        </View>
+        <Text className="text-meta text-muted-foreground text-right">
+          {formatAmount(unavoidableTotal)} unavoidable{"\n"}
+          {formatAmount(totalBudget - unavoidableTotal)} flexible
+        </Text>
       </View>
+      <Text className="text-label text-muted-foreground px-5 mt-2 mb-2">Tip: type a sum like 2000+500 and it adds up for you.</Text>
 
       {/* Category budgets */}
       <FlatList
@@ -331,17 +360,17 @@ export default function BudgetConfigScreen() {
           />
         }
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 120 }}
+        style={{ flexGrow: 0, flexShrink: 1 }}
+        contentContainerStyle={rows.length > 0 ? { marginHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card, overflow: "hidden" } : undefined}
       />
 
-      {/* Save button */}
-      <View className="p-4 border-t border-border">
-        <Button
-          title="Save"
-          onPress={handleSave}
-          loading={saving}
-          disabled={!hasChanges}
-        />
+      <View className="flex-1" />
+      {/* Light footer: what's pending, and Save */}
+      <View className="bg-card border-t border-border px-4 pt-3 pb-3 flex-row items-center" style={{ gap: 12 }}>
+        <Text className="flex-1 text-meta text-muted-foreground">{hasChanges ? "Unsaved changes" : "All saved"}</Text>
+        <View style={{ minWidth: 160 }}>
+          <Button title="Save budgets" onPress={handleSave} loading={saving} disabled={!hasChanges} />
+        </View>
       </View>
     </ScreenContainer>
   );

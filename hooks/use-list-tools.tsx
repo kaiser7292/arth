@@ -198,6 +198,9 @@ export function useListTools<T>({
     toolbar,
     filterSheet,
     groupBy,
+    /** The grouping and sorting choices, for a "Grouped by … sorted …" line under the search. */
+    groupChoice,
+    sortChoice,
     query,
     setQuery,
     /** Search or a filter is narrowing the list. */
@@ -205,5 +208,7 @@ export function useListTools<T>({
     reset,
     /** Turn on one field's filter from outside, e.g. the card a shared-limit ledger was opened from. */
     setFieldFilter,
+    /** Which keys each filter field has on, e.g. to light up quick-filter chips. */
+    filters,
   };
 }

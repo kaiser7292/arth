@@ -47,7 +47,11 @@ const FREQ_OPTIONS = [
   { label: "48h", hours: 48 },
 ] as const;
 
-export default function BackupRestoreScreen() {
+/**
+ * Back up and restore. Backup and data shows this same screen with its "Your data" links as the
+ * footer (board "Backup and data": one screen), so the two are never out of step.
+ */
+export default function BackupRestoreScreen({ header, footer }: { header?: React.ReactNode; footer?: React.ReactNode } = {}) {
   const router = useRouter();
   const alert = useAlert();
   const { colors } = useColorScheme();
@@ -266,6 +270,7 @@ export default function BackupRestoreScreen() {
     <>
     <ScreenContainer padTop={false} keyboardAware>
       <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {header}
         {/* Menu */}
         {mode === "menu" && (
           <View className="py-4">
@@ -713,6 +718,7 @@ export default function BackupRestoreScreen() {
             />
           </View>
         )}
+        {footer}
       </ScrollView>
     </ScreenContainer>
     </>

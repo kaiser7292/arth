@@ -166,12 +166,20 @@ export default function SmsScanRunsScreen() {
                 />
               </View>
               <Text className="text-body font-semibold text-foreground">
-                {item.is_manual ? "Manual Scan" : "Auto Scan"}
+                {item.is_manual ? "Manual scan" : "Auto scan"}
+              </Text>
+              <Text className="text-meta text-muted-foreground ml-1.5">
+                {dateStr} · {timeStr}
               </Text>
             </View>
-            <Text className="text-label text-muted-foreground">
-              {dateStr} · {timeStr}
-            </Text>
+            {/* What came of it, at a glance (board "Scan history") */}
+            {totalExpenses > 0 ? (
+              <View className="rounded-pill px-2 justify-center" style={{ height: 22, backgroundColor: theme.alpha("success", 0.1) }}>
+                <Text className="text-label font-semibold" style={{ color: theme.success }}>{totalExpenses} new</Text>
+              </View>
+            ) : (
+              <Text className="text-label text-muted-foreground">Nothing new</Text>
+            )}
           </View>
 
           <View className="flex-row items-center mb-2">
@@ -509,7 +517,7 @@ export default function SmsScanRunsScreen() {
             >
               <Ionicons name="add-circle-outline" size={14} color={theme.primary} />
               <Text className="text-label font-medium ml-1" style={{ color: theme.primary }}>
-                Teach Arth this SMS
+                Teach this format
               </Text>
             </Pressable>
           )}

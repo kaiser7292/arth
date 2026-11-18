@@ -19,7 +19,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="ai-suggestions" options={{ title: "Review suggestions" }} />
       <Stack.Screen name="ai-lab" options={{ title: "On-device AI lab" }} />
       <Stack.Screen name="import-excel" options={{ title: "Import from Excel" }} />
-      <Stack.Screen name="backup-restore" options={{ title: "Backup & Restore" }} />
+      <Stack.Screen name="backup-restore" options={{ title: "Back up and restore" }} />
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
       <Stack.Screen name="calendar-sync" options={{ title: "Calendar sync" }} />
       <Stack.Screen name="customise" options={{ title: "Customise Arth" }} />
@@ -27,7 +27,7 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="merchants" options={{ title: "Merchants" }} />
       <Stack.Screen name="start-date" options={{ title: "Start date" }} />
       <Stack.Screen name="merchant-detail" options={{ title: "Merchant" }} />
-      <Stack.Screen name="backup-data" options={{ title: "Backup and Data" }} />
+      <Stack.Screen name="backup-data" options={{ title: "Backup and data" }} />
       <Stack.Screen name="clean-up" options={{ title: "Permanently Delete Data" }} />
       <Stack.Screen name="merchant-categories" options={{ title: "Merchant Categories" }} />
       <Stack.Screen name="account-master" options={{ title: "Accounts" }} />

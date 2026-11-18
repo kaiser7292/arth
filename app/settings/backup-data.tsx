@@ -11,6 +11,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { formatFrequency, formatLastBackupTime, getBackupScheduleSettings, getLastScheduledBackupAt } from "@/services/backup-schedule";
 import { getDismissedDuplicateCount } from "@/services/duplicate-detection";
 import { getLastBackupAt } from "@/services/settings";
+import BackupRestoreScreen from "./backup-restore";
 
 /**
  * Backups and everything about removing data, together: backup status and restore, importing,
@@ -47,39 +48,27 @@ export default function BackupDataScreen() {
   const ageDays = last ? (Date.now() - new Date(last).getTime()) / 86_400_000 : null;
   const stale = ageDays == null || ageDays > 7;
 
+  // One screen (board "Backup and data"): Back up and Restore, then your data links.
   return (
-    <ScreenContainer padTop={false}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+    <BackupRestoreScreen
+      header={
+        // When it was last backed up, manual or automatic, and whether automatic backup is on.
+        <View className="flex-row items-center rounded-card px-3.5 py-3 mt-3" style={{ backgroundColor: stale ? theme.alpha("warning", 0.08) : theme.alpha("success", 0.08), gap: 10 }}>
+          <Ionicons name={stale ? "warning-outline" : "shield-checkmark-outline"} size={20} color={stale ? theme.warning : theme.success} />
+          <View className="flex-1">
+            <Text className="text-body font-semibold text-foreground">
+              {last ? `Backed up ${formatLastBackupTime(last).toLowerCase()}` : "Not backed up yet"}
+            </Text>
+            <Text className="text-meta text-muted-foreground">
+              {schedule.enabled ? `Automatic backup ${formatFrequency(schedule.frequencyHours).toLowerCase()}` : "Automatic backup is off"}
+            </Text>
+          </View>
+        </View>
+      }
+      footer={
+      <View className="pt-2">
+        <Label>Your data</Label>
         <Card>
-          <View className="flex-row items-center">
-            <Ionicons
-              name={stale ? "warning-outline" : "shield-checkmark-outline"}
-              size={22}
-              color={stale ? theme.warning : theme.success}
-            />
-            <View className="flex-1 ml-3">
-              <Text className="text-body font-medium text-foreground">
-                {last ? `Backed up ${formatLastBackupTime(last).toLowerCase()}` : "Not backed up yet"}
-              </Text>
-              <Text className="text-label text-muted-foreground mt-0.5">
-                {schedule.enabled ? `Automatic backup ${formatFrequency(schedule.frequencyHours).toLowerCase()}` : "Automatic backup is off"}
-                {" · encrypted with your password"}
-              </Text>
-            </View>
-          </View>
-          <View className="flex-row mt-3" style={{ gap: 8 }}>
-            <Pressable
-              onPress={() => router.push("/settings/backup-restore")}
-              className="flex-1 items-center py-2.5 rounded-control"
-              style={{ backgroundColor: theme.primary }}
-              accessibilityRole="button"
-            >
-              <Text className="text-body font-medium text-primary-foreground">Back up or restore</Text>
-            </Pressable>
-          </View>
-        </Card>
-
-        <Card className="mt-3">
           <Row icon="download-outline" title="Import from Excel" subtitle="Bring in past transactions from a spreadsheet" onPress={() => router.push("/settings/import-excel")} first />
           <Row icon="checkmark-done-outline" title="Reconcile statements" subtitle="Match a statement against your Arth ledger" onPress={() => router.push("/settings/reconciliation")} />
         </Card>
@@ -112,8 +101,9 @@ export default function BackupDataScreen() {
             first
           />
         </Card>
-      </ScrollView>
-    </ScreenContainer>
+      </View>
+      }
+    />
   );
 }
 

@@ -121,20 +121,22 @@ export default function TagsSettingsScreen() {
     }
   }, [editingId, editName, editColor, loadTags]);
 
-  const renderTag = ({ item }: { item: Tag }) => {
+  const renderTag = ({ item, index }: { item: Tag; index: number }) => {
     const isEditing = editingId === item.id;
     const count = usageCounts[item.id] ?? 0;
 
     if (isEditing) {
       return (
-        <View className="py-3 border-b border-border">
+        <View className={`px-4 py-3.5 ${index > 0 ? "border-t border-border" : ""}`} style={{ gap: 4, backgroundColor: theme.alpha("primary", 0.04) }}>
+          <Text className="text-label font-semibold text-muted-foreground mb-1">Editing in place</Text>
           <TextInput
             value={editName}
             onChangeText={setEditName}
             autoFocus
             maxLength={50}
-            className="text-body text-foreground border rounded-control px-3 py-2 mb-2"
-            style={{ borderColor: theme.primary }}
+            className="text-body text-foreground rounded-control px-3 mb-2 bg-card"
+            style={{ borderColor: theme.primary, borderWidth: 2, height: 44 }}
+            accessibilityLabel="Tag name"
           />
           {/* Color picker */}
           <View className="flex-row flex-wrap mb-2">
@@ -155,19 +157,25 @@ export default function TagsSettingsScreen() {
               </Pressable>
             ))}
           </View>
-          <View className="flex-row">
-            <Button
-              title="Save"
-              onPress={handleSaveEdit}
-              variant="primary"
-              className="flex-1 mr-2 py-2"
-            />
-            <Button
-              title="Cancel"
+          <View className="flex-row" style={{ gap: 10 }}>
+            <Pressable
               onPress={() => setEditingId(null)}
-              variant="secondary"
-              className="flex-1 py-2"
-            />
+              className="rounded-pill border border-border bg-card items-center justify-center px-4"
+              style={{ height: 40 }}
+              accessibilityRole="button"
+            >
+              <Text className="text-meta font-semibold text-foreground">Cancel</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSaveEdit}
+              className="rounded-pill items-center justify-center px-5"
+              style={{ height: 40, backgroundColor: theme.primary }}
+              accessibilityRole="button"
+            >
+              <Text className="text-meta font-bold" style={{ color: theme.primaryForeground }}>
+                Save tag
+              </Text>
+            </Pressable>
           </View>
         </View>
       );
@@ -177,22 +185,25 @@ export default function TagsSettingsScreen() {
       <Pressable
         onPress={() => handleStartEdit(item)}
         onLongPress={() => handleDelete(item)}
-        className="flex-row items-center py-3 border-b border-border"
+        className={`flex-row items-center pl-4 pr-2 ${index > 0 ? "border-t border-border" : ""}`}
+        style={{ minHeight: 56 }}
+        accessibilityRole="button"
+        accessibilityLabel={`${item.name}, ${count} ${count === 1 ? "transaction" : "transactions"}. Edit`}
       >
         <View
           className="w-4 h-4 rounded-full mr-3"
           style={{ backgroundColor: item.color }}
         />
         <View className="flex-1">
-          <Text className="text-body text-foreground">
+          <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
             {item.name}
           </Text>
-          <Text className="text-label text-faint-foreground">
-            {count} {count === 1 ? "expense" : "expenses"}
+          <Text className="text-meta text-muted-foreground">
+            {count} {count === 1 ? "transaction" : "transactions"}
           </Text>
         </View>
-        <Pressable onPress={() => handleDelete(item)} className="p-2">
-          <Ionicons name="trash-outline" size={18} color={theme.danger} />
+        <Pressable onPress={() => handleDelete(item)} className="w-10 h-10 items-center justify-center" accessibilityRole="button" accessibilityLabel={`Delete ${item.name}`}>
+          <Ionicons name="trash-outline" size={17} color={theme.mutedForeground} />
         </Pressable>
       </Pressable>
     );
@@ -265,7 +276,8 @@ export default function TagsSettingsScreen() {
         data={tags}
         keyExtractor={(item) => item.id}
         renderItem={renderTag}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 80 }}
+        style={{ flexGrow: 0, flexShrink: 1, marginBottom: 88 }}
+        contentContainerStyle={tags.length > 0 ? { marginHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card, overflow: "hidden" } : { paddingHorizontal: 16 }}
         ListEmptyComponent={
           <EmptyState
             icon="pricetags-outline"

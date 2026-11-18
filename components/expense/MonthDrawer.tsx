@@ -2,8 +2,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useEffect } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
-import { MoneyChip, Text } from "@/components/ui";
-import { RADIUS } from "@/constants/design-tokens";
+import { Text } from "@/components/ui";
+import { moneyTone, type MoneyToneName } from "@/components/ui/money-tone";
+import { formatShortAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { formatMonthLabel } from "@/utils/date";
 import type { MonthSummary } from "@/utils/month-drawers";
@@ -12,8 +13,6 @@ import type { MonthSummary } from "@/utils/month-drawers";
 export type DrawerMode = "all" | "spend" | "credit" | "transfer";
 
 const CARD_MX = 16;
-/** The card corner, as a number for the style objects that split it top and bottom. */
-const R = parseInt(RADIUS.card, 10);
 
 /** The rotating arrow on a month's header. */
 function Chevron({ open, color }: { open: boolean; color: string }) {
@@ -30,9 +29,9 @@ function Chevron({ open, color }: { open: boolean; color: string }) {
 }
 
 /**
- * A drawer's header: a title, a line under it, whatever chips the list wants on the right, and an
- * arrow that turns when it opens. Open, it's the top of a card the rows continue. Months on the
- * Transactions tab, days in the audit log.
+ * A drawer's header: a plain row, not a card (owner, Nov 2026: "why did we put everything in a
+ * card and lose so much space"). The name, the group's totals in one short pill, and an arrow that
+ * turns when it opens; a hairline under it. Months on the Transactions tab, days in the audit log.
  */
 export function DrawerHeader({
   title,
@@ -43,6 +42,7 @@ export function DrawerHeader({
   accessibilityLabel,
 }: {
   title: string;
+  /** Read out with the title; not shown. */
   subtitle: string;
   open: boolean;
   onToggle: () => void;
@@ -51,42 +51,57 @@ export function DrawerHeader({
 }) {
   const theme = useTheme();
   return (
-    <View style={{ marginHorizontal: CARD_MX, marginTop: 10 }}>
-      <Pressable
-        onPress={onToggle}
-        className="flex-row items-center bg-card border border-border"
-        style={{
-          minHeight: 64,
-          paddingLeft: 16,
-          paddingRight: 14,
-          paddingVertical: 12,
-          gap: 10,
-          borderTopLeftRadius: R,
-          borderTopRightRadius: R,
-          borderBottomLeftRadius: open ? 0 : R,
-          borderBottomRightRadius: open ? 0 : R,
-        }}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        accessibilityLabel={accessibilityLabel ?? `${title}, ${subtitle}`}
-        accessibilityHint={open ? "Hides these" : "Shows these"}
-      >
-        <View className="flex-1" style={{ minWidth: 0 }}>
-          <Text className="text-body font-bold text-foreground">{title}</Text>
-          <Text className="text-meta text-muted-foreground mt-0.5">{subtitle}</Text>
-        </View>
-        {right ? (
-          <View className="flex-row flex-wrap justify-end" style={{ gap: 6, flexShrink: 1 }}>
-            {right}
+    <Pressable
+      onPress={onToggle}
+      className="flex-row items-center border-b border-border"
+      style={{ minHeight: 52, paddingHorizontal: CARD_MX, gap: 10 }}
+      accessibilityRole="button"
+      accessibilityState={{ expanded: open }}
+      accessibilityLabel={accessibilityLabel ?? `${title}, ${subtitle}`}
+      accessibilityHint={open ? "Hides these" : "Shows these"}
+    >
+      <Text className="text-body font-bold text-foreground" numberOfLines={1} style={{ flexShrink: 1 }}>
+        {title}
+      </Text>
+      {right}
+      <View className="flex-1" />
+      <Chevron open={open} color={theme.mutedForeground} />
+    </Pressable>
+  );
+}
+
+/** A group's totals in one pill: "↙ ₹15.0K  ↗ ₹14.9K", short amounts as set in Region. */
+export function TotalsPill({ parts }: { parts: { tone: MoneyToneName; amount: number; label: string }[] }) {
+  const theme = useTheme();
+  const shown = parts.filter((p) => p.amount > 0);
+  if (shown.length === 0) return null;
+  return (
+    <View
+      className="flex-row items-center rounded-pill border border-border"
+      style={{ paddingHorizontal: 8, paddingVertical: 3, gap: 8, flexShrink: 0 }}
+      accessibilityLabel={shown.map((p) => `${formatShortAmount(p.amount)} ${p.label}`).join(", ")}
+    >
+      {shown.map((p) => {
+        const { fg } = moneyTone(theme, p.tone);
+        return (
+          <View key={p.label} className="flex-row items-center">
+            <Ionicons
+              name={p.tone === "moved" ? "swap-horizontal" : p.tone === "in" ? "arrow-down" : "arrow-up"}
+              size={11}
+              color={fg}
+              style={{ marginRight: 2, transform: p.tone === "moved" ? undefined : [{ rotate: "45deg" }] }}
+            />
+            <Text className="text-label font-semibold" style={{ color: fg, fontVariant: ["tabular-nums"] }} numberOfLines={1}>
+              {formatShortAmount(p.amount)}
+            </Text>
           </View>
-        ) : null}
-        <Chevron open={open} color={theme.mutedForeground} />
-      </Pressable>
+        );
+      })}
     </View>
   );
 }
 
-/** A month's header: "Nov 2026", how many transactions, and the month's totals as chips. */
+/** A month's header: "Nov 2026" and the month's totals in one pill. */
 export function MonthDrawerHeader({
   summary,
   open,
@@ -109,16 +124,18 @@ export function MonthDrawerHeader({
       open={open}
       onToggle={onToggle}
       accessibilityLabel={`${isMonth ? formatMonthLabel(summary.month, "long") : summary.month}, ${count}`}
-      right={
-        <>
-          {(mode === "all" || mode === "credit") && <MoneyChip tone="in" amount={summary.received} label="money in" />}
-          {/* Spending is the normal case: ink, not red. */}
-          {(mode === "all" || mode === "spend") && <MoneyChip tone="out" amount={summary.spent} label="money out" />}
-          {mode === "transfer" && <MoneyChip tone="moved" amount={summary.received + summary.spent} label="moved" />}
-        </>
-      }
+      right={<TotalsPill parts={pillParts(summary, mode)} />}
     />
   );
+}
+
+function pillParts(summary: MonthSummary, mode: DrawerMode): { tone: MoneyToneName; amount: number; label: string }[] {
+  if (mode === "transfer") return [{ tone: "moved", amount: summary.received + summary.spent, label: "moved" }];
+  return [
+    ...(mode === "all" || mode === "credit" ? [{ tone: "in" as const, amount: summary.received, label: "money in" }] : []),
+    // Spending is the normal case: ink, not red.
+    ...(mode === "all" || mode === "spend" ? [{ tone: "out" as const, amount: summary.spent, label: "money out" }] : []),
+  ];
 }
 
 /**
@@ -145,33 +162,19 @@ export function GroupDrawerHeader({
       subtitle={count}
       open={open}
       onToggle={onToggle}
-      right={
-        <>
-          {(mode === "all" || mode === "credit") && summary.received > 0 && <MoneyChip tone="in" amount={summary.received} label="money in" />}
-          {(mode === "all" || mode === "spend") && summary.spent > 0 && <MoneyChip tone="out" amount={summary.spent} label="money out" />}
-        </>
-      }
+      right={<TotalsPill parts={pillParts(summary, mode)} />}
     />
   );
 }
 
-/** A row inside an open month: the card's sides continue around it. */
+/** A row inside an open month: part of the plain list under the heading. */
 export function DrawerBody({ children }: { children: React.ReactNode }) {
-  return (
-    <View className="bg-card border-x border-border" style={{ marginHorizontal: CARD_MX }}>
-      {children}
-    </View>
-  );
+  return <View>{children}</View>;
 }
 
-/** The bottom of an open month's card. */
+/** The end of an open month: a line before the next month's heading. */
 export function DrawerEnd() {
-  return (
-    <View
-      className="bg-card border-x border-b border-border"
-      style={{ marginHorizontal: CARD_MX, height: 8, borderBottomLeftRadius: R, borderBottomRightRadius: R }}
-    />
-  );
+  return <View className="border-b border-border" style={{ height: 6 }} />;
 }
 
 /** While an open month's rows load. */

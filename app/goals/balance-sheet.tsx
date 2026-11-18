@@ -382,7 +382,7 @@ export default function BalanceSheetScreen() {
 
   // With earlier years beside Today, amounts switch to the short lakh form so every column stays on one line.
   const multi = columns.length > 1;
-  const money = (n: number) => (multi ? `${n < 0 ? "−" : ""}₹${formatCompact(Math.abs(n))}` : formatAmount(n));
+  const money = (n: number) => (multi ? `${n < 0 ? "−" : ""}₹${formatCompact(Math.abs(n))}` : formatAmount(Math.round(n)));
   const colWidth = multi ? 84 : 124;
   const labelWidth = multi ? 132 : 172;
   const colLabel = (col: BalanceSheetColumn) => {
@@ -437,7 +437,7 @@ export default function BalanceSheetScreen() {
       {/* Header: Today, earlier years with ✕, and + for one more */}
       <View className="flex-row items-center px-3 py-2.5">
         <Text className="text-body font-bold text-foreground" style={{ width: labelWidth }} numberOfLines={1}>
-          Net worth
+          By account
         </Text>
         {columns.map((col) => (
           <View key={col.asOfDate} style={{ width: colWidth }} className="flex-row items-center justify-end">
@@ -680,7 +680,7 @@ export default function BalanceSheetScreen() {
             <View className="flex-row items-center" style={{ opacity: recomputing ? 0.55 : 1 }}>
               {liveNetWorth < 0 && <Ionicons name="warning-outline" size={20} color={theme.danger} style={{ marginRight: 6 }} />}
               <Text className="text-hero font-bold" style={{ color: liveNetWorth < 0 ? theme.danger : theme.foreground }}>
-                {formatAmount(liveNetWorth)}
+                {formatAmount(Math.round(liveNetWorth))}
               </Text>
             </View>
           </Card>
@@ -771,12 +771,12 @@ export default function BalanceSheetScreen() {
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const SECTION_NAME: Record<string, string> = {
-  "Liquid Cash": "Liquid cash",
+  "Liquid Cash": "Cash",
   Investments: "Investments",
-  Receivables: "Receivables",
+  Receivables: "Owed to you",
   Credit: "Card dues",
   Debt: "Loans",
-  Payables: "Payables",
+  Payables: "You owe people",
 };
 const SECTION_HINT: Record<string, string> = {
   "Liquid Cash": "Banks, wallets and their FDs",

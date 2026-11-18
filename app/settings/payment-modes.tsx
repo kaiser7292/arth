@@ -1,10 +1,11 @@
 import { useState, useCallback } from "react";
 
-import { View, FlatList, Pressable } from "react-native";
+import { View, ScrollView, Pressable, Switch } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { EmptyState, FAB, ListSeparator, ScreenContainer, Text } from "@/components/ui";
+import { EmptyState, FAB, ScreenContainer, Text } from "@/components/ui";
+import { tint } from "@/constants/brand";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import {
@@ -89,75 +90,70 @@ export default function PaymentModesScreen() {
     [loadModes],
   );
 
-  const renderItem = ({ item }: { item: PaymentMode }) => (
-    <Pressable
-      onPress={() =>
-        router.push({
-          pathname: "/settings/payment-mode-edit",
-          params: { id: item.id },
-        })
-      }
-      className={`flex-row items-center px-4 py-3 ${
-        item.is_active === 0 ? "opacity-40" : ""
-      }`}
-    >
-      <View className="w-10 h-10 rounded-full bg-card items-center justify-center mr-3">
-        <Ionicons
-          name={TYPE_ICONS[item.type as PaymentModeType]}
-          size={20}
-          color={theme.data.series[3]}
-        />
-      </View>
-      <View className="flex-1">
-        <Text className="text-body font-medium text-foreground">
-          {item.name}
-        </Text>
-        <View className="flex-row items-center">
-          <Text className="text-label text-muted-foreground">
-            {PAYMENT_MODE_TYPE_LABELS[item.type as PaymentModeType]}
-          </Text>
-          {item.is_active === 0 && (
-            <Text className="text-label text-danger ml-2">Inactive</Text>
-          )}
+  // One colour per kind of payment (board "Payment modes"): UPI blue, cards amber, cash green,
+  // bank teal, wallets purple.
+  const typeColor = (t: string) =>
+    t === "upi"
+      ? theme.data.series[3]
+      : t === "credit_card" || t === "debit_card"
+        ? theme.data.series[1]
+        : t === "cash"
+          ? theme.data.series[5]
+          : t === "wallet"
+            ? theme.data.series[2]
+            : theme.data.series[0];
+
+  const renderItem = (item: PaymentMode, index: number) => {
+    const off = item.is_active === 0;
+    const c = off ? theme.mutedForeground : typeColor(item.type);
+    return (
+      <View
+        key={item.id}
+        className={`flex-row items-center pl-3.5 pr-2 ${index > 0 ? "border-t border-border" : ""}`}
+        style={{ minHeight: 60, gap: 12, opacity: off ? 0.7 : 1 }}
+      >
+        <View className="w-9 h-9 rounded-control items-center justify-center" style={{ backgroundColor: tint(c, 0.1) }}>
+          <Ionicons name={TYPE_ICONS[item.type as PaymentModeType]} size={18} color={c} />
         </View>
-      </View>
-
-      {/* Active/Inactive toggle */}
-      <Pressable onPress={() => handleToggleActive(item)} className="p-2">
-        <Ionicons
-          name={item.is_active === 1 ? "eye-outline" : "eye-off-outline"}
-          size={18}
-          color={item.is_active === 1 ? theme.data.series[3] : theme.faintForeground}
+        <Pressable
+          onPress={() => router.push({ pathname: "/settings/payment-mode-edit", params: { id: item.id } })}
+          className="flex-1 py-2"
+          style={{ minWidth: 0 }}
+          accessibilityRole="button"
+          accessibilityLabel={`${item.name}, ${PAYMENT_MODE_TYPE_LABELS[item.type as PaymentModeType]}${off ? ", off" : ""}. Edit`}
+        >
+          <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text className="text-meta" style={{ color: off ? theme.danger : theme.mutedForeground }} numberOfLines={1}>
+            {off ? "Inactive" : PAYMENT_MODE_TYPE_LABELS[item.type as PaymentModeType]}
+          </Text>
+        </Pressable>
+        <Switch
+          value={!off}
+          onValueChange={() => handleToggleActive(item)}
+          trackColor={{ false: theme.border, true: theme.primary }}
+          thumbColor="#FFFFFF"
+          accessibilityLabel={`${item.name} on`}
         />
-      </Pressable>
-
-      {/* Delete button */}
-      <Pressable onPress={() => handleDelete(item)} className="p-2">
-        <Ionicons name="trash-outline" size={18} color={theme.danger} />
-      </Pressable>
-    </Pressable>
-  );
+        <Pressable onPress={() => handleDelete(item)} className="w-10 h-10 items-center justify-center" accessibilityRole="button" accessibilityLabel={`Delete ${item.name}`}>
+          <Ionicons name="trash-outline" size={17} color={theme.mutedForeground} />
+        </Pressable>
+      </View>
+    );
+  };
 
   return (
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadModes} />}
-      <FlatList
-        initialNumToRender={12}
-        maxToRenderPerBatch={10}
-        windowSize={7}
-        data={modes}
-        keyExtractor={(item) => item.id}
-        ItemSeparatorComponent={ListSeparator}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 80 }}
-        ListEmptyComponent={
-          <EmptyState
-            icon="card-outline"
-            title="No payment modes yet"
-            subtitle="Payment modes let Arth tell UPI from card from cash. Tap + to add one."
-          />
-        }
-      />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 96, gap: 12 }} showsVerticalScrollIndicator={false}>
+        <Text className="text-meta text-muted-foreground">Lets Arth tell UPI from card from cash. Tap one to rename it or change its type.</Text>
+        {modes.length === 0 ? (
+          <EmptyState icon="card-outline" title="No payment modes yet" subtitle="Payment modes let Arth tell UPI from card from cash. Tap + to add one." />
+        ) : (
+          <View className="rounded-card bg-card border border-border overflow-hidden">{modes.map(renderItem)}</View>
+        )}
+      </ScrollView>
       <FAB icon="add" label="Mode" onPress={() => router.push("/settings/payment-mode-edit")} />
     </ScreenContainer>
   );

@@ -106,3 +106,15 @@ export async function getMerchant(name: string, userId: string = DEFAULT_USER_ID
   const all = await listMerchants(userId);
   return all.find((m) => m.name.toLowerCase() === name.toLowerCase()) ?? null;
 }
+
+/** What was spent at a merchant in all (spends only, not deleted): the "₹38,420 in total" on its page. */
+export async function getMerchantSpendTotal(userId: string, name: string): Promise<number> {
+  const db = getDatabase();
+  const row = await db.getFirstAsync<{ total: number | null }>(
+    `SELECT SUM(amount) AS total FROM expenses
+     WHERE user_id = ? AND deleted_at IS NULL AND nature = 'realized' AND LOWER(merchant_name) = LOWER(?);`,
+    userId,
+    name,
+  );
+  return row?.total ?? 0;
+}

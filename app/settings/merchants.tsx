@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import { tint } from "@/constants/brand";
-import { FlatList, Pressable, View } from "react-native";
+import { FlatList, Pressable, View, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, DrawerCell, GroupHeading, ListToolbar, LoadFailed, LoadingState, ScreenContainer, Text, UndoBar } from "@/components/ui";
@@ -86,6 +86,14 @@ export default function MerchantsScreen() {
     search: MERCHANT_SEARCH,
   });
   clearSearch.current = () => tools.setQuery("");
+  // Quick filters (board "Merchants"): All, No category, Several names, each with how many.
+  const showOn = tools.filters?.show ?? [];
+  const all = merchants ?? [];
+  const quick: { key: string | null; label: string; n: number }[] = [
+    { key: null, label: "All", n: all.length },
+    { key: "uncategorised", label: "No category", n: all.filter((x) => !x.category).length },
+    { key: "several", label: "Several names", n: all.filter((x) => x.names.length > 1).length },
+  ];
 
   // A filter changed after picking: only what's still showing counts, so nothing hidden is changed.
   const chosen = tools.rows.filter((m) => selected.has(m.name));
@@ -147,6 +155,42 @@ export default function MerchantsScreen() {
         keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.name.toLowerCase())}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: selecting ? 160 : pendingUndo ? 120 : 40 }}
+        ListHeaderComponent={
+          <View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 10 }}>
+              {quick.map((q) => {
+                const on = q.key === null ? showOn.length === 0 : showOn.length === 1 && showOn[0] === q.key;
+                return (
+                  <Pressable
+                    key={q.label}
+                    onPress={() => tools.setFieldFilter("show", q.key ? [q.key] : [])}
+                    className="rounded-pill border px-3 justify-center"
+                    style={{ height: 34, borderColor: on ? theme.primary : theme.border, backgroundColor: on ? theme.alpha("primary", 0.1) : theme.card }}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: on }}
+                  >
+                    <Text className="text-meta font-semibold" style={{ color: on ? theme.primary : theme.foreground }} numberOfLines={1}>
+                      {q.label} {q.n}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+            <Pressable
+              onPress={() => router.push("/settings/merchant-categories")}
+              className="flex-row items-center mx-4 mb-1 px-3.5 py-3 rounded-card"
+              style={{ gap: 12, backgroundColor: tint(theme.data.transfer, 0.08) }}
+              accessibilityRole="button"
+            >
+              <Ionicons name="list-outline" size={20} color={theme.data.transfer} />
+              <View className="flex-1">
+                <Text className="text-body font-semibold text-foreground">All keyword rules</Text>
+                <Text className="text-meta text-muted-foreground">Built-in, learned and yours</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+            </Pressable>
+          </View>
+        }
         ListEmptyComponent={loadFailed ? <LoadFailed onRetry={loadMerchants} /> :
           <Text className="text-meta text-muted-foreground text-center px-8 mt-8">
             {merchants.length === 0 ? "Merchants appear here once you have transactions." : "Nothing matches."}
@@ -183,46 +227,32 @@ export default function MerchantsScreen() {
                 style={{ marginRight: 12 }}
               />
             )}
-            <View className="flex-1 mr-2">
-              <Text className="text-body font-medium text-foreground" numberOfLines={1}>{m.name}</Text>
-              <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>
-                {m.names.length > 1 ? `${m.names.length} names in messages` : "1 name"}
-                {" · "}
-                {m.txCount} transaction{m.txCount === 1 ? "" : "s"}
-                {m.categorySource === "learned" ? " · learned" : ""}
-              </Text>
+            <View className="flex-1 mr-2" style={{ gap: 4 }}>
+              <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{m.name}</Text>
+              <View className="flex-row items-center" style={{ gap: 8 }}>
+                {(() => {
+                  const cat = m.category ? categories.find((c) => c.name === m.category) : undefined;
+                  const col = m.category ? cat?.color ?? theme.primary : theme.danger;
+                  return (
+                    <View className="rounded-pill px-2" style={{ backgroundColor: tint(col, 0.1), maxWidth: 160 }}>
+                      <Text className="text-label font-semibold" style={{ color: col }} numberOfLines={1}>
+                        {m.category ?? "No category"}
+                      </Text>
+                    </View>
+                  );
+                })()}
+                <Text className="text-label text-muted-foreground flex-shrink" numberOfLines={1}>
+                  {m.txCount} transaction{m.txCount === 1 ? "" : "s"}
+                  {m.names.length > 1 ? ` · ${m.names.length} names` : ""}
+                  {m.categorySource === "learned" ? " · learned" : ""}
+                </Text>
+              </View>
             </View>
-            {m.category ? (
-              <View className="rounded-full px-3 py-1" style={{ backgroundColor: theme.alpha("primary", 0.1), maxWidth: 140 }}>
-                <Text className="text-label font-semibold" style={{ color: theme.primary }} numberOfLines={1}>{m.category}</Text>
-              </View>
-            ) : (
-              <View className="rounded-full px-3 py-1" style={{ backgroundColor: theme.alpha("warning", 0.14) }}>
-                <Text className="text-label font-semibold" style={{ color: theme.warning }}>Set category</Text>
-              </View>
-            )}
             {!selecting && <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} style={{ marginLeft: 8 }} />}
           </Pressable>
           </DrawerCell>
 );
         }}
-        ListFooterComponent={
-          <Pressable
-            onPress={() => router.push("/settings/merchant-categories")}
-            className="flex-row items-center mx-4 mt-4 px-3.5 py-3 rounded-card border border-border bg-card"
-            style={{ gap: 12 }}
-            accessibilityRole="button"
-          >
-            <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: tint(theme.data.transfer, 0.1) }}>
-              <Ionicons name="list-outline" size={17} color={theme.data.transfer} />
-            </View>
-            <View className="flex-1">
-              <Text className="text-body font-semibold text-foreground">All keyword rules</Text>
-              <Text className="text-label text-muted-foreground">Built-in and your own keywords, and what Arth has learned</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
-          </Pressable>
-        }
       />
       {selecting && (
         <View className="absolute left-0 right-0 bottom-0 px-4 pt-3 pb-6 bg-card border-t border-border">

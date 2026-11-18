@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Pressable, ScrollView, ActivityIndicator, Switch, TextInput } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { DateInput, LoadingState, ScreenContainer, Sheet, Text } from "@/components/ui";
+import { DateInput, LoadingState, ScreenContainer, Segmented, Sheet, Text } from "@/components/ui";
+import { FormFooter } from "@/components/ui/FormParts";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -515,71 +516,68 @@ export default function SmartRuleDetailScreen() {
               onChangeText={setName}
               containerClassName="mb-3"
             />
-            <Input
-              label="Priority (lower = tried first)"
-              placeholder="100"
-              keyboardType="numeric"
-              value={priority}
-              onChangeText={setPriority}
-              containerClassName="mb-3"
+            <Text className="text-label font-semibold text-muted-foreground mb-1.5">Applies to</Text>
+            <Segmented
+              options={[
+                { value: "expense" as AppliesTo, label: "Expenses" },
+                { value: "credit" as AppliesTo, label: "Credits" },
+                { value: "any" as AppliesTo, label: "All" },
+              ]}
+              value={appliesTo}
+              onChange={setAppliesTo}
             />
-            <View className="flex-row items-center justify-between py-2">
-              <Text className="text-meta text-foreground">Active</Text>
-              <Switch
-                value={isActive}
-                onValueChange={setIsActive}
-                trackColor={{ false: theme.border, true: accentColor }}
-              />
-            </View>
-          </Card>
-
-          <Card className="mb-4">
-            <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-3">
-              Applies to
-            </Text>
-            <View className="flex-row mb-1">
-              {(["expense", "credit", "any"] as AppliesTo[]).map((opt, i) => {
-                const label = opt === "expense" ? "Expenses" : opt === "credit" ? "Credits" : "Both";
-                const active = appliesTo === opt;
-                const isFirst = i === 0;
-                const isLast = i === 2;
-                return (
-                  <Pressable
-                    key={opt}
-                    onPress={() => setAppliesTo(opt)}
-                    className="flex-1 py-2.5 items-center"
-                    style={{
-                      backgroundColor: active ? accentColor : "transparent",
-                      borderWidth: active ? 0 : 1,
-                      borderColor: theme.border,
-                      borderLeftWidth: isFirst || active ? (active ? 0 : 1) : 0,
-                      borderRadius: isFirst ? 8 : isLast ? 8 : 0,
-                      borderTopLeftRadius: isFirst ? 8 : 0,
-                      borderBottomLeftRadius: isFirst ? 8 : 0,
-                      borderTopRightRadius: isLast ? 8 : 0,
-                      borderBottomRightRadius: isLast ? 8 : 0,
-                    }}
-                  >
-                    <Text style={{ color: active ? "#fff" : theme.mutedForeground }} className="text-body font-medium">
-                      {label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <Text className="text-label text-faint-foreground mt-1">
+            <Text className="text-label text-muted-foreground mt-1.5 mb-2">
               {appliesTo === "expense"
-                ? "Rule fires on debits and spending."
+                ? "Runs on spending."
                 : appliesTo === "credit"
-                ? "Rule fires on incoming credits (salary, refunds)."
-                : "Rule fires on all transactions."}
+                  ? "Runs on money in (salary, refunds)."
+                  : "Runs on every transaction."}
             </Text>
+            <View className="flex-row items-center justify-between py-2 border-t border-border">
+              <Text className="text-body font-semibold text-foreground">Active</Text>
+              <Switch value={isActive} onValueChange={setIsActive} trackColor={{ false: theme.border, true: accentColor }} thumbColor="#FFFFFF" />
+            </View>
+            <View className="flex-row items-center justify-between py-2 border-t border-border">
+              <View className="flex-1">
+                <Text className="text-body font-semibold text-foreground">Priority</Text>
+                <Text className="text-label text-muted-foreground">Lower numbers are tried first</Text>
+              </View>
+              <View className="flex-row items-center rounded-pill border border-border" style={{ height: 40 }}>
+                <Pressable
+                  onPress={() => setPriority(String(Math.max(1, (parseInt(priority, 10) || 100) - 1)))}
+                  className="w-10 h-10 items-center justify-center"
+                  accessibilityRole="button"
+                  accessibilityLabel="Lower priority number"
+                >
+                  <Ionicons name="remove" size={18} color={theme.foreground} />
+                </Pressable>
+                <TextInput
+                  value={priority}
+                  onChangeText={(t) => setPriority(t.replace(/[^0-9]/g, ""))}
+                  keyboardType="number-pad"
+                  className="text-body font-bold text-foreground text-center"
+                  style={{ minWidth: 36 }}
+                  accessibilityLabel="Priority"
+                />
+                <Pressable
+                  onPress={() => setPriority(String((parseInt(priority, 10) || 100) + 1))}
+                  className="w-10 h-10 items-center justify-center"
+                  accessibilityRole="button"
+                  accessibilityLabel="Higher priority number"
+                >
+                  <Ionicons name="add" size={18} color={theme.foreground} />
+                </Pressable>
+              </View>
+            </View>
           </Card>
 
           <Card className="mb-4">
-            <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-3">
-              When (conditions)
-            </Text>
+            <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
+              <View className="rounded-control px-2 justify-center" style={{ height: 24, backgroundColor: theme.alpha("primary", 0.12) }}>
+                <Text className="text-label font-bold" style={{ color: theme.primary }}>IF</Text>
+              </View>
+              <Text className="text-heading font-bold text-foreground">When these match</Text>
+            </View>
 
             <View className="flex-row mb-4">
               <Pressable
@@ -909,9 +907,12 @@ export default function SmartRuleDetailScreen() {
           </Card>
 
           <Card className="mb-4">
-            <Text className="text-label font-semibold tracking-wider uppercase text-muted-foreground mb-3">
-              Then (actions)
-            </Text>
+            <View className="flex-row items-center mb-3" style={{ gap: 8 }}>
+              <View className="rounded-control px-2 justify-center" style={{ height: 24, backgroundColor: theme.alpha("primary", 0.12) }}>
+                <Text className="text-label font-bold" style={{ color: theme.primary }}>DO</Text>
+              </View>
+              <Text className="text-heading font-bold text-foreground">Then do this</Text>
+            </View>
 
             {actions.map((action, index) => {
               const typeExpanded = expandedActionTypeRow === index;
@@ -1461,14 +1462,9 @@ export default function SmartRuleDetailScreen() {
             </View>
           )}
 
-          <Button
-            title={saving ? "Saving..." : isCreate ? "Create Rule" : "Save changes"}
-            onPress={onSave}
-            disabled={saving}
-            loading={saving}
-          />
         </View>
       </ScrollView>
+      <FormFooter primary={saving ? "Saving…" : isCreate ? "Create rule" : "Save rule"} onPrimary={onSave} disabled={saving} onCancel={() => router.back()} />
       {/* Retroactive apply sheet */}
       <Sheet visible={showRetroSheet} onClose={() => setShowRetroSheet(false)}>
         <View className="px-4 pb-6">

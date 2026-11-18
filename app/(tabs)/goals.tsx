@@ -540,12 +540,6 @@ export default function GoalsScreen() {
             <View className="rounded-card bg-card border border-border overflow-hidden">
               <LinkRow
                 divider={false}
-                icon="calendar-outline"
-                title="Yearly plan"
-                sub="Income, outflow and surplus"
-                onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
-              />
-              <LinkRow
                 icon="bar-chart-outline"
                 title="Year over year"
                 sub={yoySub}

@@ -333,6 +333,16 @@ export async function getCategoryExpenseCount(id: string): Promise<number> {
   return row?.count ?? 0;
 }
 
+/** How many spends each category has (same rule as getCategoryExpenseCount), in one query. */
+export async function getCategoryExpenseCounts(userId: string): Promise<Map<string, number>> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{ category_id: string; count: number }>(
+    "SELECT category_id, COUNT(*) as count FROM expenses WHERE user_id = ? AND category_id IS NOT NULL AND nature = 'realized' AND deleted_at IS NULL GROUP BY category_id;",
+    userId,
+  );
+  return new Map(rows.map((r) => [r.category_id, r.count]));
+}
+
 /**
  * Get the total count of ALL rows (expenses + credits + forecasts) linked to a
  * category. Used to guard hard-delete — a category with any linked rows (of

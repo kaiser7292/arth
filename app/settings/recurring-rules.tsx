@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { formatAmount } from "@/utils/format";
 import { View, Pressable, FlatList } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -109,6 +110,8 @@ export default function RecurringRulesScreen() {
     search: reminderSearch,
     searchPlaceholder: "Search name or >5000",
     amountOf: (r) => -(r.source?.amount ?? 0),
+    // Overdue, Due soon, Upcoming (board "Reminders").
+    defaultGroup: "state",
   });
 
   if (loading) {
@@ -170,12 +173,31 @@ export default function RecurringRulesScreen() {
           return (
     <DrawerCell row={row}>
             <View className="flex-row items-center px-4 py-3 border-b border-border">
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-              >
-                <Ionicons name="repeat-outline" size={18} color={theme.primary} />
-              </View>
+              {/* The next due date as a little calendar leaf, in the status colour */}
+              {(() => {
+                const d = item.rule.next_due_date ? new Date(item.rule.next_due_date + "T00:00:00") : null;
+                const ok = d && !isNaN(d.getTime());
+                return (
+                  <View
+                    className="rounded-control items-center justify-center mr-3"
+                    style={{ width: 44, height: 46, backgroundColor: tint(stateStyle.color, 0.1) }}
+                    accessibilityLabel={ok ? `Due ${formatDate(item.rule.next_due_date!)}` : "No due date"}
+                  >
+                    {ok ? (
+                      <>
+                        <Text className="text-heading font-bold" style={{ color: stateStyle.color, lineHeight: 22 }}>
+                          {d!.getDate()}
+                        </Text>
+                        <Text className="text-label font-semibold uppercase" style={{ color: stateStyle.color }}>
+                          {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d!.getMonth()]}
+                        </Text>
+                      </>
+                    ) : (
+                      <Ionicons name="repeat-outline" size={18} color={stateStyle.color} />
+                    )}
+                  </View>
+                );
+              })()}
               <Pressable
                 className="flex-1"
                 onPress={() => router.push(`/settings/recurring-rule-detail?ruleId=${item.rule.id}`)}
@@ -210,14 +232,17 @@ export default function RecurringRulesScreen() {
                     Not linked to any expense yet
                   </Text>
                 )}
-                <Text
-                  className="text-label font-semibold mt-0.5"
-                  style={{ color: stateStyle.color }}
-                >
-                  {stateStyle.label}
-                  {item.rule.next_due_date ? ` · Next: ${formatDate(item.rule.next_due_date)}` : ""}
-                </Text>
+                {tools.groupBy !== "state" && (
+                  <Text className="text-label font-semibold mt-0.5" style={{ color: stateStyle.color }}>
+                    {stateStyle.label}
+                  </Text>
+                )}
               </Pressable>
+              {item.source?.amount ? (
+                <Text className="text-body font-bold text-foreground ml-2" style={{ fontVariant: ["tabular-nums"] }}>
+                  {formatAmount(item.source.amount)}
+                </Text>
+              ) : null}
               <Pressable
                 onPress={() => handleStop(item)}
                 className="w-9 h-9 rounded-full items-center justify-center ml-2"
