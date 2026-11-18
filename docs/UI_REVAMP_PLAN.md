@@ -179,8 +179,8 @@ Licences, iPhone messages, SMS disclosure.
 
 Anything listed here is kept as it is until answered.
 
-8. **Vault "Lock now".** The board has a Lock now button; the app has no separate vault lock (the app lock covers it). Add one, or leave it to the app lock?
-9. **Split person and credit kind pickers.** The four main pickers are on the new searchable sheet; the split-with-a-person sheet and the money-in kind chips keep their current (already list-based) look. Move them onto the same sheet too?
+8. ~~Vault Lock now~~ Answered: not needed.
+9. ~~Split person and credit kind pickers~~ Answered: move them. Done in 1ef4f9c.
 
 1. ~~Goals tab, FY picker~~ Answered: add it. Done in bdbc0f3.
 2. ~~Net worth type switch~~ Answered: add it beside the periods. Done in bdbc0f3.
