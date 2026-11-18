@@ -243,44 +243,48 @@ export default function SmartRulesListScreen() {
     search: (r) => ({ texts: [r.name, summarizeConditions(r), summarizeActions(r)] }),
   });
 
+  // Deleted rules: one card that says how many, with Restore all and Delete forever; tap to list them.
   const deletedSection = deletedRules.length > 0 ? (
-    <View className="mt-4">
-      <Pressable
-        onPress={() => setShowDeleted((v) => !v)}
-        className="flex-row items-center justify-between py-2 mb-2"
-      >
-        <Text className="text-label font-semibold uppercase" style={{ color: theme.mutedForeground, letterSpacing: 0.5 }}>
-          Deleted ({deletedRules.length})
-        </Text>
-        <Ionicons name={showDeleted ? "chevron-up" : "chevron-down"} size={14} color={theme.mutedForeground} />
-      </Pressable>
-      {showDeleted && (
-        <>
-          <View className="flex-row gap-2 mb-3">
-            <Pressable onPress={confirmRestoreAll} className="flex-1 py-2 rounded-control items-center" style={{ backgroundColor: tint(theme.primary, 0.13) }}>
-              <Text className="text-label font-semibold" style={{ color: theme.primary }}>Restore all</Text>
-            </Pressable>
-            <Pressable onPress={confirmPurge} className="flex-1 py-2 rounded-control items-center" style={{ backgroundColor: tint(theme.danger, 0.08) }}>
-              <Text className="text-label font-semibold" style={{ color: theme.danger }}>Delete forever</Text>
+    <View className="mt-1 rounded-card bg-card border border-border overflow-hidden">
+      <View className="flex-row items-center px-3.5 py-3" style={{ gap: 8 }}>
+        <Pressable
+          onPress={() => setShowDeleted((v) => !v)}
+          className="flex-1"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showDeleted }}
+        >
+          <Text className="text-body font-semibold text-foreground">Deleted · {deletedRules.length}</Text>
+          <Text className="text-meta text-muted-foreground">{showDeleted ? "Tap to hide them" : "Tap to see and restore one"}</Text>
+        </Pressable>
+        <Pressable
+                    onPress={confirmRestoreAll}
+                    className="rounded-pill items-center justify-center px-3"
+                    style={{ height: 32, backgroundColor: theme.alpha("primary", 0.1), borderWidth: 1, borderColor: theme.primary }}
+                    accessibilityRole="button"
+                  >
+                    <Text className="text-meta font-semibold" style={{ color: theme.primary }}>Restore all</Text>
+                  </Pressable>
+        <Pressable
+                    onPress={confirmPurge}
+                    className="rounded-pill items-center justify-center px-3"
+                    style={{ height: 32, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.alpha("danger", 0.35) }}
+                    accessibilityRole="button"
+                  >
+                    <Text className="text-meta font-semibold" style={{ color: theme.danger }}>Delete forever</Text>
+                  </Pressable>
+      </View>
+      {showDeleted &&
+        deletedRules.map((item) => (
+          <View key={item.id} className="flex-row items-center px-3.5 py-2.5 border-t border-border" style={{ gap: 10 }}>
+            <View className="flex-1" style={{ opacity: 0.7 }}>
+              <Text className="text-body font-medium text-foreground" numberOfLines={1}>{item.name}</Text>
+              <Text className="text-label text-muted-foreground" numberOfLines={1}>{summarizeConditions(item)}</Text>
+            </View>
+            <Pressable onPress={() => handleRestore(item)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Restore ${item.name}`}>
+              <Text className="text-meta font-semibold" style={{ color: theme.primary }}>Restore</Text>
             </Pressable>
           </View>
-          {deletedRules.map((item) => (
-            <View key={item.id} className="mb-2" style={{ opacity: 0.6 }}>
-              <Card>
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-body font-medium text-faint-foreground flex-1" numberOfLines={1}>{item.name}</Text>
-                  <Pressable onPress={() => handleRestore(item)} hitSlop={8} className="ml-3">
-                    <Text className="text-label font-semibold" style={{ color: theme.primary }}>Restore</Text>
-                  </Pressable>
-                </View>
-                <Text className="text-label text-faint-foreground mt-0.5" numberOfLines={1}>
-                  {summarizeConditions(item)}
-                </Text>
-              </Card>
-            </View>
-          ))}
-        </>
-      )}
+        ))}
     </View>
   ) : null;
 
@@ -289,7 +293,7 @@ export default function SmartRulesListScreen() {
       <View className="flex-1">
         <View className="px-4 pt-3 pb-2">
           <Text className="text-label text-faint-foreground">
-            Rules auto-apply when new expenses are added (manually or from SMS). First matching rule wins.
+            Sorted by priority · lower numbers are tried first. Rules apply to new transactions, typed or from messages.
           </Text>
         </View>
 
@@ -318,65 +322,58 @@ export default function SmartRulesListScreen() {
               if (row.type === "heading") return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={0} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
               const item = row.item;
               return (
-              <Card key={item.id} className="mb-3">
-                <Pressable onPress={() => router.push(`/settings/smart-rules/${item.id}`)}>
-                  <View className="flex-row items-center mb-2">
-                    <View className="flex-1">
-                      <Text className={`text-body font-semibold ${item.is_active ? "text-foreground" : "text-faint-foreground"}`}>
-                        {item.name}
-                      </Text>
-                      <Text className="text-label text-faint-foreground mt-0.5">
-                        Priority {item.priority}
-                        {item.applies_to === "credit" && <Text> · Credits</Text>}
-                        {item.applies_to === "any" && <Text> · All transactions</Text>}
-                        {!item.is_active && <Text> · Paused</Text>}
+              <View key={item.id} className="mb-3 rounded-card bg-card border border-border p-3.5" style={{ gap: 10, opacity: item.is_active ? 1 : 0.75 }}>
+                <Pressable onPress={() => router.push(`/settings/smart-rules/${item.id}`)} style={{ gap: 8 }} accessibilityRole="button" accessibilityLabel={`${item.name}, priority ${item.priority}, ${item.is_active ? "active" : "paused"}. Edit`}>
+                  <View className="flex-row items-center" style={{ gap: 10 }}>
+                    <View className="w-7 h-7 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+                      <Text className="text-meta font-bold" style={{ color: theme.primary }}>{item.priority}</Text>
+                    </View>
+                    <Text className="flex-1 text-body font-bold text-foreground" numberOfLines={1}>{item.name}</Text>
+                    <View className="rounded-pill px-2 justify-center" style={{ height: 22, backgroundColor: item.is_active ? theme.alpha("success", 0.1) : theme.alpha("foreground", 0.07) }}>
+                      <Text className="text-label font-semibold" style={{ color: item.is_active ? theme.success : theme.mutedForeground }}>
+                        {item.is_active ? "Active" : "Paused"}
                       </Text>
                     </View>
                   </View>
-                  <Text className="text-meta text-muted-foreground mb-1">
-                    WHEN: {summarizeConditions(item)}
-                  </Text>
-                  <Text className="text-meta text-muted-foreground">
-                    THEN: {summarizeActions(item)}
+                  <Text className="text-meta text-foreground" style={{ lineHeight: 20 }}>
+                    <Text className="text-meta font-semibold text-muted-foreground">When </Text>
+                    {summarizeConditions(item)}
+                    {item.applies_to === "credit" ? " (credits)" : item.applies_to === "any" ? " (all transactions)" : ""}
+                    {"\n"}
+                    <Text className="text-meta font-semibold text-muted-foreground">Then </Text>
+                    {summarizeActions(item)}
                   </Text>
                 </Pressable>
-                <View className="flex-row mt-3 pt-3 border-t border-border" style={{ gap: 0 }}>
-                  <Pressable
-                    onPress={() => router.push(`/settings/smart-rules/${item.id}`)}
-                    hitSlop={4}
-                    className="flex-1 items-center py-1"
-                  >
-                    <Ionicons name="create-outline" size={16} color={accentColor} />
-                    <Text className="text-label mt-0.5" style={{ color: accentColor }}>Edit</Text>
-                  </Pressable>
+                <View className="flex-row items-center pt-2.5 border-t border-border" style={{ gap: 8 }}>
                   <Pressable
                     onPress={() => router.push(`/settings/smart-rules/applications/${item.id}`)}
-                    hitSlop={4}
-                    className="flex-1 items-center py-1"
+                    hitSlop={6}
+                    className="flex-1"
+                    accessibilityRole="button"
+                    accessibilityLabel={`Used ${item.apply_count} times. See where`}
                   >
-                    <Ionicons name="checkmark-circle-outline" size={16} color={item.apply_count > 0 ? accentColor : theme.mutedForeground} />
-                    <Text className="text-label mt-0.5" style={{ color: item.apply_count > 0 ? accentColor : theme.mutedForeground }}>
-                      Applied {item.apply_count}
+                    <Text className="text-meta font-semibold" style={{ color: item.apply_count > 0 ? accentColor : theme.mutedForeground }}>
+                      Used {item.apply_count}×
                     </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => handleDuplicate(item)}
-                    hitSlop={4}
-                    className="flex-1 items-center py-1"
+                    className="rounded-pill items-center justify-center px-3"
+                    style={{ height: 32, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}
+                    accessibilityRole="button"
                   >
-                    <Ionicons name="copy-outline" size={16} color={theme.mutedForeground} />
-                    <Text className="text-label mt-0.5 text-faint-foreground">Duplicate</Text>
+                    <Text className="text-meta font-semibold" style={{ color: theme.foreground }}>Duplicate</Text>
                   </Pressable>
                   <Pressable
                     onPress={() => confirmDelete(item)}
-                    hitSlop={4}
-                    className="flex-1 items-center py-1"
+                    className="rounded-pill items-center justify-center px-3"
+                    style={{ height: 32, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.alpha("danger", 0.35) }}
+                    accessibilityRole="button"
                   >
-                    <Ionicons name="trash-outline" size={16} color={theme.danger} />
-                    <Text className="text-label mt-0.5" style={{ color: theme.danger }}>Delete</Text>
+                    <Text className="text-meta font-semibold" style={{ color: theme.danger }}>Delete</Text>
                   </Pressable>
                 </View>
-              </Card>
+              </View>
               );
             })}
             {deletedSection}
