@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import { tint } from "@/constants/brand";
 import { FlatList, Pressable, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -208,12 +209,15 @@ export default function MerchantsScreen() {
         ListFooterComponent={
           <Pressable
             onPress={() => router.push("/settings/merchant-categories")}
-            className="flex-row items-center mx-4 mt-4 px-3 py-3 rounded-control border border-border"
+            className="flex-row items-center mx-4 mt-4 px-3.5 py-3 rounded-card border border-border bg-card"
+            style={{ gap: 12 }}
             accessibilityRole="button"
           >
-            <Ionicons name="list-outline" size={16} color={theme.mutedForeground} />
-            <View className="flex-1 ml-2">
-              <Text className="text-meta text-foreground">All keyword rules</Text>
+            <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: tint(theme.data.transfer, 0.1) }}>
+              <Ionicons name="list-outline" size={17} color={theme.data.transfer} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-body font-semibold text-foreground">All keyword rules</Text>
               <Text className="text-label text-muted-foreground">Built-in and your own keywords, and what Arth has learned</Text>
             </View>
             <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />

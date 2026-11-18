@@ -302,6 +302,7 @@ export default function YearlyPlanScreen() {
           <Card>
             <SectionTitle
               icon="stats-chart-outline"
+              active
               title="Savings rate"
               hint={`Planned ${plannedRate}%${actualRate != null ? ` · actual so far ${actualRate}%` : ""}`}
             />
@@ -325,6 +326,7 @@ export default function YearlyPlanScreen() {
           <Card>
             <SectionTitle
               icon="arrow-down-outline"
+              color={theme.success}
               title="Inflow"
               right={
                 <View className="flex-row items-center" style={{ gap: 8 }}>
@@ -398,6 +400,7 @@ export default function YearlyPlanScreen() {
             <Card>
               <SectionTitle
                 icon="pulse-outline"
+                active
                 title={realityCheck.isPastFY ? "Year-end review" : "Plan vs actual"}
                 hint={realityCheck.isPastFY ? "Planned against what happened" : "Expected by now against what happened"}
                 className="mb-1"

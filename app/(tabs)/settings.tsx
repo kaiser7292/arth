@@ -42,6 +42,8 @@ interface SettingsItem {
 }
 interface SettingsGroup {
   title: string;
+  /** The group's icon colour (board: teal, blue, purple, pink, grey). */
+  color?: string;
   items: SettingsItem[];
 }
 
@@ -133,6 +135,7 @@ export default function SettingsScreen() {
   const groups: SettingsGroup[] = [
     {
       title: "Your data",
+      color: uiTheme.primary,
       items: [
         { key: "categories", icon: "grid-outline", label: "Categories", subtitle: "Main categories, sub-categories, reorder", onPress: go("/settings/categories") },
         { key: "modes", icon: "card-outline", label: "Payment modes", subtitle: "Credit cards, UPI, wallets", onPress: go("/settings/payment-modes") },
@@ -143,6 +146,7 @@ export default function SettingsScreen() {
     },
     {
       title: "Transactions",
+      color: uiTheme.data.series[3],
       items: [
         { key: "messages", icon: "chatbubbles-outline", label: "Transaction messages", subtitle: messagesLine, keywords: "sms scan templates duplicates", onPress: go("/settings/transaction-messages") },
         { key: "merchants", icon: "storefront-outline", label: "Merchants", subtitle: "Names, merged names and the category each one goes to", onPress: go("/settings/merchants") },
@@ -157,6 +161,7 @@ export default function SettingsScreen() {
     },
     {
       title: "Automation",
+      color: uiTheme.data.transfer,
       items: [
         { key: "balances", icon: "scale-outline", label: "Update balances", subtitle: "Type what's really in each account and owed on each card", onPress: go("/settings/update-balances") },
         { key: "fix", icon: "medkit-outline", label: "Fix my data", subtitle: "Data health, and your AI fixes your whole history in one go", onPress: go("/settings/fix-my-data") },
@@ -168,12 +173,13 @@ export default function SettingsScreen() {
       ],
     },
     ...(getFlag("household") && isPartOn("together")
-      ? [{ title: "Together", items: [{ key: "household", icon: "people-outline" as const, label: "Household", subtitle: "Share household spending with your partner or family", onPress: go("/settings/household") }] }]
+      ? [{ title: "Together", color: uiTheme.data.series[4], items: [{ key: "household", icon: "people-outline" as const, label: "Household", subtitle: "Share household spending with your partner or family", onPress: go("/settings/household") }] }]
       : []),
     ...(isPartOn("investments")
       ? [
           {
             title: "Integrations",
+            color: uiTheme.data.series[4],
             items: [
               { key: "kite", icon: "trending-up-outline" as const, label: "Zerodha Kite", subtitle: "Connect your Zerodha account to sync portfolio", keywords: "broker", onPress: go("/settings/kite-connect") },
               { key: "angel", icon: "bar-chart-outline" as const, label: "Angel One", subtitle: "Connect your Angel One account to sync portfolio", keywords: "broker", onPress: go("/settings/angel-connect") },
@@ -184,12 +190,14 @@ export default function SettingsScreen() {
       : []),
     {
       title: "Backup and data",
+      color: uiTheme.mutedForeground,
       items: [
         { key: "backup", icon: "cloud-upload-outline", label: "Backup and data", subtitle: backupLine, keywords: "restore recycle bin import excel clean up", onPress: go("/settings/backup-data") },
       ],
     },
     {
       title: "Preferences and security",
+      color: uiTheme.mutedForeground,
       items: [
         { key: "region", icon: "globe-outline", label: "Region", subtitle: "Currency, date format, number format, financial year", keywords: "timezone", onPress: go("/settings/region") },
         { key: "notif", icon: "notifications-outline", label: "Notifications", subtitle: "Message scan alerts, due reminders", onPress: go("/settings/notifications") },
@@ -230,6 +238,7 @@ export default function SettingsScreen() {
       : []),
     {
       title: "About and help",
+      color: uiTheme.mutedForeground,
       items: [
         ...(getFlag("v15_help_center")
           ? [{ key: "help", icon: "help-circle-outline" as const, label: "Help center", subtitle: "Ask anything in plain English", onPress: go("/settings/help") }]
@@ -261,14 +270,14 @@ export default function SettingsScreen() {
 
   const q = query.trim().toLowerCase();
   const hits = q
-    ? groups.flatMap((g) => g.items.filter((i) => `${i.label} ${i.subtitle ?? ""} ${i.keywords ?? ""} ${g.title}`.toLowerCase().includes(q)).map((i) => ({ ...i, group: g.title })))
+    ? groups.flatMap((g) => g.items.filter((i) => `${i.label} ${i.subtitle ?? ""} ${i.keywords ?? ""} ${g.title}`.toLowerCase().includes(q)).map((i) => ({ ...i, group: g.title, color: g.color })))
     : [];
   const themeHit = q && "theme dark light appearance".includes(q);
 
-  const card = (items: (SettingsItem & { group?: string })[]) => (
+  const card = (items: (SettingsItem & { group?: string; color?: string })[], color?: string) => (
     <View className="rounded-card bg-card border border-border overflow-hidden">
       {items.map((i, idx) => (
-        <LinkRow key={i.key} divider={idx > 0} icon={i.icon} title={i.label} sub={i.group ? `${i.group} · ${i.subtitle ?? ""}` : i.subtitle} onPress={i.onPress} />
+        <LinkRow key={i.key} divider={idx > 0} icon={i.icon} color={i.color ?? color} title={i.label} sub={i.group ? `${i.group} · ${i.subtitle ?? ""}` : i.subtitle} onPress={i.onPress} />
       ))}
     </View>
   );
@@ -317,7 +326,7 @@ export default function SettingsScreen() {
               {groups.map((g) => (
                 <View key={g.title}>
                   <GroupLabel>{g.title}</GroupLabel>
-                  {card(g.items)}
+                  {card(g.items, g.color)}
                   {g.title === "Preferences and security" && <View className="mt-3">{themePicker}</View>}
                   {g.title === "About and help" && (
                     <View className="rounded-card bg-card border border-border px-4 mt-3">
