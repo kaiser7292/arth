@@ -1,4 +1,5 @@
 import { tint } from "@/constants/brand";
+import { formatDateForDisplay } from "@/utils/expense-validation";
 import { isPartOn } from "@/services/customise";
 import { CreditSalaryMonth } from "@/components/expense/CreditSalaryMonth";
 import { applyRuleToPastTransactions, countPastTransactionsForRule, findRuleForMerchant, keywordForAlwaysFile, setMerchantRule } from "@/services/merchant-categories";
@@ -192,6 +193,8 @@ export default function ExpenseDetailScreen() {
 
   // Edit mode
   const [editing, setEditing] = useState(false);
+  /** The date's calendar, open under the date pill (as on the add form). */
+  const [editDateOpen, setEditDateOpen] = useState(false);
 
   // Form state (only used when editing)
   const [amount, setAmount] = useState("");
@@ -1924,7 +1927,8 @@ export default function ExpenseDetailScreen() {
                   }}
                 />
               )}
-              {/* Amount */}
+              {/* Amount, then the date pill, then one card of picks: the same form as adding one
+                  (board "TxnForm": edit opens the same form, filled in). */}
               <AmountInput
                 value={amount}
                 onChangeText={(text) => {
@@ -1933,10 +1937,131 @@ export default function ExpenseDetailScreen() {
                 }}
                 error={errors.amount}
               />
+              <View className="items-center mb-3">
+                <Pressable
+                  onPress={() => setEditDateOpen(!editDateOpen)}
+                  className="flex-row items-center rounded-pill border border-border bg-card px-3.5"
+                  style={{ height: 36, gap: 6 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Date, ${formatDateForDisplay(date)}`}
+                >
+                  <Ionicons name="calendar-outline" size={15} color={theme.mutedForeground} />
+                  <Text className="text-meta font-semibold text-foreground">{formatDateForDisplay(date)}</Text>
+                  <Ionicons name={editDateOpen ? "chevron-up" : "chevron-down"} size={14} color={theme.mutedForeground} />
+                </Pressable>
+                {errors.date && !editDateOpen ? <Text className="text-label text-danger mt-1">{errors.date}</Text> : null}
+              </View>
+              {editDateOpen && (
+                <View className="mb-3">
+                  <DateSelector
+                    date={date}
+                    showDatePicker={showDatePicker}
+                    onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
+                    onDateShift={handleDateShift}
+                    onSetDate={setDate}
+                    onCloseDatePicker={() => setShowDatePicker(false)}
+                    dateError={errors.date}
+                  />
+                </View>
+              )}
 
-              <SectionTitle icon="pricetags-outline" title="What" className="mb-3" />
+              <View className="rounded-card bg-card border border-border overflow-hidden mb-3">
+                <MerchantPicker
+                  row
+                  label={editIsCredit ? "Received from" : "Paid to"}
+                  placeholder={editIsCredit ? "Employer, bank, friend" : "Swiggy, rent, electricity bill"}
+                  value={merchantName}
+                  onChangeText={setMerchantName}
+                  merchantNames={merchantNames}
+                  showSuggestions={showMerchants}
+                  onToggleSuggestions={() => {
+                    setShowMerchants(!showMerchants);
+                    setShowCategories(false);
+                    setShowPaymentModes(false);
+                    setShowAccounts(false);
+                  }}
+                  onCloseSuggestions={() => setShowMerchants(false)}
+                />
 
-              {/* Description */}
+                {editIsCredit &&
+                  (editCreditKind === "settlement" ? (
+                    <View className="px-4 py-3 border-t border-border">
+                      <Text className="text-label font-semibold text-muted-foreground">Type</Text>
+                      <Text className="text-body font-semibold text-foreground">Hisaab settlement</Text>
+                      <Text className="text-label text-muted-foreground mt-0.5">It comes from the link to Hisaab. Unlink it to choose another type.</Text>
+                    </View>
+                  ) : (
+                    <CreditKindChips row divider value={editCreditKind} onChange={setEditCreditKind} />
+                  ))}
+
+                {/* Category: credits have a type instead. */}
+                {!editIsCredit && (
+                  <CategoryPicker
+                    row
+                    divider
+                    categories={categories}
+                    categoryId={categoryId}
+                    selectedCategory={selectedCategory}
+                    showCategories={showCategories}
+                    allowNone
+                    onToggle={() => {
+                      setShowCategories(!showCategories);
+                      setShowPaymentModes(false);
+                    }}
+                    onSelect={(catId) => {
+                      setCategoryId(catId);
+                      setShowCategories(false);
+                      // Auto-set unavoidable/discretionary based on category classification
+                      const cat = categories.find((c) => c.id === catId);
+                      if (cat) setIsRightSpend(cat.is_unavoidable === 1);
+                    }}
+                  />
+                )}
+
+                <AccountPicker
+                  row
+                  divider
+                  label={editIsCredit ? "Into account" : "Paid from"}
+                  accounts={accounts}
+                  accountId={accountId}
+                  selectedAccount={selectedAccount}
+                  showAccounts={showAccounts}
+                  onToggle={() => {
+                    setShowAccounts(!showAccounts);
+                    setShowCategories(false);
+                    setShowPaymentModes(false);
+                  }}
+                  onSelect={handleAccountSelect}
+                />
+
+                {!editIsCredit && (
+                  <PaymentModePicker
+                    row
+                    divider
+                    label="Paid by"
+                    paymentModes={paymentModes}
+                    paymentModeId={paymentModeId}
+                    selectedPaymentMode={selectedPaymentMode}
+                    showPaymentModes={showPaymentModes}
+                    allowNone
+                    onToggle={() => {
+                      setShowPaymentModes(!showPaymentModes);
+                      setShowCategories(false);
+                    }}
+                    onSelect={(pmId) => {
+                      setPaymentModeId(pmId);
+                      setShowPaymentModes(false);
+                    }}
+                  />
+                )}
+              </View>
+
+              {editIsCredit && editCreditKind === "salary" && (
+                <CreditSalaryMonth date={date} override={editSalaryMonth} onChange={setEditSalaryMonth} className="mb-4" />
+              )}
+
+              {!editIsCredit && <RightSpendToggle isRightSpend={isRightSpend} onToggle={() => setIsRightSpend(!isRightSpend)} />}
+
               <Input
                 label="Note"
                 value={description}
@@ -1944,111 +2069,6 @@ export default function ExpenseDetailScreen() {
                 placeholder={editIsCredit ? "What's this money for?" : "What was it for?"}
                 maxLength={200}
                 containerClassName="mb-4"
-              />
-
-              {/* Merchant Name */}
-              <MerchantPicker
-                label={editIsCredit ? "Received from" : "Paid to"}
-                placeholder={editIsCredit ? "Employer, bank, friend (optional)" : "Swiggy, rent, electricity bill (optional)"}
-                value={merchantName}
-                onChangeText={setMerchantName}
-                merchantNames={merchantNames}
-                showSuggestions={showMerchants}
-                onToggleSuggestions={() => {
-                  setShowMerchants(!showMerchants);
-                  setShowCategories(false);
-                  setShowPaymentModes(false);
-                  setShowAccounts(false);
-                }}
-                onCloseSuggestions={() => setShowMerchants(false)}
-              />
-
-              {editIsCredit && (editCreditKind === "settlement" ? (
-                <View className="mb-4">
-                  <Text className="text-label font-semibold text-muted-foreground mb-1.5">Type</Text>
-                  <Text className="text-meta text-foreground">Hisaab settlement</Text>
-                  <Text className="text-label text-muted-foreground mt-0.5">It comes from the link to Hisaab. Unlink it to choose another type.</Text>
-                </View>
-              ) : (
-                <CreditKindChips value={editCreditKind} onChange={setEditCreditKind} />
-              ))}
-              {editIsCredit && editCreditKind === "salary" && (
-                <CreditSalaryMonth date={date} override={editSalaryMonth} onChange={setEditSalaryMonth} className="mb-4" />
-              )}
-
-              {/* Category picker: credits have a type instead. */}
-              {!editIsCredit && (
-              <CategoryPicker
-                categories={categories}
-                categoryId={categoryId}
-                selectedCategory={selectedCategory}
-                showCategories={showCategories}
-                allowNone
-                onToggle={() => {
-                  setShowCategories(!showCategories);
-                  setShowPaymentModes(false);
-                }}
-                onSelect={(catId) => {
-                  setCategoryId(catId);
-                  setShowCategories(false);
-                  // Auto-set unavoidable/discretionary based on category classification
-                  const cat = categories.find((c) => c.id === catId);
-                  if (cat) setIsRightSpend(cat.is_unavoidable === 1);
-                }}
-              />
-              )}
-
-              {!editIsCredit && (
-              <RightSpendToggle
-                isRightSpend={isRightSpend}
-                onToggle={() => setIsRightSpend(!isRightSpend)}
-              />
-              )}
-
-              <SectionTitle icon="business-outline" title="Where" className="mb-3 mt-1" />
-
-              {/* Account picker (V4) */}
-              <AccountPicker
-                label={editIsCredit ? "Into account" : "Paid from"}
-                accounts={accounts}
-                accountId={accountId}
-                selectedAccount={selectedAccount}
-                showAccounts={showAccounts}
-                onToggle={() => {
-                  setShowAccounts(!showAccounts);
-                  setShowCategories(false);
-                  setShowPaymentModes(false);
-                }}
-                onSelect={handleAccountSelect}
-              />
-
-              {!editIsCredit && (
-              <PaymentModePicker
-                paymentModes={paymentModes}
-                paymentModeId={paymentModeId}
-                selectedPaymentMode={selectedPaymentMode}
-                showPaymentModes={showPaymentModes}
-                allowNone
-                onToggle={() => {
-                  setShowPaymentModes(!showPaymentModes);
-                  setShowCategories(false);
-                }}
-                onSelect={(pmId) => {
-                  setPaymentModeId(pmId);
-                  setShowPaymentModes(false);
-                }}
-              />
-              )}
-
-              {/* Date selector */}
-              <DateSelector
-                date={date}
-                showDatePicker={showDatePicker}
-                onToggleDatePicker={() => setShowDatePicker(!showDatePicker)}
-                onDateShift={handleDateShift}
-                onSetDate={setDate}
-                onCloseDatePicker={() => setShowDatePicker(false)}
-                dateError={errors.date}
               />
 
               {expense.transaction_time && expense.transaction_time !== "00:00:00" && (
