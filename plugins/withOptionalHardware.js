@@ -8,12 +8,15 @@ const { withAndroidManifest } = require("expo/config-plugins");
  *   - CAMERA ("Take a photo" on Add from a picture) implies a camera: 4.23.0 dropped 19 devices.
  *     Without one, the gallery still works.
  *   - RECORD_AUDIO (voice entry and voice search) implies a microphone. Without one, type instead.
+ *   - The portrait lock (app.json orientation) implies a portrait screen: Play flagged 4.52.1 as
+ *     unavailable on tablets, desktops and XR. Phones still open Arth in portrait.
  */
 const FEATURES = [
   "android.hardware.telephony",
   "android.hardware.camera",
   "android.hardware.camera.autofocus",
   "android.hardware.microphone",
+  "android.hardware.screen.portrait",
 ];
 
 function withOptionalHardware(config) {
