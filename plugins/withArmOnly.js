@@ -17,11 +17,15 @@ const { withAppBuildGradle, withGradleProperties } = require("expo/config-plugin
  * Never add splits back alongside abiFilters: they conflict in AGP 8+.
  */
 function withArmOnly(config) {
+  // The demo build (ARTH_DEMO=1, never published) also carries x86_64, so it runs natively on the
+  // Android emulator for screenshots: arm64 code under the emulator's translation only showed a
+  // black screen.
+  const archs = process.env.ARTH_DEMO === "1" ? "arm64-v8a,x86_64" : "arm64-v8a";
   config = withGradleProperties(config, (config) => {
     const props = config.modResults;
     const existing = props.find((p) => p.type === "property" && p.key === "reactNativeArchitectures");
-    if (existing) existing.value = "arm64-v8a";
-    else props.push({ type: "property", key: "reactNativeArchitectures", value: "arm64-v8a" });
+    if (existing) existing.value = archs;
+    else props.push({ type: "property", key: "reactNativeArchitectures", value: archs });
     return config;
   });
 
