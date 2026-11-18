@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { View } from "react-native";
-import { Card, Money, ProgressBar, Segmented, Text } from "@/components/ui";
+import { Card, Money, ProgressBar, Text } from "@/components/ui";
 import { Statement } from "@/components/ui/LinkRow";
 import { AnimatedNumber, SegmentedControl } from "@/components/motion";
 import { StackedAreaChart, type StackedLayer } from "@/components/charts/StackedAreaChart";
@@ -30,22 +30,6 @@ const OWN = [
 ] as const;
 type OwnKey = (typeof OWN)[number]["key"];
 
-/** What you owe, for the Debt view's bands. */
-const OWE = [
-  { key: "loans", label: "Loans", color: DATA_HEX.series[1] },
-  { key: "cards", label: "Card dues", color: DATA_HEX.series[4] },
-  { key: "payables", label: "Payables", color: DATA_HEX.series[3] },
-] as const;
-
-type KindKey = "all" | "liquid" | "invest" | "debt";
-const KINDS: { value: KindKey; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "liquid", label: "Liquid cash" },
-  { value: "invest", label: "Investments" },
-  { value: "debt", label: "Debt" },
-];
-const KIND_LABEL: Record<KindKey, string> = { all: "Net worth", liquid: "Liquid cash", invest: "Investments", debt: "Debt" };
-
 const monthLabel = (m: string, withYear = true) => {
   const [y, mo] = m.split("-").map(Number);
   return withYear ? `${SHORT_MONTHS[mo - 1]} ${String(y).slice(2)}` : SHORT_MONTHS[mo - 1];
@@ -66,8 +50,6 @@ interface Props {
 export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
   const theme = useTheme();
   const [range, setRange] = useState<RangeKey>("fy");
-  /** What the chart and headline show: net worth, or one part of it (owner, Nov 2026). */
-  const [kind, setKind] = useState<KindKey>("all");
   /** Index into `visible` under the finger while dragging; null otherwise. */
   const [scrub, setScrub] = useState<number | null>(null);
 
@@ -87,24 +69,16 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
     return { visible: points.slice(from), baseIndex: from };
   }, [points, range, fyStartMonth]);
 
-  const layers = useMemo<StackedLayer[]>(() => {
-    if (kind === "debt") {
-      return OWE.map((o) => ({
-        key: o.key,
-        label: o.label,
-        color: o.color,
-        values: visible.map((p) => Math.max(0, p[o.key])),
-      })).filter((l) => l.values.some((v) => v > 0));
-    }
-    return OWN.filter((o) => kind === "all" || (kind === "liquid" ? o.key === "liquidCash" : o.key === "investments"))
-      .map((o) => ({
+  const layers = useMemo<StackedLayer[]>(
+    () =>
+      OWN.map((o) => ({
         key: o.key,
         label: o.label,
         color: o.color,
         values: visible.map((p) => Math.max(0, p[o.key as OwnKey])),
-      }))
-      .filter((l) => l.values.some((v) => v > 0));
-  }, [visible, kind]);
+      })).filter((l) => l.values.some((v) => v > 0)),
+    [visible],
+  );
 
   if (loading && points.length === 0) {
     return (
@@ -124,11 +98,8 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
   const first = visible[0];
   const point = visible[at];
   const isToday = at === n - 1;
-  const valueOf = (pt: NetWorthPoint) =>
-    kind === "all" ? pt.netWorth : kind === "liquid" ? pt.liquidCash : kind === "invest" ? pt.investments : pt.cards + pt.loans + pt.payables;
-  const shown = valueOf(point);
-  const delta = shown - valueOf(first);
-  const deltaPct = valueOf(first) > 0 ? (delta / valueOf(first)) * 100 : null;
+  const delta = point.netWorth - first.netWorth;
+  const deltaPct = first.netWorth > 0 ? (delta / first.netWorth) * 100 : null;
   const sinceLabel =
     range === "fy" && first.month < fyStartMonth ? `since 1 ${monthLabel(fyStartMonth, false)}` : `since ${monthLabel(first.month)}`;
   const change = changeBetween(points, baseIndex, baseIndex + at);
@@ -172,13 +143,13 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
   return (
     <Card className="mx-4 mb-2">
       <Text className="text-meta text-muted-foreground">
-        {isToday && !scrubbing ? `${KIND_LABEL[kind]} today` : `${KIND_LABEL[kind]} · end of ${monthLabel(point.month)}`}
+        {isToday && !scrubbing ? "Net worth today" : `Net worth · end of ${monthLabel(point.month)}`}
       </Text>
       {/* Counts up when the screen opens; while dragging it follows the finger exactly. */}
       {scrubbing ? (
-        <Money value={shown} className="text-hero font-bold text-foreground" />
+        <Money value={point.netWorth} className="text-hero font-bold text-foreground" />
       ) : (
-        <AnimatedNumber value={shown} className="text-hero font-bold text-foreground" />
+        <AnimatedNumber value={point.netWorth} className="text-hero font-bold text-foreground" />
       )}
       {Math.abs(delta) >= 1 || scrubbing ? (
         <Text className="text-label mt-0.5" style={{ color: delta >= 0 ? theme.success : theme.danger }}>
@@ -187,17 +158,6 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
           <Text className="text-label text-muted-foreground"> {sinceLabel}{point.estimated ? " · estimated" : ""}</Text>
         </Text>
       ) : null}
-
-      {/* What to show: net worth, or one part of it. */}
-      <Segmented<KindKey>
-        className="mt-3"
-        options={KINDS}
-        value={kind}
-        onChange={(v) => {
-          setKind(v);
-          setScrub(null);
-        }}
-      />
 
       {/* How far back to look. */}
       <SegmentedControl
@@ -217,18 +177,18 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
 
       {/* What it's made of - follows the finger, like the rows under the Investments chart. */}
       <View className="mt-2">
-        {kind === "all" && owe.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">What you own</Text>}
-        {(kind === "debt" ? [] : [...own].filter((o) => kind === "all" || (kind === "liquid" ? o.key === "liquidCash" : o.key === "investments")).reverse()).map((o) => (
+        {owe.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">What you own</Text>}
+        {[...own].reverse().map((o) => (
           <BreakdownRow key={o.key} color={o.color} label={o.label} hint={o.hint} amount={o.value} percent={pct(o.value)} />
         ))}
-        {kind === "all" && owe.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-0.5">What you owe</Text>}
-        {(kind === "all" || kind === "debt" ? owe : []).map((o) => (
+        {owe.length > 0 && <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mt-2 mb-0.5">What you owe</Text>}
+        {owe.map((o) => (
           <BreakdownRow key={o.label} color={theme.danger} label={o.label} hint={o.hint} amount={-o.value} percent={pct(o.value)} owed />
         ))}
       </View>
 
       {/* How it changed, as a statement that adds up: where it started, each reason, where it is now. */}
-      {kind === "all" && <View className="mt-3 pt-3 border-t border-border">
+      <View className="mt-3 pt-3 border-t border-border">
         <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">
           Change {sinceLabel}{scrubbing && !isToday ? ` to ${monthLabel(point.month)}` : ""}
         </Text>
@@ -258,7 +218,7 @@ export function NetWorthTrendCard({ points, fyStartMonth, loading }: Props) {
             Some months are estimates: an investment snapshot carried forward, or a balance worked back from a message.
           </Text>
         )}
-      </View>}
+      </View>
     </Card>
   );
 }
