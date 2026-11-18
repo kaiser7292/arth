@@ -5,7 +5,7 @@ import { View, Pressable, FlatList, ActivityIndicator, ScrollView } from "react-
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Chip, ListToolbar, ScreenContainer, Text } from "@/components/ui";
+import { Chip, ListToolbar, ScreenContainer, Text, GroupHeading, DrawerCell } from "@/components/ui";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { ExpenseListItem } from "@/components/expense/ExpenseListItem";
@@ -69,6 +69,20 @@ const FILTER_OPTIONS: { key: SectionFilter; label: string; icon: keyof typeof Io
 ];
 
 const NO_FIELDS: ListField<any>[] = [];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** Deleted and rejected transactions sit in month drawers (board "Recycle bin"). */
+const MONTH_FIELDS: ListField<any>[] = [
+  {
+    id: "month",
+    label: "Month",
+    keyOf: (e: any) => String(e.deleted_at ?? e.updated_at ?? e.date ?? "").slice(0, 7) || null,
+    labelOf: (k: string) => {
+      const [y, m] = k.split("-").map(Number);
+      return m ? `${MONTHS[m - 1]} ${y}` : k;
+    },
+    group: true,
+  },
+];
 const binName = (item: any): string => item.name ?? item.title ?? item.merchant_name ?? item.description ?? item.bank_name ?? item.sender ?? "";
 const binDate = (item: any): string => String(item.deleted_at ?? item.date ?? item.updated_at ?? item.created_at ?? "");
 const BIN_SORTS: ListSort<any>[] = [
@@ -344,13 +358,15 @@ export default function RecycleBinScreen() {
           {item.deleted_at && <Text className="text-label text-faint-foreground mr-2">{daysAgo(item.deleted_at)}</Text>}
           <Pressable onPress={() => confirm("Restore", `Restore "${item.description || "Expense"}"?`, "Restore", false, async () => {
             await restoreExpense(item.id); setDeletedExpenses((p) => p.filter((e) => e.id !== item.id));
-          })} className="w-9 h-9 rounded-full bg-success/8 items-center justify-center mr-2">
-            <Ionicons name="refresh-outline" size={18} color={theme.success} />
+          })} className="rounded-pill px-2.5 justify-center mr-1.5" style={{ height: 30, backgroundColor: theme.alpha("success", 0.1) }}
+            accessibilityRole="button" accessibilityLabel={`Restore ${item.description || "expense"}`}>
+            <Text className="text-label font-semibold" style={{ color: theme.success }}>Restore</Text>
           </Pressable>
           <Pressable onPress={() => confirm("Delete forever", `Permanently delete "${item.description || "Expense"}"? Cannot be undone.`, "Delete", true, async () => {
             await permanentlyDeleteExpense(item.id); setDeletedExpenses((p) => p.filter((e) => e.id !== item.id));
-          })} className="w-9 h-9 rounded-full bg-danger/8 items-center justify-center">
-            <Ionicons name="close-outline" size={18} color={theme.danger} />
+          })} className="w-8 h-8 rounded-pill items-center justify-center" style={{ backgroundColor: theme.alpha("danger", 0.08) }}
+            accessibilityRole="button" accessibilityLabel={`Delete ${item.description || "expense"} forever`}>
+            <Ionicons name="trash-outline" size={15} color={theme.danger} />
           </Pressable>
         </View>
       }
@@ -592,7 +608,9 @@ export default function RecycleBinScreen() {
     screen: "recycle_bin",
     noun: { one: "item", many: "items" },
     rows: section.data,
-    fields: NO_FIELDS,
+    fields: activeFilter === "deleted" || activeFilter === "rejected" ? MONTH_FIELDS : NO_FIELDS,
+    defaultGroup: activeFilter === "deleted" || activeFilter === "rejected" ? "month" : undefined,
+    amountOf: activeFilter === "deleted" || activeFilter === "rejected" ? (e: any) => -(e.amount ?? 0) : undefined,
     sorts: BIN_SORTS,
     searchPlaceholder: "Search this list",
     search: binSearch,
@@ -739,11 +757,17 @@ export default function RecycleBinScreen() {
           initialNumToRender={12}
           maxToRenderPerBatch={10}
           windowSize={7}
-          data={tools.rows}
-          keyExtractor={(item: any) => item.id}
+          data={tools.grouped}
+          keyExtractor={(row: any) => (row.type === "heading" ? `heading-${row.key}` : row.item.id)}
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={<Text className="text-meta text-muted-foreground text-center px-8 py-8">Nothing matches.</Text>}
-          renderItem={section.renderItem}
+          renderItem={({ item: row }: { item: any }) =>
+            row.type === "heading" ? (
+              <GroupHeading label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={{ one: "deleted", many: "deleted" }} />
+            ) : (
+              <DrawerCell row={row}>{(section.renderItem as (a: { item: any }) => React.ReactElement)({ item: row.item })}</DrawerCell>
+            )
+          }
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
           ListHeaderComponent={
