@@ -135,7 +135,7 @@ function ExpenseListItemInner({
 
       <View className="flex-1" style={{ minWidth: 0 }}>
         {/* Line 1: name and amount */}
-        <View className="flex-row items-start">
+        <View className="flex-row items-center">
           <Text className="flex-1 text-body font-semibold text-foreground mr-3" numberOfLines={1}>
             {transactionTitle(expense, look?.name)}
           </Text>
@@ -152,12 +152,12 @@ function ExpenseListItemInner({
                 {isCredit ? "+" : ""}{formatAmount(expense.amount)}
               </Text>
             )}
-            {dateText ? <Text className="text-label text-muted-foreground mt-0.5">{dateText}</Text> : null}
           </View>
         </View>
 
-        {/* Line 2: category chip · paid by · account, and at most one status */}
-        <View className="flex-row flex-wrap items-center mt-1" style={{ gap: 6 }}>
+        {/* Line 2: category chip · paid by · account and at most one status, then the date on the right */}
+        <View className="flex-row items-center mt-1" style={{ gap: 8 }}>
+        <View className="flex-1 flex-row items-center" style={{ gap: 6, minWidth: 0 }}>
           {look ? (
             <Chip variant="category" label={look.name} color={look.color} />
           ) : showAddCategory ? (
@@ -172,6 +172,12 @@ function ExpenseListItemInner({
           {expense.is_right_spend === 0 && (
             <Ionicons name="pricetag-outline" size={13} color={theme.accent} accessibilityLabel="Discretionary" />
           )}
+        </View>
+          {dateText ? (
+            <Text className="text-label text-muted-foreground shrink-0" numberOfLines={1}>
+              {dateText}
+            </Text>
+          ) : null}
         </View>
 
         {splitNote ? (

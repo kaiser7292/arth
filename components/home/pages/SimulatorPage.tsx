@@ -375,7 +375,7 @@ export function SimulatorPage() {
                         Until {prettyDate(scenario.horizon_date)}
                         {lowest ? ` · lowest ${formatAmount(lowest.v + hisaabNet)} on ${prettyDate(lowest.date)}` : ""}
                       </Text>
-                      {overview && warnings.length === 0 && <Chip variant="status" tone="success" label="Safe" className="ml-2" />}
+                      {overview && warnings.length === 0 && <Chip variant="status" tone="success" label="Safe" className="self-center ml-2" />}
                       {warnings.length > 0 && (
                         <View
                           className="ml-2 flex-row items-center px-2 py-0.5 rounded-full"

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { ChoiceField } from "@/components/ui/ChoiceField";
 
 import { logger } from "@/utils/logger";
 import { View, ScrollView, Pressable, Keyboard, RefreshControl, TextInput } from "react-native";
@@ -581,7 +582,7 @@ export default function AccountDetailScreen() {
                   ····{account.account_identifier}
                 </Text>
               </View>
-              <Chip variant="status" tone={account.closed_at ? "neutral" : "success"} label={account.closed_at ? "Closed" : "Open"} />
+              <Chip variant="status" className="self-center" tone={account.closed_at ? "neutral" : "success"} label={account.closed_at ? "Closed" : "Open"} />
             </View>
 
             {/* Account type picker — hidden for loans (switching type would
@@ -594,39 +595,18 @@ export default function AccountDetailScreen() {
                 option). */}
             {account.account_type !== "loan" && account.account_type !== "investment" && (
               <>
-                <Text className="text-label font-medium text-muted-foreground mb-2">
-                  Type
-                </Text>
-                <View className="flex-row flex-wrap mb-4" style={{ gap: 8 }}>
-                  {ACCOUNT_TYPES.map((t) => {
-                    const isSelected = accountType === t.key;
-                    return (
-                      <Pressable
-                        key={t.key}
-                        onPress={() => { setAccountType(t.key); setDirty(true); }}
-                        className="flex-row items-center px-3 py-2.5 rounded-control border"
-                        style={{
-                          width: "48%",
-                          backgroundColor: isSelected ? theme.primary : undefined,
-                          borderColor: isSelected ? theme.primary : theme.border,
-                        }}
-                      >
-                        <Ionicons
-                          name={t.icon}
-                          size={16}
-                          color={isSelected ? "#FFFFFF" : theme.mutedForeground}
-                          style={{ marginRight: 6 }}
-                        />
-                        <Text
-                          className="text-label font-semibold"
-                          style={{ color: isSelected ? "#FFFFFF" : theme.mutedForeground }}
-                        >
-                          {t.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+                <ChoiceField
+                  label="Type"
+                  className="mb-4"
+                  value={accountType}
+                  options={ACCOUNT_TYPES.map((t) => ({ value: t.key, label: t.label, icon: t.icon }))}
+                  onChange={(v) => {
+                    setAccountType(v);
+                    setDirty(true);
+                  }}
+                  title="Account type"
+                  searchPlaceholder="Search account types"
+                />
               </>
             )}
 
@@ -642,7 +622,7 @@ export default function AccountDetailScreen() {
           {/* Financial details — credit cards only */}
           {accountType === "credit_card" && (
             <Card className="mb-3">
-            <SectionTitle icon="card-outline" title="Card details" hint="Limit, due date and what's due" className="mb-3" />
+            <SectionTitle active icon="card-outline" title="Card details" hint="Limit, due date and what's due" className="mb-3" />
               <Input
                 label="Credit Limit"
                 value={creditLimitValue}
@@ -705,7 +685,7 @@ export default function AccountDetailScreen() {
           {/* v15.5: Savings min-balance alert (savings only) */}
           {accountType === "savings" && (
             <Card className="mb-3">
-            <SectionTitle icon="notifications-outline" title="Minimum balance alert" hint="Leave blank or 0 to turn it off" className="mb-3" />
+            <SectionTitle active icon="notifications-outline" title="Minimum balance alert" hint="Leave blank or 0 to turn it off" className="mb-3" />
               <Input
                 label="Minimum Balance (₹)"
                 value={minBalanceValue}
@@ -860,7 +840,7 @@ export default function AccountDetailScreen() {
               until the schedule materialises at maturity. */}
           {investmentProduct && investmentProduct.valuation === "contract" && !isFDIncomplete(investmentProduct) && (
             <Card className="mb-3">
-            <SectionTitle icon="lock-closed-outline" title="Fixed deposit" hint="Principal, rate and maturity" className="mb-3" />
+            <SectionTitle active icon="lock-closed-outline" title="Fixed deposit" hint="Principal, rate and maturity" className="mb-3" />
               <View className="flex-row justify-between mb-1.5">
                 <Text className="text-label text-muted-foreground">Principal</Text>
                 <Text className="text-body font-semibold text-foreground">
@@ -919,7 +899,7 @@ export default function AccountDetailScreen() {
               opening/expenses/credits breakdown doesn't map to how a user
               thinks about a deposit). v17.5.10 extends the earlier loan/demat guard. */}
           {!isDematAccount && !isFDAccount && accountType !== "loan" && accountType !== "credit_card" && <Card className="mb-3">
-            <SectionTitle icon="calendar-outline" title="Balance" hint="Where the ledger starts counting, month by month" className="mb-3" />
+            <SectionTitle active icon="calendar-outline" title="Balance" hint="Where the ledger starts counting, month by month" className="mb-3" />
             {!seeded ? (
               <View>
                 <Text className="text-label text-muted-foreground mb-3">
@@ -1082,7 +1062,7 @@ export default function AccountDetailScreen() {
           {/* UPI IDs — a payment picture showing one of these picks this account. */}
           {(accountType === "savings" || accountType === "credit_card" || accountType === "wallet") && !isDematAccount && !isFDAccount && (
             <Card className="mb-3">
-            <SectionTitle icon="at-outline" title="UPI IDs" hint="A payment picture showing one of these picks this account" className="mb-3" />
+            <SectionTitle active icon="at-outline" title="UPI IDs" hint="A payment picture showing one of these picks this account" className="mb-3" />
               <Text className="text-label text-muted-foreground mb-2">
                 Your UPI IDs on this account. A payment picture showing one of them picks this account by itself.
               </Text>
@@ -1139,7 +1119,7 @@ export default function AccountDetailScreen() {
           {/* Payment Modes — hidden for loans (loans aren't payment instruments)
               and demat/FD (investment accounts don't route expenses). v17.5.10. */}
           {accountType !== "loan" && !isDematAccount && !isFDAccount && <Card className="mb-3">
-            <SectionTitle icon="wallet-outline" title="Linked payment modes" hint="Spends paid this way land in this account" className="mb-3" />
+            <SectionTitle active icon="wallet-outline" title="Linked payment modes" hint="Spends paid this way land in this account" className="mb-3" />
             {allModes.length > 0 ? (
               allModes.map((mode) => {
                 const isLinked = linkedModeIds.has(mode.id);

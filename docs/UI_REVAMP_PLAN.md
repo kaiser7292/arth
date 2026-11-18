@@ -182,8 +182,8 @@ Anything listed here is kept as it is until answered.
 8. ~~Vault Lock now~~ Answered: not needed.
 9. ~~Split person and credit kind pickers~~ Answered: move them. Done in 1ef4f9c.
 
-1. ~~Goals tab, FY picker~~ Answered: add it. Done in bdbc0f3.
-2. ~~Net worth type switch~~ Answered: add it beside the periods. Done in bdbc0f3.
+1. ~~Goals tab, FY picker~~ Added in bdbc0f3, then removed at the owner's request: the Goals tab stays on the current year.
+2. ~~Net worth type switch~~ Added in bdbc0f3, then removed at the owner's request (no type selection on the chart).
 3. ~~Settle "I paid them"~~ Answered: build it, and paying back counts as spending. Done in bdbc0f3 + 869096c: an approved expense (on the account it came from, if picked) linked to a You paid entry.
 4. **Goals tab, risk coverage and year in review.** Not on the board; both kept (Track and Analyse lists). Confirm that's where they belong.
 6. **Budget summary fold.** The Budget summary card could be folded shut from its own header before; it is now always open (it can still be hidden from the apps button). OK?

@@ -667,12 +667,14 @@ export async function getLinkedTransactionTypes(expenseIds: string[]): Promise<M
   const ids = [...new Set(expenseIds)];
   for (let i = 0; i < ids.length; i += 500) {
     const chunk = ids.slice(i, i + 500);
-    const rows = await getDatabase().getAllAsync<{ id: string; nature: string; refund_of_expense_id: string | null }>(
-      `SELECT id, nature, refund_of_expense_id FROM expenses WHERE id IN (${chunk.map(() => "?").join(",")});`,
+    const rows = await getDatabase().getAllAsync<{ id: string; nature: string; refund_of_expense_id: string | null; has_split: number }>(
+      `SELECT e.id, e.nature, e.refund_of_expense_id,
+              EXISTS (SELECT 1 FROM expense_splits s WHERE s.expense_id = e.id) AS has_split
+         FROM expenses e WHERE e.id IN (${chunk.map(() => "?").join(",")});`,
       ...chunk,
     );
     for (const r of rows) {
-      out.set(r.id, r.refund_of_expense_id ? "Refund" : r.nature === "credit" ? "Credit" : "Expense");
+      out.set(r.id, r.refund_of_expense_id ? "Refund" : r.nature === "credit" ? "Credit" : r.has_split ? "Split" : "Expense");
     }
   }
   return out;

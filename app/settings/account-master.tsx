@@ -233,7 +233,7 @@ export default function AccountMasterScreen() {
           </Text>
         </View>
         {/* Open or closed at a glance. */}
-        <Chip variant="status" tone={account.closed_at ? "neutral" : "success"} label={account.closed_at ? "Closed" : "Open"} />
+        <Chip variant="status" className="self-center" tone={account.closed_at ? "neutral" : "success"} label={account.closed_at ? "Closed" : "Open"} />
       </Pressable>
     );
   };

@@ -30,7 +30,7 @@ export function FormGroup({
 }) {
   return (
     <View className={`rounded-card bg-card border border-border p-4 ${className}`} style={{ gap: 12 }}>
-      <SectionTitle icon={icon} title={title} hint={hint} right={right} />
+      <SectionTitle icon={icon} title={title} hint={hint} right={right} active />
       {children}
     </View>
   );

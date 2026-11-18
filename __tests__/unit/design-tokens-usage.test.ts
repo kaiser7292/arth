@@ -55,6 +55,7 @@ const FILES = [
   "components/ui/FieldRow.tsx",
   "components/ui/FilterSheetParts.tsx",
   "components/expense/PickerSheet.tsx",
+  "components/ui/ChoiceField.tsx",
   "app/settings/ai-lab.tsx",
   "app/settings/ai-suggestions.tsx",
   "app/settings/angel-connect-credentials.tsx",

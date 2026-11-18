@@ -1,6 +1,6 @@
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
-import { Card, Chip, ContextualHeader, LoadingState, PeriodNavigator, ProgressBar, ScreenContainer, SectionTitle, Text } from "@/components/ui";
+import { Card, Chip, ContextualHeader, LoadingState, ProgressBar, ScreenContainer, SectionTitle, Text } from "@/components/ui";
 import { GroupLabel, LinkRow } from "@/components/ui/LinkRow";
 import { AnimatedNumber, Appear, PressableScale } from "@/components/motion";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -41,9 +41,7 @@ export default function GoalsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const startMonth = getFYStartMonth();
-  const todayFY = getCurrentFY(startMonth);
-  // The year being looked at: this FY by default, any other from the picker under the header.
-  const [currentFY, setViewFY] = useState(todayFY);
+  const currentFY = getCurrentFY(startMonth);
   const fyLabel = getFYLabel(currentFY, startMonth);
 
   // Initialise from preload so the page renders instantly on first open
@@ -243,7 +241,6 @@ export default function GoalsScreen() {
     <ScreenContainer>
       {loadFailed && <LoadFailedBanner onRetry={loadGoals} />}
       <ContextualHeader title="Goals" subtitle={`${fyLabel} · ${fyRange}`} />
-      <PeriodNavigator mode="fy" value={currentFY} onChange={setViewFY} variant="inline" />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -310,8 +307,7 @@ export default function GoalsScreen() {
                     title="Financial health"
                     hint={soFar}
                     right={
-                      <Chip
-                        variant="status"
+                      <Chip variant="status" className="self-center"
                         tone={gradeTone}
                         icon="information-circle-outline"
                         label={cockpitData.healthProvisional ? "Early days" : `Grade ${cockpitData.healthGrade}`}
@@ -381,19 +377,27 @@ export default function GoalsScreen() {
                     </View>
                   )}
 
-                  {/* Monthly headroom, as a line under the figures */}
-                  <View className="flex-row items-center justify-between border-t border-border mt-3.5 pt-3">
-                    <Text className="text-meta text-muted-foreground">Monthly headroom</Text>
+                  {/* Monthly headroom: label and what it means on the left (wraps if it must), the amount on the right */}
+                  <View className="flex-row items-center border-t border-border mt-3.5 pt-3" style={{ gap: 12 }}>
+                    <View className="flex-1" style={{ minWidth: 0 }}>
+                      <Text className="text-meta text-muted-foreground">Monthly headroom</Text>
+                      <Text
+                        className="text-label"
+                        style={{ color: headroom < 0 ? theme.danger : headroom === 0 ? theme.warning : theme.mutedForeground }}
+                      >
+                        {headroom < 0 ? "Commitments exceed income" : headroom === 0 ? "All income committed" : "After commitments"}
+                      </Text>
+                    </View>
                     <Text
-                      className="text-meta font-semibold"
+                      className="text-body font-semibold"
                       style={{
                         color: headroom < 0 ? theme.danger : headroom === 0 ? theme.warning : theme.foreground,
                         fontVariant: ["tabular-nums"],
+                        flexShrink: 0,
                       }}
                       numberOfLines={1}
                     >
-                      {formatAmount(headroom)}{" "}
-                      {headroom < 0 ? "· commitments exceed income" : headroom === 0 ? "· all income committed" : "after commitments"}
+                      {formatAmount(headroom)}
                     </Text>
                   </View>
 

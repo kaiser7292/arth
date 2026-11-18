@@ -315,7 +315,7 @@ export default function HisaabPersonsScreen() {
       {tools.filterSheet}
       {persons.length > 0 && (
         <Segmented<"all" | "owed" | "owe">
-          className="mx-4 mb-1"
+          className="mx-4 mt-2 mb-2"
           options={[
             { value: "all", label: "All" },
             { value: "owed", label: "Owe you" },

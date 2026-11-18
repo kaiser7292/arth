@@ -441,7 +441,7 @@ export default function LoanDetailScreen() {
                           <Text className="text-body font-semibold text-foreground shrink" numberOfLines={1}>
                             {p.kind === "foreclosure" ? "Foreclosure" : "Part payment"}
                           </Text>
-                          {strategyLabel && <Chip variant="status" tone="primary" label={strategyLabel} />}
+                          {strategyLabel && <Chip variant="status" className="self-center" tone="primary" label={strategyLabel} />}
                         </View>
                         {p.prepayment_charge > 0 && (
                           <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1}>

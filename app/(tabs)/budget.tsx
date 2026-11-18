@@ -419,7 +419,7 @@ export default function BudgetScreen() {
                   />
                 </View>
                 <View className="items-end" style={{ gap: 4 }}>
-                  <Chip variant="status" tone={budgetBadgeTone} label={budgetBadgeLabel} />
+                  <Chip variant="status" className="self-end" tone={budgetBadgeTone} label={budgetBadgeLabel} />
                   <Text className="text-meta text-muted-foreground text-right">
                     of {formatAmount(totalBudget)}
                     {"\n"}
@@ -605,7 +605,7 @@ export default function BudgetScreen() {
                 <View className="border-t border-border pt-2">
                   <View className="flex-row items-center justify-between">
                     <Text className="text-body font-semibold text-foreground">Annual projection</Text>
-                    <Chip variant="status" tone={compliance.annualOnTrack ? "success" : "danger"} label={compliance.annualOnTrack ? "On track" : "Over budget"} />
+                    <Chip variant="status" className="self-center" tone={compliance.annualOnTrack ? "success" : "danger"} label={compliance.annualOnTrack ? "On track" : "Over budget"} />
                   </View>
                   <FieldRow label="Projected" value={formatAmount(Math.round(compliance.annualProjectedSpend ?? 0))} divider={false} />
                   <FieldRow label="Annual budget" value={formatAmount(compliance.annualBudget ?? 0)} />

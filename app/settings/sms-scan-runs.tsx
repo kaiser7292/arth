@@ -27,7 +27,7 @@ type ViewMode = "list" | "drilldown" | "category";
 const SCAN_FIELDS: ListField<ScanDetailRow>[] = [
   { id: "sender", label: "Sender", keyOf: (d) => d.sms_address, noneLabel: "No sender", filter: true, group: true, searchable: true },
   { id: "merchant", label: "Merchant", keyOf: (d) => d.parsed_merchant?.trim(), noneLabel: "No merchant", filter: true, group: true, searchable: true },
-  { id: "type", label: "Type", keyOf: (d) => d.parsed_type, noneLabel: "No type", filter: true, group: true },
+  { id: "type", label: "Transaction type", keyOf: (d) => d.parsed_type, noneLabel: "No type", filter: true, group: true },
 ];
 const SCAN_SORTS: ListSort<ScanDetailRow>[] = [
   { id: "logged", label: "As logged" },

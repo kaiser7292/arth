@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 import { Text } from "./Text";
 import { useTheme } from "@/hooks/use-theme";
+import { tint } from "@/constants/brand";
 import { COMPONENTS } from "@/constants/design-tokens";
 
 /**
@@ -18,6 +19,7 @@ export function SectionTitle({
   hint,
   right,
   active = false,
+  color,
   className = "",
 }: {
   icon: keyof typeof Ionicons.glyphMap;
@@ -27,6 +29,8 @@ export function SectionTitle({
   right?: ReactNode;
   /** Tints the icon box: something in this section is on. */
   active?: boolean;
+  /** The icon square's own colour (hex), as on the boards: green for Inflow, amber for Backup. */
+  color?: string;
   className?: string;
 }) {
   const theme = useTheme();
@@ -35,9 +39,9 @@ export function SectionTitle({
     <View className={`${S.base} ${className}`}>
       <View
         className={S.iconBox}
-        style={{ backgroundColor: active ? theme.alpha("primary", 0.1) : theme.alpha("foreground", 0.06) }}
+        style={{ backgroundColor: color ? tint(color, 0.1) : active ? theme.alpha("primary", 0.1) : theme.alpha("foreground", 0.06) }}
       >
-        <Ionicons name={icon} size={S.icon} color={active ? theme.primary : theme.mutedForeground} />
+        <Ionicons name={icon} size={S.icon} color={color ?? (active ? theme.primary : theme.mutedForeground)} />
       </View>
       <View className="flex-1">
         <Text className={S.title} accessibilityRole="header" numberOfLines={1}>

@@ -1,4 +1,6 @@
 import { isPartOn } from "@/services/customise";
+import { ChoiceField } from "@/components/ui/ChoiceField";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState, useRef } from "react";
 import { View, ScrollView, Pressable, Keyboard } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -29,6 +31,18 @@ const TYPE_OPTIONS: AddType[] = [
   "pension",
   "fd",
 ];
+
+const ADD_TYPE_ICONS: Record<AddType, keyof typeof Ionicons.glyphMap> = {
+  savings: "wallet-outline",
+  bank: "wallet-outline",
+  credit_card: "card-outline",
+  loan: "document-text-outline",
+  wallet: "phone-portrait-outline",
+  demat: "trending-up-outline",
+  pension: "briefcase-outline",
+  investment: "pie-chart-outline",
+  fd: "lock-closed-outline",
+} as Record<AddType, keyof typeof Ionicons.glyphMap>;
 
 const ACCOUNT_TYPE_LABELS: Record<AddType, string> = {
   fd: "Fixed deposit",
@@ -213,45 +227,14 @@ export default function AccountAddScreen() {
       >
         <View className="px-4 py-4">
           {/* Account Type Picker */}
-          <Text className="text-label font-semibold text-faint-foreground uppercase tracking-wider mb-3">
-            Account Type
-          </Text>
-          <View className="flex-row flex-wrap mb-4">
-            {TYPE_OPTIONS.map((t) => (
-              <Pressable
-                key={t}
-                onPress={() => setAccountType(t)}
-                className={`px-4 py-3 rounded-control mr-2 mb-2 border ${
-                  accountType === t
-                    ? ""
-                    : "bg-card border-transparent"
-                }`}
-                style={
-                  accountType === t
-                    ? {
-                        backgroundColor: theme.alpha("primary", 0.1),
-                        borderColor: theme.primary,
-                      }
-                    : undefined
-                }
-              >
-                <Text
-                  className={`text-meta ${
-                    accountType === t
-                      ? "font-medium"
-                      : "text-muted-foreground"
-                  }`}
-                  style={
-                    accountType === t
-                      ? { color: theme.primary }
-                      : undefined
-                  }
-                >
-                  {ACCOUNT_TYPE_LABELS[t]}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          <ChoiceField
+            label="Account type"
+            className="mb-4"
+            value={accountType}
+            options={TYPE_OPTIONS.map((t) => ({ value: t, label: ACCOUNT_TYPE_LABELS[t], icon: ADD_TYPE_ICONS[t] }))}
+            onChange={setAccountType}
+            searchPlaceholder="Search account types"
+          />
 
           {/* ── Bank Detail Fields (savings, credit_card, loan) ── */}
           {!isDemat && !isSimple && !isFD && (
