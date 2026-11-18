@@ -208,5 +208,7 @@ export function useListTools<T>({
     reset,
     /** Turn on one field's filter from outside, e.g. the card a shared-limit ledger was opened from. */
     setFieldFilter,
+    /** Which keys each filter field has on, e.g. to light up quick-filter chips. */
+    filters,
   };
 }
