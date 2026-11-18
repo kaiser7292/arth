@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { PickerSheet } from "./PickerSheet";
 import { Pressable, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
@@ -110,38 +111,58 @@ export function CreditKindChips({
   onChange: (k: CreditKind | null) => void;
 }) {
   const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  const look = value ? CREDIT_KIND_LOOKS[value] : null;
   return (
     <View className="mb-4">
-      <Text className="text-label font-semibold text-muted-foreground mb-1.5">Type</Text>
-      <View className="flex-row flex-wrap gap-2">
-        {PICKABLE_CREDIT_KINDS.map((k) => {
-          const selected = k === value;
-          return (
-            <Pressable
-              key={k}
-              onPress={() => onChange(selected ? null : k)}
-              accessibilityRole="radio"
-              accessibilityState={{ selected }}
-              className="flex-row items-center px-3 py-1.5 rounded-full border"
-              style={
-                selected
-                  ? { borderColor: theme.success, backgroundColor: theme.alpha("success", 0.12) }
-                  : { borderColor: theme.border }
-              }
-            >
-              <Ionicons
-                name={CREDIT_KIND_LOOKS[k].icon as keyof typeof Ionicons.glyphMap}
-                size={14}
-                color={selected ? theme.success : CREDIT_KIND_LOOKS[k].color}
-                style={{ marginRight: 5 }}
-              />
-              <Text className="text-meta" style={{ color: selected ? theme.success : theme.mutedForeground }}>
-                {CREDIT_KIND_LABELS[k]}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <Text className="text-label font-semibold text-muted-foreground mb-1.5">Kind of money in</Text>
+      <Pressable
+        onPress={() => setOpen(true)}
+        className="flex-row items-center rounded-control border px-4"
+        style={{
+          minHeight: 48,
+          gap: 12,
+          borderColor: value ? theme.success : theme.border,
+          backgroundColor: value ? theme.alpha("success", 0.08) : theme.card,
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`Kind of money in${value ? `, ${CREDIT_KIND_LABELS[value]}` : ""}`}
+      >
+        <Ionicons
+          name={(look?.icon ?? "arrow-down-outline") as keyof typeof Ionicons.glyphMap}
+          size={18}
+          color={value ? theme.success : theme.mutedForeground}
+        />
+        <Text className={`flex-1 text-body ${value ? "text-foreground" : "text-faint-foreground"}`} numberOfLines={1}>
+          {value ? CREDIT_KIND_LABELS[value] : "Salary, refund, interest…"}
+        </Text>
+        <Ionicons name="chevron-down" size={18} color={theme.mutedForeground} />
+      </Pressable>
+      <PickerSheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        title="Kind of money in"
+        sections={[
+          {
+            key: "kinds",
+            items: PICKABLE_CREDIT_KINDS.map((k) => ({
+              id: k,
+              label: CREDIT_KIND_LABELS[k],
+              icon: CREDIT_KIND_LOOKS[k].icon as keyof typeof Ionicons.glyphMap,
+              color: CREDIT_KIND_LOOKS[k].color,
+            })),
+          },
+        ]}
+        selectedId={value}
+        onSelect={(id) => {
+          setOpen(false);
+          onChange((id as CreditKind | null) ?? null);
+        }}
+        allowNone
+        noneLabel="Not set"
+        searchPlaceholder="Search kinds"
+        noun={{ one: "kind", many: "kinds" }}
+      />
     </View>
   );
 }
