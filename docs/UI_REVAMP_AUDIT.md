@@ -27,7 +27,7 @@ board shows it. **Matches** = no real difference found.
 | Add loan | Matches | Loan type now a choice field (owner). |
 | Investment buckets / bucket detail | Matches | |
 | Net worth | Mostly matches | Board rows are one line per kind with a sub-line (Banks and wallets); app adds expandable accounts under each. |
-| Income calculator | **Different** | Tabs built. Board's Salary tab shows "From CTC to in-hand" as a statement with each step; app keeps the older breakdown cards. Board's toggles row (EPF, gratuity inside CTC) and "Salary credit counts toward" picker are in the old form style. |
+| Income calculator | Mostly matches | Salary tab shows "From CTC to in-hand · a year" as a statement that adds up. The toggles row and "Salary credit counts toward" picker keep the older form style. |
 
 ## Hisaab, Budget, ledger
 
@@ -39,7 +39,7 @@ board shows it. **Matches** = no real difference found.
 | Budget | Mostly matches | Board's Spending split card "Could save up to ₹X" with chips and Summary page "Top categories" with ↑↓ changes: not checked line by line; those pages only got the token pass. |
 | Budget category drill-down | **Missing** | "By sub-category" split (open question 7). Board shows the first transactions and "See all"; app shows the full list. Hero line "₹900 over the ₹3,000 budget" not worded that way. |
 | Account ledger | **Done** | Balance after each row; statement lines say how many and which day ("Opening balance · 1 Nov", "Money in · 2 credits", "Closing balance · today"). |
-| Account settings | Mostly matches | Type is now a choice field. Board's "Open ledger ›" sits under the name in the hero; app has it as a row. Card details / FD / Portfolio / Balance sections use the older field styles inside the new section titles. |
+| Account settings | Mostly matches | Hero with the account and "Open ledger ›" under its name. Type is a choice field. Card details / FD / Portfolio / Balance sections keep older field styles. |
 | Accounts list | **Done** | Each row shows its balance, what's owed on a card, what's left on a loan, or when it closed. "Grouped by … sorted …" pills under the search. Card due dates aren't shown (no due date is stored). |
 
 ## Insights, Vault, Simulator, Investments
@@ -70,18 +70,18 @@ board shows it. **Matches** = no real difference found.
 | Smart rule editor | **Done** | Applies to switch, Active, priority stepper, IF / DO blocks, light footer. "Apply to past" is still its own card (not a fold). |
 | Reminders | Mostly matches | Date leaf per row, amount on the right, grouped Overdue / Due soon / Upcoming. The detail page is unchanged. |
 | Transaction messages | Mostly matches | Board's "Your name in messages" name chips with ✕ and "+ Add name" are a different input in the app. |
-| Scan history | **Different** | Board: run cards (time, kind, counts, "18 new"), outcome rows, message view with parsed fields table and **"Teach this format"**. App: older layout; Teach-this lives elsewhere. |
+| Scan history | Mostly matches | Run cards say "N new" (or Nothing new); the message view says "Teach this format". Outcome rows keep their layout. |
 | Update balances | **Done** | Short intro, cards "owed now", light footer "Save N changes". |
-| Backup and data | **Different** | Board: **one screen** with the Back up card (password + confirm, Create encrypted backup, auto-backup every 12 / 24 / 48h), Restore card, and "Your data" links. App: Backup and Restore are a separate screen behind a row. |
-| Import from Excel | Different | Board: Transactions / Hisaab switch, numbered steps, preview counts, light footer "Import 371 rows". App: older layout, same steps. |
-| Security + Region | Different | Board: App lock card with "Lock when you leave Arth" options; Region rows with live samples. App: older layouts. |
-| Notifications + Calendar sync | Different | Board: grouped switches; calendar card with "Sync now" and last synced. App: older layouts. |
-| Customise | **Different** | Board: features switches, **Home cards with drag handles (⋮⋮)**, bottom tabs, "Tabs inside screens ›". App: older layout; card order uses arrows, not drag. |
-| Fix my data | **Different** | Board: "Data health · 61 to fix · 2 areas all fixed" header, rows with counts and their fix, AI section with steps, "Last fixes · 14 Nov" with Undo all. App: older layout. |
-| Clean up (+ duplicates, transfer review) | Different | Board: red warning, Date range chips, what-to-delete checkboxes, Delete selected; duplicate accounts and kept duplicates on the same page. App: separate screens, older layouts. |
+| Backup and data | **Done** | One screen: last backup and automatic backup status, Back up, Restore, then Your data links (import, reconcile, recycle bin, kept duplicates, clean up). |
+| Import from Excel | Different | Not changed yet. |
+| Security + Region | **Done** | App lock with an icon tile; "Lock when you leave Arth" as radio choices. Region is one card: each setting with a live sample and pills (currency and timezone open their pickers), plus Short amounts. |
+| Notifications + Calendar sync | Mostly matches | Notifications grouped Money / Brokers / App. Calendar sync already had last synced and Sync now. |
+| Customise | **Done** | Home cards reorder by dragging ⋮⋮ (titles move their group); screen readers can move them with swipe up / down. |
+| Fix my data | Mostly matches | One health card: "N to fix", how many areas are all fixed, each issue with its count. The AI steps and Last fixes keep their layout. |
+| Clean up (+ duplicates, transfer review) | Mostly matches | Red warning, Date range and What to delete in plain words. Duplicate accounts and transfer review stay separate screens. |
 | Recycle bin | Mostly matches | Month drawers for deleted and rejected transactions, worded Restore. Type tabs are still the chip row; other sections keep round buttons. |
-| Message templates | Different | Board: list → tag → confirm with step tabs; tag screen "Tap a word, then say what it is"; confirm "What Arth read" with Looks right / Needs change. App: same steps, older layouts. |
-| Picture templates | Different | Board: intro line, list with kind tags, detail with "Fields it reads". App: older layout. |
+| Message templates | Different | Not changed yet. |
+| Picture templates | Mostly matches | Already had the intro, kind and field chips. |
 
 ## Everywhere
 
