@@ -36,10 +36,16 @@ describe("rowStatus", () => {
     expect(rowStatus({ ...base, status: "pending_review" } as Expense, "full")).toEqual({ label: "Needs review", tone: "warning" });
     expect(rowStatus(base, "full")?.label).toBe("Refunded");
     expect(rowStatus(base, "partial")?.label).toBe("Partly refunded");
-    expect(rowStatus({ ...base, nature: "forecast" } as Expense, "none")?.label).toBe("Forecast");
+    expect(rowStatus({ ...base, nature: "forecast" } as Expense, "none")?.label).toBe("Bill due");
     expect(rowStatus({ ...base, money_event: "self_transfer" } as Expense, "none")).toEqual({ label: "Transfer", tone: "transfer" });
     expect(rowStatus({ ...base, purchase_group_id: "g" } as unknown as Expense, "none")?.label).toBe("Split payment");
     expect(rowStatus(base, "none")).toBeNull();
+  });
+
+  it("tags a debit that is an EMI or money put into an investment", () => {
+    expect(rowStatus({ ...base, is_loan_payment: 1 } as Expense, "none")).toEqual({ label: "EMI", tone: "accent" });
+    expect(rowStatus({ ...base, is_investment: 1 } as Expense, "none")).toEqual({ label: "Investment", tone: "success" });
+    expect(rowStatus({ ...base, money_event: "sip", is_investment: 1 } as Expense, "none")?.label).toBe("SIP");
   });
 
   it("names the money event while it waits for review", () => {

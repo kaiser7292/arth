@@ -59,12 +59,14 @@ export default function ExpenseMetadata({ expense, children }: ExpenseMetadataPr
           label="Kind"
           value={
             expense.nature === "forecast" && expense.due_date
-              ? `Forecast, due ${formatDate(expense.due_date)}`
+              ? `Bill due ${formatDate(expense.due_date)}`
               : expense.nature === "forecast"
-                ? "Forecast"
+                ? "Bill due"
                 : expense.nature === "credit"
-                  ? "Money in"
-                  : "Spent"
+                  ? "Credit"
+                  : expense.nature === "ledger_adjustment"
+                    ? "Balance correction"
+                    : "Debit"
           }
         />
         <FieldRow label="Added" value={formatTimestamp(expense.created_at)} />

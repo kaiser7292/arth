@@ -83,6 +83,9 @@ export interface Expense {
   linked_transfer_id: string | null;
   /** migration 080 — review hint for SMS rows: what this money movement looks like. Cleared once acted on. */
   money_event?: MoneyEvent | null;
+  /** Worked out by the list query, not stored: a loan payment (EMI), and money put into an investment. */
+  is_loan_payment?: number | null;
+  is_investment?: number | null;
   /** migration 080 — what a credit is (salary, interest, …). NULL for debits and older credits. */
   credit_kind?: CreditKind | null;
   /** The month this salary credit counts for, when it doesn't follow the setting (migration 090). */

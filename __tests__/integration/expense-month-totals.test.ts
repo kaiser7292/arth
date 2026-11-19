@@ -25,7 +25,7 @@ beforeEach(() => {
       category_id TEXT, payment_mode_id TEXT, account_id TEXT, date TEXT, transaction_time TEXT, due_date TEXT,
       is_right_spend INTEGER, source TEXT, status TEXT, nature TEXT, split_original_amount REAL,
       split_person_id TEXT, split_pct REAL, split_hisaab_entry_id TEXT, split_mode TEXT, deleted_at TEXT, created_at TEXT, credit_kind TEXT,
-      reclassified_as_transfer INTEGER, refund_of_expense_id TEXT, applied_rule_id TEXT, applied_rule_ids TEXT, money_event TEXT
+      reclassified_as_transfer INTEGER, refund_of_expense_id TEXT, applied_rule_id TEXT, applied_rule_ids TEXT, money_event TEXT, purchase_group_id TEXT
     );
     CREATE TABLE expense_tags (expense_id TEXT, tag_id TEXT);
     CREATE TABLE categories (id TEXT PRIMARY KEY, parent_id TEXT, is_active INTEGER DEFAULT 1);

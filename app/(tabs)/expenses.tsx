@@ -113,10 +113,11 @@ const TRANSFER_GROUP_OPTIONS: { value: TransferGroupBy; label: string }[] = [
 
 const preloaded = consumeTransactionsPreload();
 
+// Credits, debits and transfers (owner, Nov 2026): Debits holds every debit, spending and committed
+// money alike, and each row's tag says what it is: SIP, FD, EMI, investment, transfer.
 const NATURE_TABS: SwipePagerPage[] = [
   { key: "all", label: "All" },
-  { key: "realized", label: "Expenses" },
-  { key: "committed", label: "Committed" },
+  { key: "realized", label: "Debits" },
   { key: "credit", label: "Credits" },
   { key: "transfers", label: "Transfers" },
 ];
@@ -204,7 +205,8 @@ function filtersFromDraft(
   const minN = parseFloat(d.minAmount);
   const maxN = parseFloat(d.maxAmount);
   const nature: "realized" | "credit" | "all" = filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "realized";
-  const segment = filterNature === "committed" ? ("committed" as const) : filterNature === "realized" ? ("spend" as const) : undefined;
+  // Debits is every debit now; the old Committed tab's rows carry their tag instead.
+  const segment = filterNature === "committed" ? ("committed" as const) : undefined;
   return {
     startDate: start,
     endDate: end,
@@ -414,7 +416,7 @@ export default function ExpensesScreen() {
    * Signature of everything that changes WHICH rows should be shown.
    *
    * loadExpenses skips a reload when the data version has not moved, which is right for a refocus
-   * but wrong for a filter change: switching the nature tab to Committed, Credits or Transfers
+   * but wrong for a filter change: switching the nature tab to Debits, Credits or Transfers
    * alters the query without touching the data version, so the guard swallowed the reload and the
    * list kept showing the previous tab's rows.
    */
