@@ -16,6 +16,10 @@ const MX = 16;
  * With `onToggle` (useListTools sets it on every grouped list) it's a drawer, the same as the
  * Transactions tab's: a card header with the count and a money chip, an arrow that turns, and the
  * group's rows inside it while it's open (wrap each in DrawerCell).
+ *
+ * `flat` draws it as the Transactions tab does: a plain row with a hairline under it, no card
+ * (owner, Nov 2026: ledgers "like how it is in the transactions tab, no cards"). Pass `flat` to
+ * the group's DrawerCells too.
  */
 export function GroupHeading({
   label,
@@ -26,6 +30,7 @@ export function GroupHeading({
   open,
   onToggle,
   noun,
+  flat = false,
 }: {
   label: string;
   count?: number;
@@ -36,8 +41,30 @@ export function GroupHeading({
   open?: boolean;
   onToggle?: () => void;
   noun?: { one: string; many: string };
+  flat?: boolean;
 }) {
   const theme = useTheme();
+  if (onToggle && flat) {
+    return (
+      <Pressable
+        onPress={onToggle}
+        className="flex-row items-center border-b border-border"
+        style={{ minHeight: 52, paddingHorizontal: inset ? MX : 0, paddingVertical: 8, gap: 10 }}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: !!open }}
+        accessibilityLabel={count != null ? `${label}, ${count}` : label}
+      >
+        <View className="flex-1 flex-row items-baseline" style={{ minWidth: 0, gap: 8 }}>
+          <Text className="text-body font-bold text-foreground" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {label}
+          </Text>
+          {count != null ? <Text className="text-meta text-muted-foreground">{count}</Text> : null}
+        </View>
+        {total !== 0 && <MoneyChip amount={total} tone={!signed ? "moved" : total > 0 ? "in" : "out"} />}
+        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />
+      </Pressable>
+    );
+  }
   if (onToggle) {
     return (
       <View style={{ marginHorizontal: inset ? MX : 0, marginTop: 10 }}>
@@ -91,8 +118,19 @@ export function GroupHeading({
  * A row inside an open group drawer: the card's sides continue around it, and the last row
  * closes the card. Outside a drawer (no grouping) it renders the row as it is.
  */
-export function DrawerCell({ row, inset = true, children }: { row: { inDrawer?: boolean; last?: boolean }; inset?: boolean; children: ReactNode }) {
-  if (!row.inDrawer) return <>{children}</>;
+export function DrawerCell({
+  row,
+  inset = true,
+  flat = false,
+  children,
+}: {
+  row: { inDrawer?: boolean; last?: boolean };
+  inset?: boolean;
+  /** Under a flat heading: the row as it is, a plain list like Transactions. */
+  flat?: boolean;
+  children: ReactNode;
+}) {
+  if (!row.inDrawer || flat) return <>{children}</>;
   return (
     <View
       className={`bg-card border-x border-border ${row.last ? "border-b" : ""}`}

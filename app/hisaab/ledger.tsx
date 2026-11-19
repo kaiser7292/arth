@@ -710,20 +710,19 @@ export default function LedgerScreen() {
               </View>
             </Card>
           ) : (
-            // Grouped: each group is its own drawer card. Ungrouped: one card holds every row.
-            <View className={groupedEntries.some((r) => r.type === "heading") ? "" : "rounded-card bg-card border border-border overflow-hidden"}>
-              {groupedEntries.map((row, i) => {
+            // A plain list edge to edge, as on Transactions: no cards (owner, Nov 2026).
+            <View className="border-t border-border" style={{ marginHorizontal: -16 }}>
+              {groupedEntries.map((row) => {
                 if (row.type === "heading") {
-                  return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
+                  return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} flat />;
                 }
                 const entry = row.item;
                 const linkedAccountId = accountIdMap.get(entry.id);
                 const isSettlementWithAccount = entry.type === "settlement" && !!linkedAccountId;
                 return (
-                  <DrawerCell key={entry.id} row={row} inset={false}>
+                  <DrawerCell key={entry.id} row={row} flat>
                   <EntryRow
                     entry={entry}
-                    divider={i > 0 && groupedEntries[i - 1].type !== "heading"}
                     onPress={() => {
                       if (isSettlementWithAccount) {
                         router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: linkedAccountId!, month: entry.date.slice(0, 7) } });
@@ -779,7 +778,6 @@ function initialsOf(name: string): string {
 
 function EntryRow({
   entry,
-  divider,
   onPress,
   onLongPress,
   onViewExpense,
@@ -789,7 +787,6 @@ function EntryRow({
 }: {
   linkedType?: string;
   entry: HisaabEntry;
-  divider: boolean;
   onPress: () => void;
   onLongPress: () => void;
   onViewExpense?: (expenseId: string) => void;
@@ -830,8 +827,6 @@ function EntryRow({
   // Drawn like a row on Transactions; the amount keeps Hisaab's meaning: + they owe you more.
   return (
     <TransactionRow
-      inCard
-      divider={divider}
       onPress={onPress}
       onLongPress={onLongPress}
       accessibilityLabel={`${title}, ${prefix}${formatAmount(entry.amount)}`}

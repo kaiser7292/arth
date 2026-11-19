@@ -2,7 +2,7 @@ import { formatDisplayDate } from "@/utils/date";
 import { getStartDate } from "@/services/start-date";
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
-import { ContextualHeader, ScreenContainer, SearchField, Segmented, Text, useToast } from "@/components/ui";
+import { ContextualHeader, ScreenContainer, Segmented, Text, useToast } from "@/components/ui";
 import { GroupLabel, LinkRow } from "@/components/ui/LinkRow";
 import { isAiLabUnlocked, setAiLabUnlocked, TAPS_TO_UNLOCK } from "@/services/ai/ai-lab";
 
@@ -56,7 +56,6 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useColorScheme();
   const uiTheme = useTheme();
   const [theme, setTheme] = useState(getThemePreference);
-  const [query, setQuery] = useState("");
   // Status lines for the combined screens.
   const [messagesLine, setMessagesLine] = useState("Scan, templates, your name, duplicates");
   const [backupLine, setBackupLine] = useState("Backups, recycle bin, import, clean up");
@@ -268,12 +267,6 @@ export default function SettingsScreen() {
   if (needs.unread > 0)
     needItems.push({ key: "n-unread", icon: "chatbubbles-outline", label: `${needs.unread} unread bank message${needs.unread === 1 ? "" : "s"}`, subtitle: "Teach Arth to read them", onPress: go("/settings/transaction-messages") });
 
-  const q = query.trim().toLowerCase();
-  const hits = q
-    ? groups.flatMap((g) => g.items.filter((i) => `${i.label} ${i.subtitle ?? ""} ${i.keywords ?? ""} ${g.title}`.toLowerCase().includes(q)).map((i) => ({ ...i, group: g.title, color: g.color })))
-    : [];
-  const themeHit = q && "theme dark light appearance".includes(q);
-
   const card = (items: (SettingsItem & { group?: string; color?: string })[], color?: string) => (
     <View className="rounded-card bg-card border border-border overflow-hidden">
       {items.map((i, idx) => (
@@ -296,23 +289,10 @@ export default function SettingsScreen() {
 
   return (
     <ScreenContainer>
+      {/* Settings are found with the header's search icon (owner, Nov 2026): no second search box. */}
       <ContextualHeader title="Settings" />
-      <View className="px-4 pb-2">
-        <SearchField value={query} onChangeText={setQuery} placeholder="Search settings" accessibilityLabel="Search settings" />
-      </View>
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
         <View className="px-4 pt-2" style={{ gap: 16 }}>
-          {q ? (
-            hits.length > 0 || themeHit ? (
-              <>
-                {hits.length > 0 && card(hits)}
-                {themeHit && themePicker}
-              </>
-            ) : (
-              <Text className="text-meta text-muted-foreground text-center py-8">No setting matches “{query.trim()}”</Text>
-            )
-          ) : (
-            <>
               {needItems.length > 0 && (
                 <View>
                   <GroupLabel>Needs a look</GroupLabel>
@@ -349,8 +329,6 @@ export default function SettingsScreen() {
                   )}
                 </View>
               ))}
-            </>
-          )}
         </View>
       </ScrollView>
     </ScreenContainer>

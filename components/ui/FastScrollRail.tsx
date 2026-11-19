@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
 import { useMemo, useRef, useState } from "react";
-import { PanResponder, View, type LayoutChangeEvent } from "react-native";
+import { PanResponder, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { Text } from "./Text";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -26,10 +26,24 @@ const MIN_SLOT = 18;
  *
  * The phone's version of a keyboard shortcut: gets you anywhere in the list in one gesture.
  */
-export function FastScrollRail({ items, onSelect }: { items: RailItem[]; onSelect: (index: number) => void }) {
+export function FastScrollRail({
+  items,
+  onSelect,
+  bottomInset = 0,
+}: {
+  items: RailItem[];
+  onSelect: (index: number) => void;
+  /** Keep clear of a FAB in the bottom corner. */
+  bottomInset?: number;
+}) {
   const theme = useTheme();
   const [active, setActive] = useState<number | null>(null);
   const [avail, setAvail] = useState(0);
+  const [bubbleH, setBubbleH] = useState(56);
+  const { width: winW } = useWindowDimensions();
+  // Wide enough for a whole name, wrapped onto a second line when it needs one, never truncated
+  // (owner, Nov 2026: "all the names get truncated, wrap it and make it bigger").
+  const bubbleW = Math.max(160, Math.min(280, winW - 72));
   const height = useRef(0);
   const last = useRef<number | null>(null);
   const latest = useRef({ items, onSelect });
@@ -79,13 +93,14 @@ export function FastScrollRail({ items, onSelect }: { items: RailItem[]; onSelec
   const drawn = items.map((it, i) => ({ it, i })).filter(({ i }) => i % step === 0);
   const slot = Math.min(SLOT, room / drawn.length);
   const railH = drawn.length * slot + 12;
-  const bubbleTop = active != null ? (avail - railH) / 2 + 6 + ((active + 0.5) / items.length) * (railH - 12) - 20 : 0;
+  const thumbY = active != null ? (avail - railH) / 2 + 6 + ((active + 0.5) / items.length) * (railH - 12) : 0;
+  const bubbleTop = Math.max(0, Math.min(Math.max(0, avail - bubbleH), thumbY - bubbleH / 2));
 
   return (
     <View
       pointerEvents="box-none"
       onLayout={(e: LayoutChangeEvent) => setAvail(e.nativeEvent.layout.height)}
-      style={{ position: "absolute", right: 2, top: 0, bottom: 0, justifyContent: "center" }}
+      style={{ position: "absolute", right: 2, top: 0, bottom: bottomInset, justifyContent: "center" }}
     >
       <View
         {...responder.panHandlers}
@@ -127,20 +142,24 @@ export function FastScrollRail({ items, onSelect }: { items: RailItem[]; onSelec
       {current && active != null ? (
         <View
           pointerEvents="none"
-          className="rounded-control flex-row items-center px-3"
+          onLayout={(e: LayoutChangeEvent) => setBubbleH(e.nativeEvent.layout.height)}
+          className="rounded-card flex-row items-center"
           style={{
             position: "absolute",
             right: 40,
-            top: Math.max(0, bubbleTop),
-            height: 40,
-            gap: 8,
+            top: bubbleTop,
+            width: bubbleW,
+            minHeight: 56,
+            paddingHorizontal: 14,
+            paddingVertical: 10,
+            gap: 10,
             backgroundColor: theme.card,
-            borderWidth: 1,
+            borderWidth: 1.5,
             borderColor: theme.primary,
           }}
         >
-          {current.icon ? <Ionicons name={current.icon} size={16} color={theme.primary} /> : null}
-          <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+          {current.icon ? <Ionicons name={current.icon} size={22} color={theme.primary} /> : null}
+          <Text className="font-bold text-foreground" style={{ flex: 1, fontSize: 18, lineHeight: 23 }} numberOfLines={2}>
             {current.label}
           </Text>
         </View>
