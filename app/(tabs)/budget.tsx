@@ -8,6 +8,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, Chip, ChipWrap, ContextualHeader, FieldRow, PeriodNavigator, ProgressBar, ScreenContainer, SwipePager, Text } from "@/components/ui";
 import { tint } from "@/constants/brand";
 import { AnimatedNumber, Nudge, PressableScale } from "@/components/motion";
+import { FoldGroup } from "@/components/ui/FormParts";
 import { staggerDelay } from "@/components/motion/motion";
 import { SpendingSplitPage } from "@/components/budget/SpendingSplitPage";
 import { MonthlySummaryPage } from "@/components/budget/MonthlySummaryPage";
@@ -449,7 +450,8 @@ export default function BudgetScreen() {
             </Card>
           )}
 
-          {/* Month-end projection: one small card, everything in view, nothing to open or scroll. */}
+          {/* Month-end projection: a drawer, closed until tapped (owner, Nov 2026); the line under its
+               title gives the projection, the drawer the rest in one compact block. */}
           {visibleWidgets.includes("projection") && totalBudget > 0 && (() => {
             const stats: { label: string; value: string; color?: string }[] = [];
             let note: string | null = null;
@@ -483,19 +485,18 @@ export default function BudgetScreen() {
             }
             const annual = isCurrentMonth && compliance && compliance.annualOnTrack !== null ? compliance : null;
             const annualRoom = annual ? annual.annualProjectedSavings ?? 0 : 0;
+            const sub = isCurrentMonth
+              ? projected != null
+                ? `${rs(projected)} at this pace${v2Forecast ? ` · ${v2Forecast.confidence} confidence` : ""}`
+                : "Not enough to go on yet"
+              : `${left >= 0 ? "Saved" : "Overspent"} ${rs(Math.abs(left))}`;
             return (
-              <Card>
-                <View className="flex-row items-center justify-between mb-2" style={{ gap: 8 }}>
-                  <View className="flex-row items-center flex-1" style={{ gap: 6, minWidth: 0 }}>
-                    <Ionicons name={isCurrentMonth ? "trending-up-outline" : "checkmark-done-outline"} size={15} color={theme.mutedForeground} />
-                    <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground" numberOfLines={1}>
-                      {isCurrentMonth ? "Month-end projection" : "How the month ended"}
-                    </Text>
-                  </View>
-                  {isCurrentMonth && v2Forecast && (
-                    <Chip variant="status" tone="neutral" label={`${v2Forecast.confidence.charAt(0).toUpperCase()}${v2Forecast.confidence.slice(1)} confidence`} />
-                  )}
-                </View>
+              <FoldGroup
+                icon={isCurrentMonth ? "trending-up-outline" : "checkmark-done-outline"}
+                title={isCurrentMonth ? "Month-end projection" : "How the month ended"}
+                sub={sub}
+              >
+                <View>
                 {stats.length > 0 && (
                   <View className="flex-row flex-wrap" style={{ rowGap: 10 }}>
                     {stats.map((s) => (
@@ -520,7 +521,8 @@ export default function BudgetScreen() {
                     <Chip variant="status" tone={annual.annualOnTrack ? "success" : "danger"} label={annual.annualOnTrack ? "On track" : "Over budget"} />
                   </View>
                 )}
-              </Card>
+                </View>
+              </FoldGroup>
             );
           })()}
 
