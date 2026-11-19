@@ -756,16 +756,8 @@ const loadData = useCallback(async () => {
     <ScreenContainer padTop={false}>
       <Stack.Screen
         options={{
-          headerTitle: () => (
-            <Pressable onPress={openAccountSettings} accessibilityRole="button" accessibilityLabel={`${accountName}, open account settings`} hitSlop={6}>
-              <Text className="text-heading font-bold text-foreground" numberOfLines={1}>
-                {accountName}
-              </Text>
-              <Text className="text-label text-muted-foreground" numberOfLines={1}>
-                Tap for account settings
-              </Text>
-            </Pressable>
-          ),
+          // Just the name: account settings sit behind the gear (owner, Nov 2026).
+          title: accountName,
           headerRight: () => (
             <Pressable onPress={openAccountSettings} hitSlop={8} className="p-2" accessibilityRole="button" accessibilityLabel="Account settings">
               <Ionicons name="settings-outline" size={20} color={theme.foreground} />
