@@ -273,11 +273,16 @@ export default function YearlyPlanScreen() {
           <Card>
             <View className="flex-row items-center justify-between">
               <Text className="text-meta text-muted-foreground flex-1" numberOfLines={1}>
-                {fyLabel} · {showActual ? (realityCheck!.isPastFY ? "how it ended" : "year-end projection") : "plan"}
+                {fyLabel}
               </Text>
               <Chip variant="status" className="self-center" tone={status.tone} label={status.label} />
             </View>
-            <Text className="text-meta text-muted-foreground mt-3">{heroSurplus >= 0 ? "Surplus" : "Deficit"}</Text>
+            {/* "Year-end projected surplus", then "Planned surplus: …" under it (owner, Nov 2026). */}
+            <Text className="text-meta text-muted-foreground mt-3">
+              {showActual
+                ? `${realityCheck!.isPastFY ? "Year-end actual" : "Year-end projected"} ${heroSurplus >= 0 ? "surplus" : "deficit"}`
+                : `Planned ${heroSurplus >= 0 ? "surplus" : "deficit"}`}
+            </Text>
             <Text
               className="text-hero font-bold"
               style={{ color: heroSurplus >= 0 ? theme.success : theme.danger, fontVariant: ["tabular-nums"] }}
@@ -287,7 +292,9 @@ export default function YearlyPlanScreen() {
               {fmtFull(Math.abs(heroSurplus))}
             </Text>
             {showActual && (
-              <Text className="text-meta text-muted-foreground mt-0.5">Plan: {fmtFull(netSurplusPlanned)}</Text>
+              <Text className="text-meta text-muted-foreground mt-0.5">
+                {netSurplusPlanned >= 0 ? "Planned surplus" : "Planned deficit"}: {fmtFull(Math.abs(netSurplusPlanned))}
+              </Text>
             )}
             <View className="flex-row mt-3.5" style={{ gap: 8 }}>
               <StatTile label="Inflow" value={formatAmount(totalIncome)} />
