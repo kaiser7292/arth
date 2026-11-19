@@ -13,7 +13,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatLastBackupTime, getLastScheduledBackupAt } from "@/services/backup-schedule";
 import { scanAllDuplicatesCached } from "@/services/duplicate-detection";
 import { getFlag } from "@/services/feature-flags";
-import { getLastBackupAt, getThemePreference, setThemePreference } from "@/services/settings";
+import { getLastBackupAt, getThemePreference, ignoreNeeds, isNeedIgnored, setThemePreference } from "@/services/settings";
 import { isSmsDetectionEnabled } from "@/services/sms";
 import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
 
@@ -63,6 +63,8 @@ export default function SettingsScreen() {
   /** What "Needs a look" shows: only when something does. */
   const [needs, setNeeds] = useState<{ backupDays: number | null; unread: number; dupes: number }>({ backupDays: null, unread: 0, dupes: 0 });
   const toast = useToast();
+  // Bumped by Ignore so the list is read again.
+  const [, setIgnoreTick] = useState(0);
   // Tap Version 7 times to show the On-device AI lab, like Android's developer options.
   const [aiLab, setAiLab] = useState(isAiLabUnlocked);
   const versionTaps = useRef({ count: 0, at: 0 });
@@ -252,9 +254,10 @@ export default function SettingsScreen() {
     },
   ];
 
-  // "Needs a look": only what does.
+  // "Needs a look": only what does, and not what was set aside with Ignore.
   const needItems: SettingsItem[] = [];
-  if (needs.backupDays === -1 || (needs.backupDays != null && needs.backupDays > 7))
+  const needValues: Record<string, number> = {};
+  if ((needs.backupDays === -1 || (needs.backupDays != null && needs.backupDays > 7)) && !isNeedIgnored("n-backup", 0, true))
     needItems.push({
       key: "n-backup",
       icon: "cloud-upload-outline",
@@ -262,10 +265,19 @@ export default function SettingsScreen() {
       subtitle: "Back up now",
       onPress: go("/settings/backup-data"),
     });
-  if (needs.dupes > 0)
+  if (needs.dupes > 0 && !isNeedIgnored("n-dupes", needs.dupes))
     needItems.push({ key: "n-dupes", icon: "copy-outline", label: `${needs.dupes} possible duplicate${needs.dupes === 1 ? "" : "s"}`, subtitle: "Check them in Fix my data", onPress: go("/settings/fix-my-data") });
-  if (needs.unread > 0)
+  if (needs.unread > 0 && !isNeedIgnored("n-unread", needs.unread))
     needItems.push({ key: "n-unread", icon: "chatbubbles-outline", label: `${needs.unread} unread bank message${needs.unread === 1 ? "" : "s"}`, subtitle: "Teach Arth to read them", onPress: go("/settings/transaction-messages") });
+
+  needValues["n-backup"] = 0;
+  needValues["n-dupes"] = needs.dupes;
+  needValues["n-unread"] = needs.unread;
+  const ignoreAllNeeds = () => {
+    ignoreNeeds(Object.fromEntries(needItems.map((i) => [i.key, needValues[i.key] ?? 0])));
+    setIgnoreTick((t) => t + 1);
+    toast("Hidden until there's something new");
+  };
 
   const card = (items: (SettingsItem & { group?: string; color?: string })[], color?: string) => (
     <View className="rounded-card bg-card border border-border overflow-hidden">
@@ -295,7 +307,12 @@ export default function SettingsScreen() {
         <View className="px-4 pt-2" style={{ gap: 16 }}>
               {needItems.length > 0 && (
                 <View>
-                  <GroupLabel>Needs a look</GroupLabel>
+                  <View className="flex-row items-center justify-between">
+                    <GroupLabel>Needs a look</GroupLabel>
+                    <Pressable onPress={ignoreAllNeeds} hitSlop={10} accessibilityRole="button" accessibilityLabel="Ignore these" className="mb-2">
+                      <Text className="text-meta font-semibold" style={{ color: uiTheme.primary }}>Ignore</Text>
+                    </Pressable>
+                  </View>
                   <View className="rounded-card overflow-hidden" style={{ backgroundColor: uiTheme.alpha("warning", 0.08) }}>
                     {needItems.map((i, idx) => (
                       <LinkRow key={i.key} divider={idx > 0} icon={i.icon} color={uiTheme.warning} title={i.label} sub={i.subtitle} onPress={i.onPress} />
