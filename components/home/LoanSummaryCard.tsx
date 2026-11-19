@@ -29,6 +29,7 @@ function LoanSummaryCardImpl({ summary, tileIndex }: LoanSummaryCardProps) {
       <HomeTile
         index={tileIndex}
         icon="cash-outline"
+        accountType="loan"
         label={`Loans · ${summary.activeCount}`}
         value={summary.totalOutstandingINR}
         sub={

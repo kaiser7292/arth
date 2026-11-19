@@ -211,7 +211,7 @@ export function RecurringRuleSheet({
   if (!visible) return null;
 
   return (
-    <Sheet visible={visible} onClose={handleClose}>
+    <Sheet visible={visible} onClose={handleClose} page>
 
       {/* Header */}
       <View className="px-5 pb-3">

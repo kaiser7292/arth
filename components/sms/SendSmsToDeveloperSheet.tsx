@@ -36,7 +36,7 @@ export function SendSmsToDeveloperSheet({ visible, onClose, body, sender }: Send
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} page>
       <View className="px-4 pb-6">
         <Text className="text-lg font-semibold text-foreground mb-1">Help Arth read this message</Text>
         <Text className="text-sm text-muted-foreground mb-4 leading-5">

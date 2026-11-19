@@ -255,7 +255,7 @@ export default function MerchantCategoriesScreen() {
       </Sheet>
 
       {/* Add a merchant */}
-      <Sheet visible={adding && picker == null} onClose={() => setAdding(false)}>
+      <Sheet visible={adding && picker == null} onClose={() => setAdding(false)} page>
         <View className="px-4 pb-6">
           <Text className="text-heading font-semibold text-foreground mb-1">Add a merchant</Text>
           <Text className="text-label text-muted-foreground mb-3 leading-4">

@@ -913,6 +913,8 @@ export default function CatchUpScreen() {
         </SwipeDeck>
       </View>
 
+      {/* While you type on the card the keyboard needs the room: no footer under it. */}
+      {!(descriptionOpen || merchantOpen) && (
       <DeckFooter
         hint={`Swipe right to ${primaryLabel.toLowerCase()} · left to skip`}
         // The buttons fling the card the way a swipe does (or open the picker it needs).
@@ -920,6 +922,7 @@ export default function CatchUpScreen() {
         primaryLabel={primaryLabel}
         onPrimary={() => (swipeRef.current ? swipeRef.current.fling("right") : primary())}
       />
+      )}
 
       {/* Just the message it came from: who sent it, when, and the text. */}
       <Sheet visible={messageFor != null} onClose={() => setMessageFor(null)}>

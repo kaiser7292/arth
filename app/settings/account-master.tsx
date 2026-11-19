@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Chip, FAB, GroupHeading, ListToolbar, ScreenContainer, Text } from "@/components/ui";
 import { tint } from "@/constants/brand";
+import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -31,19 +32,6 @@ import { formatLocalDate } from "@/utils/fiscal-year";
 const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const preloaded = consumeAccountsPreload();
-
-const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  savings: "business-outline",
-  credit_card: "card-outline",
-  loan: "home-outline",
-  wallet: "phone-portrait-outline",
-  demat: "trending-up-outline",
-  pension: "shield-checkmark-outline",
-  // Phase 2 unified type (account_type='investment') resolved to "fd" below
-  // when valuation='contract' — a bare FD otherwise fell through to
-  // account_type="investment", which isn't a key here, showing "help-outline".
-  fd: "business-outline",
-};
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   savings: "Savings",
@@ -239,7 +227,6 @@ export default function AccountMasterScreen() {
     };
 
     const typeKey = resolvedType(account);
-    const color = theme.data.accountType[typeKey] ?? theme.data.series[3];
     return (
       <Pressable
         key={account.id}
@@ -249,9 +236,7 @@ export default function AccountMasterScreen() {
         accessibilityRole="button"
         accessibilityLabel={`${displayName}, ${account.closed_at ? "closed" : "open"}`}
       >
-        <View className="w-9 h-9 rounded-control items-center justify-center" style={{ backgroundColor: tint(color, 0.1) }}>
-          <Ionicons name={ACCOUNT_TYPE_ICONS[typeKey] ?? "help-outline"} size={17} color={color} />
-        </View>
+        <AccountTypeTile type={typeKey} size={36} />
         <View className="flex-1" style={{ minWidth: 0 }}>
           <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
             {displayName}

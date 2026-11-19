@@ -1,4 +1,5 @@
 import { memo, useState, useCallback } from "react";
+import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -82,6 +83,7 @@ function WalletSummaryImpl({ accounts, tileIndex }: WalletSummaryProps) {
       <HomeTile
         index={tileIndex}
         icon="phone-portrait-outline"
+        accountType="wallet"
         label={`Wallets · ${accounts.length}`}
         value={closing}
         tone={closing < 0 ? "danger" : "default"}
@@ -101,11 +103,8 @@ function WalletSummaryImpl({ accounts, tileIndex }: WalletSummaryProps) {
         <Card className="mx-4 mt-2">
           {/* Header */}
           <View className="flex-row items-center mb-3">
-            <View
-              className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-            >
-              <Ionicons name="phone-portrait-outline" size={20} color={theme.primary} />
+            <View className="mr-3">
+              <AccountTypeTile type="wallet" size={40} />
             </View>
             <Text className="text-sm font-semibold text-foreground flex-1">
               Digital Wallets

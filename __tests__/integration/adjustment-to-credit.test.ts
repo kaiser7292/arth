@@ -69,4 +69,14 @@ describe("adjustmentToCredit", () => {
     await expect(adjustmentToCredit("o1")).rejects.toThrow(/added money/);
     expect((await getExpenseById("n1"))?.nature).toBe("ledger_adjustment");
   });
+
+  it("on a card, the credit is the adjustment that lowered what is owed", async () => {
+    mockDb.prepare("UPDATE financial_accounts SET account_type = 'credit_card' WHERE id = 'acc1'").run();
+    add("up", "[Balance Adjustment +] Spend Arth missed");
+    add("down", "[Balance Adjustment -] Cashback");
+    await expect(adjustmentToCredit("up")).rejects.toThrow(/added money/);
+    await adjustmentToCredit("down");
+    expect((await getExpenseById("down"))?.nature).toBe("credit");
+    expect((await getExpenseById("up"))?.nature).toBe("ledger_adjustment");
+  });
 });

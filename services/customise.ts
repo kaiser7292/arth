@@ -28,7 +28,7 @@ export const TABS: { id: TabId; label: string; description: string }[] = [
 export const INNER_TABS: { id: InnerTabId; label: string; description: string }[] = [
   { id: "budget_split", label: "Spending Split", description: "In Budget" },
   { id: "budget_monthly", label: "Monthly Summary", description: "In Budget" },
-  { id: "tx_committed", label: "Committed", description: "In Transactions" },
+  // "tx_committed" was the Committed tab in Transactions; its rows now sit in Debits with a tag.
   { id: "tx_transfers", label: "Transfers", description: "In Transactions" },
 ];
 

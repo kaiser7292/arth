@@ -249,6 +249,9 @@ export async function getExpensesPaginated(
        date, transaction_time, due_date, is_right_spend,
        source, status, nature, credit_kind,
        split_original_amount, split_person_id, split_pct, split_hisaab_entry_id, split_mode,
+       money_event, purchase_group_id,
+       EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id) AS is_loan_payment,
+       EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AS is_investment,
        deleted_at, created_at
      FROM expenses
      WHERE ${conditions.join(" AND ")}

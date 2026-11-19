@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { View, ScrollView, Pressable, ActivityIndicator, Switch } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -28,15 +29,6 @@ const TYPE_LABEL: Record<string, string> = {
   wallet: "Wallet",
   demat: "Demat",
   pension: "Pension",
-};
-
-const TYPE_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
-  savings: "business-outline",
-  credit_card: "card-outline",
-  loan: "home-outline",
-  wallet: "phone-portrait-outline",
-  demat: "trending-up-outline",
-  pension: "shield-checkmark-outline",
 };
 
 /** "demat"/"pension" resolved through the Phase-2 alias, else the raw account_type. */
@@ -182,11 +174,8 @@ export default function OnboardingAccountsPreview() {
                       accessibilityRole="button"
                       accessibilityLabel={`${label}. Where did this come from?`}
                     >
-                      <View
-                        className="w-10 h-10 rounded-full items-center justify-center mr-3"
-                        style={{ backgroundColor: theme.primary + "1F" }}
-                      >
-                        <Ionicons name={TYPE_ICON[resolvedType] || "ellipse-outline"} size={18} color={theme.primary} />
+                      <View className="mr-3">
+                        <AccountTypeTile type={resolvedType} size={40} />
                       </View>
                       <View className="flex-1">
                         <Text className="text-base font-medium text-foreground">{label}</Text>

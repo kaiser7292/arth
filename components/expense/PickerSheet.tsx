@@ -18,6 +18,8 @@ export interface PickerSheetItem {
   /** Right-hand text: a balance, "12×". */
   right?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** A drawn icon (account types), shown in place of `icon`. */
+  glyph?: React.ReactNode;
   color?: string;
   /** Indent (a sub-category under its main one). */
   indent?: boolean;
@@ -168,6 +170,7 @@ export function PickerSheet({
                 sub={i.sub}
                 right={i.right}
                 icon={i.icon}
+                glyph={i.glyph}
                 color={i.color}
                 indent={i.indent}
                 on={selectedId === i.id}
@@ -189,6 +192,7 @@ function Row({
   sub,
   right,
   icon,
+  glyph,
   color,
   indent,
   on,
@@ -198,6 +202,7 @@ function Row({
   sub?: string;
   right?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  glyph?: React.ReactNode;
   color?: string;
   indent?: boolean;
   on: boolean;
@@ -214,7 +219,11 @@ function Row({
       accessibilityState={{ selected: on }}
       accessibilityLabel={sub ? `${label}, ${sub}` : label}
     >
-      {icon ? (
+      {glyph ? (
+        <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: tint(c, 0.1) }}>
+          {glyph}
+        </View>
+      ) : icon ? (
         <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: color ? tint(c, 0.1) : theme.alpha("foreground", 0.06) }}>
           <Ionicons name={icon} size={16} color={c} />
         </View>

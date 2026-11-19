@@ -44,21 +44,24 @@ export interface RowStatus {
 }
 
 /**
- * The ONE status a row shows, by priority: needs review › forecast › refunded › money event › split.
- * More than one badge on a row was the clutter the old design had.
+ * The ONE status a row shows, by priority: needs review › bill due › refunded › what kind of debit
+ * (SIP, FD, transfer, EMI, investment) › split. More than one badge on a row was the clutter the
+ * old design had. The kind is the tag that tells a debit apart from spending (owner, Nov 2026).
  */
 export function rowStatus(expense: Expense, refundState: RefundState): RowStatus | null {
   if (expense.status === "pending_review") {
     const ev = expense.money_event ? MONEY_EVENT_META[expense.money_event] : null;
     return { label: ev ? `Review · ${ev.short}` : "Needs review", tone: "warning" };
   }
-  if (expense.nature === "forecast") return { label: "Forecast", tone: "warning" };
+  if (expense.nature === "forecast") return { label: "Bill due", tone: "warning" };
   if (refundState === "full") return { label: "Refunded", tone: "success" };
   if (refundState === "partial") return { label: "Partly refunded", tone: "warning" };
   if (expense.money_event) {
     const ev = MONEY_EVENT_META[expense.money_event];
     return { label: ev.short, tone: expense.money_event === "self_transfer" ? "transfer" : ev.tone };
   }
+  if (expense.is_loan_payment) return { label: "EMI", tone: "accent" };
+  if (expense.is_investment) return { label: "Investment", tone: "success" };
   if (expense.purchase_group_id) return { label: "Split payment", tone: "primary" };
   return null;
 }

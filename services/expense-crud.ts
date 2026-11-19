@@ -961,13 +961,17 @@ export async function changeTransactionNature(
  */
 export async function adjustmentToCredit(id: string): Promise<void> {
   const db = getDatabase();
-  const row = await db.getFirstAsync<{ nature: string; description: string | null }>(
-    "SELECT nature, description FROM expenses WHERE id = ? AND deleted_at IS NULL;",
+  const row = await db.getFirstAsync<{ nature: string; description: string | null; account_type: string | null }>(
+    `SELECT e.nature, e.description, fa.account_type FROM expenses e
+     LEFT JOIN financial_accounts fa ON fa.id = e.account_id
+     WHERE e.id = ? AND e.deleted_at IS NULL;`,
     id,
   );
   if (!row) throw new Error("Transaction not found");
   if (row.nature !== "ledger_adjustment") return;
-  if (!/^\[Balance Adjustment\s*\+\]/.test(row.description ?? "")) {
+  // "+" raises the closing: money in on a bank or wallet, but more owed on a card, where "−" is the credit.
+  const creditSign = row.account_type === "credit_card" ? "-" : "\\+";
+  if (!new RegExp(`^\\[Balance Adjustment\\s*${creditSign}\\]`).test(row.description ?? "")) {
     throw new Error("Only an adjustment that added money can become a credit.");
   }
   await db.runAsync(

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -216,11 +217,8 @@ export default function BankAccountsScreen() {
               >
                 {/* Account header */}
                 <View className="flex-row items-center mb-3">
-                  <View
-                    className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                    style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                  >
-                    <Ionicons name="wallet-outline" size={18} color={theme.primary} />
+                  <View className="mr-3">
+                    <AccountTypeTile type="savings" size={36} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-base font-bold text-foreground">

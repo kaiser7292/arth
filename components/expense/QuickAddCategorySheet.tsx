@@ -89,7 +89,7 @@ export function QuickAddCategorySheet({
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} page>
       <View className="px-5 pb-5" style={{ gap: 12 }}>
         <Text className="text-heading font-bold text-foreground">New category</Text>
         <Input label="Name" value={name} onChangeText={setName} placeholder="Groceries, Pet care" maxLength={50} autoFocus />

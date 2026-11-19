@@ -70,6 +70,7 @@ import { autoGroupFor } from "@/utils/auto-group";
 import { DrawerBody, DrawerEmpty, DrawerEnd, DrawerLoading, GroupDrawerHeader, MonthDrawerHeader, type DrawerMode } from "@/components/expense/MonthDrawer";
 import { buildDrawerRows, monthBounds, orderMonths, summarizeByMonth, type DrawerRow, type MonthSummary } from "@/utils/month-drawers";
 import { formatDateForDisplay } from "@/utils/expense-validation";
+import { FastScrollRail, type RailItem } from "@/components/ui/FastScrollRail";
 import { BulkActionBar } from "@/components/expense/BulkActionBar";
 import { bulkSetCategory, bulkSetCreditKind, bulkUpdateExpenses } from "@/services/expense-bulk";
 import {
@@ -113,10 +114,11 @@ const TRANSFER_GROUP_OPTIONS: { value: TransferGroupBy; label: string }[] = [
 
 const preloaded = consumeTransactionsPreload();
 
+// Credits, debits and transfers (owner, Nov 2026): Debits holds every debit, spending and committed
+// money alike, and each row's tag says what it is: SIP, FD, EMI, investment, transfer.
 const NATURE_TABS: SwipePagerPage[] = [
   { key: "all", label: "All" },
-  { key: "realized", label: "Expenses" },
-  { key: "committed", label: "Committed" },
+  { key: "realized", label: "Debits" },
   { key: "credit", label: "Credits" },
   { key: "transfers", label: "Transfers" },
 ];
@@ -204,7 +206,8 @@ function filtersFromDraft(
   const minN = parseFloat(d.minAmount);
   const maxN = parseFloat(d.maxAmount);
   const nature: "realized" | "credit" | "all" = filterNature === "credit" ? "credit" : filterNature === "all" ? "all" : "realized";
-  const segment = filterNature === "committed" ? ("committed" as const) : filterNature === "realized" ? ("spend" as const) : undefined;
+  // Debits is every debit now; the old Committed tab's rows carry their tag instead.
+  const segment = filterNature === "committed" ? ("committed" as const) : undefined;
   return {
     startDate: start,
     endDate: end,
@@ -414,7 +417,7 @@ export default function ExpensesScreen() {
    * Signature of everything that changes WHICH rows should be shown.
    *
    * loadExpenses skips a reload when the data version has not moved, which is right for a refocus
-   * but wrong for a filter change: switching the nature tab to Committed, Credits or Transfers
+   * but wrong for a filter change: switching the nature tab to Debits, Credits or Transfers
    * alters the query without touching the data version, so the guard swallowed the reload and the
    * list kept showing the previous tab's rows.
    */
@@ -1273,6 +1276,32 @@ export default function ExpensesScreen() {
       dayHeadings: false,
     });
   }, [transferDrawerMode, shownTransfers, openMonths]);
+  // The thumb rail (as in the Vault): one mark per drawer, tap or slide to get there in one gesture.
+  const drawerListRef = useRef<FlatList<DrawerRow<Expense>>>(null);
+  const railMarks = useMemo(() => {
+    const marks: { item: RailItem; index: number }[] = [];
+    const thisYear = new Date().getFullYear().toString();
+    drawerRows.forEach((row, index) => {
+      if (row.kind !== "month") return;
+      if (drawerBy === "month") {
+        const [y] = row.month.split("-");
+        const short = formatMonthLabel(row.month).split(" ")[0];
+        marks.push({ index, item: { key: row.month, label: formatMonthLabel(row.month, "long"), short: y === thisYear ? short : `${short.slice(0, 1)}${y.slice(2)}` } });
+      } else {
+        const label = labelOf(row.month, drawerBy, { categoryMap, accountMap, paymentModeMap });
+        marks.push({ index, item: { key: row.month, label, short: drawerBy === "year" ? label.slice(-2) : label.slice(0, 3) } });
+      }
+    });
+    return marks;
+  }, [drawerRows, drawerBy, categoryMap, accountMap, paymentModeMap]);
+  const showDrawerRail = railMarks.length >= 4 && !bulkMode;
+  const jumpToDrawer = useCallback(
+    (i: number) => {
+      const target = railMarks[i];
+      if (target) drawerListRef.current?.scrollToIndex({ index: target.index, animated: false, viewPosition: 0 });
+    },
+    [railMarks],
+  );
   const drawerKind: DrawerMode = filterNature === "all" ? "all" : filterNature === "credit" ? "credit" : filterNature === "transfers" ? "transfer" : "spend";
 
   const renderDrawerRow = useCallback(
@@ -1730,9 +1759,16 @@ export default function ExpensesScreen() {
                 />
                 )
               ) : drawerMode ? (
+                <View style={{ flex: 1 }}>
                 <Animated.FlatList
+                  ref={drawerListRef as never}
                   style={{ flex: 1 }}
                   itemLayoutAnimation={listLayout()}
+                  // A jump past rows not drawn yet: land near it, then on it.
+                  onScrollToIndexFailed={(info) => {
+                    drawerListRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+                    setTimeout(() => drawerListRef.current?.scrollToIndex({ index: info.index, animated: false, viewPosition: 0 }), 60);
+                  }}
                   initialNumToRender={16}
                   maxToRenderPerBatch={12}
                   windowSize={9}
@@ -1741,12 +1777,15 @@ export default function ExpensesScreen() {
                   renderItem={({ item: row }) =>
                     renderDrawerRow(row, (e) => renderExpenseItem({ item: { _type: "item", expense: e } }))
                   }
-                  contentContainerStyle={{ paddingBottom: 96 }}
+                  // Room on the right for the thumb rail, so it never sits on an amount.
+                  contentContainerStyle={{ paddingBottom: 96, paddingRight: showDrawerRail ? 30 : 0 }}
                   refreshing={loading && drawerRows.length === 0}
                   onRefresh={() => loadExpenses(true)}
                   ListHeaderComponent={summaryHeader}
                   ListEmptyComponent={expenseEmpty}
                 />
+                {showDrawerRail && <FastScrollRail items={railMarks.map((r) => r.item)} onSelect={jumpToDrawer} />}
+                </View>
               ) : (
                 <Animated.FlatList
                   style={{ flex: 1 }}

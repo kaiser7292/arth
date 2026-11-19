@@ -32,7 +32,7 @@ export function useTypeColor(type: TransactionType): string {
   return moneyTone(theme, type === "spent" ? "out" : type === "received" ? "in" : "moved").fg;
 }
 
-/** Spent · Received · Transfer. */
+/** Debit · Credit · Transfer. */
 export function TransactionTypeSwitch({
   value,
   onChange,
@@ -45,8 +45,8 @@ export function TransactionTypeSwitch({
 }) {
   const theme = useTheme();
   const options: { t: TransactionType; label: string }[] = [
-    { t: "spent", label: "Spent" },
-    { t: "received", label: "Received" },
+    { t: "spent", label: "Debit" },
+    { t: "received", label: "Credit" },
     { t: "transfer", label: "Transfer" },
   ];
   const shown = options.filter((o) => !hidden.includes(o.t));

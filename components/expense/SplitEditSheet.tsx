@@ -94,7 +94,7 @@ export function SplitEditSheet({ visible, onClose, totalAmount, initial, onSave,
     : choosable;
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} page>
       <View className="px-5 pt-1">
         <View className="flex-row items-center justify-between mb-3">
           <Text className="text-heading font-bold text-foreground">{picking ? "With whom?" : `Split ${formatAmount(totalAmount)}`}</Text>

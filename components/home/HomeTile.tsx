@@ -3,12 +3,15 @@ import { AccessibilityInfo, Pressable, View } from "react-native";
 import Animated from "react-native-reanimated";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, Text } from "@/components/ui";
+import { AccountTypeIcon } from "@/components/ui/AccountTypeIcon";
 import { enterUp } from "@/components/motion/motion";
 import { useTheme } from "@/hooks/use-theme";
 import { formatAmount } from "@/utils/format";
 
 export interface HomeTileProps {
   icon: keyof typeof Ionicons.glyphMap;
+  /** An account tile: draw the boards' account-type icon instead of `icon`. */
+  accountType?: string;
   label: string;
   /** The one figure the tile is about. */
   value: number;
@@ -73,6 +76,7 @@ function useCountUp(target: number): number {
  */
 export function HomeTile({
   icon,
+  accountType,
   label,
   value,
   tone = "default",
@@ -100,7 +104,11 @@ export function HomeTile({
       >
         <Card className="py-3 px-3 flex-1">
           <View className="flex-row items-center">
-            <Ionicons name={icon} size={14} color={theme.mutedForeground} />
+            {accountType ? (
+              <AccountTypeIcon type={accountType} size={14} color={theme.mutedForeground} />
+            ) : (
+              <Ionicons name={icon} size={14} color={theme.mutedForeground} />
+            )}
             <Text className="text-xs text-muted-foreground ml-1.5 flex-1" numberOfLines={1}>
               {label}
             </Text>

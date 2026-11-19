@@ -43,6 +43,7 @@ function InvestmentsSummaryCardImpl({ totalValue, accountCount, breakdown, tileI
       <HomeTile
         index={tileIndex}
         icon="trending-up-outline"
+        accountType="demat"
         label={`Investments · ${accountCount}`}
         value={totalValue}
         sub={top && breakdown.length > 1 ? `Most in ${top.label}` : top?.label}

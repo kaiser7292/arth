@@ -25,7 +25,7 @@ beforeEach(() => {
       is_right_spend INTEGER, source TEXT, status TEXT DEFAULT 'approved', nature TEXT DEFAULT 'realized', credit_kind TEXT,
       split_original_amount REAL, split_person_id TEXT, split_pct REAL, split_hisaab_entry_id TEXT, split_mode TEXT,
       deleted_at TEXT, created_at TEXT DEFAULT '2026-10-15', money_event TEXT, reclassified_as_transfer INTEGER, refund_of_expense_id TEXT,
-      applied_rule_id TEXT, applied_rule_ids TEXT
+      applied_rule_id TEXT, applied_rule_ids TEXT, purchase_group_id TEXT
     );
     CREATE TABLE expense_investment_links (expense_id TEXT);
     CREATE TABLE expense_loan_links (expense_id TEXT);

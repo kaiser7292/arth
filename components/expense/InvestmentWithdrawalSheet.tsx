@@ -156,7 +156,7 @@ export function InvestmentWithdrawalSheet({
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} maxHeightPct={90}>
+    <Sheet visible={visible} onClose={onClose} maxHeightPct={90} page>
       <ScrollView className="px-4" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
         <Text className="text-heading font-bold text-foreground">Money back from an investment</Text>
         <Text className="text-meta text-muted-foreground mt-1 mb-4">

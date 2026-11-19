@@ -436,7 +436,7 @@ export default function RecurringRuleDetailScreen() {
       </ScrollView>
 
       {/* Edit sheet */}
-      <Sheet visible={editVisible} onClose={() => setEditVisible(false)}>
+      <Sheet visible={editVisible} onClose={() => setEditVisible(false)} page>
             <View className="flex-row items-center justify-between px-5 pb-3">
               <Text className="text-body font-bold text-foreground">Edit reminder</Text>
               <Pressable onPress={() => setEditVisible(false)} hitSlop={8}>

@@ -658,7 +658,7 @@ function NewScenarioSheet({
     : null;
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} page>
       <View className="px-5 pb-3">
         <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           New scenario
