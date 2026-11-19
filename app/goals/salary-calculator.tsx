@@ -1,5 +1,5 @@
 import { SalaryChecks } from "@/components/goals/SalaryChecks";
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from "react";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { isBrokerHistoryOn } from "@/services/broker-history/enabled";
@@ -9,8 +9,8 @@ import { View, ScrollView, Pressable, KeyboardAvoidingView, Keyboard } from "rea
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, Card, Input, LoadingState, ScreenContainer, SectionTitle, Segmented, Text } from "@/components/ui";
-import { Statement, UnderlineTabs } from "@/components/ui/LinkRow";
+import { Button, Card, Input, LoadingState, ScreenContainer, SectionTitle, Segmented, SwipePager, Text } from "@/components/ui";
+import { Statement } from "@/components/ui/LinkRow";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
@@ -68,15 +68,17 @@ const num = (v: string) => parseFloat(v) || 0;
 
 // ─── Main Screen ──────────────────────────────────────────
 
-type CalcTab = "salary" | "business" | "deductions" | "other" | "tax";
 
 export default function SalaryCalculatorScreen() {
   const router = useRouter();
   const alert = useAlert();
   const { colors } = useColorScheme();
   const theme = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
-  const [tab, setTab] = useState<CalcTab>("salary");
+  // One scroll per page (Salary or Business, Deductions, Other, Tax), swiped between.
+  const pageRefs = useRef<(ScrollView | null)[]>([]);
+  const [page, setPage] = useState(0);
+  const pageNow = useRef(0);
+  pageNow.current = page;
   const { planId, fy } = useLocalSearchParams<{ planId?: string; fy?: string }>();
   const startMonth = getFYStartMonth();
   const initialFY = fy ?? String(getCurrentFY(startMonth));
@@ -84,7 +86,7 @@ export default function SalaryCalculatorScreen() {
 
   useEffect(() => {
     const sub = Keyboard.addListener("keyboardDidShow", () => {
-      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+      setTimeout(() => pageRefs.current[pageNow.current]?.scrollToEnd({ animated: true }), 100);
     });
     return () => sub.remove();
   }, []);
@@ -805,17 +807,50 @@ export default function SalaryCalculatorScreen() {
     directAnnual,
   };
 
+  // Grand total, capital gains reference, Save draft / Save: at the end of every page.
+  const footer = (
+    <SalaryFooter
+      primaryLabel={kind === "business" ? "Business" : "Salary"}
+      primaryAnnual={income.primaryAnnualInHand}
+      otherIncomeNet={income.other?.netCash ?? 0}
+      netBonus={income.netBonus}
+      netCapitalGains={income.netCapitalGains}
+      hasSalaryData={hasSalaryData}
+      totalIncome={income.totalAnnualIncome}
+      saving={saving}
+      onSaveDraft={handleSaveDraft}
+      onSaveComplete={handleSaveComplete}
+      onCapitalGainsReference={() => router.push("/goals/capital-gains-reference")}
+    />
+  );
+  // The calculator's parts are pages you swipe between, as on Budget and Home (owner, Nov 2026).
+  const calcPages = [
+    { key: "income", label: incomeTabLabel },
+    { key: "deductions", label: "Deductions" },
+    { key: "other", label: "Other" },
+    { key: "tax", label: "Tax" },
+  ];
+  const pageScroll = (i: number, children: ReactNode) => (
+    <ScrollView
+      ref={(r) => {
+        pageRefs.current[i] = r;
+      }}
+      className="flex-1"
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <View className="px-4 py-3" style={{ opacity: loadingFY ? 0.5 : 1 }} pointerEvents={loadingFY ? "none" : "auto"}>
+        {children}
+        {footer}
+      </View>
+    </ScrollView>
+  );
+
   return (
     <ScreenContainer padTop={false}>
       <KeyboardAvoidingView behavior="padding" className="flex-1">
-        <ScrollView
-          ref={scrollRef}
-          className="flex-1"
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 40 }}
-        >
-          <View className="px-4 py-3" style={{ opacity: loadingFY ? 0.5 : 1 }} pointerEvents={loadingFY ? "none" : "auto"}>
+          <View className="px-4 pt-3" style={{ opacity: loadingFY ? 0.5 : 1 }} pointerEvents={loadingFY ? "none" : "auto"}>
             {/* ─── Financial year ─────────────────────── */}
             <View className="flex-row items-center justify-between mb-3">
               <Pressable
@@ -842,7 +877,9 @@ export default function SalaryCalculatorScreen() {
                 <Ionicons name="chevron-forward" size={18} color={theme.mutedForeground} />
               </Pressable>
             </View>
-
+          </View>
+          <SwipePager pages={calcPages} activeIndex={page} onIndexChange={setPage}>
+            {pageScroll(0, <>
             {/* ─── Copy last year (only when this year is empty) ─── */}
             {showCopyPrompt && prevYearProfile && !existingProfile && (
               <Card className="mb-4">
@@ -944,10 +981,7 @@ export default function SalaryCalculatorScreen() {
                 { value: "business", label: "Business / freelance" },
               ]}
               value={incomeType}
-              onChange={(v) => {
-                setIncomeType(v);
-                if (tab === "salary" || tab === "business") setTab(v === "business" ? "business" : "salary");
-              }}
+              onChange={setIncomeType}
             />
 
             {/* ─── Monthly in-hand and the regime that wins ─── */}
@@ -966,21 +1000,8 @@ export default function SalaryCalculatorScreen() {
               />
             )}
 
-            <View className="mb-4">
-              <UnderlineTabs<CalcTab>
-                tabs={[
-                  { value: incomeType === "business" ? "business" : "salary", label: incomeTabLabel },
-                  { value: "deductions", label: "Deductions" },
-                  { value: "other", label: "Other" },
-                  { value: "tax", label: "Tax" },
-                ]}
-                value={tab === "salary" || tab === "business" ? (incomeType === "business" ? "business" : "salary") : tab}
-                onChange={setTab}
-              />
-            </View>
-
-            {/* ════════ SALARY TAB ════════ */}
-            {(tab === "salary" || tab === "business") && incomeType === "salaried" && (
+            {/* ════════ SALARY PAGE ════════ */}
+            {incomeType === "salaried" && (
               <>
                 <Segmented<"ctc" | "direct">
                   className="mb-3"
@@ -1050,8 +1071,8 @@ export default function SalaryCalculatorScreen() {
               </>
             )}
 
-            {/* ════════ BUSINESS TAB ════════ */}
-            {(tab === "salary" || tab === "business") && incomeType === "business" && (
+            {/* ════════ BUSINESS PAGE ════════ */}
+            {incomeType === "business" && (
               <>
                 <Card className="mb-4">
                   <SectionTitle icon="briefcase-outline" title="Business / freelance income" hint={`Your estimate for ${fyLabel}`} className="mb-3" />
@@ -1093,13 +1114,15 @@ export default function SalaryCalculatorScreen() {
               </>
             )}
 
-            {/* ════════ DEDUCTIONS TAB ════════ */}
-            {tab === "deductions" && kind === "direct" && (
+            </>)}
+            {pageScroll(1, <>
+            {/* ════════ DEDUCTIONS PAGE ════════ */}
+            {kind === "direct" && (
               <Text className="text-meta text-muted-foreground text-center py-6">
                 You entered your in-hand pay directly, so deductions don&apos;t change it. Switch to CTC → in-hand to use them.
               </Text>
             )}
-            {tab === "deductions" && kind !== "direct" && (
+            {kind !== "direct" && (
               <>
                 <OldRegimeDeductions
                   deductions80C={deductions80C}
@@ -1118,8 +1141,10 @@ export default function SalaryCalculatorScreen() {
               </>
             )}
 
-            {/* ════════ OTHER TAB ════════ */}
-            {tab === "other" && (
+            </>)}
+            {pageScroll(2, <>
+            {/* ════════ OTHER PAGE ════════ */}
+            {(
               <>
                 {showOtherIncome && (
                   <OtherIncomeSection
@@ -1177,9 +1202,10 @@ export default function SalaryCalculatorScreen() {
               </>
             )}
 
-            {/* ════════ TAX TAB ════════ */}
-            {tab === "tax" &&
-              (kind === "ctc" && calculation ? (
+            </>)}
+            {pageScroll(3, <>
+            {/* ════════ TAX PAGE ════════ */}
+            {(kind === "ctc" && calculation ? (
                 <TaxBreakdown calculation={calculation} />
               ) : kind === "business" && business && hasSalaryData ? (
                 <TaxBreakdown calculation={business} />
@@ -1191,22 +1217,8 @@ export default function SalaryCalculatorScreen() {
                 </Text>
               ))}
 
-            {/* ─── Grand total, capital gains reference, Save draft / Save ─── */}
-            <SalaryFooter
-              primaryLabel={kind === "business" ? "Business" : "Salary"}
-              primaryAnnual={income.primaryAnnualInHand}
-              otherIncomeNet={income.other?.netCash ?? 0}
-              netBonus={income.netBonus}
-              netCapitalGains={income.netCapitalGains}
-              hasSalaryData={hasSalaryData}
-              totalIncome={income.totalAnnualIncome}
-              saving={saving}
-              onSaveDraft={handleSaveDraft}
-              onSaveComplete={handleSaveComplete}
-              onCapitalGainsReference={() => router.push("/goals/capital-gains-reference")}
-            />
-          </View>
-        </ScrollView>
+            </>)}
+          </SwipePager>
       </KeyboardAvoidingView>
     </ScreenContainer>
   );
