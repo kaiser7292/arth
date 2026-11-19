@@ -831,6 +831,20 @@ const loadData = useCallback(async () => {
               const lines: { label: string; amount: string; sign?: "+" | "−" | "" }[] = [
                 { label: `${isCreditCard ? "Started the cycle at" : "Opening balance"} · ${dayLabel(startDate)}`, amount: formatAmount(opening) },
               ];
+              // Savings and wallets: everything in, everything out, transfers on the side they went.
+              const typeNow = thisAccount?.account_type;
+              if (typeNow === "savings" || typeNow === "wallet") {
+                const ins = entries.filter((e) => ledgerAmount(e) > 0);
+                const outs = entries.filter((e) => ledgerAmount(e) < 0);
+                const inflow = Math.round(ins.reduce((s, e) => s + e.amount, 0) * 100) / 100;
+                const outflow = Math.round(outs.reduce((s, e) => s + e.amount, 0) * 100) / 100;
+                lines.push({ label: `Inflow · ${ins.length}`, sign: "+", amount: formatAmount(inflow) });
+                lines.push({ label: `Outflow · ${outs.length}`, sign: "−", amount: formatAmount(outflow) });
+                // Whatever the rows don't explain still shows, so the card always adds up.
+                const rest = Math.round((closing - (opening + inflow - outflow)) * 100) / 100;
+                if (Math.abs(rest) >= 0.01) lines.push({ label: "Balance adjustments", sign: rest >= 0 ? "+" : "−", amount: formatAmount(Math.abs(rest)) });
+                return <Statement lines={lines} total={{ label: `Closing balance · ${endLabel}`, amount: formatAmount(closing) }} />;
+              }
               if (totalCredits > 0)
                 lines.push({ label: `${isCreditCard ? "Paid back" : "Money in"}${nCredits ? ` · ${plural(nCredits, "credit", "credits")}` : ""}`, sign: isCreditCard ? "−" : "+", amount: formatAmount(totalCredits) });
               if (totalExpenses > 0)
@@ -1016,7 +1030,7 @@ const loadData = useCallback(async () => {
           {/* Transaction list */}
           {ledgerRows.map((row) => {
             if (row.type === "heading") {
-              return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} flat />;
+              return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} flat inflow={row.inflow} outflow={row.outflow} />;
             }
             const entry = row.item;
             const isTransfer = entry.type === "transfer_in" || entry.type === "transfer_out";
