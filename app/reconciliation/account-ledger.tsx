@@ -1,4 +1,5 @@
 import { tint } from "@/constants/brand";
+import { FastScrollRail, type RailItem } from "@/components/ui/FastScrollRail";
 import { TransactionRow, type TransactionRowStatus } from "@/components/ui/TransactionRow";
 import { isPartOn } from "@/services/customise";
 import { creditLook } from "@/services/expense-types";
@@ -273,6 +274,25 @@ export default function AccountLedgerScreen() {
   });
   const filteredEntries = tools.rows;
   const ledgerRows = tools.grouped;
+  // The thumb rail, as in the Vault: one mark per group (a day, by default), tap or slide to it.
+  const headingY = useRef<Record<string, number>>({});
+  const railItems = useMemo<RailItem[]>(
+    () =>
+      ledgerRows.flatMap((r) =>
+        r.type === "heading"
+          ? [{ key: r.key, label: r.label, short: /^\d{4}-\d{2}-\d{2}$/.test(r.key) ? String(Number(r.key.slice(8, 10))) : r.label.slice(0, 3) }]
+          : [],
+      ),
+    [ledgerRows],
+  );
+  const showRail = railItems.length >= 4;
+  const jumpToGroup = useCallback(
+    (i: number) => {
+      const y = headingY.current[railItems[i]?.key ?? ""];
+      if (y != null) scrollRef.current?.scrollTo({ y, animated: false });
+    },
+    [railItems],
+  );
 
   // Cards sharing one limit show every card's rows; start on the card that was opened. Once per
   // card, so clearing the chip sticks.
@@ -789,10 +809,12 @@ const loadData = useCallback(async () => {
         keyboardVerticalOffset={100}
       >
         {entries.length > 0 && <ListToolbar {...tools.toolbar} />}
+        <View style={{ flex: 1 }}>
         <ScrollView
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          // Room on the right for the thumb rail, so it never sits on an amount.
+          contentContainerStyle={{ paddingBottom: 100, paddingRight: showRail ? 30 : 0 }}
           keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
@@ -1016,7 +1038,16 @@ const loadData = useCallback(async () => {
           {/* Transaction list */}
           {ledgerRows.map((row) => {
             if (row.type === "heading") {
-              return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />;
+              return (
+                <View
+                  key={`group-${row.key}`}
+                  onLayout={(e) => {
+                    headingY.current[row.key] = e.nativeEvent.layout.y;
+                  }}
+                >
+                  <GroupHeading label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} />
+                </View>
+              );
             }
             const entry = row.item;
             const isTransfer = entry.type === "transfer_in" || entry.type === "transfer_out";
@@ -1175,6 +1206,8 @@ const loadData = useCallback(async () => {
             </Pressable>
           </View>
         </ScrollView>
+        {showRail && <FastScrollRail items={railItems} onSelect={jumpToGroup} />}
+        </View>
       </KeyboardAvoidingView>
 
       {/* Animated FAB menu — hidden while any inline form is open so it doesn't overlap */}

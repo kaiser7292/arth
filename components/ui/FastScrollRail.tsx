@@ -7,11 +7,16 @@ import { useTheme } from "@/hooks/use-theme";
 
 export interface RailItem {
   key: string;
+  /** In the bubble beside the thumb: "November 2026", "Food". */
   label: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  /** Drawn on the rail: an icon, or a few letters ("Nov", "12"). */
+  icon?: keyof typeof Ionicons.glyphMap;
+  short?: string;
 }
 
 const SLOT = 30;
+/** Below this a rail of many groups draws every second (third…) one; all of them still answer the thumb. */
+const MIN_SLOT = 18;
 
 /**
  * A thumb rail for long grouped lists (owner, Nov 2026: "something on the right side which users
@@ -24,6 +29,7 @@ const SLOT = 30;
 export function FastScrollRail({ items, onSelect }: { items: RailItem[]; onSelect: (index: number) => void }) {
   const theme = useTheme();
   const [active, setActive] = useState<number | null>(null);
+  const [avail, setAvail] = useState(0);
   const height = useRef(0);
   const last = useRef<number | null>(null);
   const latest = useRef({ items, onSelect });
@@ -67,10 +73,18 @@ export function FastScrollRail({ items, onSelect }: { items: RailItem[]; onSelec
 
   if (items.length < 2) return null;
   const current = active != null ? items[active] : null;
+  // Long lists (two years of months) fit the space: fewer marks drawn, every group still reachable.
+  const room = avail > 0 ? avail - 24 : items.length * SLOT;
+  const step = Math.max(1, Math.ceil(items.length / Math.max(2, Math.floor(room / MIN_SLOT))));
+  const drawn = items.map((it, i) => ({ it, i })).filter(({ i }) => i % step === 0);
+  const slot = Math.min(SLOT, room / drawn.length);
+  const railH = drawn.length * slot + 12;
+  const bubbleTop = active != null ? (avail - railH) / 2 + 6 + ((active + 0.5) / items.length) * (railH - 12) - 20 : 0;
 
   return (
     <View
       pointerEvents="box-none"
+      onLayout={(e: LayoutChangeEvent) => setAvail(e.nativeEvent.layout.height)}
       style={{ position: "absolute", right: 2, top: 0, bottom: 0, justifyContent: "center" }}
     >
       <View
@@ -95,11 +109,20 @@ export function FastScrollRail({ items, onSelect }: { items: RailItem[]; onSelec
           onSelect(to);
         }}
       >
-        {items.map((it, i) => (
-          <View key={it.key} pointerEvents="none" style={{ height: SLOT, width: 30, alignItems: "center", justifyContent: "center" }}>
-            <Ionicons name={it.icon} size={15} color={active === i ? theme.primary : theme.mutedForeground} />
-          </View>
-        ))}
+        {drawn.map(({ it, i }) => {
+          const on = active != null && active >= i && active < i + step;
+          return (
+            <View key={it.key} pointerEvents="none" style={{ height: slot, width: 30, alignItems: "center", justifyContent: "center" }}>
+              {it.icon ? (
+                <Ionicons name={it.icon} size={15} color={on ? theme.primary : theme.mutedForeground} />
+              ) : (
+                <Text style={{ fontSize: 10, fontWeight: "700", color: on ? theme.primary : theme.mutedForeground }} numberOfLines={1}>
+                  {it.short ?? it.label.slice(0, 3)}
+                </Text>
+              )}
+            </View>
+          );
+        })}
       </View>
       {current && active != null ? (
         <View
@@ -108,8 +131,7 @@ export function FastScrollRail({ items, onSelect }: { items: RailItem[]; onSelec
           style={{
             position: "absolute",
             right: 40,
-            top: "50%",
-            marginTop: (active - (items.length - 1) / 2) * SLOT - 20,
+            top: Math.max(0, bubbleTop),
             height: 40,
             gap: 8,
             backgroundColor: theme.card,
@@ -117,7 +139,7 @@ export function FastScrollRail({ items, onSelect }: { items: RailItem[]; onSelec
             borderColor: theme.primary,
           }}
         >
-          <Ionicons name={current.icon} size={16} color={theme.primary} />
+          {current.icon ? <Ionicons name={current.icon} size={16} color={theme.primary} /> : null}
           <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
             {current.label}
           </Text>
