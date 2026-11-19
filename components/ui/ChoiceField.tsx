@@ -1,3 +1,4 @@
+import type React from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -10,6 +11,9 @@ export interface ChoiceOption<V extends string> {
   value: V;
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** A drawn icon (account types), used instead of `icon`, with its own colour. */
+  glyph?: (size: number) => React.ReactNode;
+  color?: string;
   sub?: string;
 }
 
@@ -59,8 +63,8 @@ export function ChoiceField<V extends string>({
         accessibilityRole="button"
         accessibilityLabel={`${label}${current ? `, ${current.label}` : ""}. Change`}
       >
-        <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: tint(c, 0.1) }}>
-          <Ionicons name={current?.icon ?? "ellipse-outline"} size={17} color={c} />
+        <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: tint(current?.color ?? c, 0.1) }}>
+          {current?.glyph ? current.glyph(17) : <Ionicons name={current?.icon ?? "ellipse-outline"} size={17} color={current?.color ?? c} />}
         </View>
         <Text className={`flex-1 text-body ${current ? "font-semibold text-foreground" : "text-faint-foreground"}`} numberOfLines={1}>
           {current ? current.label : placeholder}
@@ -75,7 +79,7 @@ export function ChoiceField<V extends string>({
         visible={open}
         onClose={() => setOpen(false)}
         title={title ?? label}
-        sections={[{ key: "all", items: options.map((o) => ({ id: o.value, label: o.label, sub: o.sub, icon: o.icon, color: c })) }]}
+        sections={[{ key: "all", items: options.map((o) => ({ id: o.value, label: o.label, sub: o.sub, icon: o.icon, glyph: o.glyph?.(16), color: o.color ?? c })) }]}
         selectedId={value}
         onSelect={(id) => {
           setOpen(false);

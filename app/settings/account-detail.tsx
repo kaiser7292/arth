@@ -55,20 +55,7 @@ import { addUpiId, parseUpiIds, removeUpiId } from "@/services/account-upi";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 import { LoadingState } from "@/components/ui";
 import { tint } from "@/constants/brand";
-
-const ACCOUNT_TYPE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  savings: "business-outline",
-  credit_card: "card-outline",
-  loan: "home-outline",
-  wallet: "phone-portrait-outline",
-  demat: "trending-up-outline",
-  pension: "shield-checkmark-outline",
-  // Phase 2 (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4) unified type —
-  // covers FD/demat/pension alike, disambiguated at render time by
-  // investment_products.valuation (see resolveInvestmentIcon below). This
-  // entry is just the fallback when that finer-grained lookup isn't available.
-  investment: "trending-up-outline",
-};
+import { AccountTypeIcon, AccountTypeTile, accountTypeColor } from "@/components/ui/AccountTypeIcon";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   savings: "Savings",
@@ -79,20 +66,6 @@ const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   pension: "Pension",
   investment: "Investment",
 };
-
-/**
- * account_type='investment' covers FD, demat, and pension alike — resolve
- * the specific icon from the product's valuation strategy (isDematAccount is
- * already computed for the account, contract=FD, contribution=pension).
- */
-function resolveInvestmentIcon(
-  isDemat: boolean,
-  valuation: InvestmentProduct["valuation"] | undefined,
-): keyof typeof Ionicons.glyphMap {
-  if (isDemat) return "trending-up-outline";
-  if (valuation === "contribution") return "briefcase-outline";
-  return "cash-outline"; // contract (FD) — matches investments list iconography
-}
 
 function getCurrentMonth(): string {
   const now = new Date();
@@ -503,14 +476,23 @@ export default function AccountDetailScreen() {
     );
   }
 
-  const ACCOUNT_TYPES: Array<{ key: AccountType; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
-    { key: "savings", label: "Savings", icon: "business-outline" },
-    { key: "credit_card", label: "Credit Card", icon: "card-outline" },
-    { key: "loan", label: "Loan", icon: "home-outline" },
-    { key: "wallet", label: "Wallet", icon: "phone-portrait-outline" },
-    { key: "demat", label: "Demat", icon: "trending-up-outline" },
-    { key: "pension", label: "Pension", icon: "shield-checkmark-outline" },
+  const ACCOUNT_TYPES: Array<{ key: AccountType; label: string }> = [
+    { key: "savings", label: "Savings" },
+    { key: "credit_card", label: "Credit Card" },
+    { key: "loan", label: "Loan" },
+    { key: "wallet", label: "Wallet" },
+    { key: "demat", label: "Demat" },
+    { key: "pension", label: "Pension" },
   ];
+  // account_type='investment' covers FD, demat and pension alike: the drawn icon follows the product.
+  const iconType =
+    account.account_type === "investment"
+      ? isDematAccount
+        ? "demat"
+        : investmentProduct?.valuation === "contribution"
+          ? "pension"
+          : "fd"
+      : accountType;
 
   return (
     <>
@@ -538,13 +520,9 @@ export default function AccountDetailScreen() {
           <View className="px-4 py-4">
           {/* Hero: the account, with its ledger one tap away under the name (board "Account settings"). */}
           {(() => {
-            const typeKey = account.account_type === "investment" ? "demat" : account.account_type;
-            const col = theme.data.accountType[typeKey] ?? theme.primary;
             return (
               <View className="items-center mb-4" style={{ gap: 6 }}>
-                <View className="items-center justify-center" style={{ width: 56, height: 56, borderRadius: 18, backgroundColor: tint(col, 0.12) }}>
-                  <Ionicons name={ACCOUNT_TYPES.find((t) => t.key === account.account_type)?.icon ?? "wallet-outline"} size={26} color={col} />
-                </View>
+                <AccountTypeTile type={iconType} size={56} radius={18} />
                 <Text className="text-title font-bold text-foreground text-center" numberOfLines={2}>{headerTitle}</Text>
                 {account.account_type === "loan" ? null : (
                   <Pressable
@@ -572,19 +550,8 @@ export default function AccountDetailScreen() {
           {/* Account identity */}
           <Card className="mb-3">
             <View className="flex-row items-center mb-4">
-              <View
-                className="w-12 h-12 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-              >
-                <Ionicons
-                  name={
-                    accountType === "investment"
-                      ? resolveInvestmentIcon(isDematAccount, investmentProduct?.valuation)
-                      : (ACCOUNT_TYPE_ICONS[accountType] ?? "help-outline")
-                  }
-                  size={24}
-                  color={theme.data.series[3]}
-                />
+              <View className="mr-3">
+                <AccountTypeTile type={iconType} size={48} radius={14} />
               </View>
               <View className="flex-1">
                 <Text className="text-heading font-bold text-foreground" numberOfLines={1}>
@@ -611,7 +578,12 @@ export default function AccountDetailScreen() {
                   label="Type"
                   className="mb-4"
                   value={accountType}
-                  options={ACCOUNT_TYPES.map((t) => ({ value: t.key, label: t.label, icon: t.icon }))}
+                  options={ACCOUNT_TYPES.map((t) => ({
+                    value: t.key,
+                    label: t.label,
+                    color: accountTypeColor(theme, t.key),
+                    glyph: (size: number) => <AccountTypeIcon type={t.key} size={size} />,
+                  }))}
                   onChange={(v) => {
                     setAccountType(v);
                     setDirty(true);

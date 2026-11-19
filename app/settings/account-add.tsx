@@ -1,5 +1,6 @@
 import { isPartOn } from "@/services/customise";
 import { ChoiceField } from "@/components/ui/ChoiceField";
+import { AccountTypeIcon, accountTypeColor } from "@/components/ui/AccountTypeIcon";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState, useRef } from "react";
 import { View, ScrollView, Pressable, Keyboard } from "react-native";
@@ -31,18 +32,6 @@ const TYPE_OPTIONS: AddType[] = [
   "pension",
   "fd",
 ];
-
-const ADD_TYPE_ICONS: Record<AddType, keyof typeof Ionicons.glyphMap> = {
-  savings: "business-outline",
-  bank: "business-outline",
-  credit_card: "card-outline",
-  loan: "home-outline",
-  wallet: "phone-portrait-outline",
-  demat: "trending-up-outline",
-  pension: "shield-checkmark-outline",
-  investment: "pie-chart-outline",
-  fd: "business-outline",
-} as Record<AddType, keyof typeof Ionicons.glyphMap>;
 
 const ACCOUNT_TYPE_LABELS: Record<AddType, string> = {
   fd: "Fixed deposit",
@@ -231,7 +220,12 @@ export default function AccountAddScreen() {
             label="Account type"
             className="mb-4"
             value={accountType}
-            options={TYPE_OPTIONS.map((t) => ({ value: t, label: ACCOUNT_TYPE_LABELS[t], icon: ADD_TYPE_ICONS[t] }))}
+            options={TYPE_OPTIONS.map((t) => ({
+              value: t,
+              label: ACCOUNT_TYPE_LABELS[t],
+              color: accountTypeColor(theme, t),
+              glyph: (size: number) => <AccountTypeIcon type={t} size={size} />,
+            }))}
             onChange={setAccountType}
             searchPlaceholder="Search account types"
           />

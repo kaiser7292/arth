@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -90,6 +91,7 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances, ti
       <HomeTile
         index={tileIndex}
         icon="card-outline"
+        accountType="credit_card"
         label={`Card dues · ${accounts.length}`}
         value={totalLimit > 0 ? totalUtilized : spentThisMonth}
         sub={overallUtil != null ? `${Math.round(overallUtil)}% of ${formatAmount(totalLimit)} limit` : "Spent this month"}
@@ -112,15 +114,8 @@ function CreditCardDashboardImpl({ accounts, expenseTotals, computedBalances, ti
         <Card className="mx-4 mt-2">
           {/* Header row: icon + title + card count + chevron */}
           <View className="flex-row items-center mb-3">
-            <View
-              className="w-10 h-10 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-            >
-              <Ionicons
-                name="card-outline"
-                size={20}
-                color={theme.primary}
-              />
+            <View className="mr-3">
+              <AccountTypeTile type="credit_card" size={40} />
             </View>
             <Text className="text-sm font-semibold text-foreground flex-1">
               Credit Cards

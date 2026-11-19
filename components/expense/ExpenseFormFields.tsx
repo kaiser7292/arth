@@ -1,4 +1,5 @@
 import { tint } from "@/constants/brand";
+import { AccountTypeIcon, accountTypeColor } from "@/components/ui/AccountTypeIcon";
 import { QuickAddCategorySheet } from "@/components/expense/QuickAddCategorySheet";
 import { CalendarModal } from "@/components/ui/CalendarModal";
 import { Pop } from "@/components/motion/Pop";
@@ -187,7 +188,8 @@ export function AccountPicker({
         label: acct.account_label ?? `${acct.bank_name} ····${acct.account_identifier}`,
         sub: withPickerBalance(`${PICKER_TYPE_LABEL[acct.account_type] ?? "Account"} · ${acct.bank_name}`, balances[acct.id]),
         icon: g.icon,
-        color: theme.data.accountType[acct.account_type] ?? theme.primary,
+        glyph: <AccountTypeIcon type={acct.account_type} size={16} />,
+        color: accountTypeColor(theme, acct.account_type),
       });
     }
     return order.filter((k) => by.has(k)).map((k) => by.get(k)!);
@@ -204,7 +206,18 @@ export function AccountPicker({
       {accounts.length > 0 ? (
         <>
           <FieldButton
-            row={row ? { label, color: selectedAccount ? theme.data.accountType[selectedAccount.account_type] ?? theme.primary : theme.primary, tag: hint, divider } : undefined}
+            row={
+              row
+                ? {
+                    label,
+                    color: selectedAccount ? accountTypeColor(theme, selectedAccount.account_type) : theme.primary,
+                    glyph: <AccountTypeIcon type={selectedAccount?.account_type ?? "savings"} size={17} color={selectedAccount ? undefined : theme.primary} />,
+                    tag: hint,
+                    divider,
+                  }
+                : undefined
+            }
+            leading={<AccountTypeIcon type={selectedAccount?.account_type ?? "savings"} size={18} color={selectedAccount ? undefined : theme.mutedForeground} />}
             icon="business-outline"
             on={!!selectedAccount}
             text={selectedAccount ? selectedAccount.account_label ?? `${selectedAccount.bank_name} ····${selectedAccount.account_identifier}` : placeholder}
@@ -251,6 +264,8 @@ export interface FieldRowLook {
   color: string;
   /** "From merchant" and the like. */
   tag?: string | null;
+  /** A drawn icon (account types) in place of the Ionicon. */
+  glyph?: React.ReactNode;
   divider?: boolean;
 }
 
@@ -289,7 +304,7 @@ export function FieldButton({
         accessibilityLabel={accessibilityLabel}
       >
         <View className="w-9 h-9 rounded-control items-center justify-center" style={{ backgroundColor: tint(row.color, 0.1) }}>
-          <Ionicons name={icon} size={17} color={row.color} />
+          {row.glyph ?? <Ionicons name={icon} size={17} color={row.color} />}
         </View>
         <View className="flex-1" style={{ minWidth: 0 }}>
           <Text className="text-label text-muted-foreground" numberOfLines={1}>

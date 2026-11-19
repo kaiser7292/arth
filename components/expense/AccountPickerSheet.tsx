@@ -1,4 +1,5 @@
 import { tint } from "@/constants/brand";
+import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { useState, useEffect, useCallback } from "react";
 import { Sheet, Text } from "@/components/ui";
 import { View, Pressable,  FlatList } from "react-native";
@@ -25,15 +26,6 @@ interface AccountPickerSheetProps {
   filterTypes?: FinancialAccount["account_type"][];
   excludeAccountId?: string;
 }
-
-const ACCOUNT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  savings: "business-outline",
-  credit_card: "card-outline",
-  wallet: "phone-portrait-outline",
-  loan: "home-outline",
-  demat: "trending-up-outline",
-  pension: "shield-checkmark-outline",
-};
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   savings: "Savings",
@@ -138,15 +130,8 @@ export function AccountPickerSheet({
               accessibilityRole="button"
               className="flex-row items-center px-5 py-3 active:opacity-70"
             >
-              <View
-                className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                style={{ backgroundColor: tint(theme.primary, 0.1) }}
-              >
-                <Ionicons
-                  name={ACCOUNT_ICONS[resolvedType(item, investmentProducts)] ?? "wallet-outline"}
-                  size={18}
-                  color={theme.primary}
-                />
+              <View className="mr-3">
+                <AccountTypeTile type={resolvedType(item, investmentProducts)} size={36} />
               </View>
               <View className="flex-1">
                 <Text

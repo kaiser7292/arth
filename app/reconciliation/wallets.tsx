@@ -1,4 +1,5 @@
 import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -204,11 +205,8 @@ export default function WalletsScreen() {
               onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
             >
               <View className="flex-row items-center mb-3">
-                <View
-                  className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                >
-                  <Ionicons name="phone-portrait-outline" size={18} color={theme.primary} />
+                <View className="mr-3">
+                  <AccountTypeTile type="wallet" size={36} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-base font-bold text-foreground">
