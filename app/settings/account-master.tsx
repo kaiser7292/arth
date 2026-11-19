@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -6,6 +6,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Chip, FAB, GroupHeading, ListToolbar, ScreenContainer, Text } from "@/components/ui";
 import { tint } from "@/constants/brand";
 import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
+import { FastScrollRail, type RailItem } from "@/components/ui/FastScrollRail";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -165,6 +166,10 @@ export default function AccountMasterScreen() {
     sorts: ACCOUNT_SORTS,
   });
   const filteredAccounts = tools.rows;
+  const nameOf = (item: AccountWithModes) => {
+    const { account } = item;
+    return account.account_label ?? (dematSummaries.has(account.id) ? account.bank_name : `${account.bank_name} ****${account.account_identifier}`);
+  };
 
   const renderAccount = (item: AccountWithModes, divider = false) => {
     const { account, linkedModes } = item;
@@ -174,11 +179,7 @@ export default function AccountMasterScreen() {
     // is a cheap, correct stand-in for a fresh account_type check.
     const isDemat = dematSummaries.has(account.id);
 
-    const displayName =
-      account.account_label ??
-      (isDemat
-        ? account.bank_name
-        : `${account.bank_name} ****${account.account_identifier}`);
+    const displayName = nameOf(item);
 
     const typeLabel =
       ACCOUNT_TYPE_LABELS[resolvedType(account)] ?? account.account_type;
@@ -230,6 +231,9 @@ export default function AccountMasterScreen() {
     return (
       <Pressable
         key={account.id}
+        onLayout={(e) => {
+          rowY.current[account.id] = e.nativeEvent.layout.y;
+        }}
         onPress={handleTap}
         className={`flex-row items-center px-3.5 ${divider ? "border-t border-border" : ""}`}
         style={{ minHeight: 64, gap: 12, opacity: account.closed_at ? 0.7 : 1 }}
@@ -263,6 +267,24 @@ export default function AccountMasterScreen() {
     }
   }
 
+  // The thumb rail, as in the Vault: one mark per account shown, the bubble names it in full.
+  const scrollRef = useRef<ScrollView>(null);
+  const blockY = useRef<Record<number, number>>({});
+  const cardY = useRef<Record<number, number>>({});
+  const rowY = useRef<Record<string, number>>({});
+  const railTargets = blocks.flatMap((b, bi) => b.rows.map((r) => ({ r, bi })));
+  const railItems: RailItem[] = railTargets.map(({ r }) => {
+    const name = nameOf(r);
+    return { key: r.account.id, label: name, short: name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase() || "•" };
+  });
+  const showRail = railItems.length >= 6;
+  const jumpToAccount = (i: number) => {
+    const t = railTargets[i];
+    if (!t) return;
+    const y = (blockY.current[t.bi] ?? 0) + (cardY.current[t.bi] ?? 0) + (rowY.current[t.r.account.id] ?? 0);
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
+  };
+
   const banner = (icon: keyof typeof Ionicons.glyphMap, fg: string, bg: string, title: string, sub: string, onPress: () => void) => (
     <Pressable
       onPress={onPress}
@@ -286,7 +308,13 @@ export default function AccountMasterScreen() {
       <View className="flex-1">
         <ListToolbar {...tools.toolbar} />
         {tools.filterSheet}
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96, paddingHorizontal: 16, paddingTop: 4 }}>
+        <View className="flex-1">
+        <ScrollView
+          ref={scrollRef}
+          showsVerticalScrollIndicator={false}
+          // Room on the right for the thumb rail, so it never sits on a row's chip.
+          contentContainerStyle={{ paddingBottom: 96, paddingLeft: 16, paddingRight: showRail ? 38 : 16, paddingTop: 4 }}
+        >
           {duplicateGroups > 0 &&
             banner(
               "copy-outline",
@@ -319,7 +347,13 @@ export default function AccountMasterScreen() {
             </View>
           ) : (
             blocks.map((b, bi) => (
-              <View key={b.heading && b.heading.type === "heading" ? `g-${b.heading.key}` : `b-${bi}`} className="mb-3">
+              <View
+                key={b.heading && b.heading.type === "heading" ? `g-${b.heading.key}` : `b-${bi}`}
+                className="mb-3"
+                onLayout={(e) => {
+                  blockY.current[bi] = e.nativeEvent.layout.y;
+                }}
+              >
                 {b.heading && b.heading.type === "heading" && (
                   <GroupHeading
                     label={b.heading.label}
@@ -334,6 +368,9 @@ export default function AccountMasterScreen() {
                 {b.rows.length > 0 && (
                   // Under a group heading the rows continue its card; without grouping they are one card.
                   <View
+                    onLayout={(e) => {
+                      cardY.current[bi] = e.nativeEvent.layout.y;
+                    }}
                     className={b.heading ? "bg-card border-x border-b border-border overflow-hidden" : "rounded-card bg-card border border-border overflow-hidden"}
                     style={b.heading ? { borderBottomLeftRadius: 16, borderBottomRightRadius: 16 } : undefined}
                   >
@@ -371,6 +408,8 @@ export default function AccountMasterScreen() {
             </View>
           )}
         </ScrollView>
+        {showRail && <FastScrollRail items={railItems} onSelect={jumpToAccount} bottomInset={88} />}
+        </View>
       </View>
 
       <FAB icon="add" label="Account" onPress={() => router.push("/settings/account-add")} accessibilityLabel="Add new account" />
