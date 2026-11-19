@@ -527,40 +527,62 @@ export default function BalanceSheetScreen() {
                         className="flex-row items-center px-3 py-2.5"
                         style={{ backgroundColor: theme.alpha("foreground", 0.02) }}
                         accessibilityRole="button"
-                        accessibilityLabel={hasChildren ? `${row.label}, show deposits` : `${row.label}, open accounts`}
+                        accessibilityState={hasChildren ? { expanded } : undefined}
+                        accessibilityLabel={hasChildren ? `${row.label}, with fixed deposits` : `${row.label}, open accounts`}
                       >
                         <Text className="text-meta text-foreground" numberOfLines={1} style={{ width: labelWidth, paddingLeft: 12 }}>
-                          {hasChildren ? (expanded ? "▾ " : "▸ ") : ""}
                           {row.label}
                         </Text>
                         {columns.map((col) => {
                           const cell = getCellValue(col, row.label, "assets");
                           const deposits = hasChildren ? getChildrenTotal(col, row.label) : 0;
+                          // One figure, as on any account: the balance and its deposits together.
+                          const shown = cell ? cell.amount + deposits : deposits > 0 ? deposits : null;
                           return (
                             <View key={col.asOfDate} style={{ width: colWidth }} className="items-end">
                               <Text
                                 className="text-meta"
                                 numberOfLines={1}
                                 style={{
-                                  color: !cell || cell.isFallback ? theme.faintForeground : theme.foreground,
+                                  color: shown == null || cell?.isFallback ? theme.faintForeground : theme.foreground,
                                   fontStyle: cell?.isFallback ? "italic" : "normal",
                                   fontVariant: ["tabular-nums"],
                                 }}
                               >
-                                {!cell ? "-" : money(cell.amount)}
+                                {shown == null ? "-" : money(shown)}
                               </Text>
-                              {deposits > 0 && (
-                                <Text className="text-label text-muted-foreground" numberOfLines={1}>
-                                  +{money(deposits)} FD
-                                </Text>
-                              )}
                             </View>
                           );
                         })}
                         <View style={{ width: 28 }} className="items-end">
-                          {!hasChildren && <Ionicons name="chevron-forward" size={13} color={theme.faintForeground} />}
+                          <Ionicons
+                            name={hasChildren ? (expanded ? "chevron-up" : "chevron-down") : "chevron-forward"}
+                            size={13}
+                            color={theme.faintForeground}
+                          />
                         </View>
                       </Pressable>
+                      {hasChildren && expanded && (
+                        <Pressable
+                          onPress={() =>
+                            row.accountId
+                              ? router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: row.accountId } })
+                              : handleRowPress(row)
+                          }
+                          className="flex-row items-center px-3 py-2"
+                          style={{ backgroundColor: theme.alpha("foreground", 0.03) }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${row.label} balance, open ledger`}
+                        >
+                          <Text className="text-label text-muted-foreground" numberOfLines={1} style={{ width: labelWidth, paddingLeft: 24 }}>
+                            Account balance
+                          </Text>
+                          {columns.map((col) => valueCell(col.asOfDate, getCellValue(col, row.label, "assets"), 1, true))}
+                          <View style={{ width: 28 }} className="items-end">
+                            <Ionicons name="chevron-forward" size={13} color={theme.faintForeground} />
+                          </View>
+                        </Pressable>
+                      )}
                       {hasChildren &&
                         expanded &&
                         children.map((child) => (
@@ -570,6 +592,7 @@ export default function BalanceSheetScreen() {
                             className="flex-row items-center px-3 py-2"
                             style={{ backgroundColor: theme.alpha("foreground", 0.03) }}
                             accessibilityRole="button"
+                            accessibilityLabel={`${child.label}, open ledger`}
                           >
                             <Text className="text-label text-muted-foreground" numberOfLines={1} style={{ width: labelWidth, paddingLeft: 24 }}>
                               {child.label}
