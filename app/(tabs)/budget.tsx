@@ -6,8 +6,6 @@ import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput }
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, Chip, ChipWrap, ContextualHeader, FieldRow, PeriodNavigator, ProgressBar, ScreenContainer, SwipePager, Text } from "@/components/ui";
-import { Statement } from "@/components/ui/LinkRow";
-import { FoldGroup } from "@/components/ui/FormParts";
 import { tint } from "@/constants/brand";
 import { AnimatedNumber, Nudge, PressableScale } from "@/components/motion";
 import { staggerDelay } from "@/components/motion/motion";
@@ -21,7 +19,6 @@ import { getCategories } from "@/services/category";
 import { getBudgetsForMonth, getCurrentMonth, getMonthlyBudgetTotals } from "@/services/budget";
 import { getExpenseTotalsByCategory, getExpenseTotal, getUncategorizedTotal, getUncategorizedCount, getMonthlyExpenseTotals } from "@/services/expense";
 import { getMonthSplit, type MonthSplit } from "@/services/month-split";
-import { BRAND_COLOR, STATUS_COLORS } from "@/constants/semantic-colors";
 import { getYearlyPlanByFY } from "@/services/yearly-plan";
 import type { YearlyPlan } from "@/services/yearly-plan";
 import type { Category } from "@/services/category";
@@ -296,15 +293,11 @@ export default function BudgetScreen() {
   // Money out = EMIs + spending. EMIs count at what was paid; planned counts what's due.
   const emis = monthSplit?.emis;
   const hasEmis = !!emis && (emis.paid > 0 || emis.due > 0);
-  const sp = monthSplit?.split;
   const moneyOut = totalSpent + (emis && hasEmis ? emis.paid : 0);
   const planned = totalBudget + (emis && hasEmis ? emis.due : 0);
-  const notSorted = sp ? Math.max(0, totalSpent - sp.unavoidable.spent - sp.discretionary.spent) : 0;
   const left = totalBudget - totalSpent;
   const projected = isCurrentMonth ? v2Forecast?.projectedTotal ?? compliance?.projectedMonthEnd ?? null : null;
   const projectedOver = projected != null && totalBudget > 0 && projected > totalBudget;
-  const openBucket = (avoidability: "unavoidable" | "avoidable" | "unclassified", title: string) =>
-    router.push({ pathname: "/budget/transactions", params: { filterMonth: month, filterAvoidability: avoidability, title } });
   const saveQuickBudget = async () => {
     const amt = parseFloat(quickBudgetAmount);
     if (!quickBudgetRow || isNaN(amt) || amt <= 0) return;
@@ -407,107 +400,38 @@ export default function BudgetScreen() {
             />
           }
         >
-          {/* ── Left to spend (Budget summary) ── */}
+          {/* ── This month: what's left and the month's numbers in one card, nothing said twice
+               (owner, Nov 2026). The unavoidable / discretionary split is on the Spending Split page. ── */}
           {visibleWidgets.includes("summary") && (
             <Card>
-              <View className="flex-row items-end justify-between">
-                <View className="flex-1">
-                  <Text className="text-meta text-muted-foreground">{left >= 0 ? "Left to spend" : "Over budget by"}</Text>
+              <View className="flex-row items-start justify-between" style={{ gap: 8 }}>
+                <View className="flex-1" style={{ minWidth: 0 }}>
+                  <Text className="text-meta text-muted-foreground">
+                    {totalBudget <= 0 ? "Spent this month" : isPastMonth ? (left >= 0 ? "Saved" : "Overspent") : left >= 0 ? "Left to spend" : "Over budget by"}
+                  </Text>
                   <AnimatedNumber
-                    value={Math.round(Math.abs(left))}
+                    value={Math.round(totalBudget <= 0 ? totalSpent : Math.abs(left))}
                     className="text-hero font-bold"
-                    style={{ color: left >= 0 ? theme.foreground : theme.danger }}
+                    style={{ color: totalBudget > 0 && left < 0 ? theme.danger : theme.foreground }}
                   />
                 </View>
-                <View className="items-end" style={{ gap: 4 }}>
-                  <Chip variant="status" className="self-end" tone={budgetBadgeTone} label={budgetBadgeLabel} />
-                  <Text className="text-meta text-muted-foreground text-right">
-                    of {rs(totalBudget)}
-                    {"\n"}
-                    {isPastMonth ? `${daysTotal} days` : `${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left`}
-                  </Text>
-                </View>
+                {totalBudget > 0 && <Chip variant="status" className="self-start" tone={budgetBadgeTone} label={budgetBadgeLabel} />}
               </View>
-
-              {/* Where the money went: EMIs, unavoidable, discretionary, not sorted */}
-              {sp || hasEmis ? (
-                <View className="flex-row rounded-pill overflow-hidden mt-3.5" style={{ height: 8, backgroundColor: theme.alpha("foreground", 0.08) }}>
-                  {[
-                    ...(emis && hasEmis ? [{ key: "emis", value: emis.paid, color: theme.mutedForeground }] : []),
-                    ...(sp
-                      ? [
-                          { key: "unavoidable", value: sp.unavoidable.spent, color: BRAND_COLOR },
-                          { key: "discretionary", value: sp.discretionary.spent, color: STATUS_COLORS.warning },
-                          { key: "unsorted", value: notSorted, color: theme.alpha("mutedForeground", 0.5) },
-                        ]
-                      : []),
-                  ]
-                    .filter((p) => p.value > 0)
-                    .map((p) => (
-                      <View key={p.key} style={{ width: `${Math.min(100, (p.value / Math.max(planned, moneyOut, 1)) * 100)}%`, backgroundColor: p.color }} />
-                    ))}
-                </View>
-              ) : (
-                totalBudget > 0 && <ProgressBar value={overallPct} color={overallColor} height={8} animated className="mt-3.5" />
-              )}
-
-              {(sp || hasEmis) && (
-                <View className="mt-2">
-                  {emis && hasEmis && (
-                    <SplitRow
-                      dot={theme.mutedForeground}
-                      label="Loan EMIs"
-                      note={emis.prepaid > 0 ? `includes ${rs(emis.prepaid)} prepaid` : "from your loans"}
-                      value={emis.paid}
-                      of={emis.due}
-                      onPress={() => router.push("/goals/loans")}
-                    />
-                  )}
-                  {sp && (
-                    <SplitRow
-                      dot={BRAND_COLOR}
-                      label="Unavoidable"
-                      value={sp.unavoidable.spent}
-                      of={sp.unavoidable.budget}
-                      onPress={() => openBucket("unavoidable", "Unavoidable")}
-                    />
-                  )}
-                  {sp && (
-                    <SplitRow
-                      dot={STATUS_COLORS.warning}
-                      label="Discretionary"
-                      value={sp.discretionary.spent}
-                      of={sp.discretionary.budget}
-                      onPress={() => openBucket("avoidable", "Discretionary")}
-                    />
-                  )}
-                  {sp && notSorted >= 1 && (
-                    <SplitRow
-                      dot={theme.alpha("mutedForeground", 0.5)}
-                      label="Not sorted yet"
-                      value={notSorted}
-                      onPress={() => openBucket("unclassified", "Not sorted yet")}
-                    />
-                  )}
-                </View>
-              )}
-
-              {/* Pace advice (current month): where this pace lands, and what a day keeps you on budget */}
-              {isCurrentMonth && projected != null && totalBudget > 0 && (
-                <View
-                  className="mt-3 px-3 py-2.5 rounded-control"
-                  style={{ backgroundColor: projectedOver ? theme.alpha("warning", 0.08) : theme.alpha("success", 0.08) }}
-                >
-                  <Text className="text-meta text-foreground">
-                    At this pace you&apos;ll spend <Text className="text-meta font-bold">{rs(Math.round(projected))}</Text>.
-                    {left > 0 && daysRemaining > 0 ? (
-                      <>
-                        {" "}Keep to <Text className="text-meta font-bold">{rs(perDayRemaining)} a day</Text> to stay on budget.
-                      </>
-                    ) : null}
-                  </Text>
-                </View>
-              )}
+              {totalBudget > 0 && <ProgressBar value={overallPct} color={overallColor} height={8} animated className="mt-3" />}
+              <Text className="text-meta text-muted-foreground mt-2">
+                {totalBudget > 0 ? `${rs(totalSpent)} spent of ${rs(totalBudget)}` : "No budget set"} ·{" "}
+                {isPastMonth ? `${daysTotal} days` : `${daysRemaining} ${daysRemaining === 1 ? "day" : "days"} left`}
+              </Text>
+              <View className="mt-1">
+                {isPastMonth ? (
+                  <FieldRow label="Average a day" value={rs(totalSpent / daysTotal)} divider={false} />
+                ) : totalBudget > 0 && totalSpent >= totalBudget ? (
+                  <FieldRow label="Per day left" value="None" valueColor={theme.danger} divider={false} />
+                ) : totalBudget > 0 ? (
+                  <FieldRow label="Per day left" value={rs(perDayRemaining)} divider={false} />
+                ) : null}
+                {hasEmis && <FieldRow label="Money out, with EMIs" value={`${rs(moneyOut)} of ${rs(planned)}`} divider={isPastMonth || totalBudget > 0} />}
+              </View>
 
               {/* EMIs as a share of income */}
               {(() => {
@@ -517,7 +441,7 @@ export default function BudgetScreen() {
                 // Planners and lenders treat about 40% of take-home pay as the most EMIs should take.
                 const high = share > 40;
                 return (
-                  <Text className="text-label mt-2" style={{ color: high ? theme.warning : theme.mutedForeground }}>
+                  <Text className="text-label mt-1" style={{ color: high ? theme.warning : theme.mutedForeground }}>
                     EMIs are {share}% of your monthly income{high ? ", above the 40% most planners suggest" : ""}
                   </Text>
                 );
@@ -525,109 +449,80 @@ export default function BudgetScreen() {
             </Card>
           )}
 
-          {/* ── This month: the three tiles and "More numbers" in one card of full-width rows, so no
-               amount is ever cut off (owner, Nov 2026). The two widgets still switch their parts. */}
-          {(visibleWidgets.includes("summary") || (visibleWidgets.includes("projection") && totalBudget > 0)) && (
-            <Card>
-              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">This month</Text>
-              {totalBudget > 0 ? (
-                <Statement
-                  lines={[
-                    { label: "Budget", amount: rs(totalBudget) },
-                    { label: "Spent", sign: "−", amount: rs(totalSpent) },
-                  ]}
-                  total={{
-                    label: isPastMonth ? (left >= 0 ? "Saved" : "Overspent") : left >= 0 ? "Left to spend" : "Over budget",
-                    amount: signedAmt(Math.round(left)),
-                    color: left < 0 ? theme.danger : isPastMonth ? theme.success : undefined,
-                  }}
-                />
-              ) : (
-                <FieldRow label="Spent" value={rs(totalSpent)} divider={false} />
-              )}
-              {hasEmis && <FieldRow label="Money out, with EMIs" value={`${rs(moneyOut)} of ${rs(planned)}`} />}
-              {isPastMonth ? (
-                <FieldRow label="Average a day" value={rs(totalSpent / daysTotal)} />
-              ) : totalBudget > 0 && totalSpent >= totalBudget ? (
-                <FieldRow label="Per day left" value="None" valueColor={theme.danger} />
-              ) : (
-                <FieldRow label="Per day left" value={rs(perDayRemaining)} />
-              )}
-            </Card>
-          )}
-
-          {/* Month-end projection: a small card that opens on tap (owner, Nov 2026) */}
-          {visibleWidgets.includes("projection") && totalBudget > 0 && (
-            <FoldGroup
-              icon={isCurrentMonth ? "trending-up-outline" : "checkmark-done-outline"}
-              title={isCurrentMonth ? "Month-end projection" : "How the month ended"}
-              sub={isCurrentMonth ? (projected != null ? `${rs(projected)} at this pace${v2Forecast ? ` · ${v2Forecast.confidence} confidence` : ""}` : "Not enough to go on yet") : `${left >= 0 ? "Saved" : "Overspent"} ${rs(Math.abs(left))}`}
-            >
-              <View>
-              {isCurrentMonth && projected != null && (
-                <FieldRow label="Projected spend" value={rs(projected)} valueColor={projectedOver ? theme.danger : undefined} />
-              )}
-
-              {visibleWidgets.includes("projection") && totalBudget > 0 && (
-                isCurrentMonth ? (
-                  v2Forecast ? (
-                    <View>
-                      <FieldRow
-                        label={(v2Forecast.breathingRoom ?? 0) >= 0 ? "Projected savings" : "Projected deficit"}
-                        value={signedAmt(Math.round(v2Forecast.breathingRoom ?? 0))}
-                        valueColor={(v2Forecast.breathingRoom ?? 0) >= 0 ? theme.success : theme.danger}
-                      />
-                      <FieldRow label="Fixed" value={rs(v2Forecast.fixedDone.total + v2Forecast.fixedPending.total)} />
-                      <FieldRow label="Variable" value={rs(v2Forecast.variable.projected)} />
-                      <FieldRow label="Daily pace" value={`${rs(v2Forecast.variable.dailyPace)} a day`} />
-                      <FieldRow label="Days gone / left" value={`${v2Forecast.variable.daysElapsed} / ${v2Forecast.variable.daysLeft}`} />
-                      <FieldRow label="Confidence" value={v2Forecast.confidence.charAt(0).toUpperCase() + v2Forecast.confidence.slice(1)} />
-                    </View>
-                  ) : compliance ? (
-                    <View>
-                      <FieldRow
-                        label={compliance.monthlyProjectedSavings >= 0 ? "Projected savings" : "Projected deficit"}
-                        value={signedAmt(Math.round(compliance.monthlyProjectedSavings))}
-                        valueColor={compliance.monthlyProjectedSavings >= 0 ? theme.success : theme.danger}
-                      />
-                      <FieldRow label="Daily rate" value={`${rs(compliance.dailySpendRate)} a day`} />
-                      <FieldRow label="Days left" value={String(compliance.daysRemaining)} />
-                    </View>
-                  ) : null
-                ) : (
-                  <View>
-                    <FieldRow label="Days" value={String(daysTotal)} />
-                    {rollingSurplus !== 0 && (
-                      <FieldRow
-                        label={`FY ${rollingSurplus >= 0 ? "surplus" : "deficit"} so far`}
-                        value={signedAmt(Math.round(rollingSurplus))}
-                        valueColor={rollingSurplus >= 0 ? theme.success : theme.danger}
-                      />
-                    )}
-                    {rollingSurplus !== 0 && <Text className="text-label text-muted-foreground">Savings against budget from the FY start to this month</Text>}
+          {/* Month-end projection: one small card, everything in view, nothing to open or scroll. */}
+          {visibleWidgets.includes("projection") && totalBudget > 0 && (() => {
+            const stats: { label: string; value: string; color?: string }[] = [];
+            let note: string | null = null;
+            if (!isCurrentMonth) {
+              stats.push({ label: left >= 0 ? "Saved" : "Overspent", value: rs(Math.abs(left)), color: left >= 0 ? theme.success : theme.danger });
+              if (rollingSurplus !== 0) {
+                stats.push({
+                  label: `FY ${rollingSurplus >= 0 ? "surplus" : "deficit"} so far`,
+                  value: signedAmt(Math.round(rollingSurplus)),
+                  color: rollingSurplus >= 0 ? theme.success : theme.danger,
+                });
+              }
+              note = `${daysTotal} days${rollingSurplus !== 0 ? " · FY figure: against budget from the FY start to this month" : ""}`;
+            } else if (v2Forecast) {
+              const room = v2Forecast.breathingRoom ?? 0;
+              if (projected != null) stats.push({ label: "Projected spend", value: rs(projected), color: projectedOver ? theme.danger : undefined });
+              stats.push({ label: room >= 0 ? "Projected savings" : "Projected deficit", value: signedAmt(Math.round(room)), color: room >= 0 ? theme.success : theme.danger });
+              stats.push({ label: "Fixed", value: rs(v2Forecast.fixedDone.total + v2Forecast.fixedPending.total) });
+              stats.push({ label: "Variable", value: rs(v2Forecast.variable.projected) });
+              note = `${rs(v2Forecast.variable.dailyPace)} a day · ${v2Forecast.variable.daysElapsed} days gone, ${v2Forecast.variable.daysLeft} left`;
+            } else if (compliance) {
+              if (projected != null) stats.push({ label: "Projected spend", value: rs(projected), color: projectedOver ? theme.danger : undefined });
+              stats.push({
+                label: compliance.monthlyProjectedSavings >= 0 ? "Projected savings" : "Projected deficit",
+                value: signedAmt(Math.round(compliance.monthlyProjectedSavings)),
+                color: compliance.monthlyProjectedSavings >= 0 ? theme.success : theme.danger,
+              });
+              note = `${rs(compliance.dailySpendRate)} a day · ${compliance.daysRemaining} days left`;
+            } else {
+              note = "Not enough to go on yet";
+            }
+            const annual = isCurrentMonth && compliance && compliance.annualOnTrack !== null ? compliance : null;
+            const annualRoom = annual ? annual.annualProjectedSavings ?? 0 : 0;
+            return (
+              <Card>
+                <View className="flex-row items-center justify-between mb-2" style={{ gap: 8 }}>
+                  <View className="flex-row items-center flex-1" style={{ gap: 6, minWidth: 0 }}>
+                    <Ionicons name={isCurrentMonth ? "trending-up-outline" : "checkmark-done-outline"} size={15} color={theme.mutedForeground} />
+                    <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground" numberOfLines={1}>
+                      {isCurrentMonth ? "Month-end projection" : "How the month ended"}
+                    </Text>
                   </View>
-                )
-              )}
-
-              {/* Annual projection (if a yearly plan exists), current month only */}
-              {visibleWidgets.includes("projection") && isCurrentMonth && compliance && compliance.annualOnTrack !== null && (
-                <View className="border-t border-border pt-2">
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-body font-semibold text-foreground">Annual projection</Text>
-                    <Chip variant="status" className="self-center" tone={compliance.annualOnTrack ? "success" : "danger"} label={compliance.annualOnTrack ? "On track" : "Over budget"} />
-                  </View>
-                  <FieldRow label="Projected" value={rs(Math.round(compliance.annualProjectedSpend ?? 0))} divider={false} />
-                  <FieldRow label="Annual budget" value={rs(compliance.annualBudget ?? 0)} />
-                  <FieldRow
-                    label={(compliance.annualProjectedSavings ?? 0) >= 0 ? "Under budget" : "Over budget"}
-                    value={signedAmt(Math.round(compliance.annualProjectedSavings ?? 0))}
-                    valueColor={(compliance.annualProjectedSavings ?? 0) >= 0 ? theme.success : theme.danger}
-                  />
+                  {isCurrentMonth && v2Forecast && (
+                    <Chip variant="status" tone="neutral" label={`${v2Forecast.confidence.charAt(0).toUpperCase()}${v2Forecast.confidence.slice(1)} confidence`} />
+                  )}
                 </View>
-              )}
-              </View>
-            </FoldGroup>
-          )}
+                {stats.length > 0 && (
+                  <View className="flex-row flex-wrap" style={{ rowGap: 10 }}>
+                    {stats.map((s) => (
+                      <View key={s.label} style={{ width: "50%", paddingRight: 8 }}>
+                        <Text className="text-label text-muted-foreground" numberOfLines={1}>{s.label}</Text>
+                        <Text className="text-body font-bold" style={{ color: s.color ?? theme.foreground, fontVariant: ["tabular-nums"] }} numberOfLines={1} adjustsFontSizeToFit>
+                          {s.value}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                {note ? <Text className={`text-label text-muted-foreground${stats.length > 0 ? " mt-2" : ""}`}>{note}</Text> : null}
+                {annual && (
+                  <View className="flex-row items-center border-t border-border mt-2 pt-2" style={{ gap: 8 }}>
+                    <View className="flex-1" style={{ minWidth: 0 }}>
+                      <Text className="text-meta font-semibold text-foreground">This year</Text>
+                      <Text className="text-label text-muted-foreground">
+                        {rs(Math.round(annual.annualProjectedSpend ?? 0))} projected of {rs(annual.annualBudget ?? 0)} · {rs(Math.abs(annualRoom))} {annualRoom >= 0 ? "under" : "over"}
+                      </Text>
+                    </View>
+                    <Chip variant="status" tone={annual.annualOnTrack ? "success" : "danger"} label={annual.annualOnTrack ? "On track" : "Over budget"} />
+                  </View>
+                )}
+              </Card>
+            );
+          })()}
 
           {/* ── Review-queue nudge: uncategorised spending ── */}
           {uncategorized > 0 && (
@@ -853,30 +748,5 @@ export default function BudgetScreen() {
           : <View style={{ flex: 1 }} />}
       </SwipePager>
     </ScreenContainer>
-  );
-}
-
-/** One line of the summary's split: a colour dot, what it is, the amount (of its budget), opening its transactions. */
-function SplitRow({ dot, label, note, value, of, onPress }: { dot: string; label: string; note?: string; value: number; of?: number; onPress: () => void }) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      onPress={onPress}
-      className="flex-row items-center py-2 border-t border-border"
-      style={{ gap: 8 }}
-      accessibilityRole="button"
-      accessibilityLabel={`${label} ${formatAmount(Math.round(value))}${of ? ` of ${formatAmount(Math.round(of))}` : ""}. Open transactions`}
-    >
-      <View className="w-2 h-2 rounded-pill" style={{ backgroundColor: dot }} />
-      <View className="flex-1">
-        <Text className="text-meta text-foreground">{label}</Text>
-        {note ? <Text className="text-label text-muted-foreground">{note}</Text> : null}
-      </View>
-      <Text className="text-meta font-semibold text-foreground" style={{ fontVariant: ["tabular-nums"] }}>
-        {formatAmount(Math.round(value))}
-      </Text>
-      {of != null && of > 0 && <Text className="text-label text-muted-foreground">/ {formatAmount(Math.round(of))}</Text>}
-      <Ionicons name="chevron-forward" size={12} color={theme.faintForeground} />
-    </Pressable>
   );
 }
