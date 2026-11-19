@@ -95,7 +95,7 @@ export function PatternEditSheet({ visible, pattern, onSave, onNotBill, onClose 
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} page>
       <View className="px-5">
 
         <Text className="text-lg font-bold text-foreground mb-4">

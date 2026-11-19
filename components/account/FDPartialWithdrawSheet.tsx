@@ -66,7 +66,7 @@ export function FDPartialWithdrawSheet({
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} page>
       <View className="px-5 pb-5" style={{ gap: 12 }}>
         <Text className="text-heading font-bold text-foreground">Partial withdrawal</Text>
         <Text className="text-meta text-muted-foreground">

@@ -875,7 +875,7 @@ const loadData = useCallback(async () => {
               actions are visible without scrolling past the full ledger. */}
 
           {/* Credit form (add or edit), in a sheet so it never pushes the ledger down */}
-          <Sheet visible={showAddCredit} onClose={handleCancelCreditForm}>
+          <Sheet visible={showAddCredit} onClose={handleCancelCreditForm} page>
             <View className="px-5 pb-4">
               <SectionTitle
                 icon="arrow-down-outline"
@@ -913,7 +913,7 @@ const loadData = useCallback(async () => {
           </Sheet>
 
           {/* Adjust balance, in a sheet */}
-          <Sheet visible={showAdjust} onClose={() => { setShowAdjust(false); setAdjustActual(""); }}>
+          <Sheet visible={showAdjust} onClose={() => { setShowAdjust(false); setAdjustActual(""); }} page>
             <View className="px-5 pb-4">
               <SectionTitle
                 icon="swap-vertical-outline"

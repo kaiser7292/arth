@@ -216,7 +216,7 @@ export function CompleteFDDetailsSheet({
   if (!visible) return null;
 
   return (
-    <Sheet visible={visible} onClose={handleClose}>
+    <Sheet visible={visible} onClose={handleClose} page>
       <View className="px-5 pb-3">
         <Text className="text-body font-bold" style={{ color: theme.foreground }}>
           {isFirstTime ? "Complete Fixed Deposit Details" : "Edit Fixed Deposit"}

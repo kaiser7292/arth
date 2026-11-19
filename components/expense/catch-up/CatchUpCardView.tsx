@@ -346,7 +346,7 @@ function SingleExpenseBody({
       {/* In a sheet rather than on the card: the card can't scroll, so a panel opened inline pushed
           the description off the bottom and the keyboard covered what was being typed. */}
       {canSplit && splitOnCard && (
-        <Sheet visible={editingSplit} onClose={onCancelSplit}>
+        <Sheet visible={editingSplit} onClose={onCancelSplit} page>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 8 }}>
             <Text className="text-body font-bold text-foreground">Split {formatAmount(total)}</Text>
             <Text className="text-meta text-muted-foreground mt-0.5" numberOfLines={1}>{title(expense)}</Text>

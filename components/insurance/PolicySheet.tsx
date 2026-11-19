@@ -146,7 +146,7 @@ export function PolicySheet({ visible, onClose, onSaved, policy }: Props) {
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose}>
+    <Sheet visible={visible} onClose={onClose} page>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pb-2">
         <Text className="text-base font-bold text-foreground">

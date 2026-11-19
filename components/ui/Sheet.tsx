@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   AccessibilityInfo,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -21,6 +23,7 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/hooks/use-theme";
 import { COMPONENTS, MOTION } from "@/constants/design-tokens";
+import { Text } from "./Text";
 
 /** Drag far enough, or fling hard enough, and the sheet goes. */
 const DISMISS_FRACTION = 0.28;
@@ -33,6 +36,14 @@ export interface SheetProps {
   maxHeightPct?: number;
   /** Disable drag-to-dismiss for sheets whose content scrolls horizontally. */
   draggable?: boolean;
+  /**
+   * A form you type into: opens as a full-screen page, not a bottom sheet, so the keyboard never
+   * covers it (owner, Nov 2026). Any other sheet becomes a page too the moment the keyboard opens
+   * (a picker's search box), and stays one until it closes.
+   */
+  page?: boolean;
+  /** The page's title, beside its close button. */
+  title?: string;
   children: React.ReactNode;
 }
 
@@ -76,6 +87,8 @@ export function Sheet({
   onClose,
   maxHeightPct = COMPONENTS.sheet.maxHeightPct,
   draggable = true,
+  page = false,
+  title,
   children,
 }: SheetProps) {
   const theme = useTheme();
@@ -90,6 +103,19 @@ export function Sheet({
   // rather than the window means the cap follows a keyboard-resized window for free.
   const [containerH, setContainerH] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
+  // Typing turns a sheet into a page: a keyboard over a half-height sheet hid its fields and buttons.
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    if (!visible) {
+      setTyping(false);
+      return;
+    }
+    const sub = Keyboard.addListener(Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow", () => setTyping(true));
+    return () => sub.remove();
+  }, [visible]);
+  const full = page || typing;
+  // An Android Modal that isn't statusBarTranslucent already starts below the status bar.
+  const topPad = Platform.OS === "ios" ? insets.top : 0;
 
   useEffect(() => {
     let alive = true;
@@ -126,7 +152,7 @@ export function Sheet({
   const dismissBasis = height > 0 ? height : winH;
 
   const pan = Gesture.Pan()
-    .enabled(draggable && !reduceMotion)
+    .enabled(draggable && !reduceMotion && !full)
     .onStart(() => {
       dragStart.value = translateY.value;
     })
@@ -191,12 +217,15 @@ export function Sheet({
             behavior={Platform.OS === "ios" ? "padding" : undefined}
             // box-none so this wrapper never swallows a tap meant for the backdrop behind it.
             pointerEvents="box-none"
+            style={full ? { flex: 1 } : undefined}
           >
             <Animated.View
               onLayout={(e) => setHeight(e.nativeEvent.layout.height)}
               style={[
                 sheetStyle,
-                {
+                full
+                  ? { backgroundColor: theme.card, flex: 1, paddingTop: topPad, paddingBottom: insets.bottom + 4 }
+                  : {
                   backgroundColor: theme.card,
                   borderTopLeftRadius: COMPONENTS.sheet.radius,
                   borderTopRightRadius: COMPONENTS.sheet.radius,
@@ -218,11 +247,31 @@ export function Sheet({
                 and matches how a sheet is normally dragged anyway. The area is padded to roughly
                 40px so it stays an easy target.
               */}
-              <GestureDetector gesture={pan}>
-                <View className="items-center pt-3 pb-3" hitSlop={8}>
-                  <View className={COMPONENTS.sheet.handle} style={{ backgroundColor: theme.border }} />
+              {full ? (
+                // A page: a close button and its title, no grabber.
+                <View className="flex-row items-center px-2" style={{ height: 52, gap: 4 }}>
+                  <Pressable
+                    onPress={close}
+                    hitSlop={8}
+                    className="w-11 h-11 items-center justify-center"
+                    accessibilityRole="button"
+                    accessibilityLabel="Close"
+                  >
+                    <Ionicons name="close" size={24} color={theme.foreground} />
+                  </Pressable>
+                  {title ? (
+                    <Text className="flex-1 font-bold text-foreground" style={{ fontSize: 18 }} numberOfLines={1}>
+                      {title}
+                    </Text>
+                  ) : null}
                 </View>
-              </GestureDetector>
+              ) : (
+                <GestureDetector gesture={pan}>
+                  <View className="items-center pt-3 pb-3" hitSlop={8}>
+                    <View className={COMPONENTS.sheet.handle} style={{ backgroundColor: theme.border }} />
+                  </View>
+                </GestureDetector>
+              )}
               {children}
             </Animated.View>
           </KeyboardAvoidingView>
