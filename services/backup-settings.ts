@@ -115,6 +115,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   P("broker_autosync_done__", "string", DEVICE("per-device progress marker")),
   S("ignored_accounts", "string"),
   S("ignore_before_date", "string"),
+  S("settings_needs_ignored", "string"),
   // Other stores
   { store: "duplicateDismissals", key: "dismissed_groups", type: "string", backup: true },
   { store: "minBalanceAcks", key: "min_balance_ack_", prefix: true, type: "boolean", backup: true },

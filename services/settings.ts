@@ -9,6 +9,7 @@ const KEYS = {
   LAST_BACKUP_AT: "last_backup_at",
   BACKUP_WARNING_DISMISSED_UNTIL: "backup_warning_dismissed_until",
   ONBOARDING_COMPLETED_VERSION: "onboarding_completed_version",
+  SETTINGS_NEEDS_IGNORED: "settings_needs_ignored",
 } as const;
 
 export const DEFAULT_BUDGET_WIDGETS = ["summary", "projection"] as const;
@@ -131,6 +132,39 @@ export function getLastBackupAt(): string | null {
 }
 
 /** Dismiss the stale-backup warning for N days. */
+/**
+ * Settings' "Needs a look" items set aside with Ignore (owner, Nov 2026): what each one counted
+ * then, and when. A count (duplicates, unread messages) stays hidden until it grows; the backup
+ * reminder stays hidden for 30 days.
+ */
+type IgnoredNeeds = Record<string, { value: number; at: number }>;
+const NEED_IGNORE_DAYS = 30;
+
+function readIgnoredNeeds(): IgnoredNeeds {
+  try {
+    const raw = storage.getString(KEYS.SETTINGS_NEEDS_IGNORED);
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === "object" ? (parsed as IgnoredNeeds) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Set these items aside, at what each shows now ({ "n-dupes": 3 }). */
+export function ignoreNeeds(items: Record<string, number>, now = Date.now()): void {
+  const next = readIgnoredNeeds();
+  for (const [key, value] of Object.entries(items)) next[key] = { value, at: now };
+  storage.set(KEYS.SETTINGS_NEEDS_IGNORED, JSON.stringify(next));
+}
+
+/** True while an item is set aside: a count no higher than when ignored; a timed one under 30 days. */
+export function isNeedIgnored(key: string, value: number, timed = false, now = Date.now()): boolean {
+  const hit = readIgnoredNeeds()[key];
+  if (!hit) return false;
+  if (timed) return now - hit.at < NEED_IGNORE_DAYS * 24 * 60 * 60 * 1000;
+  return value <= hit.value;
+}
+
 export function dismissBackupWarning(forDays = 7): void {
   const until = new Date();
   until.setDate(until.getDate() + forDays);
