@@ -284,6 +284,7 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   go("voice", "Voice input", "mic-outline", "/settings/voice-input"),
   go("cards-setting", "Customise Arth", "options-outline", "/settings/customise", "home cards tabs features"),
   go("region-go", "Region", "globe-outline", "/settings/region"),
+  go("start-date", "Start date", "calendar-clear-outline", "/settings/start-date", "ignore before counting from"),
   go("notif-go", "Notifications", "notifications-outline", "/settings/notifications"),
   go("calendar-go", "Calendar sync", "calendar-outline", "/settings/calendar-sync"),
   go("audit", "Audit log", "list-outline", "/settings/audit-log", "history changes"),
