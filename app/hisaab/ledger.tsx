@@ -6,6 +6,7 @@
  */
 
 import { transactionDayLabel } from "@/utils/day-label";
+import { TransactionRow } from "@/components/ui/TransactionRow";
 import { useState, useCallback, useMemo, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getDatabase } from "@/database";
@@ -41,7 +42,7 @@ import {
 } from "@/services/hisaab";
 import type { HisaabEntry, HisaabPerson } from "@/services/hisaab";
 import { getCategories } from "@/services/category";
-import { formatAmount } from "@/utils/expense-validation";
+import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import { ExportFormatPicker } from "@/components/hisaab/ExportFormatPicker";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
 import { getActiveAccounts } from "@/services/financial-account";
@@ -816,7 +817,6 @@ function EntryRow({
   // With no description the merchant is the title — don't repeat it below.
   const categoryName = entry.category_id ? categoryMap?.get(entry.category_id) : null;
   const meta = [
-    entry.date,
     // With neither description nor merchant the category is the title.
     description || merchant ? categoryName : null,
     description ? merchant : null,
@@ -825,49 +825,33 @@ function EntryRow({
   ]
     .filter(Boolean)
     .join(" · ");
+  const title = transactionTitle(entry, categoryName, label);
 
+  // Drawn like a row on Transactions; the amount keeps Hisaab's meaning: + they owe you more.
   return (
-    <Pressable
+    <TransactionRow
+      inCard
+      divider={divider}
       onPress={onPress}
       onLongPress={onLongPress}
-      className={`flex-row items-center px-3.5 py-3 ${divider ? "border-t border-border" : ""}`}
-      style={{ gap: 12 }}
-      accessibilityRole="button"
-      accessibilityLabel={`${transactionTitle(entry, categoryName, label)}, ${prefix}${formatAmount(entry.amount)}`}
+      accessibilityLabel={`${title}, ${prefix}${formatAmount(entry.amount)}`}
       accessibilityHint="Long-press to edit or delete"
-    >
-      <View
-        className="w-9 h-9 rounded-control items-center justify-center"
-        style={{ backgroundColor: isDebit ? theme.alpha("success", 0.1) : theme.alpha("foreground", 0.06) }}
-      >
-        <Ionicons name={icon} size={17} color={isDebit ? theme.success : theme.mutedForeground} />
-      </View>
-      <View className="flex-1" style={{ minWidth: 0, gap: 2 }}>
-        <View className="flex-row items-center justify-between" style={{ gap: 8 }}>
-          <Text className="text-body font-semibold text-foreground flex-1" numberOfLines={1}>
-            {transactionTitle(entry, categoryName, label)}
-          </Text>
-          <Text className="text-body font-bold" style={{ color, fontVariant: ["tabular-nums"] }}>
-            {prefix}
-            {formatAmount(entry.amount)}
-          </Text>
-        </View>
-        <View className="flex-row items-center" style={{ gap: 6 }}>
-          <Text className="text-meta text-muted-foreground flex-shrink" numberOfLines={1}>
-            {meta}
-          </Text>
-          {entry.linked_expense_id && onViewExpense ? (
-            <Chip variant="status" className="self-center"
-              tone="primary"
-              icon="receipt-outline"
-              label={linkedType ?? "Transaction"}
-              onPress={() => onViewExpense(entry.linked_expense_id!)}
-            />
-          ) : isSettlement ? (
-            <Chip variant="status" className="self-center" label="Settlement" />
-          ) : null}
-        </View>
-      </View>
-    </Pressable>
+      icon={icon}
+      color={isDebit ? theme.success : theme.mutedForeground}
+      title={title}
+      amount={entry.amount}
+      flow={isDebit ? "in" : "out"}
+      sign={prefix}
+      amountColor={color}
+      meta={meta || null}
+      status={
+        entry.linked_expense_id && onViewExpense
+          ? { label: linkedType ?? "Transaction", tone: "primary", icon: "receipt-outline", onPress: () => onViewExpense(entry.linked_expense_id!) }
+          : isSettlement
+            ? { label: "Settlement" }
+            : null
+      }
+      date={formatDateForDisplay(entry.date)}
+    />
   );
 }

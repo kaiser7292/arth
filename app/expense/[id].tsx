@@ -270,7 +270,7 @@ export default function ExpenseDetailScreen() {
         if (exp) {
           setExpense(exp);
           setOriginalExpense(exp);
-          populateForm(exp);
+          populateForm(exp, accts.find((a) => a.id === exp.account_id)?.account_type);
           
           // Load transfer data if expense is reclassified
           if (exp.linked_transfer_id) {
@@ -397,10 +397,12 @@ export default function ExpenseDetailScreen() {
   const [editCreditKind, setEditCreditKind] = useState<CreditKind | null>(null);
   const [editSalaryMonth, setEditSalaryMonth] = useState<string | null>(null);
 
-  function populateForm(exp: Expense) {
-    // A positive balance adjustment edits as money in, with credit types; saving makes it a credit.
+  function populateForm(exp: Expense, accountType?: string | null) {
+    // A balance adjustment that put money in edits as money in, with credit types; saving makes it a
+    // credit. "+" raises the closing: money in on a bank or wallet, more owed on a card (a debit).
     const adj = exp.nature === "ledger_adjustment" ? adjustmentMarker(exp.description) : null;
-    setEditType(exp.nature === "credit" || adj?.sign === "+" ? "received" : "spent");
+    const adjIn = adj != null && adj.sign === (accountType === "credit_card" ? "-" : "+");
+    setEditType(exp.nature === "credit" || adjIn ? "received" : "spent");
     setEditCreditKind(exp.credit_kind ?? null);
     setEditSalaryMonth(exp.salary_for_month ?? null);
     // For split expenses, show the original total amount (not the post-split budget amount)
@@ -453,9 +455,9 @@ export default function ExpenseDetailScreen() {
     : null;
 
   const handleEdit = useCallback(() => {
-    if (expense) populateForm(expense);
+    if (expense) populateForm(expense, expenseAccount?.account_type);
     setEditing(true);
-  }, [expense]);
+  }, [expense, expenseAccount?.account_type]);
 
   const handleCancelEdit = useCallback(() => {
     setEditing(false);
@@ -493,7 +495,8 @@ export default function ExpenseDetailScreen() {
       const adj = expense?.nature === "ledger_adjustment" ? adjustmentMarker(expense.description) : null;
       if (adj) {
         // A positive balance adjustment is saved as a credit with its type; others stay adjustments.
-        if (isCreditNow && adj.sign === "+" && adj.kind === "Balance") await adjustmentToCredit(id);
+        const adjIn = adj.sign === (expenseAccount?.account_type === "credit_card" ? "-" : "+");
+        if (isCreditNow && adjIn && adj.kind === "Balance") await adjustmentToCredit(id);
       } else if (expense && expense.nature !== "forecast" && wasCredit !== isCreditNow) {
         await changeTransactionNature(id, isCreditNow ? "credit" : "realized", isCreditNow ? editCreditKind : null);
       }

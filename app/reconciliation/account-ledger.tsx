@@ -1,11 +1,12 @@
 import { tint } from "@/constants/brand";
+import { TransactionRow, type TransactionRowStatus } from "@/components/ui/TransactionRow";
 import { isPartOn } from "@/services/customise";
 import { creditLook } from "@/services/expense-types";
 import { useListTools } from "@/hooks/use-list-tools";
 import { transactionDayLabel } from "@/utils/day-label";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { AccountPickerSheet } from "@/components/expense/AccountPickerSheet";
-import { Badge, Button, Card, Chip, DateInput, FABMenu, DrawerCell, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, SectionTitle, Sheet, Text } from "@/components/ui";
+import { Badge, Button, Card, DateInput, FABMenu, DrawerCell, GroupHeading, Input, ListToolbar, LoadFailedBanner, Money, PeriodNavigator, ScreenContainer, SectionTitle, Segmented, Sheet, Text } from "@/components/ui";
 import { defaultEntryDate } from "@/utils/ledger-dates";
 import type { FABMenuItem } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -71,6 +72,8 @@ interface LedgerEntry {
   merchant?: string | null;
   /** An expense's category, for grouping. */
   categoryName?: string | null;
+  /** Its icon and colour, for the row's tile and chip. */
+  category?: { name: string; icon: string; color: string };
   /** A credit's type: its icon and name on the row. */
   creditType?: { name: string; icon: string; color: string };
   date: string;
@@ -110,7 +113,7 @@ interface LedgerEntry {
 
 const isLedgerTransfer = (e: LedgerEntry) => e.type === "transfer_in" || e.type === "transfer_out";
 const ledgerKind = (e: LedgerEntry) =>
-  isLedgerTransfer(e) ? "Transfers" : e.isAdjustment ? "Adjustments" : e.isRefund ? "Refunds" : e.type === "credit" ? "Credits" : "Expenses";
+  isLedgerTransfer(e) ? "Transfers" : e.isAdjustment ? "Balance corrections" : e.isRefund ? "Refunds" : e.type === "credit" ? "Credits" : "Debits";
 const ledgerAmount = (e: LedgerEntry) => (e.type === "debit" || e.type === "transfer_out" ? -e.amount : e.amount);
 const LEDGER_SORTS: ListSort<LedgerEntry>[] = [
   { id: "date_desc", label: "Newest first", compare: (a, b) => b.date.localeCompare(a.date) },
@@ -163,6 +166,8 @@ export default function AccountLedgerScreen() {
   // Adjust-available form state
   const [showAdjust, setShowAdjust] = useState(autoOpenAdjust === "1");
   const [adjustActual, setAdjustActual] = useState("");
+  // A card is corrected by what's used (owed) or by what's left to spend (owner, Nov 2026).
+  const [adjustAs, setAdjustAs] = useState<"used" | "available">("used");
   const [adjustDescription, setAdjustDescription] = useState("");
 
 
@@ -213,7 +218,7 @@ export default function AccountLedgerScreen() {
       {
         id: "category",
         label: "Category or type",
-        keyOf: (e) => (isLedgerTransfer(e) ? "Transfers" : e.isAdjustment ? "Adjustments" : (e.creditType?.name ?? e.categoryName)),
+        keyOf: (e) => (isLedgerTransfer(e) ? "Transfers" : e.isAdjustment ? "Balance corrections" : (e.creditType?.name ?? e.categoryName)),
         noneLabel: "Uncategorized",
         group: true,
         filter: true,
@@ -473,17 +478,23 @@ const loadData = useCallback(async () => {
 
       // Names rows that have no description or merchant, so it can't be allowed to stop the load.
       const categoryNames = new Map<string, string>();
+      const categoryLooks = new Map<string, { name: string; icon: string; color: string }>();
       try {
-        for (const c of await getCategories(DEFAULT_USER_ID)) categoryNames.set(c.id, c.name);
+        for (const c of await getCategories(DEFAULT_USER_ID)) {
+          categoryNames.set(c.id, c.name);
+          categoryLooks.set(c.id, { name: c.name, icon: c.icon, color: c.color });
+        }
       } catch (e) {
         logger.warn("Ledger category names failed (non-fatal):", e);
       }
 
       for (const exp of expenses) {
         const isAdjustment = exp.nature === "ledger_adjustment";
-        const isNegativeAdj = isAdjustment && (exp.description ?? "").includes(" -]");
+        const adjRaises = isAdjustment && !(exp.description ?? "").includes(" -]");
+        // "+" raises the closing: more money in a bank or wallet (a credit), more used on a card (a debit).
+        const cardLedger = current?.account_type === "credit_card";
         const type: LedgerEntry["type"] = isAdjustment
-          ? (isNegativeAdj ? "debit" : "credit")
+          ? ((cardLedger ? adjRaises : !adjRaises) ? "debit" : "credit")
           : (exp.refund_of_expense_id ? "credit" : "debit");
         ledger.push({
           id: exp.id,
@@ -495,6 +506,7 @@ const loadData = useCallback(async () => {
             : transactionTitle(exp, exp.category_id ? categoryNames.get(exp.category_id) : null, "Expense"),
           merchant: exp.merchant_name,
           categoryName: exp.category_id ? categoryNames.get(exp.category_id) : null,
+          category: exp.category_id ? categoryLooks.get(exp.category_id) : undefined,
           reclassifiedAsTransfer: exp.reclassified_as_transfer === 1,
           linkedTransferId: exp.linked_transfer_id,
           date: exp.date,
@@ -705,14 +717,17 @@ const loadData = useCallback(async () => {
     if (!accountId) return;
     const actual = parseFloat(adjustActual.replace(/,/g, ""));
     if (isNaN(actual)) {
-      alert("Invalid amount", "Enter the actual available balance.");
+      alert("Invalid amount", isCreditCard ? (adjustAs === "used" ? "Enter what the card shows as used." : "Enter what the card shows as available.") : "Enter the balance the bank shows.");
       return;
     }
     const trimmed = adjustDescription.trim();
+    // The service takes what's left to spend; on a card, used = limit − available.
+    const cardLimit = allAccountsState.find((a) => a.id === accountId)?.credit_limit ?? 0;
+    const actualAvailable = isCreditCard && adjustAs === "used" ? cardLimit - actual : actual;
     const delta = await adjustAccountAvailable({
       accountId,
       userId: DEFAULT_USER_ID,
-      actualAvailable: actual,
+      actualAvailable,
       // Empty string means "no reason" — formatAdjustmentDescription renders
       // these as just "Adjustment" at display time.
       description: trimmed || undefined,
@@ -721,9 +736,9 @@ const loadData = useCallback(async () => {
     setAdjustActual("");
     setAdjustDescription("");
     if (delta === 0) {
-      alert("No change", "Ledger already matches the actual available.");
+      alert("No change", isCreditCard ? "Arth already has this card at that figure." : "Arth already has this balance.");
     }
-  }, [accountId, adjustActual, adjustDescription, alert]);
+  }, [accountId, adjustActual, adjustDescription, alert, isCreditCard, adjustAs, allAccountsState]);
 
   const handleClearLedger = useCallback(() => {
     if (!accountId) return;
@@ -915,20 +930,54 @@ const loadData = useCallback(async () => {
           {/* Adjust balance, in a sheet */}
           <Sheet visible={showAdjust} onClose={() => { setShowAdjust(false); setAdjustActual(""); }} page>
             <View className="px-5 pb-4">
-              <SectionTitle
-                icon="swap-vertical-outline"
-                title="Adjust available balance"
-                hint={`Now ${formatAmount(closing)}. One adjustment entry, dated today.`}
-                className="mb-4"
-              />
-              <Input
-                label="Actual available"
-                value={adjustActual}
-                onChangeText={setAdjustActual}
-                placeholder="e.g. 1,55,000"
-                formula
-                containerClassName="mb-3"
-              />
+              {(() => {
+                const cardLimit = thisAccount?.credit_limit ?? 0;
+                const isThisMonth = month === getCurrentMonth();
+                const typed = parseFloat(adjustActual.replace(/,/g, ""));
+                // What Arth will hold after: on a card, what's used; elsewhere, the balance.
+                const target = isNaN(typed) ? null : isCreditCard ? (adjustAs === "used" ? typed : cardLimit - typed) : typed;
+                const diff = target == null ? 0 : Math.round((target - closing) * 100) / 100;
+                // More used on a card is a debit, less a credit; a bank or wallet the other way round.
+                const isDebit = isCreditCard ? diff > 0 : diff < 0;
+                return (
+                  <>
+                    <SectionTitle
+                      icon="swap-vertical-outline"
+                      title={isCreditCard ? "Correct what's used" : "Correct the balance"}
+                      hint={
+                        isCreditCard
+                          ? `Arth has ${formatAmount(closing)} used${cardLimit > 0 ? ` of ${formatAmount(cardLimit)}, ${formatAmount(cardLimit - closing)} available` : ""}. The difference goes in today: a debit if more is used, a credit if less.`
+                          : `Arth has ${formatAmount(closing)}. The difference goes in today: a credit if there's more, a debit if less.`
+                      }
+                      className="mb-4"
+                    />
+                    {isCreditCard && cardLimit > 0 && (
+                      <Segmented<"used" | "available">
+                        options={[
+                          { value: "used", label: "Used" },
+                          { value: "available", label: "Available" },
+                        ]}
+                        value={adjustAs}
+                        onChange={setAdjustAs}
+                        className="mb-3"
+                      />
+                    )}
+                    <Input
+                      label={isCreditCard ? (adjustAs === "used" ? "Used, as the card shows it" : "Available, as the card shows it") : "Balance, as the bank shows it"}
+                      value={adjustActual}
+                      onChangeText={setAdjustActual}
+                      placeholder="e.g. 1,55,000"
+                      formula
+                      containerClassName="mb-3"
+                    />
+                    {target != null && isThisMonth && (
+                      <Text className="text-meta mb-3" style={{ color: Math.abs(diff) < 0.01 ? theme.mutedForeground : isDebit ? theme.danger : theme.success }}>
+                        {Math.abs(diff) < 0.01 ? "Already matches: nothing to add." : `Adds a ${isDebit ? "debit" : "credit"} of ${formatAmount(Math.abs(diff))}.`}
+                      </Text>
+                    )}
+                  </>
+                );
+              })()}
               <Input
                 label="Reason (optional)"
                 value={adjustDescription}
@@ -938,7 +987,7 @@ const loadData = useCallback(async () => {
               />
               <View className="flex-row" style={{ gap: 10 }}>
                 <Button title="Cancel" variant="outline" onPress={() => { setShowAdjust(false); setAdjustActual(""); }} />
-                <Button title="Confirm" onPress={handleSaveAdjustment} className="flex-1" />
+                <Button title="Save" onPress={handleSaveAdjustment} className="flex-1" />
               </View>
             </View>
           </Sheet>
@@ -972,42 +1021,66 @@ const loadData = useCallback(async () => {
             const entry = row.item;
             const isTransfer = entry.type === "transfer_in" || entry.type === "transfer_out";
             const isDebitSide = entry.type === "debit" || entry.type === "transfer_out";
-            // Money tones: spending is ink, money in is green (red is for over budget only).
-            const entryColor = isDebitSide ? theme.foreground : theme.success;
-            const transferColor = TRANSFER_COLOR;
             const isReclassified = entry.reclassifiedAsTransfer === true;
+            // Drawn as on Transactions: the category's tile, red out, green in, purple transfers.
+            const rowIcon = (isTransfer
+              ? "swap-horizontal"
+              : entry.isAdjustment
+                ? "swap-vertical-outline"
+                : entry.creditType
+                  ? entry.creditType.icon
+                  : entry.isRefund
+                    ? "return-down-back"
+                    : entry.category
+                      ? entry.category.icon
+                      : isDebitSide
+                        ? "receipt-outline"
+                        : "arrow-down-outline") as keyof typeof Ionicons.glyphMap;
+            const rowColor = isTransfer
+              ? TRANSFER_COLOR
+              : entry.isAdjustment
+                ? (isDebitSide ? theme.danger : theme.success)
+                : (entry.creditType?.color ?? entry.category?.color ?? (isDebitSide ? theme.mutedForeground : theme.success));
+            const rowChip = isTransfer || entry.isAdjustment || entry.isRefund
+              ? null
+              : entry.type === "credit"
+                ? (entry.linkedHisaabPersonName ? null : { label: entry.creditType?.name ?? "Credit", color: entry.creditType?.color ?? theme.success })
+                : entry.category
+                  ? { label: entry.category.name, color: entry.category.color }
+                  : null;
+            const rowMeta: string[] = [];
+            if (isTransfer && entry.counterAccountName) rowMeta.push(`${entry.type === "transfer_in" ? "From" : "To"} ${entry.counterAccountName}`);
+            if (poolSiblings.length > 1 && entry.cardLast4) rowMeta.push(`••${entry.cardLast4}`);
+            if (entry.source === "sms_auto" || (isTransfer && !!entry.rawSourceText)) rowMeta.push("SMS");
+            // One status, by priority, as on Transactions.
+            const rowStatus: TransactionRowStatus | null =
+              entry.type === "credit" && entry.linkedHisaabPersonName
+                ? { label: `Hisaab · ${entry.linkedHisaabPersonName}`, tone: "primary" }
+                : entry.isRefund
+                  ? { label: "Refund", tone: "success" }
+                  : entry.isAdjustment
+                    ? { label: isDebitSide ? "Correction · debit" : "Correction · credit", tone: "neutral" }
+                    : isTransfer && entry.linkedExpenseId
+                      ? { label: "Reclassified", tone: "warning" }
+                      : isTransfer || isReclassified
+                        ? { label: "Transfer", tone: "transfer" }
+                        : null;
+            // Delete and convert sit behind a long-press, as rows elsewhere keep their actions.
+            const rowActions: { text: string; style?: "destructive"; onPress: () => void }[] = [];
+            if (entry.type === "credit" && entry.canDelete && !entry.isAdjustment) {
+              rowActions.push({ text: "Edit", onPress: () => handleStartEditCredit(entry) });
+              rowActions.push({ text: "Convert to transfer", onPress: () => handleConvertCreditToTransfer(entry.id, entry.updatedAt || "", entry.amount, entry.date) });
+            }
+            if (entry.canDelete && !isTransfer) rowActions.push({ text: "Delete", style: "destructive", onPress: () => handleDeleteCredit(entry.id, entry.description) });
+            if (isTransfer) rowActions.push({ text: "Delete transfer", style: "destructive", onPress: () => handleDeleteTransfer(entry.id, entry.description) });
             // When the ledger is opened via a cross-link (e.g. "From transfer"
             // on an investment contribution), soft-highlight the matching
             // transfer row so the user's eye lands on it.
             const isFocused = !!focusTransferId && entry.id === focusTransferId && isTransfer;
 
-            // Rows slide to close the gap when one is deleted or converted.
-            return (
-              <DrawerCell key={entry.id} row={row}>
-              <Animated.View layout={listLayout()}>
-              <Pressable
-                style={
-                  isFocused
-                    ? {
-                        backgroundColor: theme.alpha("primary", 0.2),
-                        borderLeftWidth: 3,
-                        borderLeftColor: theme.primary,
-                      }
-                    : undefined
-                }
-                onLayout={isFocused ? (e) => {
-                  if (didScrollToFocus.current) return;
-                  focusedRowY.current = e.nativeEvent.layout.y;
-                  // Small delay so the ScrollView has settled its own layout
-                  setTimeout(() => {
-                    if (focusedRowY.current !== null) {
-                      scrollRef.current?.scrollTo({ y: Math.max(0, focusedRowY.current - 80), animated: true });
-                      didScrollToFocus.current = true;
-                    }
-                  }, 150);
-                } : undefined}
-                onPress={
-                  entry.type === "debit" && !entry.isRefund
+            const onRowPress =
+                  // A balance correction opens like any transaction, where its reason can be changed.
+                  entry.isAdjustment || (entry.type === "debit" && !entry.isRefund)
                     ? () => router.push(`/expense/${entry.id}`)
                     : // v15.13.1: refund rows (manual refund expense OR SMS
                       // refund credit) deep-link to the originating expense
@@ -1026,7 +1099,7 @@ const loadData = useCallback(async () => {
                           ? () => router.push(`/hisaab/ledger?personId=${entry.linkedHisaabPersonId}`)
                           : entry.type === "credit" && entry.source === "sms_auto"
                             ? () => router.push(`/expense/${entry.id}`)
-                            : entry.type === "credit" && entry.canDelete
+                            : entry.type === "credit" && entry.canDelete && !entry.isAdjustment
                             ? () => handleStartEditCredit(entry)
                             : isTransfer && entry.rawSourceText
                               ? () =>
@@ -1035,168 +1108,41 @@ const loadData = useCallback(async () => {
                                     address: entry.sourceSmsAddress ?? null,
                                     description: entry.description,
                                   })
-                              : undefined
-                }
-                onLongPress={
-                  entry.type === "credit" && entry.canDelete
-                    ? () => {
-                          alert("Credit options", `"${entry.description}"`, [
-                            { text: "Cancel", style: "cancel" },
-                            {
-                              text: "Convert to transfer",
-                              onPress: () => handleConvertCreditToTransfer(entry.id, entry.updatedAt || "", entry.amount, entry.date),
-                            },
-                            {
-                              text: "Delete",
-                              style: "destructive",
-                              onPress: async () => { await deleteCredit(entry.id); },
-                            },
-                          ]);
-                        }
-                      : undefined
-                }
-              >
-                <View className="flex-row items-start mx-4 py-3 border-b border-border">
-                  {/* Icon tile, as on every transaction row */}
-                  <View
-                    className="w-10 h-10 rounded-control items-center justify-center mr-3"
-                    style={{
-                      backgroundColor: isTransfer
-                        ? tint(transferColor, 0.12)
-                        : tint(entry.creditType?.color ?? (isDebitSide ? theme.mutedForeground : entryColor), 0.12),
-                    }}
-                  >
-                    <Ionicons
-                      name={
-                        isTransfer
-                          ? "swap-horizontal"
-                          : entry.creditType
-                            ? (entry.creditType.icon as keyof typeof Ionicons.glyphMap)
-                          : entry.isRefund
-                            ? "return-down-back"
-                            : isDebitSide
-                              ? "arrow-up-outline"
-                              : "arrow-down-outline"
-                      }
-                      size={20}
-                      color={isTransfer ? transferColor : (entry.creditType?.color ?? (isDebitSide ? theme.mutedForeground : entryColor))}
-                    />
-                  </View>
+                              : undefined;
 
-                  {/* Description + date */}
-                  <View className="flex-1">
-                    <View className="flex-row items-center">
-                      <Text
-                        className="text-body font-semibold text-foreground"
-                        numberOfLines={1}
-                        style={{ flex: 1 }}
-                      >
-                        {entry.description}
-                      </Text>
-                      {isReclassified && (
-                        <Chip variant="status" tone="transfer" label="Transfer" className="ml-2" />
-                      )}
-                    </View>
-                    {isTransfer && entry.counterAccountName && (
-                      <Text className="text-meta mt-0.5" style={{ color: transferColor }}>
-                        {entry.type === "transfer_in" ? "From" : "To"} {entry.counterAccountName}
-                      </Text>
-                    )}
-                    {/* Wraps: a row can have more tags than fit beside the amount. */}
-                    <View className="flex-row flex-wrap items-center mt-1" style={{ columnGap: 6, rowGap: 4 }}>
-                      <Text className="text-meta text-muted-foreground">
-                        {formatEntryDate(entry.date)}
-                      </Text>
-                      {poolSiblings.length > 1 && entry.cardLast4 && (
-                        <Text className="text-meta text-muted-foreground">
-                          · {"••"}{entry.cardLast4}
-                        </Text>
-                      )}
-                      {(entry.source === "sms_auto" || (isTransfer && !!entry.rawSourceText)) && (
-                        <Chip variant="status" tone="primary" label="SMS" />
-                      )}
-                      {/* What kind of row: an expense needs no word; a Hisaab credit's own chip below says it. */}
-                      {!entry.isRefund && !isTransfer && !(entry.type === "credit" && entry.linkedHisaabPersonName) && (entry.isAdjustment || entry.type === "credit") && (
-                        entry.isAdjustment ? (
-                          <Chip variant="status" tone="neutral" label="Adjustment" />
-                        ) : (
-                          <Chip variant="category" color={entry.creditType?.color ?? theme.success} label={entry.creditType?.name ?? "Credit"} />
-                        )
-                      )}
-                      {entry.isRefund && <Chip variant="status" tone="success" label="Refund" />}
-                      {isTransfer && <Chip variant="status" tone="transfer" label="Transfer" />}
-                      {isTransfer && entry.linkedExpenseId && <Chip variant="status" tone="warning" label="Reclassified" />}
-                      {entry.type === "credit" && entry.linkedHisaabPersonName && (
-                        <Chip variant="status" tone="primary" label={`Hisaab · ${entry.linkedHisaabPersonName}`} />
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Amount */}
-                  <View className="items-end shrink-0 ml-2">
-                    {/*
-                      Money renders a true minus (U+2212) rather than a hyphen. A hyphen is
-                      narrower than a digit, so it pulls negative rows out of alignment down the
-                      column; the minus sign is digit-width and keeps the edge straight.
-                    */}
-                    <Money
-                      value={isDebitSide ? -entry.amount : entry.amount}
-                      showPlus={!isDebitSide}
-                      className="text-body font-bold"
-                      style={{ color: isTransfer ? transferColor : entryColor }}
-                    />
-                    {/* The balance after this row, worked forward from the opening. */}
-                    {balanceAfter.has(entry.id) && (
-                      <Text
-                        className="text-label text-muted-foreground mt-0.5"
-                        style={{ fontVariant: ["tabular-nums"] }}
-                        accessibilityLabel={`${isCreditCard ? "Owed after" : "Balance after"}: ${formatAmount(balanceAfter.get(entry.id)!)}`}
-                      >
-                        {formatAmount(balanceAfter.get(entry.id)!)}
-                      </Text>
-                    )}
-                    {entry.splitPersonName && (
-                      <Text className="text-label text-muted-foreground mt-0.5" numberOfLines={1} style={{ maxWidth: 130 }}>
-                        Split with {entry.splitPersonName}
-                      </Text>
-                    )}
-                  </View>
-
-                  {/* Delete button for credits and transfers */}
-                  {entry.canDelete && !isTransfer && (
-                    <Pressable
-                      onPress={() => handleDeleteCredit(entry.id, entry.description)}
-                      className="ml-2 p-1.5"
-                      hitSlop={12}
-                      accessibilityRole="button"
-                      accessibilityLabel="Delete entry"
-                    >
-                      <Ionicons name="trash-outline" size={18} color={theme.danger} />
-                    </Pressable>
-                  )}
-                  {isTransfer && (
-                    <Pressable
-                      onPress={() => handleDeleteTransfer(entry.id, entry.description)}
-                      className="ml-2 p-1.5"
-                      hitSlop={12}
-                      accessibilityRole="button"
-                      accessibilityLabel="Delete transfer"
-                    >
-                      <Ionicons name="trash-outline" size={18} color={theme.danger} />
-                    </Pressable>
-                  )}
-
-                  {/* Chevron for tappable rows */}
-                  {((entry.type === "debit" && !entry.isRefund)
-                    || entry.isRefund
-                    || (entry.type === "credit" && entry.canDelete)
-                    || (entry.type === "credit" && !!entry.linkedHisaabPersonId)
-                    || (isTransfer && !!entry.rawSourceText)
-                    || (isTransfer && !!entry.linkedExpenseId)) && (
-                    <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} className="ml-1" />
-                  )}
-                </View>
-              </Pressable>
+            // Rows slide to close the gap when one is deleted or converted.
+            return (
+              <DrawerCell key={entry.id} row={row}>
+              <Animated.View layout={listLayout()}>
+              <TransactionRow
+                highlighted={isFocused}
+                onLayout={isFocused ? (e) => {
+                  if (didScrollToFocus.current) return;
+                  focusedRowY.current = e.nativeEvent.layout.y;
+                  // Small delay so the ScrollView has settled its own layout
+                  setTimeout(() => {
+                    if (focusedRowY.current !== null) {
+                      scrollRef.current?.scrollTo({ y: Math.max(0, focusedRowY.current - 80), animated: true });
+                      didScrollToFocus.current = true;
+                    }
+                  }, 150);
+                } : undefined}
+                onPress={onRowPress}
+                onLongPress={rowActions.length > 0 ? () => alert(entry.description, undefined, [...rowActions, { text: "Cancel", style: "cancel" }]) : undefined}
+                accessibilityHint={rowActions.length > 0 ? "Long-press for more" : undefined}
+                icon={rowIcon}
+                color={rowColor}
+                title={entry.description}
+                amount={entry.amount}
+                flow={isTransfer ? "moved" : isDebitSide ? "out" : "in"}
+                plus={entry.type === "transfer_in"}
+                chip={rowChip}
+                meta={rowMeta.join(" · ") || null}
+                status={rowStatus}
+                date={formatEntryDate(entry.date)}
+                note={entry.splitPersonName ? `Split with ${entry.splitPersonName}` : null}
+                after={balanceAfter.has(entry.id) ? `${isCreditCard ? "Owed" : "Balance"} ${formatAmount(balanceAfter.get(entry.id)!)}` : null}
+              />
               </Animated.View>
             </DrawerCell>
 );
@@ -1274,7 +1220,7 @@ const loadData = useCallback(async () => {
           },
           {
             icon: "swap-vertical-outline",
-            label: "Adjust Balance",
+            label: "Correct balance",
             color: theme.warning,
             onPress: () => {
               setShowAdjust(true);
