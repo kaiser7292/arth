@@ -23,6 +23,19 @@ describe("groupRows", () => {
   it("keeps the order rows came in for dates", () => {
     expect(shape(groupRows(rows, { ...by, order: "first" }))).toEqual(["[small 2 15]", "a", "d", "[None 1 500]", "b", "[big 1 -100]", "c"]);
   });
+  it("adds up money in and money out apart, never netted (ledgers show both)", () => {
+    const list = groupRows(
+      [
+        { id: "salary", group: "d", amount: 5000 },
+        { id: "rent", group: "d", amount: -2000 },
+        { id: "transfer in", group: "d", amount: 300 },
+        { id: "transfer out", group: "d", amount: -0.1 },
+      ],
+      by,
+    );
+    const h = list[0];
+    expect(h.type === "heading" && [h.total, h.inflow, h.outflow]).toEqual([3299.9, 5300, 2000.1]);
+  });
   it("none means no headings", () => {
     expect(ungrouped(rows).every((r) => r.type === "item")).toBe(true);
   });

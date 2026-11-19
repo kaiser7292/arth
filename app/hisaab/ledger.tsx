@@ -714,7 +714,7 @@ export default function LedgerScreen() {
             <View className="border-t border-border" style={{ marginHorizontal: -16 }}>
               {groupedEntries.map((row) => {
                 if (row.type === "heading") {
-                  return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} flat />;
+                  return <GroupHeading key={`group-${row.key}`} label={row.label} count={row.count} total={row.total} open={row.open} onToggle={row.onToggle} noun={row.noun} flat inflow={row.inflow} outflow={row.outflow} />;
                 }
                 const entry = row.item;
                 const linkedAccountId = accountIdMap.get(entry.id);

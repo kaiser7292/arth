@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Haptics from "expo-haptics";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { PanResponder, View, useWindowDimensions, type LayoutChangeEvent } from "react-native";
 import { Text } from "./Text";
 import { useTheme } from "@/hooks/use-theme";
@@ -11,6 +11,8 @@ export interface RailItem {
   label: string;
   /** Drawn on the rail: an icon, or a few letters ("Nov", "12"). */
   icon?: keyof typeof Ionicons.glyphMap;
+  /** A drawn mark of its own instead (an account-type icon), in the colour and size given. */
+  glyph?: (color: string, size: number) => ReactNode;
   short?: string;
 }
 
@@ -128,7 +130,9 @@ export function FastScrollRail({
           const on = active != null && active >= i && active < i + step;
           return (
             <View key={it.key} pointerEvents="none" style={{ height: slot, width: 30, alignItems: "center", justifyContent: "center" }}>
-              {it.icon ? (
+              {it.glyph ? (
+                it.glyph(on ? theme.primary : theme.mutedForeground, 15)
+              ) : it.icon ? (
                 <Ionicons name={it.icon} size={15} color={on ? theme.primary : theme.mutedForeground} />
               ) : (
                 <Text style={{ fontSize: 10, fontWeight: "700", color: on ? theme.primary : theme.mutedForeground }} numberOfLines={1}>
@@ -158,7 +162,7 @@ export function FastScrollRail({
             borderColor: theme.primary,
           }}
         >
-          {current.icon ? <Ionicons name={current.icon} size={22} color={theme.primary} /> : null}
+          {current.glyph ? current.glyph(theme.primary, 22) : current.icon ? <Ionicons name={current.icon} size={22} color={theme.primary} /> : null}
           <Text className="font-bold text-foreground" style={{ flex: 1, fontSize: 18, lineHeight: 23 }} numberOfLines={2}>
             {current.label}
           </Text>

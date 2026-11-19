@@ -5,7 +5,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Chip, FAB, GroupHeading, ListToolbar, ScreenContainer, Text } from "@/components/ui";
 import { tint } from "@/constants/brand";
-import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
+import { AccountTypeIcon, AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { FastScrollRail, type RailItem } from "@/components/ui/FastScrollRail";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
@@ -267,21 +267,43 @@ export default function AccountMasterScreen() {
     }
   }
 
-  // The thumb rail, as in the Vault: one mark per account shown, the bubble names it in full.
+  // The thumb rail, as in the Vault: one mark per account type (owner, Nov 2026), drawn with the
+  // type's icon; the bubble names the type in full. Grouped by type, a mark goes to the type's
+  // heading; otherwise to the first account of that type in the list.
   const scrollRef = useRef<ScrollView>(null);
   const blockY = useRef<Record<number, number>>({});
   const cardY = useRef<Record<number, number>>({});
   const rowY = useRef<Record<string, number>>({});
-  const railTargets = blocks.flatMap((b, bi) => b.rows.map((r) => ({ r, bi })));
-  const railItems: RailItem[] = railTargets.map(({ r }) => {
-    const name = nameOf(r);
-    return { key: r.account.id, label: name, short: name.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase() || "•" };
-  });
-  const showRail = railItems.length >= 6;
-  const jumpToAccount = (i: number) => {
+  const railTargets: { type: string; bi: number; firstId: string | null; count: number }[] = [];
+  if (tools.groupBy === "type") {
+    blocks.forEach((b, bi) => {
+      if (b.heading && b.heading.type === "heading") railTargets.push({ type: b.heading.key, bi, firstId: null, count: b.heading.count ?? b.rows.length });
+    });
+  } else {
+    const seen = new Map<string, (typeof railTargets)[number]>();
+    blocks.forEach((b, bi) =>
+      b.rows.forEach((r) => {
+        const t = resolvedType(r.account);
+        const hit = seen.get(t);
+        if (hit) hit.count += 1;
+        else {
+          const target = { type: t, bi, firstId: r.account.id, count: 1 };
+          seen.set(t, target);
+          railTargets.push(target);
+        }
+      }),
+    );
+  }
+  const railItems: RailItem[] = railTargets.map((t) => ({
+    key: t.type,
+    label: `${ACCOUNT_TYPE_LABELS[t.type] ?? t.type} · ${t.count}`,
+    glyph: (color: string, size: number) => <AccountTypeIcon type={t.type} size={size} color={color} />,
+  }));
+  const showRail = railItems.length >= 2;
+  const jumpToType = (i: number) => {
     const t = railTargets[i];
     if (!t) return;
-    const y = (blockY.current[t.bi] ?? 0) + (cardY.current[t.bi] ?? 0) + (rowY.current[t.r.account.id] ?? 0);
+    const y = (blockY.current[t.bi] ?? 0) + (t.firstId ? (cardY.current[t.bi] ?? 0) + (rowY.current[t.firstId] ?? 0) : 0);
     scrollRef.current?.scrollTo({ y: Math.max(0, y - 8), animated: false });
   };
 
@@ -408,7 +430,7 @@ export default function AccountMasterScreen() {
             </View>
           )}
         </ScrollView>
-        {showRail && <FastScrollRail items={railItems} onSelect={jumpToAccount} bottomInset={88} />}
+        {showRail && <FastScrollRail items={railItems} onSelect={jumpToType} bottomInset={88} />}
         </View>
       </View>
 

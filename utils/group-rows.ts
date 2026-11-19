@@ -9,6 +9,9 @@ export type GroupedRow<T> =
       key: string;
       label: string;
       total: number;
+      /** What the group's rows add up to on each side: money in, and money out (as a positive). */
+      inflow: number;
+      outflow: number;
       count: number;
       /** Set by useListTools: the group is a drawer, open or closed. */
       open?: boolean;
@@ -39,12 +42,15 @@ export function groupRows<T>(
     order?: GroupOrder;
   },
 ): GroupedRow<T>[] {
-  const groups = new Map<string, { rows: T[]; total: number }>();
+  const groups = new Map<string, { rows: T[]; total: number; inflow: number; outflow: number }>();
   for (const row of rows) {
     const key = by.keyOf(row) || NO_GROUP;
-    const group = groups.get(key) ?? { rows: [], total: 0 };
+    const group = groups.get(key) ?? { rows: [], total: 0, inflow: 0, outflow: 0 };
     group.rows.push(row);
-    group.total += by.amountOf(row);
+    const amount = by.amountOf(row);
+    group.total += amount;
+    if (amount > 0) group.inflow += amount;
+    else group.outflow -= amount;
     groups.set(key, group);
   }
 
@@ -58,7 +64,8 @@ export function groupRows<T>(
 
   const out: GroupedRow<T>[] = [];
   for (const [key, group] of entries) {
-    out.push({ type: "heading", key, label: by.labelOf(key), total: Math.round(group.total * 100) / 100, count: group.rows.length });
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    out.push({ type: "heading", key, label: by.labelOf(key), total: r2(group.total), inflow: r2(group.inflow), outflow: r2(group.outflow), count: group.rows.length });
     for (const item of group.rows) out.push({ type: "item", item });
   }
   return out;

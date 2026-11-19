@@ -6,6 +6,7 @@ import { RADIUS } from "@/constants/design-tokens";
 import { formatAmount } from "@/utils/expense-validation";
 import { Text } from "./Text";
 import { MoneyChip } from "./MoneyChip";
+import { TotalsPill } from "./TotalsPill";
 
 const R = parseInt(RADIUS.card, 10);
 const MX = 16;
@@ -31,6 +32,8 @@ export function GroupHeading({
   onToggle,
   noun,
   flat = false,
+  inflow,
+  outflow,
 }: {
   label: string;
   count?: number;
@@ -42,6 +45,9 @@ export function GroupHeading({
   onToggle?: () => void;
   noun?: { one: string; many: string };
   flat?: boolean;
+  /** With `flat`: show money in and money out side by side instead of one net figure. */
+  inflow?: number;
+  outflow?: number;
 }) {
   const theme = useTheme();
   if (onToggle && flat) {
@@ -60,7 +66,16 @@ export function GroupHeading({
           </Text>
           {count != null ? <Text className="text-meta text-muted-foreground">{count}</Text> : null}
         </View>
-        {total !== 0 && <MoneyChip amount={total} tone={!signed ? "moved" : total > 0 ? "in" : "out"} />}
+        {inflow != null || outflow != null ? (
+          <TotalsPill
+            parts={[
+              { tone: "in", amount: inflow ?? 0, label: "in" },
+              { tone: "out", amount: outflow ?? 0, label: "out" },
+            ]}
+          />
+        ) : (
+          total !== 0 && <MoneyChip amount={total} tone={!signed ? "moved" : total > 0 ? "in" : "out"} />
+        )}
         <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />
       </Pressable>
     );
