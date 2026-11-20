@@ -321,6 +321,29 @@ export function ClosedAccountRow({ type, title, subtitle, onPress }: { type: str
   );
 }
 
+/**
+ * One mark per month of the financial year: filled when money came in that month, hollow when none
+ * did, faint for months still to come (null).
+ */
+export function MonthStrip({ values, height = 6, label }: { values: (number | null)[]; height?: number; label: string }) {
+  const theme = useTheme();
+  return (
+    <View className="flex-row" style={{ gap: 3 }} accessible accessibilityLabel={label}>
+      {values.map((v, i) => (
+        <View
+          key={i}
+          className="flex-1"
+          style={{
+            height,
+            borderRadius: height >= 12 ? 4 : 9999,
+            backgroundColor: v == null ? theme.alpha("foreground", 0.04) : v > 0 ? theme.primary : theme.border,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
 /** The uppercase label over the account cards. */
 export function CardsLabel({ title }: { title: string }) {
   return (

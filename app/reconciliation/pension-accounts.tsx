@@ -1,4 +1,17 @@
-import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import {
+  AccountCard,
+  AccountHead,
+  CardNote,
+  CardsLabel,
+  ChangeChip,
+  ClosedAccountRow,
+  ClosedToggle,
+  FootRows,
+  MonthStrip,
+  SummaryCard,
+  smsNote,
+} from "@/components/account/AccountCards";
 import { OpeningBalanceBanner } from "@/components/account/OpeningBalanceBanner";
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -23,7 +36,7 @@ import { formatAmount } from "@/utils/format";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { useGuardedLoad } from "@/hooks/use-guarded-load";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
@@ -52,6 +65,9 @@ export default function PensionAccountsScreen() {
   const [month, setMonth] = useState(getCurrentMonth());
   const [ytdCredits, setYtdCredits] = useState(0);
   const [ytdPerAccount, setYtdPerAccount] = useState<Record<string, number>>({});
+  // Contributions per month of the financial year, per account (null: a month still to come).
+  const [fyMonths, setFyMonths] = useState<string[]>([]);
+  const [monthlyPerAccount, setMonthlyPerAccount] = useState<Record<string, (number | null)[]>>({});
   const [refreshing, setRefreshing] = useState(false);
 
   const { startDate, endDate } = useMemo(() => getMonthDateRange(month), [month]);
@@ -112,16 +128,34 @@ export default function PensionAccountsScreen() {
       const fyStartMonth = getFYStartMonth();
       const fy = getCurrentFY(fyStartMonth, new Date(`${month}-01`));
       const fyRange = getFYRange(fy, fyStartMonth);
-      const fyStart = `${fyRange.start.getFullYear()}-${String(fyRange.start.getMonth() + 1).padStart(2, "0")}-01`;
+      // Each month of the FY up to the viewed one: what came in (contributions), for the strip.
+      const months: string[] = [];
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(fyRange.start.getFullYear(), fyRange.start.getMonth() + i, 1);
+        months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+      }
       let ytdTotal = 0;
       const ytdMap: Record<string, number> = {};
-      for (const { account } of results) {
-        const acctYtd = await getAccountCreditsTotal(account.id, fyStart, endDate);
-        ytdMap[account.id] = acctYtd;
-        ytdTotal += acctYtd;
-      }
+      const monthlyMap: Record<string, (number | null)[]> = {};
+      await Promise.all(
+        results.map(async ({ account }) => {
+          const byMonth = await Promise.all(
+            months.map(async (mo) => {
+              if (mo > month) return null;
+              const r = getMonthDateRange(mo);
+              return getAccountCreditsTotal(account.id, r.startDate, r.endDate);
+            }),
+          );
+          monthlyMap[account.id] = byMonth;
+          const acctYtd = byMonth.reduce<number>((s, v) => s + (v ?? 0), 0);
+          ytdMap[account.id] = acctYtd;
+          ytdTotal += acctYtd;
+        }),
+      );
       setYtdCredits(ytdTotal);
       setYtdPerAccount(ytdMap);
+      setFyMonths(months);
+      setMonthlyPerAccount(monthlyMap);
   }, [month, startDate, endDate]);
 
   const guarded = useGuardedLoad(loadData);
@@ -150,155 +184,103 @@ export default function PensionAccountsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
         }
       >
-        {/* Overall summary card */}
-        <Card className="mx-4 mt-3 mb-2">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Overall Summary
-            </Text>
-            <Text className="text-xs text-muted-foreground">
-              {summaries.length} account{summaries.length !== 1 ? "s" : ""}
-            </Text>
-          </View>
-
-          <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-muted-foreground">Opening Balance</Text>
-            <Text className="text-sm font-semibold text-foreground">
-              {formatAmount(totalOpening)}
-            </Text>
-          </View>
-          <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-muted-foreground">Closing Balance</Text>
-            <Text
-              className="text-sm font-bold"
-              style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}
+        {/* Summary: the balance first, then this year's contributions month by month (owner, Nov 2026). */}
+        {summaries.length > 0 && (() => {
+          const all = fyMonths.map((_, i) => {
+            const vals = Object.values(monthlyPerAccount).map((v) => v[i]);
+            return vals.every((v) => v == null) ? null : vals.reduce<number>((s, v) => s + (v ?? 0), 0);
+          });
+          const gone = all.filter((v) => v != null).length;
+          const paid = all.filter((v) => v != null && v > 0).length;
+          const lastIdx = all.reduce<number>((li, v, i) => (v != null && v > 0 ? i : li), -1);
+          const monLabel = (mo: string) => new Date(`${mo}-01T00:00:00`).toLocaleDateString("en-IN", { month: "short" });
+          return (
+            <SummaryCard
+              label={`Retirement · ${summaries.length} ${summaries.length === 1 ? "account" : "accounts"}`}
+              amount={totalBalance}
+              amountColor={totalBalance < 0 ? theme.danger : undefined}
+              under={
+                <>
+                  <ChangeChip amount={totalBalance - totalOpening} suffix="this month" />
+                  <Text className="text-meta text-muted-foreground">from {formatAmount(totalOpening)}</Text>
+                </>
+              }
             >
-              {formatAmount(totalBalance)}
-            </Text>
-          </View>
-          {lastContributionDate && (
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">Last contribution</Text>
-              <Text className="text-sm font-semibold text-foreground">
-                {new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-              </Text>
-            </View>
-          )}
-          <View className="flex-row justify-between">
-            <Text className="text-xs text-muted-foreground">YTD Contributions</Text>
-            <Text className="text-sm font-semibold" style={{ color: ytdCredits > 0 ? theme.success : colors.text }}>
-              {formatAmount(ytdCredits)}
-            </Text>
-          </View>
+              <View className="rounded-control p-3" style={{ gap: 10, backgroundColor: theme.background }}>
+                <View className="flex-row justify-between items-baseline">
+                  <Text className="text-meta text-muted-foreground">Contributed this FY</Text>
+                  <Text className="text-heading font-bold" style={{ color: ytdCredits > 0 ? theme.success : theme.foreground }}>
+                    {ytdCredits > 0 ? "+" : ""}{formatAmount(ytdCredits)}
+                  </Text>
+                </View>
+                {fyMonths.length === 12 && (
+                  <>
+                    <MonthStrip values={all} height={20} label={`Contributions arrived in ${paid} of ${gone} months so far this year`} />
+                    <View className="flex-row justify-between">
+                      <Text className="text-label text-muted-foreground">{monLabel(fyMonths[0])}</Text>
+                      <Text className="text-label text-muted-foreground">{paid} of {gone} months so far</Text>
+                      <Text className="text-label text-muted-foreground">{monLabel(fyMonths[11])}</Text>
+                    </View>
+                  </>
+                )}
+              </View>
+              <FootRows
+                rows={[
+                  ...(totalCredits > 0 ? [{ label: "Contributed this month", value: `+${formatAmount(totalCredits)}`, color: theme.success }] : []),
+                  ...(lastIdx >= 0 ? [{ label: "Last contribution", value: new Date(`${fyMonths[lastIdx]}-01T00:00:00`).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) }] : []),
+                  ...(lastContributionDate ? [{ label: "Latest balance SMS", value: new Date(lastContributionDate + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" }) }] : []),
+                  ...(adjustmentStats.count > 0
+                    ? [{
+                        label: `Includes ${adjustmentStats.count} balance ${adjustmentStats.count === 1 ? "correction" : "corrections"}`,
+                        value: formatAmount(adjustmentStats.total),
+                        color: theme.warning,
+                      }]
+                    : []),
+                ]}
+              />
+            </SummaryCard>
+          );
+        })()}
 
-          {/* Drift indicator — manual ledger adjustments across all pension accounts this month.
-              Proxy for how much course-correction was needed — higher = less trust in auto-detected balances. */}
-          {adjustmentStats.count > 0 && (
-            <View className="mt-2 pt-2 border-t border-border flex-row justify-between">
-              <Text className="text-label text-faint-foreground">
-                Manual ledger adjustments
-              </Text>
-              <Text className="text-label" style={{ color: theme.warning }}>
-                {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
-              </Text>
-            </View>
-          )}
-        </Card>
-
-        {/* Per-account cards */}
-        {summaries.map(({ account, opening, expenses, credits, current, seeded, autoDetectedStale }) => (
-          <Card key={account.id} className="mx-4 mb-2">
-            <Pressable
+        {summaries.length > 0 && <CardsLabel title="Accounts" />}
+        {summaries.map(({ account, opening, credits, current, seeded, autoDetectedStale }) => {
+          const title = account.bank_name || account.account_label || "Pension";
+          const sub = [account.account_label && account.account_label !== title ? account.account_label : null, account.account_identifier ? `••${account.account_identifier.slice(-4)}` : null]
+            .filter(Boolean)
+            .join(" · ");
+          const strip = monthlyPerAccount[account.id];
+          const lastIdx = strip ? strip.reduce<number>((li, v, i) => (v != null && v > 0 ? i : li), -1) : -1;
+          const note = smsNote(account, current, autoDetectedStale);
+          return (
+            <AccountCard
+              key={account.id}
+              label={`${title} ${sub}, ${formatAmount(current)}, open ledger`}
               onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
             >
-              {/* Account header */}
-              <View className="flex-row items-center mb-3">
-                <View
-                  className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                  style={{ backgroundColor: theme.alpha("primary", 0.08) }}
-                >
-                  <Ionicons name="briefcase-outline" size={18} color={theme.primary} />
-                </View>
+              <AccountHead type="pension" title={title} subtitle={sub} amount={current} amountColor={current < 0 ? theme.danger : undefined} change={current - opening} />
+              {!seeded && <OpeningBalanceBanner accountId={account.id} message="Counting from ₹0. No opening balance yet." />}
+              {strip && <MonthStrip values={strip} label={`Contributions this year in ${strip.filter((v) => v != null && v > 0).length} months`} />}
+              <View className="flex-row" style={{ gap: 8 }}>
                 <View className="flex-1">
-                  <Text className="text-base font-bold text-foreground">
-                    {account.bank_name} ••••{account.account_identifier}
-                  </Text>
-                  {account.account_label && (
-                    <Text className="text-label text-muted-foreground">
-                      {account.account_label}
-                    </Text>
-                  )}
+                  <Text className="text-meta text-muted-foreground">This FY</Text>
+                  <Text className="text-meta font-semibold text-foreground">{formatAmount(ytdPerAccount[account.id] ?? 0)}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-              </View>
-
-              {/* Not seeded warning */}
-              {!seeded && <OpeningBalanceBanner accountId={account.id} message="No opening balance set - showing from ₹0" />}
-
-              {/* Balance breakdown */}
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-muted-foreground">Opening Balance</Text>
-                <Text className="text-sm font-semibold text-foreground">
-                  {formatAmount(opening)}
-                </Text>
-              </View>
-              {credits > 0 && (
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-muted-foreground">Contributions (month)</Text>
-                  <Text className="text-sm font-semibold" style={{ color: theme.success }}>
-                    +{formatAmount(credits)}
+                <View className="flex-1 items-center">
+                  <Text className="text-meta text-muted-foreground">This month</Text>
+                  <Text className="text-meta font-semibold" style={{ color: credits > 0 ? theme.success : theme.foreground }}>{credits > 0 ? `+${formatAmount(credits)}` : "None"}</Text>
+                </View>
+                <View className="flex-1 items-end">
+                  <Text className="text-meta text-muted-foreground">Last in</Text>
+                  <Text className="text-meta font-semibold text-foreground">
+                    {lastIdx >= 0 ? new Date(`${fyMonths[lastIdx]}-01T00:00:00`).toLocaleDateString("en-IN", { month: "short" }) : "None yet"}
                   </Text>
                 </View>
-              )}
-              {account.last_balance_date && (
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-muted-foreground">Last contribution</Text>
-                  <Text className="text-sm font-semibold text-foreground">
-                    {new Date(account.last_balance_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                  </Text>
-                </View>
-              )}
-              <View className="flex-row justify-between mb-1">
-                <Text className="text-xs text-muted-foreground">YTD Contributions</Text>
-                <Text className="text-sm font-semibold" style={{ color: (ytdPerAccount[account.id] ?? 0) > 0 ? theme.success : colors.text }}>
-                  {formatAmount(ytdPerAccount[account.id] ?? 0)}
-                </Text>
               </View>
-              {/* Auto-detected (SMS) balance — crossed out when stale */}
-              {account.last_known_balance != null && (
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-muted-foreground">
-                    Auto-detected{autoDetectedStale ? " · stale" : ""}
-                  </Text>
-                  <Text
-                    className="text-sm font-semibold text-foreground"
-                    style={autoDetectedStale ? { textDecorationLine: "line-through", color: theme.faintForeground } : undefined}
-                  >
-                    {formatAmount(account.last_known_balance)}
-                  </Text>
-                </View>
-              )}
-              <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
-                <Text className="text-xs font-semibold text-muted-foreground">
-                  Current Balance{account.last_known_balance != null ? " · calculated" : ""}
-                </Text>
-                <Text
-                  className="text-sm font-bold"
-                  style={{ color: current >= 0 ? theme.success : theme.danger }}
-                >
-                  {formatAmount(current)}
-                </Text>
-              </View>
-
-              {/* Last updated */}
-              {account.last_balance_date && (
-                <Text className="text-label text-faint-foreground mt-1.5">
-                  SMS balance updated {new Date(account.last_balance_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
-                </Text>
-              )}
-            </Pressable>
-          </Card>
-        ))}
+              <Text className="text-label text-muted-foreground">Opened the month at {formatAmount(opening)}</Text>
+              {note ? <CardNote tone={note.tone} text={note.text} /> : <CardNote tone="info" text="No balance SMS yet · worked out from contributions" />}
+            </AccountCard>
+          );
+        })}
 
         {/* Empty state */}
         {summaries.length === 0 && closedAccounts.length === 0 && (
@@ -316,38 +298,17 @@ export default function PensionAccountsScreen() {
         {/* Closed pension accounts */}
         {closedAccounts.length > 0 && (
           <>
-            <View className="border-t border-border mx-4 mt-2 mb-3" />
-            <Pressable
-              onPress={() => setClosedExpanded(e => !e)}
-              className="flex-row items-center px-4 mb-2"
-            >
-              <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs text-muted-foreground flex-1">
-                {closedAccounts.length} closed {closedAccounts.length === 1 ? "account" : "accounts"}
-              </Text>
-              <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
-            </Pressable>
-            {closedExpanded && closedAccounts.map(acct => (
-              <Card key={acct.id} className="mx-4 mb-2">
-                <Pressable
+            <ClosedToggle count={closedAccounts.length} noun={{ one: "account", many: "accounts" }} open={closedExpanded} onToggle={() => setClosedExpanded((e) => !e)} />
+            {closedExpanded &&
+              closedAccounts.map((acct) => (
+                <ClosedAccountRow
+                  key={acct.id}
+                  type="pension"
+                  title={acct.account_label || `${acct.bank_name} ••${acct.account_identifier}`}
+                  subtitle={acct.bank_name}
                   onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: acct.id } })}
-                  className="flex-row items-center"
-                >
-                  <View className="flex-1">
-                    <View className="flex-row items-center gap-2 mb-0.5">
-                      <Text className="text-sm text-muted-foreground">
-                        {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
-                      </Text>
-                      <View className="bg-danger/10 px-1.5 py-0.5 rounded">
-                        <Text className="text-label font-semibold text-danger">Closed</Text>
-                      </View>
-                    </View>
-                    <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
-                </Pressable>
-              </Card>
-            ))}
+                />
+              ))}
           </>
         )}
       </ScrollView>
