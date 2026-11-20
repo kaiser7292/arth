@@ -1,12 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { View, ScrollView, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
-import { ConfidenceDots } from "@/components/analytics/ConfidenceDots";
-import { ActionSuggestionCard } from "@/components/analytics/ActionSuggestionCard";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { Card, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
 import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
@@ -16,73 +13,90 @@ import { forecastCategoryRealistic } from "@/services/analytics/forecast-engine-
 import { getBudgetsForMonth } from "@/services/budget";
 import { getMonthEndForecast } from "@/services/forecast-engine";
 import { DEFAULT_USER_ID } from "@/constants/app";
+import { getDatabase } from "@/database";
 import type { Expense } from "@/services/expense-types";
-import type { MonthEndForecast } from "@/utils/forecast-engine";
+import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
+/** A category likely to end the month over its budget. */
+interface AtRisk {
+  categoryId: string;
+  spent: number;
+  budget: number;
+  likely: number;
+}
+
+/**
+ * Forecast (Nov 2026 redesign, "Arth Insights"): the likely month-end total with its three parts as
+ * one bar against the budget, the day-to-day pace, the bills still to come, and the categories likely
+ * to go over. Every part opens what's behind it, down to the transactions.
+ */
 export default function ForecastDetailScreen() {
   const router = useRouter();
-  
   const theme = useTheme();
   const [forecast, setForecast] = useState<AnalyticsForecast | null>(null);
-  const [categoryForecast, setCategoryForecast] = useState<MonthEndForecast | null>(null);
+  const [monthRows, setMonthRows] = useState<Expense[]>([]);
+  const [atRisk, setAtRisk] = useState<AtRisk[]>([]);
   const [categoryNames, setCategoryNames] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [paidOpen, setPaidOpen] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionY = useRef<Record<string, number>>({});
 
   const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
-      const [fData, cats] = await Promise.all([
-        getAnalyticsForecast(DEFAULT_USER_ID),
-        getCategories(DEFAULT_USER_ID),
-      ]);
+      const [fData, cats] = await Promise.all([getAnalyticsForecast(DEFAULT_USER_ID), getCategories(DEFAULT_USER_ID)]);
       setForecast(fData);
       setCategoryNames(new Map(cats.map((c) => [c.id, c.name])));
 
-      // Try V2 category breach detection, fall back to old forecast engine
+      // This month's spending, the rows behind "Spent so far" and each category's figure.
+      const { startDate, endDate } = getMonthDateRange(fData.month);
+      const expenses = await getDatabase().getAllAsync<Expense>(
+        `SELECT * FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer') AND deleted_at IS NULL ORDER BY date DESC;`,
+        DEFAULT_USER_ID, startDate, endDate,
+      );
+      setMonthRows(expenses);
+      const spentBy = new Map<string, number>();
+      for (const e of expenses) if (e.category_id) spentBy.set(e.category_id, (spentBy.get(e.category_id) ?? 0) + e.amount);
+
       const classifications = await getActiveClassifications(DEFAULT_USER_ID);
       if (classifications.length > 0) {
-        const month = fData.month;
-        const { getDatabase } = await import("@/database");
-        const { getMonthDateRange } = await import("@/utils/budget-helpers");
-        const db = getDatabase();
-        const { startDate, endDate } = getMonthDateRange(month);
-        const expenses = await db.getAllAsync<Expense>(
-          `SELECT * FROM expenses WHERE user_id = ? AND date >= ? AND date <= ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer') AND deleted_at IS NULL;`,
-          DEFAULT_USER_ID, startDate, endDate,
+        const budgets = await getBudgetsForMonth(DEFAULT_USER_ID, fData.month);
+        const v2 = forecastCategoryRealistic(expenses, classifications, budgets, fData.month);
+        setAtRisk(
+          v2
+            .filter((c) => c.budget != null && c.totalProjected > c.budget!)
+            .map((c) => ({ categoryId: c.categoryId, spent: spentBy.get(c.categoryId) ?? 0, budget: c.budget!, likely: c.totalProjected }))
+            .sort((a, b) => b.likely - b.budget - (a.likely - a.budget)),
         );
-        const budgets = await getBudgetsForMonth(DEFAULT_USER_ID, month);
-        const v2Categories = forecastCategoryRealistic(expenses, classifications, budgets, month);
-        const breachAlerts = v2Categories
-          .filter((c) => c.budget != null && c.totalProjected > c.budget!)
-          .map((c) => ({
-            categoryId: c.categoryId,
-            spentSoFar: c.fixedTotal + c.variableProjected * 0.5,
-            budget: c.budget!,
-            predictedTotal: c.totalProjected,
-            paceBasedTotal: c.totalProjected,
-            historicalTotal: c.totalProjected,
-            willExceedBudget: true as const,
-            predictedOverspend: c.totalProjected - c.budget!,
-            confidence: "high" as const,
-          }));
-        setCategoryForecast({ totalPredictedSpend: fData.projectedTotal, totalBudget: fData.budget ?? 0, willExceedOverall: (fData.budget ?? 0) > 0 && fData.projectedTotal > (fData.budget ?? 0), predictedSurplusDeficit: (fData.budget ?? 0) - fData.projectedTotal, categories: [], breachAlerts });
       } else {
-        const catForecast = await getMonthEndForecast(DEFAULT_USER_ID);
-        setCategoryForecast(catForecast);
+        const old = await getMonthEndForecast(DEFAULT_USER_ID);
+        setAtRisk(old.breachAlerts.map((b) => ({ categoryId: b.categoryId, spent: b.spentSoFar, budget: b.budget, likely: b.predictedTotal })));
       }
       setLoadFailed(false);
     } catch {
       setLoadFailed(true);
-      // DB not ready
     } finally {
       setLoading(false);
     }
   }, []);
 
   useDataRefresh(loadData);
+
+  const openRows = useCallback(
+    (rows: Expense[], title: string) => {
+      if (rows.length === 0) return;
+      router.push({ pathname: "/insights/filtered", params: { expenseIds: rows.map((e) => e.id).join(","), title } });
+    },
+    [router],
+  );
+  const scrollTo = (key: string) => {
+    const y = sectionY.current[key];
+    if (y != null) scrollRef.current?.scrollTo({ y: Math.max(0, y - 12), animated: true });
+  };
 
   if (loading || !forecast) {
     return (
@@ -93,241 +107,202 @@ export default function ForecastDetailScreen() {
     );
   }
 
-  const { fixedDone, fixedPending, variable, projectedTotal, budget, breathingRoom, confidence } = forecast;
-  const isOverBudget = budget != null && projectedTotal > budget;
+  const { fixedDone, fixedPending, variable, projectedTotal, budget, confidence } = forecast;
+  const isOver = budget != null && projectedTotal > budget;
   const dayToDayToCome = Math.max(0, projectedTotal - forecast.monthSoFar - fixedPending.total);
+  const [y, mo] = forecast.month.split("-").map(Number);
+  const daysInMonth = new Date(y, mo, 0).getDate();
+  const monthEnd = new Date(y, mo - 1, daysInMonth).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  const room = budget != null ? Math.max(0, budget - projectedTotal) : 0;
   const parts = [
-    { key: "spent", label: "Spent so far", amount: forecast.monthSoFar, color: theme.primary },
-    { key: "bills", label: "Fixed bills still to come", amount: fixedPending.total, color: theme.warning },
-    { key: "daily", label: "Day-to-day still to come", amount: dayToDayToCome, color: theme.alpha("primary", 0.45) },
+    { key: "spent", label: "Spent so far", amount: forecast.monthSoFar, color: theme.foreground, onPress: () => openRows(monthRows, "Spent this month") },
+    { key: "bills", label: "Bills to come", amount: fixedPending.total, color: theme.warning, onPress: () => scrollTo("bills") },
+    { key: "daily", label: "Day-to-day left", amount: dayToDayToCome, color: theme.alpha("primary", 0.55), onPress: () => scrollTo("pace") },
   ];
-
-  // Find breaching categories
-  const breachingCategories = categoryForecast?.breachAlerts.slice(0, 3) ?? [];
+  const usualPerDay = variable.historicalAvg > 0 ? variable.historicalAvg / daysInMonth : null;
+  const toStayIn = budget != null && variable.daysLeft > 0 ? (budget - forecast.monthSoFar - fixedPending.total) / variable.daysLeft : null;
+  const worst = atRisk[0];
+  const worstName = worst ? categoryNames.get(worst.categoryId) ?? "This category" : "";
+  const confLabel = `${confidence.charAt(0).toUpperCase()}${confidence.slice(1)} confidence · ${forecast.dataMonths} ${forecast.dataMonths === 1 ? "month" : "months"} of data`;
 
   return (
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        {/* Where the likely total comes from: the three parts add up to it. */}
-        <View className="px-4 mt-3">
-          <Card>
-            <Text className="text-label text-muted-foreground">Likely spend by month end</Text>
-            <Text className="text-title font-bold text-foreground mt-0.5">{formatAmount(projectedTotal)}</Text>
-
-            <View className="mt-3 flex-row h-3 rounded-full overflow-hidden bg-border" style={{ gap: 2 }}>
-              {parts.filter((p) => p.amount > 0).map((p) => (
-                <View key={p.key} className="h-full" style={{ flex: p.amount, backgroundColor: p.color }} />
-              ))}
-            </View>
-            <View className="mt-2">
-              {parts.map((p) => (
-                <View key={p.key} className="flex-row items-center py-1">
-                  <View className="w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: p.color }} />
-                  <Text className="text-meta text-foreground flex-1 mr-2">{p.label}</Text>
-                  <Text className="text-body font-semibold text-foreground">{formatAmount(p.amount)}</Text>
-                </View>
-              ))}
-            </View>
-
+      <ScrollView ref={scrollRef} className="flex-1" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40, paddingHorizontal: 16, paddingTop: 12, gap: 12 }}>
+        {/* The likely total and its three parts, as one bar measured against the budget. */}
+        <Card>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Likely by {monthEnd}</Text>
+          <Text className="text-hero font-bold text-foreground mt-1.5" numberOfLines={1} adjustsFontSizeToFit>{formatAmount(projectedTotal)}</Text>
+          <View className="flex-row flex-wrap mt-1.5" style={{ gap: 8 }}>
             {budget != null && (
-              <Pressable
-                onPress={() => router.push("/insights/budget-vs-actual")}
-                className="flex-row items-center pt-2.5 mt-1.5 border-t border-border"
-                accessibilityRole="button"
-                accessibilityLabel="Open Budget vs actual"
-              >
-                <Text className="text-meta text-muted-foreground flex-1 mr-2">Budget {formatAmount(budget)}</Text>
-                <Text className="text-body font-semibold" style={{ color: isOverBudget ? theme.danger : theme.success }}>
-                  {isOverBudget ? `${formatAmount(projectedTotal - budget)} over` : `${formatAmount(budget - projectedTotal)} to spare`}
-                </Text>
-                <Ionicons name="chevron-forward" size={13} color={theme.faintForeground} style={{ marginLeft: 4 }} />
-              </Pressable>
-            )}
-            <Text className="text-label text-muted-foreground mt-2">
-              Based on {forecast.dataMonths} {forecast.dataMonths === 1 ? "month" : "months"} of your spending
-            </Text>
-          </Card>
-        </View>
-
-        {/* What's gone already */}
-        <View className="px-4 mt-4">
-          <SectionHeader title={`Spent so far - ${formatAmount(forecast.monthSoFar)}`} />
-          <Card>
-            <View className="flex-row justify-between py-1">
-              <Text className="text-meta text-foreground">Fixed bills paid</Text>
-              <Text className="text-body font-semibold text-foreground">{formatAmount(fixedDone.total)}</Text>
-            </View>
-            <View className="flex-row justify-between py-1">
-              <Text className="text-meta text-foreground">Day-to-day</Text>
-              <Text className="text-body font-semibold text-foreground">{formatAmount(Math.max(0, forecast.monthSoFar - fixedDone.total))}</Text>
-            </View>
-            {variable.daysLeft > 0 && dayToDayToCome > 0 && (
-              <Text className="text-label text-muted-foreground mt-1.5">
-                About {formatAmount(Math.round(dayToDayToCome / variable.daysLeft))} a day for the {variable.daysLeft} {variable.daysLeft === 1 ? "day" : "days"} left
-              </Text>
-            )}
-          </Card>
-        </View>
-
-        {/* Fixed Expenses Done */}
-        <View className="px-4 mt-4">
-          <SectionHeader title={`Fixed bills paid - ${formatAmount(fixedDone.total)}`} />
-          <Card>
-            {fixedDone.items.length === 0 ? (
-              <Text className="text-meta text-muted-foreground">
-                No fixed bills paid yet this month.
-              </Text>
-            ) : (
-              fixedDone.items.map((item, idx) => (
-                <View
-                  key={item.id}
-                  className={`flex-row items-center justify-between py-2.5 ${
-                    idx < fixedDone.items.length - 1 ? "border-b border-border" : ""
-                  }`}
-                >
-                  <Text className="text-meta text-foreground capitalize flex-1">
-                    {item.merchant}
-                  </Text>
-                  <Text className="text-body font-bold text-foreground mr-2">
-                    {formatAmount(item.actualAmount ?? item.amount)}
-                  </Text>
-                  <Text className="text-label text-muted-foreground mr-2">
-                    {item.actualDate ? formatDay(item.actualDate) : ""}
-                  </Text>
-                  <Ionicons name="checkmark-circle" size={16} color={theme.success} />
-                </View>
-              ))
-            )}
-          </Card>
-        </View>
-
-        {/* Fixed Expenses Pending */}
-        <View className="px-4 mt-4">
-          <SectionHeader title={`Fixed bills still to come - ${formatAmount(fixedPending.total)}`} />
-          <Card>
-            {fixedPending.items.length === 0 ? (
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="checkmark-circle" size={16} color={theme.success} />
-                <Text className="text-meta" style={{ color: theme.success }}>
-                  All the fixed bills you expect have been paid this month.
+              <View className="rounded-pill px-2.5 py-0.5" style={{ backgroundColor: theme.alpha(isOver ? "danger" : "success", 0.08) }}>
+                <Text className="text-meta font-semibold" style={{ color: isOver ? theme.danger : theme.success }}>
+                  {isOver ? `${formatAmount(projectedTotal - budget)} over budget` : `${formatAmount(budget - projectedTotal)} under budget`}
                 </Text>
               </View>
-            ) : (
-              fixedPending.items.map((item, idx) => (
-                <View
-                  key={item.id}
-                  className={`flex-row items-center justify-between py-2.5 ${
-                    idx < fixedPending.items.length - 1 ? "border-b border-border" : ""
-                  }`}
-                >
-                  <Text className="text-meta text-foreground capitalize flex-1">
-                    {item.merchant}
-                  </Text>
-                  <Text className="text-body font-bold text-foreground mr-2">
-                    {formatAmount(item.amount)}
-                  </Text>
-                  <Text className="text-label text-muted-foreground">
-                    ~Day {item.expectedDay}
-                  </Text>
-                </View>
-              ))
             )}
-          </Card>
-        </View>
-
-        {/* Variable Spending */}
-        <View className="px-4 mt-4">
-          <SectionHeader title={`Day-to-day spending - ${formatAmount(variable.projected)}`} />
-          <Card>
-            <View className="gap-1.5 mb-3">
-              <MetricLine label="Daily pace" value={`${formatAmount(variable.dailyPace)}/day`} />
-              <MetricLine label="Days left" value={String(variable.daysLeft)} />
-              <MetricLine label="Projected remaining" value={formatAmount(variable.projected - variable.spentSoFar)} />
+            <View className="rounded-pill px-2.5 py-0.5" style={{ backgroundColor: theme.alpha("foreground", 0.05) }}>
+              <Text className="text-meta font-semibold text-muted-foreground">{confLabel}</Text>
             </View>
+          </View>
 
-            {/* Category Paces */}
-            {forecast.categoryPaces.length > 0 && (
-              <>
-                <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-2">
-                  By Category
-                </Text>
-                {forecast.categoryPaces.slice(0, 5).map((cp) => (
-                  <View key={cp.categoryId} className="flex-row items-center justify-between py-1.5">
-                    <Text className="text-label text-foreground flex-1 mr-2" numberOfLines={1}>
-                      {categoryNames.get(cp.categoryId) || "Other"}
-                    </Text>
-                    <Text className="text-label text-muted-foreground mr-2" numberOfLines={1}>
-                      {formatAmount(cp.dailyPace)}/day
-                    </Text>
-                    {/* Non-breaking space between the arrow and the figure — a plain space
-                        let RN wrap the arrow onto its own line when the figure ran long. */}
-                    <Text className="text-label font-bold text-foreground text-right" numberOfLines={1}>
-                      {"→ "}{formatAmount(cp.projected)}
-                    </Text>
-                  </View>
-                ))}
-              </>
-            )}
-
-            <View className="border-t border-border mt-3 pt-3">
-              <MetricLine label="Historical avg" value={`${formatAmount(variable.historicalAvg)}/month`} />
-              <MetricLine
-                label="Current pace"
-                value={`${formatAmount(variable.projected)} (${variable.historicalAvg > 0 ? (variable.projected > variable.historicalAvg ? "+" : "") + Math.round(((variable.projected - variable.historicalAvg) / variable.historicalAvg) * 100) + "%" : "N/A"})`}
-              />
-              <View className="mt-2">
-                <ConfidenceDots level={confidence} />
-              </View>
+          <View className="flex-row rounded-pill overflow-hidden mt-4" style={{ height: 14, gap: 2, backgroundColor: theme.border }}>
+            {parts.filter((p) => p.amount > 0).map((p) => (
+              <Pressable key={p.key} onPress={p.onPress} style={{ flex: p.amount, backgroundColor: p.color }} accessibilityRole="button" accessibilityLabel={`${p.label}, ${formatAmount(p.amount)}`} />
+            ))}
+            {room > 0 && <View style={{ flex: room }} />}
+          </View>
+          {budget != null && (
+            <View className="flex-row justify-between mt-1.5">
+              <Text className="text-label text-muted-foreground">₹0</Text>
+              <Text className="text-label text-muted-foreground">Budget {formatAmount(budget)}</Text>
             </View>
-          </Card>
-        </View>
-
-        {/* Categories at Risk */}
-        {breachingCategories.length > 0 && (
-          <View className="px-4 mt-4">
-            <SectionHeader title="Categories at Risk" />
-            {breachingCategories.map((cat) => (
-              <Pressable
-                key={cat.categoryId}
-                onPress={() =>
-                  router.push({
-                    pathname: "/insights/insight-detail",
-                    params: { insightId: `breach_${cat.categoryId}_${forecast.month}`, title: `${categoryNames.get(cat.categoryId) ?? "Category"} Over Budget` },
-                  })
-                }
-                className="mb-2"
-              >
-                <Card>
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                      <View className="flex-row items-center gap-1.5">
-                        <Ionicons name="warning-outline" size={14} color={theme.warning} />
-                        <Text className="text-body font-medium text-foreground">
-                          {categoryNames.get(cat.categoryId) ?? "Category"} on pace for {formatAmount(cat.predictedTotal)}
-                        </Text>
-                      </View>
-                      <Text className="text-label text-muted-foreground mt-0.5 ml-5">
-                        Budget: {formatAmount(cat.budget)} ({Math.round((cat.predictedTotal / cat.budget) * 100)}%)
-                      </Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={theme.faintForeground} />
-                  </View>
-                </Card>
+          )}
+          <View className="mt-2" style={{ gap: 2 }}>
+            {parts.map((p) => (
+              <Pressable key={p.key} onPress={p.onPress} className="flex-row items-center" style={{ minHeight: 36, gap: 8 }} accessibilityRole="button" accessibilityLabel={`${p.label}, ${formatAmount(p.amount)}`}>
+                <View className="w-2.5 h-2.5 rounded-pill" style={{ backgroundColor: p.color }} />
+                <Text className="text-meta text-foreground flex-1">{p.label}</Text>
+                <Text className="text-body font-semibold text-foreground">{formatAmount(p.amount)}</Text>
+                <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
               </Pressable>
             ))}
+            {budget != null && room > 0 && (
+              <View className="flex-row items-center" style={{ minHeight: 36, gap: 8 }}>
+                <View className="w-2.5 h-2.5 rounded-pill" style={{ backgroundColor: theme.border }} />
+                <Text className="text-meta text-foreground flex-1">Room left</Text>
+                <Text className="text-body font-semibold text-foreground">{formatAmount(room)}</Text>
+                <View style={{ width: 14 }} />
+              </View>
+            )}
+          </View>
+        </Card>
+
+        {/* Day-to-day pace */}
+        <View onLayout={(e) => (sectionY.current.pace = e.nativeEvent.layout.y)}>
+          <Card>
+            <View className="flex-row justify-between items-baseline mb-3">
+              <Text className="text-body font-bold text-foreground">Day-to-day pace</Text>
+              <Text className="text-meta text-muted-foreground">{variable.daysLeft} {variable.daysLeft === 1 ? "day" : "days"} left</Text>
+            </View>
+            <View className="flex-row" style={{ gap: 8 }}>
+              <PaceTile label="This month" value={`${formatAmount(Math.round(variable.dailyPace))}/day`} />
+              {usualPerDay != null && <PaceTile label="Your usual" value={`${formatAmount(Math.round(usualPerDay))}/day`} />}
+              {toStayIn != null && <PaceTile label="To stay in" value={toStayIn > 0 ? `${formatAmount(Math.round(toStayIn))}/day` : "Over"} color={toStayIn > 0 ? theme.success : theme.danger} />}
+            </View>
+            {forecast.categoryPaces.length > 0 && (
+              <View className="mt-3 border-t border-border pt-1">
+                {forecast.categoryPaces.slice(0, 5).map((cp) => (
+                  <Pressable
+                    key={cp.categoryId}
+                    onPress={() => openRows(monthRows.filter((e) => e.category_id === cp.categoryId), `${categoryNames.get(cp.categoryId) ?? cp.categoryName ?? "Other"} this month`)}
+                    className="flex-row items-center"
+                    style={{ minHeight: 40, gap: 8 }}
+                    accessibilityRole="button"
+                  >
+                    <Text className="text-meta text-foreground flex-1" numberOfLines={1}>{categoryNames.get(cp.categoryId) || cp.categoryName || "Other"}</Text>
+                    <Text className="text-label text-muted-foreground">{formatAmount(Math.round(cp.dailyPace))}/day</Text>
+                    <Text className="text-meta font-semibold text-foreground">{"→ "}{formatAmount(Math.round(cp.projected))}</Text>
+                    <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            {variable.historicalAvg > 0 && (
+              <Text className="text-label text-muted-foreground mt-2">
+                Day-to-day usually comes to {formatAmount(Math.round(variable.historicalAvg))} a month; this one is heading for {formatAmount(Math.round(variable.projected))}.
+              </Text>
+            )}
+          </Card>
+        </View>
+
+        {/* Bills still to come, then the ones already paid */}
+        <View onLayout={(e) => (sectionY.current.bills = e.nativeEvent.layout.y)}>
+          <View className="rounded-card bg-card border border-border overflow-hidden">
+            <View className="flex-row justify-between items-baseline px-4 pt-4 pb-2">
+              <Text className="text-body font-bold text-foreground">Bills still to come · {fixedPending.items.length}</Text>
+              <Text className="text-meta font-semibold" style={{ color: fixedPending.total > 0 ? theme.warning : theme.success }}>{formatAmount(fixedPending.total)}</Text>
+            </View>
+            {fixedPending.items.length === 0 ? (
+              <Text className="text-meta px-4 pb-4" style={{ color: theme.success }}>All the regular bills you expect are paid this month.</Text>
+            ) : (
+              fixedPending.items.map((item) => (
+                <View key={item.id} className="flex-row items-center px-4 py-2.5 border-t border-border" style={{ gap: 12 }}>
+                  <Text className="text-body text-foreground flex-1 capitalize" numberOfLines={1}>{item.merchant}</Text>
+                  <Text className="text-meta text-muted-foreground">~{dayLabel(forecast.month, item.expectedDay)}</Text>
+                  <Text className="text-body font-semibold text-foreground" style={{ minWidth: 84, textAlign: "right" }}>{formatAmount(item.amount)}</Text>
+                </View>
+              ))
+            )}
+            {fixedDone.items.length > 0 && (
+              <Pressable onPress={() => setPaidOpen((o) => !o)} className="flex-row items-center px-4 border-t border-border" style={{ minHeight: 44 }} accessibilityRole="button" accessibilityState={{ expanded: paidOpen }}>
+                <Text className="text-meta text-muted-foreground flex-1">
+                  {fixedDone.items.length} {fixedDone.items.length === 1 ? "bill" : "bills"} already paid · {formatAmount(fixedDone.total)}
+                </Text>
+                <Ionicons name={paidOpen ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
+              </Pressable>
+            )}
+            {paidOpen &&
+              fixedDone.items.map((item) => {
+                const paid = monthRows.find((e) => e.date.slice(0, 10) === item.actualDate?.slice(0, 10) && Math.abs(e.amount - (item.actualAmount ?? item.amount)) < 0.5);
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={paid ? () => router.push(`/expense/${paid.id}`) : undefined}
+                    className="flex-row items-center px-4 py-2.5 border-t border-border"
+                    style={{ gap: 12 }}
+                    accessibilityRole={paid ? "button" : undefined}
+                  >
+                    <Ionicons name="checkmark-circle" size={16} color={theme.success} />
+                    <Text className="text-body text-foreground flex-1 capitalize" numberOfLines={1}>{item.merchant}</Text>
+                    <Text className="text-meta text-muted-foreground">{item.actualDate ? dayOf(item.actualDate) : ""}</Text>
+                    <Text className="text-body font-semibold text-foreground">{formatAmount(item.actualAmount ?? item.amount)}</Text>
+                    {paid && <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />}
+                  </Pressable>
+                );
+              })}
+          </View>
+        </View>
+
+        {/* Categories likely to go over */}
+        {atRisk.length > 0 && (
+          <View className="rounded-card bg-card border border-border overflow-hidden">
+            <Text className="text-body font-bold text-foreground px-4 pt-4 pb-2">Likely to go over · {atRisk.length}</Text>
+            {atRisk.slice(0, 5).map((c) => {
+              const name = categoryNames.get(c.categoryId) ?? "Category";
+              return (
+                <Pressable
+                  key={c.categoryId}
+                  onPress={() => router.push({ pathname: "/insights/insight-detail", params: { insightId: `breach_${c.categoryId}_${forecast.month}`, title: `${name} over budget` } })}
+                  className="px-4 pt-2.5 pb-3 border-t border-border"
+                  style={{ gap: 6 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${name}, likely ${formatAmount(c.likely - c.budget)} over`}
+                >
+                  <View className="flex-row justify-between">
+                    <Text className="text-body font-semibold text-foreground">{name}</Text>
+                    <Text className="text-body font-semibold" style={{ color: theme.danger }}>{formatAmount(Math.round(c.likely - c.budget))} over</Text>
+                  </View>
+                  <View className="rounded-pill overflow-hidden" style={{ height: 6, backgroundColor: theme.border }}>
+                    <View style={{ height: 6, width: `${Math.min(100, (c.spent / c.budget) * 100)}%`, backgroundColor: c.spent > c.budget ? theme.danger : theme.warning }} />
+                  </View>
+                  <Text className="text-label text-muted-foreground">
+                    Likely {formatAmount(Math.round(c.likely))} of {formatAmount(c.budget)} · {formatAmount(Math.round(c.spent))} spent
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
         )}
 
-        {/* Action Suggestion */}
-        {breachingCategories.length > 0 && (
-          <View className="px-4 mt-4">
-            <SectionHeader title="Suggestion" />
-            <ActionSuggestionCard
-              suggestion={`Reduce ${categoryNames.get(breachingCategories[0].categoryId) ?? "spending"} by cutting back ${Math.round(breachingCategories[0].predictedOverspend / (variable.daysLeft || 1))}/day for the rest of the month.`}
-              savingsAmount={breachingCategories[0].predictedOverspend}
-              difficulty="Medium"
-            />
+        {worst && (
+          <View className="flex-row rounded-control p-3" style={{ gap: 10, backgroundColor: theme.alpha("primary", 0.07) }}>
+            <Ionicons name="bulb-outline" size={18} color={theme.primary} />
+            <Text className="text-meta text-foreground flex-1">
+              {worst.spent >= worst.budget
+                ? `${worstName} is already ${formatAmount(Math.round(worst.spent - worst.budget))} over its budget. Holding off for the ${variable.daysLeft} days left saves about ${formatAmount(Math.round(Math.max(0, worst.likely - worst.spent)))} more.`
+                : `Keep ${worstName} to ${formatAmount(Math.round((worst.budget - worst.spent) / Math.max(1, variable.daysLeft)))} a day for the rest of the month and it stays within budget.`}
+            </Text>
           </View>
         )}
       </ScrollView>
@@ -335,17 +310,23 @@ export default function ForecastDetailScreen() {
   );
 }
 
-function MetricLine({ label, value }: { label: string; value: string }) {
+function PaceTile({ label, value, color }: { label: string; value: string; color?: string }) {
+  const theme = useTheme();
   return (
-    <View className="flex-row justify-between items-center">
-      <Text className="text-label text-muted-foreground">{label}:</Text>
-      <Text className="text-label font-medium text-foreground">{value}</Text>
+    <View className="flex-1 rounded-control p-2.5" style={{ backgroundColor: theme.background, minWidth: 0 }}>
+      <Text className="text-label text-muted-foreground" numberOfLines={1}>{label}</Text>
+      <Text className="text-body font-bold" style={{ color: color ?? theme.foreground }} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
     </View>
   );
 }
 
+/** "24 Nov" for a day of the forecast's month. */
+function dayLabel(month: string, day: number): string {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(y, m - 1, day).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
 
-function formatDay(date: string): string {
+function dayOf(date: string): string {
   const d = new Date(date);
   return `${d.getDate()} ${d.toLocaleDateString("en-IN", { month: "short" })}`;
 }

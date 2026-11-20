@@ -143,6 +143,7 @@ export function InsightsPage() {
           detail={now ? `${formatAmount(now.cameIn)} in, ${formatAmount(now.wentOut)} out this month` : "Any month, 6 months or the year"}
           onPress={() => router.push("/insights/cash-flow")}
         />
+        <ExploreRow icon="bar-chart-outline" title="Budget vs actual" detail="Any period against your budget" onPress={() => router.push("/insights/budget-vs-actual")} />
         <ExploreRow
           icon="git-compare-outline"
           title="Compare"
