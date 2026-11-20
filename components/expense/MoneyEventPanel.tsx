@@ -141,6 +141,8 @@ export function MoneyEventPanel({
           : "Sent to your own name, so it's money moving between your accounts. Pick where it went.";
   } else if (event === "sip") {
     detail = "Mutual fund auto-debit. Link it to a bucket and it counts as investing, not spending.";
+  } else if (event === "investment") {
+    detail = "Counted as money out, not spending. Link it to a bucket to count it toward a goal.";
   } else if (event === "investment_withdrawal") {
     detail = "Looks like a redemption or payout. Pick the investment it came from and it stops counting as income.";
   }
@@ -152,7 +154,7 @@ export function MoneyEventPanel({
         alert("No open FDs", "Arth doesn't have an open fixed deposit to close. Use \"Record this FD\" if the deposit is in your transactions, or keep it as a credit.");
       } else setFdPickerOpen(true);
     } else if (event === "self_transfer") onPickTransferAccount();
-    else if (event === "sip") onLinkBucket();
+    else if (event === "sip" || event === "investment") onLinkBucket();
     else if (event === "investment_withdrawal") onRecordWithdrawal();
   };
 
@@ -178,7 +180,7 @@ export function MoneyEventPanel({
   return (
     <>
       <LinkedCard
-        heading="Arth noticed"
+        heading={event === "investment" ? "Marked by you" : "Arth noticed"}
         icon={meta.icon}
         color={tone}
         title={meta.tag}

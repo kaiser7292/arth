@@ -226,6 +226,8 @@ function filtersFromDraft(
     sortBy: d.sortBy as ExpenseSortBy,
     nature,
     segment,
+    // Money moved into a demat account is listed as money out, tagged Investment.
+    withInvestmentTransfers: nature !== "credit",
   };
 }
 

@@ -1094,27 +1094,21 @@ const loadData = useCallback(async () => {
 
             const onRowPress =
                   // A balance correction opens like any transaction, where its reason can be changed.
-                  entry.isAdjustment || (entry.type === "debit" && !entry.isRefund)
+                  // Every credit opens its own details (owner, Nov 2026): a refund, a Hisaab
+                  // settlement or a hand-added credit used to open the expense it refunds, the
+                  // person's Hisaab or the edit form instead. Those links live on the details
+                  // screen; Edit stays behind a long-press.
+                  entry.isAdjustment || entry.type === "credit" || (entry.type === "debit" && !entry.isRefund)
                     ? () => router.push(`/expense/${entry.id}`)
-                    : // v15.13.1: refund rows (manual refund expense OR SMS
-                      // refund credit) deep-link to the originating expense
-                      // when the link is known. Higher priority than hisaab /
-                      // credit-edit so the refund → source flow wins.
+                    : // v15.13.1: a refund on the debit side deep-links to the originating expense
+                      // when the link is known.
                       entry.isRefund && entry.refundOfExpenseId
                       ? () => router.push(`/expense/${entry.refundOfExpenseId}`)
-                      : // Manual refund rows with no link OR the row itself:
-                        // still tap to open the refund row's own expense detail.
-                        entry.type === "credit" && entry.isRefund && !entry.refundOfExpenseId
+                      : entry.isRefund
                         ? () => router.push(`/expense/${entry.id}`)
                         : // Transfer rows with linked expense: navigate to expense details
                         isTransfer && entry.linkedExpenseId
                         ? () => router.push(`/expense/${entry.linkedExpenseId}`)
-                        : entry.type === "credit" && entry.linkedHisaabPersonId
-                          ? () => router.push(`/hisaab/ledger?personId=${entry.linkedHisaabPersonId}`)
-                          : entry.type === "credit" && entry.source === "sms_auto"
-                            ? () => router.push(`/expense/${entry.id}`)
-                            : entry.type === "credit" && entry.canDelete && !entry.isAdjustment
-                            ? () => handleStartEditCredit(entry)
                             : isTransfer && entry.rawSourceText
                               ? () =>
                                   setSourceSmsModal({

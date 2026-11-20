@@ -96,7 +96,8 @@ export interface Expense {
   updated_at: string;
 }
 
-export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip" | "investment_withdrawal";
+/** "investment" is set by hand ("Mark as investment"): money out, kept out of spending, no bucket needed. */
+export type MoneyEvent = "fd_open" | "fd_closure" | "self_transfer" | "sip" | "investment" | "investment_withdrawal";
 
 export const CREDIT_KINDS = ["salary", "bonus", "interest", "dividend", "rent", "refund", "cashback", "reimbursement", "gift", "gain", "settlement", "other"] as const;
 export type CreditKind = (typeof CREDIT_KINDS)[number];
@@ -226,6 +227,12 @@ export interface ExpenseFilters {
   nature?: "realized" | "credit" | "all";
   /** UI-level segment filter — narrows realized expenses by link type. Applied on top of nature='realized'. */
   segment?: "spend" | "committed";
+  /**
+   * Also list debits saved as a transfer into a demat account, as money out tagged Investment
+   * (the Transactions tab; owner, Nov 2026). They stay transfers everywhere else, and never count
+   * as spending.
+   */
+  withInvestmentTransfers?: boolean;
   /**
    * Restrict results to a specific set of expense IDs — used when drilling
    * into an insight group so the list shows exactly the expenses that insight

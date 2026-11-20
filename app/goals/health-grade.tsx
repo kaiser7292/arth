@@ -26,6 +26,9 @@ const GRADE_DESC: Record<HealthGrade, string> = {
   "F":  "Off-plan — major correction needed urgently",
 };
 
+/** Where each grade starts on the 0–100 bar, for the letters under it. */
+const GRADE_FROM: [HealthGrade, number][] = [["F", 0], ["D", 40], ["C", 55], ["B", 70], ["A", 80], ["A+", 90]];
+
 const NEXT_GRADE: Partial<Record<HealthGrade, HealthGrade>> = {
   "F": "D", "D": "C", "C": "B", "B": "A", "A": "A+",
 };
@@ -76,6 +79,8 @@ export default function HealthGradeScreen() {
         : theme.alpha("danger", 0.08);
 
   const nextG = NEXT_GRADE[healthGrade];
+  const nextFrom = nextG ? GRADE_FROM.find(([g]) => g === nextG)?.[1] ?? null : null;
+  const toNext = nextFrom != null ? Math.max(1, nextFrom - Math.round(healthScore)) : null;
   const weakFactors = [...factors]
     .filter((f) => f.status !== "positive")
     .sort((a, b) => a.score * a.weight - b.score * b.weight)
@@ -90,44 +95,59 @@ export default function HealthGradeScreen() {
       >
         <View className="px-4 py-4">
 
-          {/* Grade hero */}
+          {/* Grade hero: the grade, the score once (owner, Nov 2026: it showed twice), and the bar
+               with each grade's letter under where it starts. */}
           <Card className="mb-4">
-            <View className="flex-row items-start justify-between mb-4">
-              <View className="flex-1 pr-4">
-                <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                  Financial Health Grade
-                </Text>
-                <Text className="text-5xl font-bold mb-1" style={{ color: mainColor }}>
-                  {healthGrade}
-                </Text>
-                <Text className="text-meta text-muted-foreground">
-                  {GRADE_DESC[healthGrade]}
-                </Text>
-                {early && (
-                  <Text className="text-label text-muted-foreground mt-2">
-                    Early days: under two months of this year so far, so one big bill moves this a lot. Read it as a first look.
-                  </Text>
-                )}
-              </View>
-              <View
-                className="w-16 h-16 rounded-full items-center justify-center shrink-0"
-                style={{ borderWidth: 2.5, borderColor: tint(mainColor, 0.38), backgroundColor: mainBg }}
-              >
-                <Text className="text-heading font-bold" style={{ color: mainColor }}>
-                  {Math.round(healthScore)}
-                </Text>
-                <Text className="text-label text-faint-foreground">/ 100</Text>
-              </View>
-            </View>
-
-            {/* Score bar */}
-            <View className="flex-row items-center justify-between mb-1">
-              <Text className="text-label text-faint-foreground">Score</Text>
-              <Text className="text-label font-semibold" style={{ color: mainColor }}>
-                {Math.round(healthScore)} / 100
+            <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Financial Health Grade
+            </Text>
+            <View className="flex-row items-end justify-between mb-1" style={{ gap: 12 }}>
+              <Text className="text-5xl font-bold" style={{ color: mainColor }}>
+                {healthGrade}
+              </Text>
+              <Text className="text-heading font-bold mb-1.5" style={{ color: mainColor, fontVariant: ["tabular-nums"] }}>
+                {Math.round(healthScore)}
+                <Text className="text-meta font-normal text-faint-foreground"> / 100</Text>
               </Text>
             </View>
-            <ProgressBar value={(healthScore) / 100} color={mainColor} height={8} animated={false} />
+            <Text className="text-meta text-muted-foreground">
+              {GRADE_DESC[healthGrade]}
+            </Text>
+            {early && (
+              <Text className="text-label text-muted-foreground mt-2">
+                Early days: under two months of this year so far, so one big bill moves this a lot. Read it as a first look.
+              </Text>
+            )}
+
+            <View className="mt-4">
+              <ProgressBar value={healthScore / 100} color={mainColor} height={8} animated={false} />
+              <View style={{ height: 16, marginTop: 4 }}>
+                {GRADE_FROM.map(([g, from], i) => {
+                  const to = GRADE_FROM[i + 1]?.[1] ?? 100;
+                  const isCurrent = g === healthGrade;
+                  return (
+                    <Text
+                      key={g}
+                      className={`text-label text-center ${isCurrent ? "font-bold" : ""}`}
+                      style={{
+                        position: "absolute",
+                        left: `${(from + to) / 2}%`,
+                        width: 28,
+                        marginLeft: -14,
+                        color: isCurrent ? mainColor : theme.faintForeground,
+                      }}
+                    >
+                      {g}
+                    </Text>
+                  );
+                })}
+              </View>
+            </View>
+            {nextG && toNext != null && (
+              <Text className="text-label text-muted-foreground mt-1">
+                {toNext} {toNext === 1 ? "point" : "points"} to {nextG}
+              </Text>
+            )}
           </Card>
 
           {/* Factors breakdown */}
