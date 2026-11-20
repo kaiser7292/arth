@@ -1716,7 +1716,7 @@ export default function ExpenseDetailScreen() {
     else if (expense.money_event === "self_transfer") {
       if (expense.nature === "credit") setCreditTransferPickerVisible(true);
       else setTransferPickerVisible(true);
-    } else if (expense.money_event === "sip") setInvestmentSheetVisible(true);
+    } else if (expense.money_event === "sip" || expense.money_event === "investment") setInvestmentSheetVisible(true);
     else if (expense.money_event === "investment_withdrawal" && expense.account_id) setWithdrawalSheetVisible(true);
   }, [act, loaded, expense]);
 
@@ -1751,6 +1751,8 @@ export default function ExpenseDetailScreen() {
   const linkable = expense.nature === "realized" && !expense.refund_of_expense_id && !expense.purchase_group_id && !investmentLink && !loanLink && !transfer;
   const canInvest = V15_FLAGS.v17_expense_investment_link && linkable;
   const canLoan = V15_FLAGS.v17_loans_v1 && linkable;
+  // Money out that is an investment, with no bucket needed: tagged Investment, kept out of spending.
+  const canMarkInvestment = linkable && !expense.money_event && expense.reclassified_as_transfer !== 1;
   const canRecordRefund = expense.nature === "realized" && refundedAmount < originalAmount;
   const canSplit = expense.nature !== "credit" && expense.nature !== "forecast" && !expense.household_ref && isPartOn("hisaab");
   const canDuplicate = expense.nature === "realized" || expense.nature === "credit";
@@ -1763,6 +1765,16 @@ export default function ExpenseDetailScreen() {
       const fresh = await getExpenseById(id);
       if (fresh) setExpense(fresh);
       setOpenFdPicker(true);
+    } catch (e) {
+      alert("Couldn't do that", e instanceof Error ? e.message : String(e));
+    }
+  };
+  const markInvestment = async () => {
+    try {
+      const { setMoneyEvent } = await import("@/services/money-events");
+      await setMoneyEvent(expense.id, "investment");
+      const fresh = await getExpenseById(id);
+      if (fresh) setExpense(fresh);
     } catch (e) {
       alert("Couldn't do that", e instanceof Error ? e.message : String(e));
     }
@@ -1833,6 +1845,7 @@ export default function ExpenseDetailScreen() {
         ...(canCreditTransfer && !inRow.has("credit-transfer")
           ? [{ key: "credit-transfer", label: isCC ? "Mark as CC bill payment" : "Mark as transfer", hint: isCC ? "This was your bill paid from another account" : "This money came from another account of yours", icon: "swap-horizontal-outline" as const, onPress: () => setCreditTransferPickerVisible(true) }]
           : []),
+        ...(canMarkInvestment ? [{ key: "mark-investment", label: "Mark as investment", hint: "Money out, tagged Investment, left out of spending. No bucket needed", icon: "trending-up-outline" as const, onPress: markInvestment }] : []),
         ...(canFdClosure ? [{ key: "fd-closure", label: "FD matured or closed", hint: "This money came back from a fixed deposit", icon: "lock-open-outline" as const, onPress: markFdClosure }] : []),
         ...(canWithdrawal ? [{ key: "withdrawal", label: "Investment withdrawal", hint: "Money out of a fund, stocks, PPF, NPS or similar", icon: "trending-down-outline" as const, onPress: () => setWithdrawalSheetVisible(true) }] : []),
       ],

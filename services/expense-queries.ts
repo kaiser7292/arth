@@ -21,7 +21,7 @@ const NOT_INVESTMENT_LINKED = `
   AND NOT EXISTS (
     SELECT 1 FROM expense_investment_links l
     WHERE l.expense_id = expenses.id
-  ) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
+  ) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer')
   AND NOT EXISTS (
     SELECT 1 FROM expense_loan_links ll
     WHERE ll.expense_id = expenses.id
@@ -29,6 +29,12 @@ const NOT_INVESTMENT_LINKED = `
 `;
 
 const NOT_RECLASSIFIED = "(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)";
+
+/** A debit saved as a transfer whose money went into a demat account: an investment, not a move. */
+const INTO_DEMAT = `(expenses.nature = 'realized' AND COALESCE(expenses.reclassified_as_transfer, 0) = 1 AND EXISTS (
+  SELECT 1 FROM account_transfers t JOIN financial_accounts fa ON fa.id = t.to_account_id
+   WHERE (t.id = expenses.linked_transfer_id OR t.linked_expense_id = expenses.id)
+     AND t.deleted_at IS NULL AND fa.account_type = 'demat'))`;
 
 /**
  * Get expenses for a user within a date range, ordered by date descending.
@@ -122,7 +128,7 @@ function buildFilterConditions(userId: string, filters: ExpenseFilters): { condi
     conditions.push("nature = ?");
     params.push(nature);
   }
-  conditions.push(NOT_RECLASSIFIED);
+  conditions.push(filters.withInvestmentTransfers && filters.segment !== "spend" ? `(${NOT_RECLASSIFIED} OR ${INTO_DEMAT})` : NOT_RECLASSIFIED);
 
   if (filters.status) {
     conditions.push("status = ?");
@@ -210,9 +216,9 @@ function buildFilterConditions(userId: string, filters: ExpenseFilters): { condi
   }
   if (filters.segment === "spend") {
     conditions.push(`NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)`);
-    conditions.push(`NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')`);
+    conditions.push(`NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer')`);
   } else if (filters.segment === "committed") {
-    conditions.push(`(EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id) OR EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) OR COALESCE(expenses.money_event, '') IN ('fd_open', 'sip', 'self_transfer'))`);
+    conditions.push(`(EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id) OR EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) OR COALESCE(expenses.money_event, '') IN ('fd_open', 'sip', 'investment', 'self_transfer'))`);
   }
   return { conditions, params };
 }
@@ -251,7 +257,7 @@ export async function getExpensesPaginated(
        split_original_amount, split_person_id, split_pct, split_hisaab_entry_id, split_mode,
        money_event, purchase_group_id,
        EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id) AS is_loan_payment,
-       EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AS is_investment,
+       (EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id)${filters.withInvestmentTransfers ? ` OR ${INTO_DEMAT}` : ""}) AS is_investment,
        deleted_at, created_at
      FROM expenses
      WHERE ${conditions.join(" AND ")}
@@ -625,7 +631,7 @@ export async function getExpenseTotalsByCategoryAndClassification(
      FROM expenses
      WHERE user_id = ? AND status = 'approved' AND nature = 'realized'
        AND deleted_at IS NULL AND ${NOT_RECLASSIFIED} AND date >= ? AND date <= ?
-       AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
+       AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer')
        AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY category_id, is_unavoidable;`,
     userId,

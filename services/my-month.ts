@@ -94,14 +94,14 @@ export async function getMyMonth(userId: string, month: string): Promise<MyMonth
     db.getAllAsync<{ category_id: string | null; total: number }>(
       `SELECT category_id, SUM(MAX(0, ${amount} - ${LINKED_PART})) AS total FROM expenses
        WHERE user_id = ? AND date >= ? AND date <= ? AND ${REAL_DEBIT}
-         AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'self_transfer')
+         AND COALESCE(money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer')
        GROUP BY category_id ORDER BY total DESC;`,
       userId, startDate, endDate,
     ),
     db.getAllAsync<{ money_event: string; total: number }>(
       `SELECT money_event, SUM(${amount}) AS total FROM expenses
        WHERE user_id = ? AND date >= ? AND date <= ? AND ${NOT_PUT_AWAY}
-         AND money_event IN ('fd_open', 'sip')
+         AND money_event IN ('fd_open', 'sip', 'investment')
        GROUP BY money_event;`,
       userId, startDate, endDate,
     ),

@@ -38,6 +38,14 @@ export const MONEY_EVENT_META: Record<
     primaryAction: "Link to bucket",
     dismissAction: "It's not a SIP",
   },
+  investment: {
+    short: "Investment",
+    tag: "Investment",
+    icon: "trending-up-outline",
+    tone: "success",
+    primaryAction: "Link to bucket",
+    dismissAction: "Not an investment",
+  },
   investment_withdrawal: {
     short: "Investment return",
     tag: "Money back from an investment",
