@@ -9,6 +9,7 @@ import { getDatabase } from "@/database";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { round2 } from "@/utils/math";
 import { effectiveAmountSql } from "./expense-effective-amount";
+import { getComputedBalanceComponents } from "./account-balance";
 
 /**
  * v17.0.0: Exclude expenses linked to investment buckets from spending insights
@@ -53,7 +54,9 @@ export type InsightType =
   | "lifestyle_creep"
   | "savings_win"
   | "micro_leaks"
-  | "category_spike";
+  | "category_spike"
+  | "card_use"
+  | "idle_cash";
 
 export interface Insight {
   id: string;
@@ -66,6 +69,8 @@ export interface Insight {
   categoryName?: string;
   trendData?: number[];
   score: number;
+  /** Where tapping it goes when it isn't a spending drill-down (an accounts screen). */
+  href?: string;
 }
 
 export interface InsightDrillGroup {
@@ -111,14 +116,17 @@ export async function getInsights(
 
   const insights: Insight[] = [];
 
-  const [breaches, creep, wins, leaks] = await Promise.all([
+  const [breaches, creep, wins, leaks, cards, idle] = await Promise.all([
     detectBudgetBreaches(userId, yearMonth),
     detectLifestyleCreep(userId, yearMonth),
     detectSavingsWins(userId, yearMonth),
     detectMicroLeaks(userId, yearMonth),
+    // Account insights (Nov 2026 redesign): never let one of these sink the rest.
+    detectCardUse(userId).catch(() => [] as Insight[]),
+    detectIdleCash(userId, yearMonth).catch(() => [] as Insight[]),
   ]);
 
-  insights.push(...breaches, ...creep, ...wins, ...leaks);
+  insights.push(...breaches, ...creep, ...wins, ...leaks, ...cards, ...idle);
 
   // Sort by score descending, take top N
   insights.sort((a, b) => b.score - a.score);
@@ -307,6 +315,84 @@ async function detectMicroLeaks(userId: string, yearMonth: string): Promise<Insi
     title: `Micro-leaks: ${formatCurrency(row.total)}/month`,
     detail: `${row.count} small transactions adding up`,
     score: 35 + Math.min(Math.round(row.total / 1000), 20),
+  }];
+}
+
+/**
+ * A credit card (or a bank's shared-limit pool) more than 30% used: above that, lenders and credit
+ * bureaus start to count it against you. Says how much paying early would bring it under.
+ */
+async function detectCardUse(userId: string): Promise<Insight[]> {
+  const db = getDatabase();
+  const cards = await db.getAllAsync<{ id: string; bank_name: string | null; account_identifier: string | null; credit_limit: number | null }>(
+    `SELECT id, bank_name, account_identifier, credit_limit FROM financial_accounts
+      WHERE user_id = ? AND account_type = 'credit_card' AND is_active = 1 AND closed_at IS NULL;`,
+    userId,
+  );
+  if (cards.length === 0) return [];
+  const comps = await getComputedBalanceComponents(cards.map((c) => c.id));
+  const byBank = new Map<string, typeof cards>();
+  for (const c of cards) {
+    const k = c.bank_name ?? c.id;
+    byBank.set(k, [...(byBank.get(k) ?? []), c]);
+  }
+  const out: Insight[] = [];
+  for (const [bank, group] of byBank) {
+    const limit = Math.max(0, ...group.map((c) => c.credit_limit ?? 0));
+    if (limit <= 0) continue;
+    const used = group.reduce((s, c) => s + Math.max(0, comps[c.id]?.closing ?? 0), 0);
+    const pct = (used / limit) * 100;
+    if (pct <= 30) continue;
+    const name = group.length === 1 && group[0].account_identifier ? `${bank} ••${group[0].account_identifier.slice(-4)}` : bank;
+    const toPay = Math.ceil((used - limit * 0.3) / 100) * 100;
+    out.push({
+      id: `carduse_${group[0].id}`,
+      type: "card_use",
+      severity: pct > 75 ? "critical" : "warning",
+      title: `${name} is ${Math.round(pct)}% used`,
+      detail: `Above 30% can pull your credit score down. Paying ${formatCurrency(toPay)} early brings it under.`,
+      score: 50 + Math.min(Math.round(pct - 30), 30),
+      href: "/reconciliation/credit-cards",
+    });
+  }
+  return out;
+}
+
+/**
+ * More than 6 months of spending sitting in savings accounts: most planners keep 3 to 6 as an
+ * emergency buffer, so the rest could be working harder.
+ */
+async function detectIdleCash(userId: string, yearMonth: string): Promise<Insight[]> {
+  const db = getDatabase();
+  const accounts = await db.getAllAsync<{ id: string }>(
+    `SELECT id FROM financial_accounts WHERE user_id = ? AND account_type = 'savings' AND is_active = 1 AND closed_at IS NULL;`,
+    userId,
+  );
+  if (accounts.length === 0) return [];
+  const comps = await getComputedBalanceComponents(accounts.map((a) => a.id));
+  const cash = accounts.reduce((s, a) => s + Math.max(0, comps[a.id]?.closing ?? 0), 0);
+  // The three full months before this one.
+  const [y, mo] = yearMonth.split("-").map(Number);
+  const from = getMonthDateRange(`${new Date(y, mo - 4, 1).getFullYear()}-${String(new Date(y, mo - 4, 1).getMonth() + 1).padStart(2, "0")}`).startDate;
+  const to = getMonthDateRange(`${new Date(y, mo - 2, 1).getFullYear()}-${String(new Date(y, mo - 2, 1).getMonth() + 1).padStart(2, "0")}`).endDate;
+  const row = await db.getFirstAsync<{ total: number | null }>(
+    `SELECT SUM(${effectiveAmountSql("expenses")}) as total FROM expenses
+      WHERE user_id = ? AND status = 'approved' AND nature = 'realized' AND deleted_at IS NULL
+        AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ? ${NOT_LINKED_BARE};`,
+    userId, from, to,
+  );
+  const monthly = (row?.total ?? 0) / 3;
+  if (monthly < 1000) return [];
+  const months = cash / monthly;
+  if (months < 6) return [];
+  return [{
+    id: `idle_${yearMonth}`,
+    type: "idle_cash",
+    severity: "info",
+    title: `${formatCurrency(cash)} sitting idle in savings`,
+    detail: `That's ${Math.round(months)} months of your spending. Most planners keep 3 to 6 as a buffer.`,
+    score: 30 + Math.min(Math.round(months), 20),
+    href: "/reconciliation/bank-accounts",
   }];
 }
 
