@@ -145,8 +145,6 @@ export default function WalletsScreen() {
         {/* Summary: what's in the wallets now, then top-ups against spending (owner, Nov 2026). */}
         {summaries.length > 0 && (() => {
           const isNow = month === getCurrentMonth();
-          const ins = [totalCredits > 0 ? `Top-ups and refunds ${formatAmount(totalCredits)}` : null, totalTransfersIn > 0 ? `transfers in ${formatAmount(totalTransfersIn)}` : null].filter(Boolean).join(" · ");
-          const outs = [totalExpenses > 0 ? `Payments ${formatAmount(totalExpenses)}` : null, totalTransfersOut > 0 ? `transfers out ${formatAmount(totalTransfersOut)}` : null].filter(Boolean).join(" · ");
           return (
             <SummaryCard
               label={`All wallets · ${summaries.length}`}
@@ -162,10 +160,8 @@ export default function WalletsScreen() {
               <FlowTiles
                 inLabel="Topped up"
                 inAmount={totalCredits + totalTransfersIn}
-                inSub={ins || "Nothing added"}
                 outLabel="Spent"
                 outAmount={totalExpenses + totalTransfersOut}
-                outSub={outs || "Nothing spent"}
               />
               <FootRows
                 rows={[
@@ -186,13 +182,7 @@ export default function WalletsScreen() {
         {summaries.length > 0 && <CardsLabel title="Wallets" />}
         {summaries.map(({ account, opening, expenses, credits, transfersOut, transfersIn, current, seeded, autoDetectedStale }) => {
           const title = account.account_label ?? account.bank_name ?? "Wallet";
-          const spent = expenses + transfersOut;
-          const added = credits + transfersIn;
-          const sub = [
-            account.account_label && account.bank_name && account.account_label !== account.bank_name ? account.bank_name : null,
-            spent > 0 ? `Spent ${formatAmount(spent)}` : null,
-            added > 0 ? `topped up ${formatAmount(added)}` : null,
-          ].filter(Boolean).join(" · ") || "Nothing this month";
+          const sub = account.account_label && account.bank_name && account.account_label !== account.bank_name ? account.bank_name : null;
           const note = smsNote(account, current, autoDetectedStale, "wallet");
           return (
             <AccountCard
