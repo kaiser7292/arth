@@ -4,10 +4,10 @@ import { View, Pressable, FlatList } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { Card, EmptyState, ScreenContainer, Segmented, Text } from "@/components/ui";
+import { Card, EmptyState, ScreenContainer, Text } from "@/components/ui";
 import { getMerchantAnalytics, getMerchantDetail } from "@/services/spending-insights";
 import { getCategories } from "@/services/category";
-import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
+import { formatAmount } from "@/utils/expense-validation";
 import type { MerchantInsight } from "@/utils/spending-insights";
 import type { Category } from "@/services/category";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -56,6 +56,7 @@ export default function MerchantAnalyticsScreen() {
   const [rows, setRows] = useState<Row[]>([]);
   const [quiet, setQuiet] = useState<MerchantInsight[]>([]);
   const [view, setView] = useState<View_>("all");
+  const [hasHistory, setHasHistory] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [categoryMap, setCategoryMap] = useState<Map<string, Category>>(new Map());
   const [selected, setSelected] = useState<string | null>(null);
@@ -73,6 +74,7 @@ export default function MerchantAnalyticsScreen() {
       ]);
       const prevBy = new Map(before.map((m) => [m.merchant, m.totalSpent]));
       const nowNames = new Set(now.map((m) => m.merchant));
+      setHasHistory(before.length > 0);
       setRows(now.map((m) => ({ ...m, prev: prevBy.get(m.merchant) ?? 0 })));
       setQuiet(before.filter((m) => !nowNames.has(m.merchant)));
       setCategoryMap(new Map(cats.map((c) => [c.id, c])));
@@ -106,7 +108,7 @@ export default function MerchantAnalyticsScreen() {
   const total = rows.reduce((s, m) => s + m.totalSpent, 0);
   const top = rows.slice(0, 5);
   const topTotal = top.reduce((s, m) => s + m.totalSpent, 0);
-  const fresh = rows.filter((r) => r.prev === 0);
+  const fresh = hasHistory ? rows.filter((r) => r.prev === 0) : [];
   const freshTotal = fresh.reduce((s, m) => s + m.totalSpent, 0);
   const list: (Row | MerchantInsight)[] = view === "new" ? fresh : view === "quiet" ? quiet : showAll ? rows : rows.slice(0, SHOWN);
 
@@ -118,21 +120,33 @@ export default function MerchantAnalyticsScreen() {
 
   const header = (
     <View style={{ gap: 12 }} className="pb-3">
-      <Segmented<TimeRange>
-        options={[
+      <View className="flex-row" style={{ gap: 8 }}>
+        {([
           { value: "1m", label: "This month" },
           { value: "3m", label: "3 months" },
           { value: "6m", label: "6 months" },
-        ]}
-        value={range}
-        onChange={(v) => {
-          setRange(v);
-          setSelected(null);
-          setDetail(null);
-          setView("all");
-          setShowAll(false);
-        }}
-      />
+        ] as { value: TimeRange; label: string }[]).map((o) => {
+          const on = range === o.value;
+          return (
+            <Pressable
+              key={o.value}
+              onPress={() => {
+                setRange(o.value);
+                setSelected(null);
+                setDetail(null);
+                setView("all");
+                setShowAll(false);
+              }}
+              className="px-4 rounded-pill border justify-center"
+              style={{ height: 36, backgroundColor: on ? theme.primary : "transparent", borderColor: on ? theme.primary : theme.border }}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: on }}
+            >
+              <Text className="text-meta font-semibold" style={{ color: on ? theme.primaryForeground : theme.mutedForeground }}>{o.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
       {rows.length > 0 && (
         <Card>
           <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
@@ -157,6 +171,7 @@ export default function MerchantAnalyticsScreen() {
             ))}
             {total > topTotal && <View style={{ flex: total - topTotal }} />}
           </View>
+          {hasHistory && (
           <View className="flex-row mt-3" style={{ gap: 8 }}>
             <FilterTile
               label="New this period"
@@ -171,6 +186,7 @@ export default function MerchantAnalyticsScreen() {
               onPress={() => setView((v) => (v === "quiet" ? "all" : "quiet"))}
             />
           </View>
+          )}
         </Card>
       )}
       {rows.length > 0 && (
@@ -228,9 +244,9 @@ export default function MerchantAnalyticsScreen() {
                     style={{ color: change == null ? theme.mutedForeground : change > 0.02 ? theme.danger : change < -0.02 ? theme.success : theme.mutedForeground }}
                   >
                     {view === "quiet"
-                      ? `last ${formatDateForDisplay(item.lastDate)}`
+                      ? `last ${shortDay(item.lastDate)}`
                       : change == null
-                        ? "new"
+                        ? hasHistory ? "new" : ""
                         : Math.abs(change) <= 0.02
                           ? "no change"
                           : `${change > 0 ? "↑" : "↓"} ${Math.round(Math.abs(change) * 100)}%`}
@@ -243,7 +259,7 @@ export default function MerchantAnalyticsScreen() {
                 <View className="px-4 pb-4" style={{ gap: 12, paddingLeft: 52, backgroundColor: theme.alpha("primary", 0.04) }}>
                   <View className="flex-row" style={{ gap: 8 }}>
                     <Stat label="Per payment" value={formatAmount(Math.round(detail.avgAmount))} />
-                    <Stat label="Last paid" value={detail.transactions[0] ? formatDateForDisplay(detail.transactions[0].date) : "—"} />
+                    <Stat label="Last paid" value={detail.transactions[0] ? shortDay(detail.transactions[0].date) : "—"} />
                     <Stat label="Share" value={view === "quiet" || total <= 0 ? "—" : `${Math.round((item.totalSpent / total) * 100)}%`} />
                   </View>
 
@@ -290,8 +306,8 @@ export default function MerchantAnalyticsScreen() {
                         accessibilityLabel={`${t.description ?? "Payment"}, ${formatAmount(t.amount)}`}
                         accessibilityRole="button"
                       >
-                        <Text className="text-label text-muted-foreground" style={{ width: 64 }}>{formatDateForDisplay(t.date)}</Text>
-                        <Text className="text-meta text-foreground flex-1" numberOfLines={1}>{t.description ?? "-"}</Text>
+                        <Text className="text-label text-muted-foreground" style={{ width: 52 }} numberOfLines={1}>{shortDay(t.date)}</Text>
+                        <Text className="text-meta text-foreground flex-1" numberOfLines={1}>{t.description && t.description.trim() !== "-" ? t.description : item.merchant}</Text>
                         <Text className="text-meta font-semibold text-foreground">{formatAmount(t.amount)}</Text>
                         <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} />
                       </Pressable>
@@ -333,6 +349,13 @@ export default function MerchantAnalyticsScreen() {
       />
     </ScreenContainer>
   );
+}
+
+/** "15 Nov" (with the year when it isn't this year). */
+function shortDay(date: string): string {
+  const d = new Date(date.slice(0, 10) + "T00:00:00");
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString("en-IN", sameYear ? { day: "numeric", month: "short" } : { day: "numeric", month: "short", year: "2-digit" });
 }
 
 function monthShort(month: string): string {

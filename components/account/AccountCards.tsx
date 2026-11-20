@@ -344,6 +344,25 @@ export function MonthStrip({ values, height = 6, label }: { values: (number | nu
   );
 }
 
+/**
+ * An account's opening for the month, and the balance corrections that also moved it, so opening +
+ * in − out + corrections is the balance shown (owner, Nov 2026: the numbers have to add up).
+ */
+export function OpeningLine({ opening, corrections }: { opening: number; corrections: number }) {
+  const theme = useTheme();
+  const show = Math.abs(corrections) >= 0.5;
+  return (
+    <View className="flex-row justify-between" style={{ gap: 8 }}>
+      <Text className="text-label text-muted-foreground" numberOfLines={1}>Opened at {formatAmount(opening)}</Text>
+      {show && (
+        <Text className="text-label" numberOfLines={1} style={{ color: theme.warning }}>
+          Corrections {signed(corrections)}
+        </Text>
+      )}
+    </View>
+  );
+}
+
 /** The uppercase label over the account cards. */
 export function CardsLabel({ title }: { title: string }) {
   return (

@@ -14,6 +14,8 @@ import {
   FlowBar,
   FlowTiles,
   FootRows,
+  OpeningLine,
+  signed,
   SummaryCard,
   smsNote,
 } from "@/components/account/AccountCards";
@@ -170,11 +172,12 @@ export default function BankAccountsScreen() {
               <FootRows
                 rows={[
                   { label: "Opened the month at", value: formatAmount(totalOpening) },
-                  // Drift: how much was corrected by hand this month (more = less trust in what SMS gave).
-                  ...(adjustmentStats.count > 0
+                  // Balance corrections move the balance but aren't in Inflow or Outflow: shown net so
+                  // opening + inflow − outflow + corrections is the total above.
+                  ...(Math.abs(totalBalance - totalOpening - (totalCredits + totalTransfersIn) + (totalExpenses + totalTransfersOut)) >= 0.5
                     ? [{
-                        label: `Includes ${adjustmentStats.count} balance ${adjustmentStats.count === 1 ? "correction" : "corrections"}`,
-                        value: formatAmount(adjustmentStats.total),
+                        label: `Balance corrections${adjustmentStats.count > 0 ? ` · ${adjustmentStats.count}` : ""}`,
+                        value: signed(totalBalance - totalOpening - (totalCredits + totalTransfersIn) + (totalExpenses + totalTransfersOut)),
                         color: theme.warning,
                       }]
                     : []),
@@ -214,9 +217,7 @@ export default function BankAccountsScreen() {
                 inText={`In ${formatAmount(inflow)}`}
                 outText={`Out ${formatAmount(outflow)}`}
               />
-              <Text className="text-label text-muted-foreground">
-                Opened the month at {formatAmount(opening)}
-              </Text>
+              <OpeningLine opening={opening} corrections={current - opening - inflow + outflow} />
               {note && <CardNote tone={note.tone} text={note.text} />}
             </AccountCard>
           );

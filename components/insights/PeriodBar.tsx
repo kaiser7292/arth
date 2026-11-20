@@ -37,8 +37,8 @@ export function PeriodBar({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
+        style={{ flexGrow: 0, flexShrink: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8, alignItems: "center" }}
       >
         {INSIGHT_PERIODS.map((p) => {
           const selected = period === p;
@@ -46,15 +46,16 @@ export function PeriodBar({
             <Pressable
               key={p}
               onPress={() => onPeriod(p)}
-              className="px-4 py-2 rounded-full border"
+              className="px-4 rounded-pill border justify-center"
               style={{
+                height: 36,
                 backgroundColor: selected ? theme.primary : "transparent",
                 borderColor: selected ? theme.primary : theme.border,
               }}
               accessibilityRole="radio"
               accessibilityState={{ checked: selected }}
             >
-              <Text className="text-body font-semibold" style={{ color: selected ? "#fff" : theme.mutedForeground }}>
+              <Text className="text-meta font-semibold" numberOfLines={1} style={{ color: selected ? theme.primaryForeground : theme.mutedForeground }}>
                 {insightPeriodLabel(p, fyStartMonth)}
               </Text>
             </Pressable>
