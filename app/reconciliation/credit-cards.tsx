@@ -1,9 +1,20 @@
 import { useState, useCallback, useMemo } from "react";
-import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
 import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import {
+  AccountHead,
+  CardNote,
+  CardsLabel,
+  ClosedAccountRow,
+  ClosedToggle,
+  FootRows,
+  ShareBar,
+  SummaryCard,
+  shortDate,
+  type NoteTone,
+} from "@/components/account/AccountCards";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
@@ -30,6 +41,25 @@ function getUtilColor(pct: number, theme: Theme): string {
   if (pct > 75) return theme.danger;
   if (pct > 50) return theme.warning;
   return theme.success;
+}
+
+/** Days from today to a YYYY-MM-DD date (negative: past). */
+function daysUntil(dateStr: string): number {
+  const d = new Date(dateStr + "T00:00:00");
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/** What the bank's SMS says about a pool's room left, against Arth's figure, as one note. */
+function poolNote(remaining: number, bankLeft: number | null, stale: boolean): { tone: NoteTone; text: string } | null {
+  if (bankLeft == null) return null;
+  if (stale) return { tone: "info", text: `SMS said ${formatAmount(bankLeft)} left, before your latest payment · using Arth's figure` };
+  const diff = remaining - bankLeft;
+  if (Math.abs(diff) < 0.005) return { tone: "ok", text: `Matches the bank's SMS · ${formatAmount(bankLeft)} left` };
+  return diff > 0
+    ? { tone: "warn", text: `${formatAmount(Math.abs(diff))} of spending not in Arth yet · bank says ${formatAmount(bankLeft)} left` }
+    : { tone: "warn", text: `${formatAmount(Math.abs(diff))} of payments not in Arth yet · bank says ${formatAmount(bankLeft)} left` };
 }
 
 function formatDueDate(dateStr: string | null): string {
@@ -231,225 +261,109 @@ export default function CreditCardsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
         }
       >
-        {/* Overall summary card */}
-        <Card className="mx-4 mt-3 mb-2">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Overall Summary
-            </Text>
-            <Text className="text-xs text-muted-foreground">
-              {ccAccounts.length} card{ccAccounts.length !== 1 ? "s" : ""}
-            </Text>
-          </View>
-
-          {(() => {
-            // Ledger-authoritative available = limit − utilized (opening + expenses − credits ± adjustments)
-            const utilized = totalLimit - totalAvailable;
-            const remaining = totalAvailable;
-            const autoDetectedUsable = !anyAutoDetectedStaleOrMissing && totalAutoDetected > 0;
-            // Difference = ledger remaining − bank remaining.
-            // Positive → ledger thinks there's more room than the bank → untracked spend.
-            // Negative → ledger thinks there's less room → untracked credit/payment.
-            const totalDiff = autoDetectedUsable ? remaining - totalAutoDetected : 0;
-            const totalDiffColor = !autoDetectedUsable
-              ? theme.faintForeground
-              : Math.abs(totalDiff) < 0.005
-                ? theme.success
-                : totalDiff > 0 ? theme.warning : theme.danger;
-            const totalDiffLabel = !autoDetectedUsable
-              ? "Partial SMS data"
-              : Math.abs(totalDiff) < 0.005
-                ? "Bank matches"
-                : totalDiff > 0
-                  ? `${formatAmount(Math.abs(totalDiff))} untracked spend`
-                  : `${formatAmount(Math.abs(totalDiff))} untracked credit`;
-            return (
-              <>
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-muted-foreground">Credit Limit</Text>
-                  <Text className="text-sm font-bold text-foreground">{formatAmount(totalLimit)}</Text>
-                </View>
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-muted-foreground">Utilized</Text>
-                  <Text className="text-sm font-bold text-foreground">{formatAmount(utilized)}</Text>
-                </View>
-                <View className="flex-row justify-between mb-2">
-                  <Text className="text-xs text-muted-foreground">Remaining</Text>
-                  <Text className="text-sm font-bold text-foreground">{formatAmount(remaining)}</Text>
-                </View>
-
-                {/* Utilization bar — inline % at the right, sits under the 3-number summary */}
-                <View className="flex-row items-center mb-2">
-                  <View className="flex-1 h-1.5 rounded-full bg-border mr-2">
-                    <View
-                      className="h-1.5 rounded-full"
-                      style={{ width: `${Math.min(overallUtil, 100)}%`, backgroundColor: overallUtilColor }}
-                    />
+        {/* Summary: what's used against the limit, the bills that need you, then what the banks say
+            (owner, Nov 2026, "Arth account cards"). */}
+        {ccAccounts.length > 0 && (() => {
+          const utilized = totalLimit - totalAvailable;
+          const remaining = totalAvailable;
+          const autoDetectedUsable = !anyAutoDetectedStaleOrMissing && totalAutoDetected > 0;
+          const totalDiff = autoDetectedUsable ? remaining - totalAutoDetected : 0;
+          const dues = ccAccounts.filter((a) => a.total_due != null && a.total_due > 0 && a.due_date);
+          const overdue = dues.filter((a) => daysUntil(a.due_date!) < 0);
+          const next = dues.filter((a) => daysUntil(a.due_date!) >= 0).sort((a, b) => a.due_date!.localeCompare(b.due_date!))[0];
+          const nextText = next
+            ? `${overdue.length > 0 ? "Next: " : ""}${next.bank_name} ••${next.account_identifier} · ${formatAmount(next.total_due!)} ${(() => {
+                const d = daysUntil(next.due_date!);
+                return d === 0 ? "due today" : d === 1 ? "due tomorrow" : `in ${d} days`;
+              })()}`
+            : null;
+          return (
+            <SummaryCard
+              label={`Used on all cards · ${ccAccounts.length}`}
+              amount={utilized}
+              amountAside={totalLimit > 0 ? `of ${formatAmount(totalLimit)}` : undefined}
+            >
+              {totalLimit > 0 && (
+                <View style={{ gap: 6 }}>
+                  <View>
+                    <ShareBar value={overallUtil / 100} color={overallUtilColor} height={10} />
+                    {/* Where the bar turns amber (50%) and red (75%). */}
+                    <View className="absolute bg-card" style={{ left: "50%", top: -3, width: 2, height: 16 }} />
+                    <View className="absolute bg-card" style={{ left: "75%", top: -3, width: 2, height: 16 }} />
                   </View>
-                  <Text className="text-label font-medium" style={{ color: overallUtilColor }}>
-                    {Math.round(overallUtil)}% used
-                  </Text>
+                  <View className="flex-row justify-between">
+                    <Text className="text-meta font-semibold" style={{ color: overallUtilColor }}>{Math.round(overallUtil)}% used</Text>
+                    <Text className="text-meta text-muted-foreground">{formatAmount(remaining)} left</Text>
+                  </View>
                 </View>
-
-                {/* Reconciliation — everything below is about comparing ledger vs bank */}
-                {totalAutoDetected > 0 && (
-                  <>
-                    <View className="h-px bg-border mb-2" />
-                    <View className="flex-row justify-between mb-1">
-                      <Text className="text-xs text-muted-foreground">
-                        Bank detected remaining{anyAutoDetectedStaleOrMissing ? " (partial)" : ""}
+              )}
+              {(overdue.length > 0 || nextText) && (
+                <View className="flex-row items-center rounded-control px-3 py-2.5" style={{ gap: 10, backgroundColor: theme.alpha(overdue.length > 0 ? "danger" : "warning", overdue.length > 0 ? 0.07 : 0.08) }}>
+                  <Ionicons name="time-outline" size={18} color={overdue.length > 0 ? theme.danger : theme.warning} />
+                  <View className="flex-1" style={{ minWidth: 0 }}>
+                    {overdue.length > 0 && (
+                      <Text className="text-meta font-semibold" style={{ color: theme.danger }}>
+                        {overdue.length} {overdue.length === 1 ? "bill" : "bills"} overdue · {formatAmount(overdue.reduce((s, a) => s + (a.total_due ?? 0), 0))}
                       </Text>
-                      <Text
-                        className="text-sm font-bold text-foreground"
-                        style={anyAutoDetectedStaleOrMissing ? { color: theme.faintForeground } : undefined}
-                      >
-                        {formatAmount(totalAutoDetected)}
+                    )}
+                    {nextText && (
+                      <Text className={overdue.length > 0 ? "text-label text-muted-foreground" : "text-meta font-semibold"} style={overdue.length > 0 ? undefined : { color: theme.warning }}>
+                        {nextText}
                       </Text>
-                    </View>
-                    <View className="flex-row justify-between mb-2">
-                      <Text className="text-xs font-medium text-muted-foreground">Difference</Text>
-                      <Text className="text-sm font-bold" style={{ color: totalDiffColor }}>{totalDiffLabel}</Text>
-                    </View>
-                  </>
-                )}
-              </>
-            );
-          })()}
+                    )}
+                  </View>
+                </View>
+              )}
+              <FootRows
+                rows={[
+                  ...(totalAutoDetected > 0
+                    ? [{ label: `Banks say left${anyAutoDetectedStaleOrMissing ? " (not every card)" : ""}`, value: formatAmount(totalAutoDetected) }]
+                    : []),
+                  ...(totalAutoDetected > 0 && autoDetectedUsable && Math.abs(totalDiff) >= 0.005
+                    ? [{
+                        label: totalDiff > 0 ? "Spending not in Arth yet" : "Payments not in Arth yet",
+                        value: formatAmount(Math.abs(totalDiff)),
+                        color: theme.warning,
+                      }]
+                    : totalAutoDetected > 0 && autoDetectedUsable
+                      ? [{ label: "Arth matches the banks", value: "✓", color: theme.success }]
+                      : []),
+                  ...(adjustmentStats.count > 0
+                    ? [{
+                        label: `Includes ${adjustmentStats.count} balance ${adjustmentStats.count === 1 ? "correction" : "corrections"}`,
+                        value: formatAmount(adjustmentStats.total),
+                        color: theme.warning,
+                      }]
+                    : []),
+                ]}
+              />
+            </SummaryCard>
+          );
+        })()}
 
-          {/* Drift indicator — total manual ledger adjustments across all CCs this month.
-              Proxy for SMS parser reliability: more adjustments → less trust the app should
-              place in auto-detected balances. */}
-          {adjustmentStats.count > 0 && (
-            <View className="mt-2 pt-2 border-t border-border flex-row justify-between">
-              <Text className="text-label text-faint-foreground">
-                Manual ledger adjustments
-              </Text>
-              <Text className="text-label" style={{ color: theme.warning }}>
-                {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
-              </Text>
-            </View>
-          )}
-        </Card>
-
-        {/* Per-bank sections */}
+        {bankGroups.length > 0 && <CardsLabel title="By bank" />}
         {bankGroups.map((group) => {
-          const bankUtil = group.sharedLimit > 0
-            ? ((group.sharedLimit - group.sharedAvailable) / group.sharedLimit) * 100
-            : 0;
+          const bankUtil = group.sharedLimit > 0 ? ((group.sharedLimit - group.sharedAvailable) / group.sharedLimit) * 100 : 0;
           const bankUtilColor = getUtilColor(bankUtil, theme);
           const isShared = group.accounts.length > 1;
-
+          const note = poolNote(group.sharedAvailable, group.autoDetectedAvailable, group.autoDetectedStale);
           return (
-            <Card key={group.bankName} className="mx-4 mb-2">
-              {/* Bank header */}
-              <View className="flex-row items-center mb-3">
-                <View className="mr-3">
-                  <AccountTypeTile type="credit_card" size={36} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-base font-bold text-foreground">
-                    {group.bankName}
-                  </Text>
-                  <Text className="text-label text-muted-foreground">
-                    {group.accounts.length} card{group.accounts.length !== 1 ? "s" : ""}
-                    {isShared ? " · Shared limit" : ""}
-                  </Text>
-                </View>
-              </View>
+            <View key={group.bankName} className="mx-4 mb-2 rounded-card bg-card border border-border p-4" style={{ gap: 12 }}>
+              <AccountHead
+                type="credit_card"
+                title={group.bankName}
+                subtitle={
+                  isShared
+                    ? `${group.accounts.length} cards · shared limit ${formatAmount(group.sharedLimit)}`
+                    : group.sharedLimit > 0
+                      ? `Limit ${formatAmount(group.sharedLimit)} · ${formatAmount(group.sharedAvailable)} left`
+                      : "No limit set"
+                }
+                amount={group.utilized}
+                changeText={group.sharedLimit > 0 ? `${Math.round(bankUtil)}% used` : "used"}
+              />
+              {group.sharedLimit > 0 && <ShareBar value={bankUtil / 100} color={bankUtilColor} />}
 
-              {/* Credit Limit / Utilized / Remaining / Bank detected remaining / Difference */}
-              {(() => {
-                const remaining = group.sharedAvailable;
-                const autoDetectedUsable =
-                  group.autoDetectedAvailable != null && !group.autoDetectedStale;
-                const diff = autoDetectedUsable
-                  ? remaining - (group.autoDetectedAvailable ?? 0)
-                  : 0;
-                const diffColor = !autoDetectedUsable
-                  ? theme.faintForeground
-                  : Math.abs(diff) < 0.005
-                    ? theme.success
-                    : diff > 0 ? theme.warning : theme.danger;
-                const diffLabel = !autoDetectedUsable
-                  ? group.autoDetectedStale ? "SMS stale - using ledger" : "No SMS data"
-                  : Math.abs(diff) < 0.005
-                    ? "Bank matches"
-                    : diff > 0
-                      ? `${formatAmount(Math.abs(diff))} untracked spend`
-                      : `${formatAmount(Math.abs(diff))} untracked credit`;
-                return (
-                  <>
-                    <View className="flex-row justify-between mb-1">
-                      <Text className="text-xs text-muted-foreground">
-                        Credit Limit{isShared ? " (shared)" : ""}
-                      </Text>
-                      <Text className="text-sm font-semibold text-foreground">
-                        {formatAmount(group.sharedLimit)}
-                      </Text>
-                    </View>
-                    <View className="flex-row justify-between mb-1">
-                      <Text className="text-xs text-muted-foreground">
-                        Utilized
-                      </Text>
-                      <Text className="text-sm font-semibold text-foreground">
-                        {formatAmount(group.utilized)}
-                      </Text>
-                    </View>
-                    <View className="flex-row justify-between mb-2">
-                      <Text className="text-xs text-muted-foreground">
-                        Remaining
-                      </Text>
-                      <Text className="text-sm font-semibold text-foreground">
-                        {formatAmount(remaining)}
-                      </Text>
-                    </View>
-
-                    {/* Utilization bar — inline % on the right, right under the 3-number block */}
-                    <View className="flex-row items-center mb-2">
-                      <View className="flex-1 h-1.5 rounded-full bg-border mr-2">
-                        <View
-                          className="h-1.5 rounded-full"
-                          style={{ width: `${Math.min(bankUtil, 100)}%`, backgroundColor: bankUtilColor }}
-                        />
-                      </View>
-                      <Text className="text-label font-medium" style={{ color: bankUtilColor }}>
-                        {Math.round(bankUtil)}% used
-                      </Text>
-                    </View>
-
-                    {/* Reconciliation block — only when SMS data exists */}
-                    {group.autoDetectedAvailable != null && (
-                      <>
-                        <View className="h-px bg-border mb-2" />
-                        <View className="flex-row justify-between mb-1">
-                          <Text className="text-xs text-muted-foreground">
-                            Bank detected remaining{group.autoDetectedStale ? " (stale)" : ""}
-                          </Text>
-                          <Text
-                            className="text-sm font-semibold text-foreground"
-                            style={group.autoDetectedStale ? { textDecorationLine: "line-through", color: theme.faintForeground } : undefined}
-                          >
-                            {formatAmount(group.autoDetectedAvailable)}
-                          </Text>
-                        </View>
-                        <View className="flex-row justify-between mb-3">
-                          <Text className="text-xs font-medium text-muted-foreground">
-                            Difference
-                          </Text>
-                          <Text className="text-sm font-bold" style={{ color: diffColor }}>
-                            {diffLabel}
-                          </Text>
-                        </View>
-                      </>
-                    )}
-                  </>
-                );
-              })()}
-
-              {/* Per-card breakdown */}
-              <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Per Card Breakdown
-              </Text>
               {group.accounts.map((account) => {
                 const limit = account.credit_limit ?? 0;
                 const components = balanceComponents[account.id];
@@ -464,97 +378,55 @@ export default function CreditCardsScreen() {
                     ? Math.max(0, limit - account.last_known_balance)
                     : 0;
                 const hasDue = account.total_due != null && account.total_due > 0;
-                const dueLabel = hasDue ? formatDueDate(account.due_date) : null;
+                const overdueNow = hasDue && !!account.due_date && daysUntil(account.due_date) < 0;
+                const dueText = hasDue
+                  ? `${account.due_date ? (overdueNow ? `Overdue since ${shortDate(account.due_date)}` : `Due ${shortDate(account.due_date)}`) : "Due"} · ${formatAmount(account.total_due!)}${account.min_due != null ? ` · min ${formatAmount(account.min_due)}` : ""}`
+                  : "";
+                const parts = [
+                  `Spent ${formatAmount(spent)}`,
+                  credits > 0 ? `paid back ${formatAmount(credits)}` : null,
+                  adjNet !== 0 ? `corrections ${adjNet > 0 ? "+" : "−"}${formatAmount(Math.abs(adjNet))}` : null,
+                ].filter(Boolean).join(" · ");
                 return (
                   <Pressable
                     key={account.id}
                     onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
-                    className="py-3 border-t border-border"
+                    className="border-t border-border pt-3"
+                    style={{ gap: 8 }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Card ending ${account.account_identifier}, ${formatAmount(outstanding)} used, open ledger`}
                   >
-                    {/* Card name + chevron */}
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-sm font-semibold text-foreground">
-                        {"\u2022\u2022\u2022\u2022"} {account.account_identifier}
-                        {account.account_label ? ` · ${account.account_label}` : ""}
-                      </Text>
-                      <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-                    </View>
-
-                    {/* Per-card visual bifurcation — ledger is pool-level, this is just visibility */}
-                    <View className="flex-row justify-between mb-0.5">
-                      <Text className="text-xs text-muted-foreground">Spent this cycle</Text>
-                      <Text className="text-xs text-foreground">{formatAmount(spent)}</Text>
-                    </View>
-                    {credits > 0 && (
-                      <View className="flex-row justify-between mb-0.5">
-                        <Text className="text-xs text-muted-foreground">Paid back</Text>
-                        <Text className="text-xs" style={{ color: theme.success }}>{"−"}{formatAmount(credits)}</Text>
-                      </View>
-                    )}
-                    {adjNet !== 0 && (
-                      <View className="flex-row justify-between mb-0.5">
-                        <Text className="text-xs text-muted-foreground">Adjustments</Text>
-                        <Text
-                          className="text-xs"
-                          style={{ color: adjNet > 0 ? theme.warning : theme.success }}
-                        >
-                          {adjNet > 0 ? "+" : "−"}{formatAmount(Math.abs(adjNet))}
+                    <View className="flex-row items-center" style={{ gap: 8 }}>
+                      <View className="flex-1" style={{ minWidth: 0 }}>
+                        <Text className="text-body font-semibold text-foreground" numberOfLines={1}>
+                          ••{account.account_identifier}{account.account_label ? ` · ${account.account_label}` : ""}
                         </Text>
+                        <Text className="text-label text-muted-foreground" numberOfLines={1}>{parts}</Text>
                       </View>
-                    )}
-                    <View className="flex-row justify-between mt-1 pt-1.5 border-t border-border">
-                      <Text className="text-xs font-semibold text-foreground">Utilized</Text>
-                      <Text className="text-xs font-bold text-foreground">{formatAmount(outstanding)}</Text>
+                      <Text className="text-body font-bold text-foreground">{formatAmount(outstanding)}</Text>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                     </View>
-
-                    {/* Dues */}
                     {hasDue && (
-                      <View className="flex-row items-center justify-between mt-2">
-                        <View className="flex-row items-center flex-1">
-                          <Ionicons name="time-outline" size={10} color={theme.danger} />
-                          <Text className="text-label font-bold ml-1" style={{ color: theme.danger }}>
-                            Due: {formatAmount(account.total_due!)}
-                          </Text>
-                          {dueLabel && (
-                            <Text className="text-label text-muted-foreground ml-1">
-                              · {dueLabel}
-                            </Text>
-                          )}
-                          {account.min_due != null && (
-                            <Text className="text-label text-muted-foreground ml-1">
-                              · min {formatAmount(account.min_due)}
-                            </Text>
-                          )}
-                        </View>
-                        <Pressable
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            alert(
-                              "Clear dues",
-                              "Mark this card's dues as paid/resolved? This removes the overdue indicator.",
-                              [
-                                { text: "Cancel", style: "cancel" },
-                                {
-                                  text: "Clear",
-                                  style: "destructive",
-                                  onPress: () => clearCcDues(account.id),
-                                },
-                              ],
-                            );
-                          }}
-                          hitSlop={14}
-                          className="ml-2 p-1"
-                          accessibilityRole="button"
-                          accessibilityLabel="Clear dues"
-                        >
-                          <Ionicons name="close-circle-outline" size={18} color={theme.danger} />
-                        </Pressable>
-                      </View>
+                      <CardNote
+                        boxed
+                        tone={overdueNow ? "danger" : "warn"}
+                        text={dueText}
+                        action={{
+                          label: "Mark paid",
+                          onPress: () =>
+                            alert("Clear dues", "Mark this card's dues as paid/resolved? This removes the overdue indicator.", [
+                              { text: "Cancel", style: "cancel" },
+                              { text: "Clear", style: "destructive", onPress: () => clearCcDues(account.id) },
+                            ]),
+                        }}
+                      />
                     )}
                   </Pressable>
                 );
               })}
-            </Card>
+
+              {note && <CardNote tone={note.tone} text={note.text} />}
+            </View>
           );
         })}
 
@@ -574,38 +446,17 @@ export default function CreditCardsScreen() {
         {/* Closed credit cards */}
         {closedCCs.length > 0 && (
           <>
-            <View className="border-t border-border mx-4 mt-2 mb-3" />
-            <Pressable
-              onPress={() => setClosedExpanded(e => !e)}
-              className="flex-row items-center px-4 mb-2"
-            >
-              <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs text-muted-foreground flex-1">
-                {closedCCs.length} closed {closedCCs.length === 1 ? "card" : "cards"}
-              </Text>
-              <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
-            </Pressable>
-            {closedExpanded && closedCCs.map(acct => (
-              <Card key={acct.id} className="mx-4 mb-2">
-                <Pressable
+            <ClosedToggle count={closedCCs.length} noun={{ one: "card", many: "cards" }} open={closedExpanded} onToggle={() => setClosedExpanded((e) => !e)} />
+            {closedExpanded &&
+              closedCCs.map((acct) => (
+                <ClosedAccountRow
+                  key={acct.id}
+                  type="credit_card"
+                  title={acct.account_label || `${acct.bank_name} ••${acct.account_identifier}`}
+                  subtitle={acct.bank_name}
                   onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: acct.id } })}
-                  className="flex-row items-center"
-                >
-                  <View className="flex-1">
-                    <View className="flex-row items-center gap-2 mb-0.5">
-                      <Text className="text-sm text-muted-foreground">
-                        {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
-                      </Text>
-                      <View className="bg-danger/10 px-1.5 py-0.5 rounded">
-                        <Text className="text-label font-semibold text-danger">Closed</Text>
-                      </View>
-                    </View>
-                    <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
-                </Pressable>
-              </Card>
-            ))}
+                />
+              ))}
           </>
         )}
       </ScrollView>
