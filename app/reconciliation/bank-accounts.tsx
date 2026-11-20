@@ -1,9 +1,22 @@
 import { useState, useCallback, useMemo } from "react";
-import { AccountTypeTile } from "@/components/ui/AccountTypeIcon";
-import { View, ScrollView, Pressable, RefreshControl } from "react-native";
+import { View, ScrollView, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import {
+  AccountCard,
+  AccountHead,
+  CardNote,
+  CardsLabel,
+  ChangeChip,
+  ClosedAccountRow,
+  ClosedToggle,
+  FlowBar,
+  FlowTiles,
+  FootRows,
+  SummaryCard,
+  smsNote,
+} from "@/components/account/AccountCards";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
@@ -133,187 +146,83 @@ export default function BankAccountsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await loadData(); setRefreshing(false); }} />
         }
       >
-        {/* Overall summary card */}
-        <Card className="mx-4 mt-3 mb-2">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Overall Summary
-            </Text>
-            <Text className="text-xs text-muted-foreground">
-              {summaries.length} account{summaries.length !== 1 ? "s" : ""}
-            </Text>
-          </View>
-
-          <View className="flex-row justify-between mb-1">
-            <Text className="text-xs text-muted-foreground">Opening Balance</Text>
-            <Text className="text-sm font-semibold text-foreground">
-              {formatAmount(totalOpening)}
-            </Text>
-          </View>
-          {totalExpenses > 0 && (
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">Expenses</Text>
-              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
-                −{formatAmount(totalExpenses)}
-              </Text>
-            </View>
-          )}
-          {totalCredits > 0 && (
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">Credits / Refunds</Text>
-              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
-                +{formatAmount(totalCredits)}
-              </Text>
-            </View>
-          )}
-          {totalTransfersOut > 0 && (
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">Transfers Out</Text>
-              <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
-                −{formatAmount(totalTransfersOut)}
-              </Text>
-            </View>
-          )}
-          {totalTransfersIn > 0 && (
-            <View className="flex-row justify-between mb-1">
-              <Text className="text-xs text-muted-foreground">Transfers In</Text>
-              <Text className="text-sm font-semibold" style={{ color: theme.success }}>
-                +{formatAmount(totalTransfersIn)}
-              </Text>
-            </View>
-          )}
-          <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
-            <Text className="text-xs font-semibold text-muted-foreground">Closing Balance</Text>
-            <Text className="text-sm font-bold" style={{ color: totalBalance >= 0 ? theme.success : theme.danger }}>
-              {formatAmount(totalBalance)}
-            </Text>
-          </View>
-
-          {/* Drift indicator — manual ledger adjustments across all savings accounts this month.
-              Proxy for how much course-correction was needed — higher = less trust in auto-detected balances. */}
-          {adjustmentStats.count > 0 && (
-            <View className="mt-2 pt-2 border-t border-border flex-row justify-between">
-              <Text className="text-label text-faint-foreground">
-                Manual ledger adjustments
-              </Text>
-              <Text className="text-label" style={{ color: theme.warning }}>
-                {formatAmount(adjustmentStats.total)} · {adjustmentStats.count} entr{adjustmentStats.count === 1 ? "y" : "ies"}
-              </Text>
-            </View>
-          )}
-        </Card>
-
-        {/* Per-account cards */}
-        {summaries.map(({ account, opening, expenses, credits, transfersOut, transfersIn, current, seeded, autoDetectedStale }) => {
-          const smsDelta = account.last_known_balance != null
-            ? Math.abs(account.last_known_balance - current)
-            : null;
-
+        {/* Summary: the total first, then what moved it (owner, Nov 2026, "Arth account cards"). */}
+        {summaries.length > 0 && (() => {
+          const inflow = totalCredits + totalTransfersIn;
+          const outflow = totalExpenses + totalTransfersOut;
+          const isNow = month === getCurrentMonth();
+          const parts = (a: number, an: string, b: number, bn: string) =>
+            [a > 0 ? `${an} ${formatAmount(a)}` : null, b > 0 ? `${bn} ${formatAmount(b)}` : null].filter(Boolean).join(" · ") || "Nothing this month";
           return (
-            <Card key={account.id} className="mx-4 mb-2">
-              {/* Tappable area: header + balance breakdown */}
-              <Pressable
-                onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
-              >
-                {/* Account header */}
-                <View className="flex-row items-center mb-3">
-                  <View className="mr-3">
-                    <AccountTypeTile type="savings" size={36} />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-base font-bold text-foreground">
-                      {account.bank_name} ••••{account.account_identifier}
-                    </Text>
-                    {account.account_label && (
-                      <Text className="text-label text-muted-foreground">
-                        {account.account_label}
-                      </Text>
-                    )}
-                  </View>
-                  <Ionicons name="chevron-forward" size={14} color={colors.textSecondary} />
-                </View>
+            <SummaryCard
+              label={`All savings · ${summaries.length} ${summaries.length === 1 ? "account" : "accounts"}`}
+              amount={totalBalance}
+              amountColor={totalBalance < 0 ? theme.danger : undefined}
+              under={
+                <>
+                  <ChangeChip amount={totalBalance - totalOpening} suffix="this month" />
+                  <Text className="text-meta text-muted-foreground">{isNow ? "closing today" : "at month end"}</Text>
+                </>
+              }
+            >
+              <FlowTiles
+                inAmount={inflow}
+                inSub={parts(totalCredits, "Credits", totalTransfersIn, "transfers in")}
+                outAmount={outflow}
+                outSub={parts(totalExpenses, "Spent", totalTransfersOut, "transfers out")}
+              />
+              <FootRows
+                rows={[
+                  { label: "Opened the month at", value: formatAmount(totalOpening) },
+                  // Drift: how much was corrected by hand this month (more = less trust in what SMS gave).
+                  ...(adjustmentStats.count > 0
+                    ? [{
+                        label: `Includes ${adjustmentStats.count} balance ${adjustmentStats.count === 1 ? "correction" : "corrections"}`,
+                        value: formatAmount(adjustmentStats.total),
+                        color: theme.warning,
+                      }]
+                    : []),
+                ]}
+              />
+            </SummaryCard>
+          );
+        })()}
 
-                {/* Not seeded warning */}
-                {!seeded && <OpeningBalanceBanner accountId={account.id} message="No opening balance set - showing from ₹0" />}
-
-                {/* Balance breakdown */}
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-muted-foreground">Opening Balance</Text>
-                  <Text className="text-sm font-semibold text-foreground">
-                    {formatAmount(opening)}
-                  </Text>
-                </View>
-                {expenses > 0 && (
-                  <View className="flex-row justify-between mb-1">
-                    <Text className="text-xs text-muted-foreground">Expenses</Text>
-                    <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
-                      −{formatAmount(expenses)}
-                    </Text>
-                  </View>
-                )}
-                {credits > 0 && (
-                  <View className="flex-row justify-between mb-1">
-                    <Text className="text-xs text-muted-foreground">Credits / Refunds</Text>
-                    <Text className="text-sm font-semibold" style={{ color: theme.success }}>
-                      +{formatAmount(credits)}
-                    </Text>
-                  </View>
-                )}
-                {transfersOut > 0 && (
-                  <View className="flex-row justify-between mb-1">
-                    <Text className="text-xs text-muted-foreground">Transfers Out</Text>
-                    <Text className="text-sm font-semibold" style={{ color: theme.danger }}>
-                      −{formatAmount(transfersOut)}
-                    </Text>
-                  </View>
-                )}
-                {transfersIn > 0 && (
-                  <View className="flex-row justify-between mb-1">
-                    <Text className="text-xs text-muted-foreground">Transfers In</Text>
-                    <Text className="text-sm font-semibold" style={{ color: theme.success }}>
-                      +{formatAmount(transfersIn)}
-                    </Text>
-                  </View>
-                )}
-
-                {/* Closing balance */}
-                <View className="flex-row justify-between pt-2 mt-1 border-t border-border">
-                  <Text className="text-xs font-semibold text-muted-foreground">
-                    Closing Balance
-                  </Text>
-                  <Text
-                    className="text-sm font-bold"
-                    style={{ color: current >= 0 ? theme.success : theme.danger }}
-                  >
-                    {formatAmount(current)}
-                  </Text>
-                </View>
-
-                {/* SMS auto-detected balance — compact inline note */}
-                {account.last_known_balance != null && (
-                  <View className="flex-row items-center justify-between mt-1.5">
-                    <Text className="text-label text-faint-foreground">
-                      {autoDetectedStale ? "SMS (stale)" : "SMS detected"}
-                      {account.last_balance_date
-                        ? " · " + new Date(account.last_balance_date + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" })
-                        : ""}
-                      {" · "}
-                      <Text
-                        style={autoDetectedStale ? { textDecorationLine: "line-through" } : undefined}
-                      >
-                        {formatAmount(account.last_known_balance)}
-                      </Text>
-                    </Text>
-                    {smsDelta != null && smsDelta > 0 && (
-                      <Text className="text-label font-medium" style={{ color: theme.warning }}>
-                        Δ {formatAmount(smsDelta)}
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </Pressable>
-
-            </Card>
+        {summaries.length > 0 && <CardsLabel title="Accounts" />}
+        {summaries.map(({ account, opening, expenses, credits, transfersOut, transfersIn, current, seeded, autoDetectedStale }) => {
+          const inflow = credits + transfersIn;
+          const outflow = expenses + transfersOut;
+          const note = smsNote(account, current, autoDetectedStale);
+          const title = account.bank_name || account.account_label || "Account";
+          const sub = [account.account_label && account.account_label !== title ? account.account_label : null, account.account_identifier ? `••${account.account_identifier.slice(-4)}` : null]
+            .filter(Boolean)
+            .join(" · ");
+          return (
+            <AccountCard
+              key={account.id}
+              label={`${title} ${sub}, ${formatAmount(current)}, open ledger`}
+              onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: account.id, month } })}
+            >
+              <AccountHead
+                type="savings"
+                title={title}
+                subtitle={sub}
+                amount={current}
+                amountColor={current < 0 ? theme.danger : undefined}
+                change={current - opening}
+              />
+              {!seeded && <OpeningBalanceBanner accountId={account.id} message="Counting from ₹0. No opening balance yet." />}
+              <FlowBar
+                inflow={inflow}
+                outflow={outflow}
+                inText={`In ${formatAmount(inflow)}${transfersIn > 0 ? ` · ${formatAmount(transfersIn)} transfers` : ""}`}
+                outText={`Out ${formatAmount(outflow)}${transfersOut > 0 ? ` · ${formatAmount(transfersOut)} transfers` : ""}`}
+              />
+              <Text className="text-label text-muted-foreground">
+                Opened the month at {formatAmount(opening)}
+              </Text>
+              {note && <CardNote tone={note.tone} text={note.text} />}
+            </AccountCard>
           );
         })}
 
@@ -333,38 +242,17 @@ export default function BankAccountsScreen() {
         {/* Closed accounts */}
         {closedAccounts.length > 0 && (
           <>
-            <View className="border-t border-border mx-4 mt-2 mb-3" />
-            <Pressable
-              onPress={() => setClosedExpanded(e => !e)}
-              className="flex-row items-center px-4 mb-2"
-            >
-              <Ionicons name="archive-outline" size={14} color={colors.textSecondary} style={{ marginRight: 6 }} />
-              <Text className="text-xs text-muted-foreground flex-1">
-                {closedAccounts.length} closed {closedAccounts.length === 1 ? "account" : "accounts"}
-              </Text>
-              <Ionicons name={closedExpanded ? "chevron-up-outline" : "chevron-down-outline"} size={14} color={colors.textSecondary} />
-            </Pressable>
-            {closedExpanded && closedAccounts.map(acct => (
-              <Card key={acct.id} className="mx-4 mb-2">
-                <Pressable
+            <ClosedToggle count={closedAccounts.length} noun={{ one: "account", many: "accounts" }} open={closedExpanded} onToggle={() => setClosedExpanded((e) => !e)} />
+            {closedExpanded &&
+              closedAccounts.map((acct) => (
+                <ClosedAccountRow
+                  key={acct.id}
+                  type="savings"
+                  title={acct.account_label || `${acct.bank_name} ••${acct.account_identifier}`}
+                  subtitle={acct.bank_name}
                   onPress={() => router.push({ pathname: "/reconciliation/account-ledger", params: { accountId: acct.id } })}
-                  className="flex-row items-center"
-                >
-                  <View className="flex-1">
-                    <View className="flex-row items-center gap-2 mb-0.5">
-                      <Text className="text-sm text-muted-foreground">
-                        {acct.account_label || `${acct.bank_name} ****${acct.account_identifier}`}
-                      </Text>
-                      <View className="bg-danger/10 px-1.5 py-0.5 rounded">
-                        <Text className="text-label font-semibold text-danger">Closed</Text>
-                      </View>
-                    </View>
-                    <Text className="text-xs text-faint-foreground">{acct.bank_name}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward-outline" size={14} color={colors.textSecondary} />
-                </Pressable>
-              </Card>
-            ))}
+                />
+              ))}
           </>
         )}
       </ScrollView>
