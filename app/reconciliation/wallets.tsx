@@ -9,8 +9,7 @@ import {
   ClosedToggle,
   FlowTiles,
   FootRows,
-  OpeningLine,
-  signed,
+  balancedFlows,
   SummaryCard,
   smsNote,
 } from "@/components/account/AccountCards";
@@ -22,6 +21,7 @@ import {
     getAdjustmentAbsTotalByAccountType,
     computeUnseededBalance,
     getMonthBalanceSummary,
+  getAccountAdjustmentSplit,
 } from "@/services/account-balance";
 import { getTransfersInTotal, getTransfersOutTotal } from "@/services/account-transfer";
 import { getCurrentMonth } from "@/services/budget";
@@ -62,6 +62,8 @@ export default function WalletsScreen() {
   const [adjustmentStats, setAdjustmentStats] = useState<{ total: number; count: number }>(preloaded?.adjustmentStats ?? { total: 0, count: 0 });
   const [closedAccounts, setClosedAccounts] = useState<FinancialAccount[]>([]);
   const [closedExpanded, setClosedExpanded] = useState(false);
+  // Balance corrections this month, by account: counted in Inflow (up) and Outflow (down).
+  const [adjByAccount, setAdjByAccount] = useState<Record<string, { up: number; down: number }>>({});
   const [month, setMonth] = useState(getCurrentMonth());
   const [refreshing, setRefreshing] = useState(false);
 
@@ -120,6 +122,10 @@ export default function WalletsScreen() {
       );
 
       setSummaries(results);
+
+      const splits = await Promise.all(results.map((r) => getAccountAdjustmentSplit(r.account.id, startDate, endDate).catch(() => ({ up: 0, down: 0 }))));
+
+      setAdjByAccount(Object.fromEntries(results.map((r, i) => [r.account.id, splits[i]])));
   }, [month, startDate, endDate]);
 
   const guarded = useGuardedLoad(loadData);
@@ -131,6 +137,10 @@ export default function WalletsScreen() {
   const totalCredits = summaries.reduce((sum, s) => sum + s.credits, 0);
   const totalTransfersOut = summaries.reduce((sum, s) => sum + s.transfersOut, 0);
   const totalTransfersIn = summaries.reduce((sum, s) => sum + s.transfersIn, 0);
+  const flowsOf = (s: (typeof summaries)[number]) =>
+    balancedFlows(s.opening, s.current, s.credits + s.transfersIn, s.expenses + s.transfersOut, adjByAccount[s.account.id]);
+  const totalInflow = summaries.reduce((sum, s) => sum + flowsOf(s).inflow, 0);
+  const totalOutflow = summaries.reduce((sum, s) => sum + flowsOf(s).outflow, 0);
 
   return (
     <ScreenContainer padTop={false}>
@@ -161,21 +171,17 @@ export default function WalletsScreen() {
             >
               <FlowTiles
                 inLabel="Topped up"
-                inAmount={totalCredits + totalTransfersIn}
+                inAmount={totalInflow}
                 outLabel="Spent"
-                outAmount={totalExpenses + totalTransfersOut}
+                outAmount={totalOutflow}
               />
               <FootRows
                 rows={[
                   { label: "Opened the month at", value: formatAmount(totalOpening) },
                   // Balance corrections move the balance but aren't in Inflow or Outflow: shown net so
                   // opening + inflow − outflow + corrections is the total above.
-                  ...(Math.abs(totalBalance - totalOpening - (totalCredits + totalTransfersIn) + (totalExpenses + totalTransfersOut)) >= 0.5
-                    ? [{
-                        label: `Balance corrections${adjustmentStats.count > 0 ? ` · ${adjustmentStats.count}` : ""}`,
-                        value: signed(totalBalance - totalOpening - (totalCredits + totalTransfersIn) + (totalExpenses + totalTransfersOut)),
-                        color: theme.warning,
-                      }]
+                  ...(adjustmentStats.count > 0
+                    ? [{ label: `Includes ${adjustmentStats.count} balance ${adjustmentStats.count === 1 ? "correction" : "corrections"}`, value: formatAmount(adjustmentStats.total), color: theme.warning }]
                     : []),
                 ]}
               />
@@ -196,7 +202,7 @@ export default function WalletsScreen() {
             >
               <AccountHead type="wallet" title={title} subtitle={sub} amount={current} amountColor={current < 0 ? theme.danger : undefined} change={current - opening} />
               {!seeded && <OpeningBalanceBanner accountId={account.id} message="Counting from ₹0. No opening balance yet." />}
-              <OpeningLine opening={opening} corrections={current - opening - (credits + transfersIn) + (expenses + transfersOut)} />
+              <Text className="text-label text-muted-foreground">Opened the month at {formatAmount(opening)}</Text>
               {note && <CardNote tone={note.tone} text={note.text} />}
             </AccountCard>
           );
