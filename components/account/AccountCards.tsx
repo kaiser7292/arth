@@ -363,6 +363,26 @@ export function OpeningLine({ opening, corrections }: { opening: number; correct
   );
 }
 
+/**
+ * Inflow and outflow for an account's month that always add up: opening + inflow − outflow is the
+ * balance shown (owner, Nov 2026). Balance corrections count by direction (up in, down out), and
+ * anything left (an opening re-anchored to last month's closing, say) joins the side it moved.
+ */
+export function balancedFlows(
+  opening: number,
+  closing: number,
+  baseIn: number,
+  baseOut: number,
+  adj: { up: number; down: number } | undefined,
+): { inflow: number; outflow: number } {
+  let inflow = baseIn + (adj?.up ?? 0);
+  let outflow = baseOut + (adj?.down ?? 0);
+  const rest = closing - opening - inflow + outflow;
+  if (rest > 0) inflow += rest;
+  else outflow -= rest;
+  return { inflow: Math.round(inflow * 100) / 100, outflow: Math.round(outflow * 100) / 100 };
+}
+
 /** The uppercase label over the account cards. */
 export function CardsLabel({ title }: { title: string }) {
   return (

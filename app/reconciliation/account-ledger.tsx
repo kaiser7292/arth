@@ -836,13 +836,15 @@ const loadData = useCallback(async () => {
               if (typeNow === "savings" || typeNow === "wallet") {
                 const ins = entries.filter((e) => ledgerAmount(e) > 0);
                 const outs = entries.filter((e) => ledgerAmount(e) < 0);
-                const inflow = Math.round(ins.reduce((s, e) => s + e.amount, 0) * 100) / 100;
-                const outflow = Math.round(outs.reduce((s, e) => s + e.amount, 0) * 100) / 100;
+                let inflow = Math.round(ins.reduce((s, e) => s + e.amount, 0) * 100) / 100;
+                let outflow = Math.round(outs.reduce((s, e) => s + e.amount, 0) * 100) / 100;
+                // Opening + inflow − outflow is always the closing (owner, Nov 2026): corrections are
+                // rows already; anything the rows don't explain joins the side it moved.
+                const rest = Math.round((closing - (opening + inflow - outflow)) * 100) / 100;
+                if (rest > 0) inflow = Math.round((inflow + rest) * 100) / 100;
+                else if (rest < 0) outflow = Math.round((outflow - rest) * 100) / 100;
                 lines.push({ label: `Inflow · ${ins.length}`, sign: "+", amount: formatAmount(inflow) });
                 lines.push({ label: `Outflow · ${outs.length}`, sign: "−", amount: formatAmount(outflow) });
-                // Whatever the rows don't explain still shows, so the card always adds up.
-                const rest = Math.round((closing - (opening + inflow - outflow)) * 100) / 100;
-                if (Math.abs(rest) >= 0.01) lines.push({ label: "Balance adjustments", sign: rest >= 0 ? "+" : "−", amount: formatAmount(Math.abs(rest)) });
                 return <Statement lines={lines} total={{ label: `Closing balance · ${endLabel}`, amount: formatAmount(closing) }} />;
               }
               if (totalCredits > 0)

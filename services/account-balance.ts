@@ -379,6 +379,35 @@ export async function getAccountAdjustmentNet(
   return net;
 }
 
+/**
+ * Ledger adjustments for an account in a date range, split by direction: what raised the balance
+ * (up) and what lowered it (down), both positive. The account screens count them in Inflow and
+ * Outflow so a card's opening, inflow and outflow add up to its balance (owner, Nov 2026).
+ */
+export async function getAccountAdjustmentSplit(
+  accountId: string,
+  monthStart: string,
+  monthEnd: string,
+): Promise<{ up: number; down: number }> {
+  const db = getDatabase();
+  const rows = await db.getAllAsync<{ amount: number; description: string | null }>(
+    `SELECT amount, description FROM expenses
+     WHERE account_id = ? AND deleted_at IS NULL
+       AND nature = 'ledger_adjustment' AND status = 'approved'
+       AND date >= ? AND date <= ?;`,
+    accountId,
+    monthStart,
+    monthEnd,
+  );
+  let up = 0;
+  let down = 0;
+  for (const r of rows) {
+    if ((r.description ?? "").includes(" -]")) down += r.amount;
+    else up += r.amount;
+  }
+  return { up, down };
+}
+
 /** Absolute total of ledger adjustments for display as a drift indicator. */
 export async function getAccountAdjustmentAbsTotal(
   accountId: string,
