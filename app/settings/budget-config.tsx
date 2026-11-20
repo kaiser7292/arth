@@ -6,6 +6,7 @@ import { useFocusEffect } from "expo-router";
 import { useAlert } from "@/hooks/use-alert";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, EmptyState, PeriodNavigator, ScreenContainer, Text } from "@/components/ui";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
@@ -293,6 +294,7 @@ export default function BudgetConfigScreen() {
     );
   };
 
+  const insets = useSafeAreaInsets();
   return (
     <ScreenContainer padTop={false} keyboardAware>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
@@ -313,20 +315,6 @@ export default function BudgetConfigScreen() {
             <Text className="text-label font-semibold" style={{ color: theme.primary }}>
               Copy from {previousMonthLabel}
             </Text>
-          </Pressable>
-        </View>
-      )}
-
-      {!hasNoBudget && rows.length > 0 && (
-        <View className="flex-row justify-end px-4">
-          <Pressable
-            onPress={copyFromPreviousMonth}
-            className="rounded-pill border border-border bg-card px-3 justify-center"
-            style={{ height: 34 }}
-            accessibilityRole="button"
-            accessibilityLabel={`Copy budgets from ${previousMonthLabel}`}
-          >
-            <Text className="text-meta font-semibold text-foreground">Copy last month</Text>
           </Pressable>
         </View>
       )}
@@ -360,16 +348,23 @@ export default function BudgetConfigScreen() {
           />
         }
         keyboardShouldPersistTaps="handled"
-        style={{ flexGrow: 0, flexShrink: 1 }}
+        style={{ flexGrow: 0, flexShrink: 1, marginBottom: 12 }}
         contentContainerStyle={rows.length > 0 ? { marginHorizontal: 16, borderRadius: 16, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card, overflow: "hidden" } : undefined}
       />
 
       <View className="flex-1" />
-      {/* Light footer: what's pending, and Save */}
-      <View className="bg-card border-t border-border px-4 pt-3 pb-3 flex-row items-center" style={{ gap: 12 }}>
-        <Text className="flex-1 text-meta text-muted-foreground">{hasChanges ? "Unsaved changes" : "All saved"}</Text>
-        <View style={{ minWidth: 160 }}>
-          <Button title="Save budgets" onPress={handleSave} loading={saving} disabled={!hasChanges} />
+      {/* Footer (owner, Nov 2026): Copy last month beside Save, clear of the phone's gesture bar. */}
+      <View className="bg-card border-t border-border px-4 pt-3" style={{ paddingBottom: Math.max(12, insets.bottom + 8), gap: 8 }}>
+        <Text className="text-label text-muted-foreground">{hasChanges ? "Unsaved changes" : "All saved"}</Text>
+        <View className="flex-row" style={{ gap: 8 }}>
+          {rows.length > 0 && (
+            <View className="flex-1">
+              <Button title={`Copy ${previousMonthLabel}`} variant="outline" onPress={copyFromPreviousMonth} />
+            </View>
+          )}
+          <View className="flex-1">
+            <Button title="Save budgets" onPress={handleSave} loading={saving} disabled={!hasChanges} />
+          </View>
         </View>
       </View>
     </ScreenContainer>
