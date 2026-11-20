@@ -1,10 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 
 import { View, Pressable, FlatList } from "react-native";
-import { useRouter, useFocusEffect } from "expo-router";
+import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { Card, EmptyState, ListSeparator, ProgressBar, ScreenContainer, Text } from "@/components/ui";
+import { Card, EmptyState, ScreenContainer, Segmented, Text } from "@/components/ui";
 import { getMerchantAnalytics, getMerchantDetail } from "@/services/spending-insights";
 import { getCategories } from "@/services/category";
 import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
@@ -12,278 +12,363 @@ import type { MerchantInsight } from "@/utils/spending-insights";
 import type { Category } from "@/services/category";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
+import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { isoDate } from "@/utils/local-date";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 
 type TimeRange = "1m" | "3m" | "6m";
+/** All merchants, only the ones new this period, or the ones paid before but not now. */
+type View_ = "all" | "new" | "quiet";
 
-function getDateRange(range: TimeRange): { startDate: string; endDate: string } {
+const MONTHS: Record<TimeRange, number> = { "1m": 1, "3m": 3, "6m": 6 };
+const SHOWN = 30;
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** This period (ending today) and the same length just before it. */
+function getRanges(range: TimeRange) {
   const now = new Date();
-  const end = isoDate(now);
-  const months = range === "1m" ? 1 : range === "3m" ? 3 : 6;
+  const months = MONTHS[range];
   const start = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
-  const startDate = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}-01`;
-  return { startDate, endDate: end };
+  const prevStart = new Date(now.getFullYear(), now.getMonth() - 2 * months + 1, 1);
+  const prevEnd = new Date(start.getFullYear(), start.getMonth(), 0);
+  return {
+    startDate: `${start.getFullYear()}-${pad(start.getMonth() + 1)}-01`,
+    endDate: isoDate(now),
+    prevStart: `${prevStart.getFullYear()}-${pad(prevStart.getMonth() + 1)}-01`,
+    prevEnd: isoDate(prevEnd),
+    label: months === 1
+      ? start.toLocaleDateString("en-IN", { month: "long" })
+      : `${start.toLocaleDateString("en-IN", { month: "short" })} to ${now.toLocaleDateString("en-IN", { month: "short" })}`,
+  };
 }
 
-const RANGE_LABELS: { key: TimeRange; label: string }[] = [
-  { key: "1m", label: "This Month" },
-  { key: "3m", label: "3 Months" },
-  { key: "6m", label: "6 Months" },
-];
+type Row = MerchantInsight & { prev: number };
 
+/**
+ * Merchants (Nov 2026 redesign, "Arth Insights"): how much of your spending your top five took, what's
+ * new and what's gone quiet, then every merchant ranked with its change on the period before. A
+ * merchant opens in place, down to its payments, each of which opens its details.
+ */
 export default function MerchantAnalyticsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [range, setRange] = useState<TimeRange>("3m");
-  const [merchants, setMerchants] = useState<MerchantInsight[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [quiet, setQuiet] = useState<MerchantInsight[]>([]);
+  const [view, setView] = useState<View_>("all");
+  const [showAll, setShowAll] = useState(false);
   const [categoryMap, setCategoryMap] = useState<Map<string, Category>>(new Map());
-  const [selectedMerchant, setSelectedMerchant] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof getMerchantDetail>> | null>(null);
+  const listRef = useRef<FlatList<Row | MerchantInsight>>(null);
+  const ranges = useMemo(() => getRanges(range), [range]);
 
   const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
-      const { startDate, endDate } = getDateRange(range);
-      const [data, cats] = await Promise.all([
-        getMerchantAnalytics(DEFAULT_USER_ID, startDate, endDate, 30),
+      const [now, before, cats] = await Promise.all([
+        getMerchantAnalytics(DEFAULT_USER_ID, ranges.startDate, ranges.endDate, 1000),
+        getMerchantAnalytics(DEFAULT_USER_ID, ranges.prevStart, ranges.prevEnd, 1000),
         getCategories(DEFAULT_USER_ID),
       ]);
-      setMerchants(data);
+      const prevBy = new Map(before.map((m) => [m.merchant, m.totalSpent]));
+      const nowNames = new Set(now.map((m) => m.merchant));
+      setRows(now.map((m) => ({ ...m, prev: prevBy.get(m.merchant) ?? 0 })));
+      setQuiet(before.filter((m) => !nowNames.has(m.merchant)));
       setCategoryMap(new Map(cats.map((c) => [c.id, c])));
-      setSelectedMerchant(null);
-      setDetail(null);
       setLoadFailed(false);
     } catch {
       setLoadFailed(true);
-      // DB not ready
     }
-  }, [range]);
+  }, [ranges]);
 
-  useFocusEffect(
-    useCallback(() => {
-      loadData();
-    }, [loadData]),
+  useDataRefresh(loadData);
+
+  const openMerchant = useCallback(
+    async (name: string) => {
+      if (selected === name) {
+        setSelected(null);
+        setDetail(null);
+        return;
+      }
+      setSelected(name);
+      setDetail(null);
+      try {
+        const inPeriod = rows.some((r) => r.merchant === name);
+        setDetail(await getMerchantDetail(DEFAULT_USER_ID, name, inPeriod ? ranges.startDate : ranges.prevStart, inPeriod ? ranges.endDate : ranges.prevEnd));
+      } catch {
+        setDetail(null);
+      }
+    },
+    [selected, ranges, rows],
   );
 
-  const handleSelectMerchant = useCallback(async (merchant: MerchantInsight) => {
-    if (selectedMerchant === merchant.merchant) {
-      setSelectedMerchant(null);
-      setDetail(null);
-      return;
-    }
-    setSelectedMerchant(merchant.merchant);
-    try {
-      const { startDate, endDate } = getDateRange(range);
-      const d = await getMerchantDetail(DEFAULT_USER_ID, merchant.merchant, startDate, endDate);
-      setDetail(d);
-    } catch {
-      setDetail(null);
-    }
-  }, [selectedMerchant, range]);
+  const total = rows.reduce((s, m) => s + m.totalSpent, 0);
+  const top = rows.slice(0, 5);
+  const topTotal = top.reduce((s, m) => s + m.totalSpent, 0);
+  const fresh = rows.filter((r) => r.prev === 0);
+  const freshTotal = fresh.reduce((s, m) => s + m.totalSpent, 0);
+  const list: (Row | MerchantInsight)[] = view === "new" ? fresh : view === "quiet" ? quiet : showAll ? rows : rows.slice(0, SHOWN);
 
-  const topTotal = merchants.length > 0 ? merchants[0].totalSpent : 1;
-  const grandTotal = merchants.reduce((s, m) => s + m.totalSpent, 0);
+  const pickTop = (name: string, index: number) => {
+    setView("all");
+    listRef.current?.scrollToIndex({ index, viewPosition: 0, animated: true });
+    void openMerchant(name);
+  };
+
+  const header = (
+    <View style={{ gap: 12 }} className="pb-3">
+      <Segmented<TimeRange>
+        options={[
+          { value: "1m", label: "This month" },
+          { value: "3m", label: "3 months" },
+          { value: "6m", label: "6 months" },
+        ]}
+        value={range}
+        onChange={(v) => {
+          setRange(v);
+          setSelected(null);
+          setDetail(null);
+          setView("all");
+          setShowAll(false);
+        }}
+      />
+      {rows.length > 0 && (
+        <Card>
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
+            {ranges.label} · {rows.length} {rows.length === 1 ? "merchant" : "merchants"}
+          </Text>
+          <Text className="text-title font-bold text-foreground mt-1.5">
+            {top.length < 5 ? `Your top ${top.length} took` : "Your top 5 took"} {total > 0 ? Math.round((topTotal / total) * 100) : 0}% of spending
+          </Text>
+          <Text className="text-meta text-muted-foreground mt-1">
+            {formatAmount(Math.round(topTotal))} of {formatAmount(Math.round(total))} went to {top.length} {top.length === 1 ? "place" : "places"}.
+          </Text>
+          {/* Each of the top five is a part of the bar; tapping one opens it in the list. */}
+          <View className="flex-row rounded-pill overflow-hidden mt-3" style={{ height: 12, gap: 2, backgroundColor: theme.border }}>
+            {top.map((m, i) => (
+              <Pressable
+                key={m.merchant}
+                onPress={() => pickTop(m.merchant, i)}
+                style={{ flex: m.totalSpent, backgroundColor: theme.alpha("primary", 1 - i * 0.17) }}
+                accessibilityRole="button"
+                accessibilityLabel={`${m.merchant}, ${formatAmount(m.totalSpent)}`}
+              />
+            ))}
+            {total > topTotal && <View style={{ flex: total - topTotal }} />}
+          </View>
+          <View className="flex-row mt-3" style={{ gap: 8 }}>
+            <FilterTile
+              label="New this period"
+              value={fresh.length > 0 ? `${fresh.length} · ${formatAmount(Math.round(freshTotal))}` : "None"}
+              on={view === "new"}
+              onPress={() => setView((v) => (v === "new" ? "all" : "new"))}
+            />
+            <FilterTile
+              label="Gone quiet"
+              value={quiet.length > 0 ? `${quiet.length} you used to pay` : "None"}
+              on={view === "quiet"}
+              onPress={() => setView((v) => (v === "quiet" ? "all" : "quiet"))}
+            />
+          </View>
+        </Card>
+      )}
+      {rows.length > 0 && (
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground px-1 mt-1">
+          {view === "new" ? "New this period" : view === "quiet" ? "Paid before, not this period" : "Most spent"}
+        </Text>
+      )}
+    </View>
+  );
 
   return (
     <ScreenContainer padTop={false}>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-      {/* Time Range Selector */}
-      <View className="flex-row px-4 py-3">
-        {RANGE_LABELS.map((r) => (
-          <Pressable
-            key={r.key}
-            onPress={() => setRange(r.key)}
-            accessibilityLabel={`Show ${r.label}`}
-            accessibilityRole="button"
-            className={`flex-1 py-2 rounded-control items-center mx-1 ${
-              range === r.key ? "" : "bg-card"
-            }`}
-            style={range === r.key ? { backgroundColor: theme.primary } : undefined}
-          >
-            <Text
-              className={`text-label font-semibold ${
-                range === r.key ? "text-primary-foreground" : "text-muted-foreground"
-              }`}
-            >
-              {r.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      {/* Summary */}
-      {merchants.length > 0 && (
-        <View className="px-4 pb-2">
-          <Text className="text-label text-faint-foreground">
-            {merchants.length} merchants · Total {formatAmount(grandTotal)}
-          </Text>
-        </View>
-      )}
-
       <FlatList
+        ref={listRef}
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}
-        data={merchants}
+        data={list}
         keyExtractor={(item) => item.merchant}
-        ItemSeparatorComponent={ListSeparator}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+        ListHeaderComponent={header}
+        onScrollToIndexFailed={() => {}}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 32 }}
         renderItem={({ item, index }) => {
-          const isSelected = selectedMerchant === item.merchant;
+          const isOpen = selected === item.merchant;
           const cat = item.categoryId ? categoryMap.get(item.categoryId) : null;
-          const barPct = topTotal > 0 ? item.totalSpent / topTotal : 0;
-
+          const prev = "prev" in item ? item.prev : null;
+          const change = view === "quiet" ? null : prev == null || prev === 0 ? null : (item.totalSpent - prev) / prev;
+          const first = index === 0;
+          const last = index === list.length - 1;
           return (
-            <View>
+            <View
+              className={`bg-card border-border ${first ? "rounded-t-card border-t" : ""} ${last ? "rounded-b-card border-b" : ""}`}
+              style={{ borderLeftWidth: 1, borderRightWidth: 1, overflow: "hidden" }}
+            >
               <Pressable
-                onPress={() => handleSelectMerchant(item)}
+                onPress={() => openMerchant(item.merchant)}
                 accessibilityLabel={`${item.merchant}, ${formatAmount(item.totalSpent)}`}
                 accessibilityRole="button"
-                className="py-3"
+                accessibilityState={{ expanded: isOpen }}
+                className={`flex-row items-center px-4 py-3${first ? "" : " border-t border-border"}`}
+                style={[{ gap: 12 }, isOpen ? { backgroundColor: theme.alpha("primary", 0.04) } : null]}
               >
-                <View className="flex-row items-center justify-between mb-1">
-                  <View className="flex-row items-center flex-1">
-                    <Text className="text-label font-bold text-faint-foreground w-6">{index + 1}</Text>
-                    <View className="flex-1">
-                      <Text className="text-body font-medium text-foreground capitalize" numberOfLines={1}>
-                        {item.merchant}
-                      </Text>
-                      <Text className="text-label text-faint-foreground">
-                        {item.transactionCount} txn{item.transactionCount !== 1 ? "s" : ""} · avg {formatAmount(item.avgAmount)}
-                        {cat ? ` · ${cat.name}` : ""}
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="items-end ml-2">
-                    <Text className="text-body font-bold text-foreground">
-                      {formatAmount(item.totalSpent)}
-                    </Text>
-                    <Text className="text-label text-faint-foreground">
-                      {grandTotal > 0 ? `${((item.totalSpent / grandTotal) * 100).toFixed(1)}%` : ""}
-                    </Text>
-                  </View>
+                <Text className="text-meta font-bold text-muted-foreground" style={{ width: 24 }}>{index + 1}</Text>
+                <View className="flex-1" style={{ minWidth: 0 }}>
+                  <Text className="text-body font-semibold text-foreground capitalize" numberOfLines={1}>{item.merchant}</Text>
+                  <Text className="text-label text-muted-foreground" numberOfLines={1}>
+                    {cat ? `${cat.name} · ` : ""}{item.transactionCount} {item.transactionCount === 1 ? "payment" : "payments"}
+                  </Text>
                 </View>
-                <ProgressBar
-                  value={barPct}
-                  color={cat?.color ?? theme.primary}
-                  height={4}
-                  animated={false}
-                />
+                <View className="items-end">
+                  <Text className="text-body font-bold text-foreground">{formatAmount(Math.round(item.totalSpent))}</Text>
+                  <Text
+                    className="text-label font-semibold"
+                    style={{ color: change == null ? theme.mutedForeground : change > 0.02 ? theme.danger : change < -0.02 ? theme.success : theme.mutedForeground }}
+                  >
+                    {view === "quiet"
+                      ? `last ${formatDateForDisplay(item.lastDate)}`
+                      : change == null
+                        ? "new"
+                        : Math.abs(change) <= 0.02
+                          ? "no change"
+                          : `${change > 0 ? "↑" : "↓"} ${Math.round(Math.abs(change) * 100)}%`}
+                  </Text>
+                </View>
+                <Ionicons name={isOpen ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
               </Pressable>
 
-              {/* Merchant Detail (expanded) */}
-              {isSelected && detail && (
-                <Card className="my-2">
-                  {/* Monthly trend */}
+              {isOpen && detail && (
+                <View className="px-4 pb-4" style={{ gap: 12, paddingLeft: 52, backgroundColor: theme.alpha("primary", 0.04) }}>
+                  <View className="flex-row" style={{ gap: 8 }}>
+                    <Stat label="Per payment" value={formatAmount(Math.round(detail.avgAmount))} />
+                    <Stat label="Last paid" value={detail.transactions[0] ? formatDateForDisplay(detail.transactions[0].date) : "—"} />
+                    <Stat label="Share" value={view === "quiet" || total <= 0 ? "—" : `${Math.round((item.totalSpent / total) * 100)}%`} />
+                  </View>
+
+                  {/* Month by month; a month opens its payments. */}
                   {detail.monthlyTotals.length > 1 && (
-                    <View className="mb-3">
-                      <Text className="text-label font-semibold text-muted-foreground mb-2">
-                        Monthly Trend
-                      </Text>
-                      {detail.monthlyTotals.map((mt) => {
-                        const maxMonthly = Math.max(...detail.monthlyTotals.map((m) => m.total));
+                    <View>
+                      {(() => {
+                        const max = Math.max(...detail.monthlyTotals.map((mt) => mt.total));
                         return (
-                          <View key={mt.month} className="flex-row items-center mb-1">
-                            <Text className="text-label text-faint-foreground w-16">{mt.month}</Text>
-                            <View className="flex-1 mr-2">
-                              <ProgressBar
-                                value={maxMonthly > 0 ? mt.total / maxMonthly : 0}
-                                color={theme.primary}
-                                height={6}
-                                animated={false}
-                              />
-                            </View>
-                            <Text className="text-label font-medium text-foreground w-20 text-right">
-                              {formatAmount(mt.total)}
-                            </Text>
+                          <View className="flex-row items-end" style={{ height: 64, gap: 6 }}>
+                            {detail.monthlyTotals.map((mt) => (
+                              <Pressable
+                                key={mt.month}
+                                onPress={() => {
+                                  const ids = detail.transactions.filter((t) => t.date.startsWith(mt.month)).map((t) => t.id);
+                                  if (ids.length > 0) router.push({ pathname: "/insights/filtered", params: { expenseIds: ids.join(","), title: `${item.merchant} · ${monthShort(mt.month)}` } });
+                                }}
+                                className="flex-1 justify-end"
+                                style={{ height: "100%" }}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${monthShort(mt.month)}, ${formatAmount(mt.total)}, see payments`}
+                              >
+                                <View style={{ height: `${Math.max(4, (mt.total / (max || 1)) * 100)}%`, backgroundColor: theme.primary, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                              </Pressable>
+                            ))}
                           </View>
                         );
-                      })}
-                    </View>
-                  )}
-
-                  {/* Categories used */}
-                  {detail.categories.length > 0 && (
-                    <View className="mb-3">
-                      <Text className="text-label font-semibold text-muted-foreground mb-1">
-                        Categories
-                      </Text>
-                      <View className="flex-row flex-wrap">
-                        {detail.categories.map((c) => {
-                          const catInfo = categoryMap.get(c.category_id);
-                          return (
-                            <View
-                              key={c.category_id}
-                              className="flex-row items-center mr-3 mb-1"
-                            >
-                              <View
-                                className="w-2.5 h-2.5 rounded-full mr-1"
-                                style={{ backgroundColor: catInfo?.color ?? theme.mutedForeground }}
-                              />
-                              <Text className="text-label text-muted-foreground">
-                                {catInfo?.name ?? "Unknown"} ({formatAmount(c.total)})
-                              </Text>
-                            </View>
-                          );
-                        })}
+                      })()}
+                      <View className="flex-row mt-1" style={{ gap: 6 }}>
+                        {detail.monthlyTotals.map((mt) => (
+                          <Text key={mt.month} className="flex-1 text-label text-muted-foreground text-center">{monthShort(mt.month)}</Text>
+                        ))}
                       </View>
                     </View>
                   )}
 
-                  {/* Recent transactions */}
-                  <Text className="text-label font-semibold text-muted-foreground mb-1">
-                    Recent Transactions ({detail.transactionCount})
-                  </Text>
-                  {detail.transactions.slice(0, 5).map((t) => (
-                    <Pressable
-                      key={t.id}
-                      onPress={() => router.push(`/expense/${t.id}`)}
-                      accessibilityLabel={`${t.description ?? "Transaction"}, ${formatAmount(t.amount)}`}
-                      accessibilityRole="button"
-                      className="flex-row items-center py-1.5"
-                    >
-                      <Text className="text-label text-faint-foreground w-20">{formatDateForDisplay(t.date)}</Text>
-                      <Text className="text-label text-foreground flex-1" numberOfLines={1}>
-                        {t.description ?? "-"}
-                      </Text>
-                      <Text className="text-label font-medium text-foreground">
-                        {formatAmount(t.amount)}
-                      </Text>
-                    </Pressable>
-                  ))}
-                  {detail.transactionCount > 5 && (
-                    <Pressable
+                  <View>
+                    {detail.transactions.slice(0, 3).map((t) => (
+                      <Pressable
+                        key={t.id}
+                        onPress={() => router.push(`/expense/${t.id}`)}
+                        className="flex-row items-center"
+                        style={{ minHeight: 40, gap: 8 }}
+                        accessibilityLabel={`${t.description ?? "Payment"}, ${formatAmount(t.amount)}`}
+                        accessibilityRole="button"
+                      >
+                        <Text className="text-label text-muted-foreground" style={{ width: 64 }}>{formatDateForDisplay(t.date)}</Text>
+                        <Text className="text-meta text-foreground flex-1" numberOfLines={1}>{t.description ?? "-"}</Text>
+                        <Text className="text-meta font-semibold text-foreground">{formatAmount(t.amount)}</Text>
+                        <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} />
+                      </Pressable>
+                    ))}
+                  </View>
+
+                  <View className="flex-row flex-wrap" style={{ gap: 8 }}>
+                    <PillButton
+                      label={`See ${detail.transactionCount === 1 ? "the payment" : `all ${detail.transactionCount} payments`}`}
                       onPress={() =>
-                        router.push({
-                          pathname: "/insights/filtered",
-                          params: { expenseIds: detail.transactions.map((t) => t.id).join(","), title: item.merchant },
-                        })
+                        router.push({ pathname: "/insights/filtered", params: { expenseIds: detail.transactions.map((t) => t.id).join(","), title: item.merchant } })
                       }
-                      hitSlop={8}
-                      accessibilityRole="button"
-                      accessibilityLabel={`See all ${detail.transactionCount} transactions`}
-                      className="flex-row items-center mt-1 py-1"
-                    >
-                      <Text className="text-label font-medium" style={{ color: theme.primary }}>
-                        See all {detail.transactionCount}
-                      </Text>
-                      <Ionicons name="chevron-forward" size={12} color={theme.primary} />
-                    </Pressable>
-                  )}
-                </Card>
+                    />
+                    <PillButton label="Rename or recategorise" onPress={() => router.push({ pathname: "/settings/merchant-detail", params: { name: item.merchant } })} />
+                  </View>
+                </View>
               )}
             </View>
           );
         }}
+        ListFooterComponent={
+          view === "all" && rows.length > SHOWN ? (
+            <Pressable onPress={() => setShowAll((v) => !v)} className="items-center py-3" accessibilityRole="button">
+              <Text className="text-meta font-semibold" style={{ color: theme.primary }}>{showAll ? "Show fewer" : `Show all ${rows.length}`}</Text>
+            </Pressable>
+          ) : rows.length > 0 ? (
+            <Text className="text-label text-muted-foreground px-1 pt-3">
+              Changes compare with the {MONTHS[range] === 1 ? "month" : `${MONTHS[range]} months`} before. Renaming a merchant renames it everywhere.
+            </Text>
+          ) : null
+        }
         ListEmptyComponent={
           <EmptyState
             icon="storefront-outline"
-            title={"No merchant data"}
-            subtitle={"Add expenses with descriptions to see merchant analytics."}
+            title={view === "all" ? "No merchant data" : "Nothing here"}
+            subtitle={view === "all" ? "Add expenses with descriptions to see merchant analytics." : "Try another period."}
           />
         }
       />
     </ScreenContainer>
+  );
+}
+
+function monthShort(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  return new Date(y, (m || 1) - 1, 1).toLocaleDateString("en-IN", { month: "short" });
+}
+
+function FilterTile({ label, value, on, onPress }: { label: string; value: string; on: boolean; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      className="flex-1 rounded-control px-3 py-2.5"
+      style={{ backgroundColor: on ? theme.alpha("primary", 0.1) : theme.background, borderWidth: 1, borderColor: on ? theme.primary : "transparent", minWidth: 0 }}
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+    >
+      <Text className="text-label text-muted-foreground">{label}</Text>
+      <Text className="text-body font-bold text-foreground" numberOfLines={1}>{value}</Text>
+    </Pressable>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-1" style={{ minWidth: 0 }}>
+      <Text className="text-label text-muted-foreground">{label}</Text>
+      <Text className="text-meta font-semibold text-foreground" numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
+
+function PillButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} className="rounded-pill border border-border bg-card px-3 justify-center" style={{ height: 36 }} accessibilityRole="button">
+      <Text className="text-meta font-semibold text-foreground">{label}</Text>
+    </Pressable>
   );
 }
