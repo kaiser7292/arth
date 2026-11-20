@@ -450,8 +450,9 @@ export default function BudgetScreen() {
             </Card>
           )}
 
-          {/* Month-end projection: a drawer, closed until tapped (owner, Nov 2026); the line under its
-               title gives the projection, the drawer the rest in one compact block. */}
+          {/* Month-end projection: this month, one row that opens Insights › Forecast, where the detail
+               (fixed and variable, daily pace, confidence) lives (owner, Nov 2026). A past month keeps its
+               drawer: the forecast is for the month in progress. */}
           {visibleWidgets.includes("projection") && totalBudget > 0 && (() => {
             const stats: { label: string; value: string; color?: string }[] = [];
             let note: string | null = null;
@@ -487,9 +488,43 @@ export default function BudgetScreen() {
             const annualRoom = annual ? annual.annualProjectedSavings ?? 0 : 0;
             const sub = isCurrentMonth
               ? projected != null
-                ? `${rs(projected)} at this pace${v2Forecast ? ` · ${v2Forecast.confidence} confidence` : ""}`
+                ? `${rs(projected)} at this pace`
                 : "Not enough to go on yet"
               : `${left >= 0 ? "Saved" : "Overspent"} ${rs(Math.abs(left))}`;
+            if (isCurrentMonth) {
+              return (
+                <Pressable
+                  onPress={() => router.push("/insights/forecast")}
+                  className="rounded-card bg-card border border-border px-4"
+                  accessibilityRole="button"
+                  accessibilityLabel={`Month-end projection, ${sub}. Opens the forecast`}
+                >
+                  <View className="flex-row items-center" style={{ minHeight: 60, gap: 12 }}>
+                    <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("foreground", 0.06) }}>
+                      <Ionicons name="trending-up-outline" size={17} color={theme.mutedForeground} />
+                    </View>
+                    <View className="flex-1" style={{ minWidth: 0 }}>
+                      <Text className="text-body font-semibold text-foreground" numberOfLines={1}>Month-end projection</Text>
+                      <Text className="text-meta" numberOfLines={1} style={{ color: projectedOver ? theme.danger : theme.mutedForeground }}>
+                        {sub}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+                  </View>
+                  {annual && (
+                    <View className="flex-row items-center border-t border-border py-2.5" style={{ gap: 8 }}>
+                      <View className="flex-1" style={{ minWidth: 0 }}>
+                        <Text className="text-meta font-semibold text-foreground">This year</Text>
+                        <Text className="text-label text-muted-foreground">
+                          {rs(Math.round(annual.annualProjectedSpend ?? 0))} projected of {rs(annual.annualBudget ?? 0)} · {rs(Math.abs(annualRoom))} {annualRoom >= 0 ? "under" : "over"}
+                        </Text>
+                      </View>
+                      <Chip variant="status" tone={annual.annualOnTrack ? "success" : "danger"} label={annual.annualOnTrack ? "On track" : "Over budget"} />
+                    </View>
+                  )}
+                </Pressable>
+              );
+            }
             return (
               <FoldGroup
                 icon={isCurrentMonth ? "trending-up-outline" : "checkmark-done-outline"}
