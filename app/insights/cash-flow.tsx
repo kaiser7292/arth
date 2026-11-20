@@ -22,10 +22,11 @@ const TOP_CATEGORIES = 5;
 export default function CashFlowScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const params = useLocalSearchParams<{ period?: string }>();
+  // start/end (YYYY-MM): opened from a month's bars on this same screen, to that one month.
+  const params = useLocalSearchParams<{ period?: string; start?: string; end?: string }>();
   const [period, setPeriod] = useState<InsightPeriod>(isInsightPeriod(params.period) ? params.period : "last_6m");
-  const [customStart, setCustomStart] = useState(getCurrentMonth());
-  const [customEnd, setCustomEnd] = useState(getCurrentMonth());
+  const [customStart, setCustomStart] = useState(params.start ?? getCurrentMonth());
+  const [customEnd, setCustomEnd] = useState(params.end ?? params.start ?? getCurrentMonth());
   const fyStartMonth = getFYStartMonth();
   const [loaded, setLoaded] = useState<{ key: string; flow: CashFlow } | null>(null);
   const [failed, setFailed] = useState(false);
@@ -85,6 +86,12 @@ export default function CashFlowScreen() {
         { key: "adjusted", label: BALANCE_ADJUSTMENTS, amount: flow.adjusted, color: theme.mutedForeground, section: "adjustedOut" as const },
       ].filter((w) => w.amount > 0)
     : [];
+  const months = flow?.months.length ?? 0;
+  const rangeLabel =
+    range.startMonth === range.endMonth ? formatMonthLabel(range.startMonth) : `${formatMonthLabel(range.startMonth)} to ${formatMonthLabel(range.endMonth)}`;
+  /** A month's bars: this screen again, for just that month. */
+  const openMonth = (month: string) =>
+    router.push({ pathname: "/insights/cash-flow", params: { period: "custom", start: month, end: month } });
   const categories = showAll ? (flow?.categories ?? []) : (flow?.categories ?? []).slice(0, TOP_CATEGORIES);
 
   return (
@@ -108,34 +115,67 @@ export default function CashFlowScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 60 }}>
           <Card className="mb-3">
             <Pressable onPress={drill("left", "What's left")} accessibilityRole="button" accessibilityLabel="What's left, see transactions">
-              <Text className="text-label text-muted-foreground">
-                {quietShort ? "So far this month" : short ? "More went out than came in, by" : "Left in this period"}
+              <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
+                {quietShort ? "So far this month" : short ? "More went out, by" : "Left over"} · {rangeLabel}
               </Text>
-              <View className="flex-row items-center justify-between">
-                <Text className="text-title font-bold" style={{ color: leftColor }}>{formatAmount(Math.abs(flow.left))}</Text>
-                <Ionicons name="chevron-forward" size={15} color={theme.mutedForeground} />
+              <View className="flex-row items-center justify-between mt-1.5">
+                <Text className="text-hero font-bold" style={{ color: leftColor }} numberOfLines={1} adjustsFontSizeToFit>
+                  {flow.left > 0 ? "+" : flow.left < 0 && !quietShort ? "−" : ""}{formatAmount(Math.abs(flow.left))}
+                </Text>
+                <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
               </View>
               {flow.left > 0 && flow.cameIn > 0 && (
-                <Text className="text-label text-muted-foreground">{Math.round((flow.left / flow.cameIn) * 100)}% of what came in</Text>
+                <Text className="text-meta text-muted-foreground">
+                  {Math.round((flow.left / flow.cameIn) * 100)}% of what came in{months > 1 ? ` · ${formatAmount(Math.round(flow.left / months))} a month` : ""}
+                </Text>
               )}
-              {quietShort && <Text className="text-label text-muted-foreground">Your income for this month hasn't come yet</Text>}
+              {quietShort && <Text className="text-meta text-muted-foreground">Your income for this month hasn't come yet</Text>}
             </Pressable>
-            <View className="mt-3 pt-1 border-t border-border">
-              <Row dot={theme.success} label="Came in" amount={flow.cameIn} bold onPress={drill("in", "Came in")} />
-              <Row dot={theme.primary} label="Went out" amount={flow.wentOut} bold onPress={drill("out", "Went out")} />
+            <View className="flex-row mt-4" style={{ gap: 8 }}>
+              <Tile label="Came in" amount={flow.cameIn} sign="+" color={theme.success} onPress={drill("in", "Came in")} />
+              <Tile label="Went out" amount={flow.wentOut} sign="−" color={theme.danger} onPress={drill("out", "Went out")} />
             </View>
+
+            {/* Month by month as paired bars; a month's bars open that month (up to a year of them). */}
+            {months > 1 && months <= 12 && (
+              <View className="mt-4">
+                <View className="flex-row items-end" style={{ height: 120, gap: 8 }}>
+                  {flow.months.map((mo) => (
+                    <Pressable
+                      key={mo.month}
+                      onPress={() => openMonth(mo.month)}
+                      className="flex-1 flex-row items-end justify-center"
+                      style={{ height: "100%", gap: 3 }}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${formatMonthLabel(mo.month)}: came in ${formatAmount(mo.cameIn)}, went out ${formatAmount(mo.wentOut)}. Open this month`}
+                    >
+                      <View style={{ flex: 1, maxWidth: 14, height: `${Math.max(2, (mo.cameIn / biggest) * 100)}%`, backgroundColor: theme.success, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                      <View style={{ flex: 1, maxWidth: 14, height: `${Math.max(2, (mo.wentOut / biggest) * 100)}%`, backgroundColor: theme.danger, opacity: 0.8, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
+                    </Pressable>
+                  ))}
+                </View>
+                <View className="flex-row mt-1.5" style={{ gap: 8 }}>
+                  {flow.months.map((mo) => (
+                    <Text key={mo.month} className="flex-1 text-label text-muted-foreground text-center" numberOfLines={1}>
+                      {formatMonthLabel(mo.month).slice(0, 3)}
+                    </Text>
+                  ))}
+                </View>
+                <Text className="text-label text-muted-foreground mt-1.5">Green came in, red went out. Tap a month to open it.</Text>
+              </View>
+            )}
           </Card>
 
-          {flow.months.length > 1 && (
+          {months > 12 && (
             <Card className="mb-3">
               <Heading>Month by month</Heading>
               {[...flow.months].reverse().map((m) => (
                 <Pressable
                   key={m.month}
-                  onPress={() => router.push({ pathname: "/summary/my-month", params: { month: m.month } })}
+                  onPress={() => openMonth(m.month)}
                   className="flex-row items-center py-2"
                   accessibilityRole="button"
-                  accessibilityLabel={`${formatMonthLabel(m.month)}, ${m.left < 0 ? "short by" : "left"} ${formatAmount(Math.abs(m.left))}. Open My Month`}
+                  accessibilityLabel={`${formatMonthLabel(m.month)}, ${m.left < 0 ? "short by" : "left"} ${formatAmount(Math.abs(m.left))}. Open this month`}
                 >
                   <Text className="text-label text-muted-foreground" style={{ width: 62 }} numberOfLines={1}>{formatMonthLabel(m.month)}</Text>
                   <View className="flex-1 mx-2" style={{ gap: 3 }}>
@@ -166,7 +206,9 @@ export default function CashFlowScreen() {
             <Card className="mb-3">
               <Heading>Where it went</Heading>
               <View className="flex-row rounded-full overflow-hidden mb-1" style={{ height: 10, gap: 2 }}>
-                {where.map((w) => <View key={w.key} style={{ flex: w.amount / whole, backgroundColor: w.color }} />)}
+                {where.map((w) => (
+                  <Pressable key={w.key} onPress={drill(w.section, w.label)} style={{ flex: w.amount / whole, backgroundColor: w.color }} accessibilityRole="button" accessibilityLabel={`${w.label}, ${formatAmount(w.amount)}`} />
+                ))}
               </View>
               {where.map((w) => (
                 <Row key={w.key} dot={w.color} label={w.label} amount={w.amount} percent={Math.round((w.amount / whole) * 100)} onPress={drill(w.section, w.label)} />
@@ -206,6 +248,19 @@ export default function CashFlowScreen() {
         </ScrollView>
       )}
     </ScreenContainer>
+  );
+}
+
+function Tile({ label, amount, sign, color, onPress }: { label: string; amount: number; sign: string; color: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable onPress={onPress} className="flex-1 rounded-control p-3" style={{ backgroundColor: theme.background, minWidth: 0 }} accessibilityRole="button" accessibilityLabel={`${label}, ${formatAmount(amount)}, see transactions`}>
+      <View className="flex-row items-center justify-between">
+        <Text className="text-meta text-muted-foreground">{label}</Text>
+        <Ionicons name="chevron-forward" size={13} color={theme.mutedForeground} />
+      </View>
+      <Text className="text-heading font-bold" style={{ color }} numberOfLines={1} adjustsFontSizeToFit>{sign}{formatAmount(amount)}</Text>
+    </Pressable>
   );
 }
 

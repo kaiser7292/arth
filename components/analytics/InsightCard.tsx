@@ -1,81 +1,59 @@
 import { View, Pressable } from "react-native";
-import { Text } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Shadows } from "@/constants/theme";
-import { MiniTrendSpark } from "./MiniTrendSpark";
-import type { InsightSeverity } from "@/services/insight-engine";
+
+import { Text } from "@/components/ui";
+import type { InsightSeverity, InsightType } from "@/services/insight-engine";
 import { useTheme } from "@/hooks/use-theme";
 
+const TYPE_ICONS: Partial<Record<InsightType, keyof typeof Ionicons.glyphMap>> = {
+  budget_breach: "alert-circle-outline",
+  lifestyle_creep: "trending-up-outline",
+  savings_win: "sparkles-outline",
+  micro_leaks: "water-outline",
+  category_spike: "trending-up-outline",
+  card_use: "card-outline",
+  idle_cash: "business-outline",
+};
+
 const SEVERITY_ICONS: Record<InsightSeverity, keyof typeof Ionicons.glyphMap> = {
-  celebrate: "sparkles",
+  celebrate: "sparkles-outline",
   info: "bulb-outline",
   warning: "warning-outline",
-  critical: "alert-circle",
+  critical: "alert-circle-outline",
 };
 
 interface InsightCardProps {
   severity: InsightSeverity;
+  type?: InsightType;
   title: string;
   detail: string;
+  /** Kept for callers; the redesigned card leaves the trend to the insight's own screen. */
   trendData?: number[];
   onPress?: () => void;
 }
 
-export function InsightCard({
-  severity,
-  title,
-  detail,
-  trendData,
-  onPress,
-}: InsightCardProps) {
-  
+/** One "Worth a look" insight: a tinted icon tile, what happened and why it matters (Nov 2026 redesign). */
+export function InsightCard({ severity, type, title, detail, onPress }: InsightCardProps) {
   const theme = useTheme();
-
-  const severityColor = {
-    celebrate: theme.success,
-    info: theme.faintForeground,
-    warning: theme.warning,
-    critical: theme.danger,
-  }[severity];
-
+  const role = severity === "celebrate" ? "success" : severity === "critical" ? "danger" : severity === "warning" ? "warning" : "primary";
+  const color = theme[role];
+  const icon = (type && TYPE_ICONS[type]) || SEVERITY_ICONS[severity];
   return (
     <Pressable
       onPress={onPress}
-      className="rounded-2xl bg-card p-4 mb-3"
-      style={Shadows.card}
-      accessibilityLabel={`${severity}: ${title}. ${detail}. Tap for details`}
+      className="rounded-card bg-card border border-border p-4 mb-2 flex-row items-start"
+      style={{ gap: 12 }}
+      accessibilityLabel={`${title}. ${detail}. Tap for details`}
       accessibilityRole="button"
     >
-      <View className="flex-row items-start justify-between">
-        <View className="flex-row items-start flex-1 mr-3">
-          <View
-            className="w-7 h-7 rounded-full items-center justify-center mr-3 mt-0.5"
-            style={{ backgroundColor: `${severityColor}18` }}
-          >
-            <Ionicons name={SEVERITY_ICONS[severity]} size={16} color={severityColor} />
-          </View>
-          <View className="flex-1">
-            <Text className="text-sm font-semibold text-foreground mb-1">
-              {title}
-            </Text>
-            <Text className="text-xs text-muted-foreground" numberOfLines={2}>
-              {detail}
-            </Text>
-          </View>
-        </View>
-
-        <View className="flex-row items-center gap-2">
-          {trendData && trendData.length >= 2 && (
-            <MiniTrendSpark data={trendData} color={severityColor} />
-          )}
-          <Ionicons
-            name="chevron-forward"
-            size={16}
-            color={theme.faintForeground}
-          />
-        </View>
+      <View className="w-10 h-10 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha(role, role === "danger" ? 0.08 : 0.1) }}>
+        <Ionicons name={icon} size={20} color={color} />
       </View>
+      <View className="flex-1" style={{ minWidth: 0 }}>
+        <Text className="text-body font-bold text-foreground">{title}</Text>
+        <Text className="text-meta text-muted-foreground" numberOfLines={3}>{detail}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} style={{ marginTop: 4 }} />
     </Pressable>
   );
 }
