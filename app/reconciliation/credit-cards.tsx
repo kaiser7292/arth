@@ -54,12 +54,12 @@ function daysUntil(dateStr: string): number {
 /** What the bank's SMS says about a pool's room left, against Arth's figure, as one note. */
 function poolNote(remaining: number, bankLeft: number | null, stale: boolean): { tone: NoteTone; text: string } | null {
   if (bankLeft == null) return null;
-  if (stale) return { tone: "info", text: `SMS said ${formatAmount(bankLeft)} left, before your latest payment · using Arth's figure` };
+  if (stale) return { tone: "info", text: `Last SMS ${formatAmount(bankLeft)} left · out of date` };
   const diff = remaining - bankLeft;
-  if (Math.abs(diff) < 0.005) return { tone: "ok", text: `Matches the bank's SMS · ${formatAmount(bankLeft)} left` };
+  if (Math.abs(diff) < 0.005) return { tone: "ok", text: "Matches the bank's SMS" };
   return diff > 0
-    ? { tone: "warn", text: `${formatAmount(Math.abs(diff))} of spending not in Arth yet · bank says ${formatAmount(bankLeft)} left` }
-    : { tone: "warn", text: `${formatAmount(Math.abs(diff))} of payments not in Arth yet · bank says ${formatAmount(bankLeft)} left` };
+    ? { tone: "warn", text: `${formatAmount(Math.abs(diff))} spending not in Arth` }
+    : { tone: "warn", text: `${formatAmount(Math.abs(diff))} payments not in Arth` };
 }
 
 function formatDueDate(dateStr: string | null): string {
@@ -352,17 +352,16 @@ export default function CreditCardsScreen() {
               <AccountHead
                 type="credit_card"
                 title={group.bankName}
-                subtitle={
-                  isShared
-                    ? `${group.accounts.length} cards · shared limit ${formatAmount(group.sharedLimit)}`
-                    : group.sharedLimit > 0
-                      ? `Limit ${formatAmount(group.sharedLimit)} · ${formatAmount(group.sharedAvailable)} left`
-                      : "No limit set"
-                }
+                subtitle={group.sharedLimit > 0 ? `${isShared ? "Shared limit" : "Limit"} ${formatAmount(group.sharedLimit)}` : "No limit set"}
                 amount={group.utilized}
                 changeText={group.sharedLimit > 0 ? `${Math.round(bankUtil)}% used` : "used"}
               />
-              {group.sharedLimit > 0 && <ShareBar value={bankUtil / 100} color={bankUtilColor} />}
+              {group.sharedLimit > 0 && (
+                <View style={{ gap: 6 }}>
+                  <ShareBar value={bankUtil / 100} color={bankUtilColor} />
+                  <Text className="text-label text-muted-foreground">{formatAmount(group.sharedAvailable)} left</Text>
+                </View>
+              )}
 
               {group.accounts.map((account) => {
                 const limit = account.credit_limit ?? 0;

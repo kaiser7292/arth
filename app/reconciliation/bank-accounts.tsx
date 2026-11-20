@@ -151,8 +151,6 @@ export default function BankAccountsScreen() {
           const inflow = totalCredits + totalTransfersIn;
           const outflow = totalExpenses + totalTransfersOut;
           const isNow = month === getCurrentMonth();
-          const parts = (a: number, an: string, b: number, bn: string) =>
-            [a > 0 ? `${an} ${formatAmount(a)}` : null, b > 0 ? `${bn} ${formatAmount(b)}` : null].filter(Boolean).join(" · ") || "Nothing this month";
           return (
             <SummaryCard
               label={`All savings · ${summaries.length} ${summaries.length === 1 ? "account" : "accounts"}`}
@@ -167,9 +165,7 @@ export default function BankAccountsScreen() {
             >
               <FlowTiles
                 inAmount={inflow}
-                inSub={parts(totalCredits, "Credits", totalTransfersIn, "transfers in")}
                 outAmount={outflow}
-                outSub={parts(totalExpenses, "Spent", totalTransfersOut, "transfers out")}
               />
               <FootRows
                 rows={[
@@ -215,8 +211,8 @@ export default function BankAccountsScreen() {
               <FlowBar
                 inflow={inflow}
                 outflow={outflow}
-                inText={`In ${formatAmount(inflow)}${transfersIn > 0 ? ` · ${formatAmount(transfersIn)} transfers` : ""}`}
-                outText={`Out ${formatAmount(outflow)}${transfersOut > 0 ? ` · ${formatAmount(transfersOut)} transfers` : ""}`}
+                inText={`In ${formatAmount(inflow)}`}
+                outText={`Out ${formatAmount(outflow)}`}
               />
               <Text className="text-label text-muted-foreground">
                 Opened the month at {formatAmount(opening)}

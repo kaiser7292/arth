@@ -267,7 +267,7 @@ export function smsNote(
   if (account.last_known_balance == null) return null;
   const on = account.last_balance_date ? ` · ${shortDate(account.last_balance_date)}` : "";
   if (stale) {
-    return { tone: "info", text: `Last SMS balance ${formatAmount(account.last_known_balance)}${on}, older than your latest transactions` };
+    return { tone: "info", text: `Last SMS ${formatAmount(account.last_known_balance)}${on} · out of date` };
   }
   const gap = Math.abs(account.last_known_balance - arthBalance);
   if (gap < 1) return { tone: "ok", text: `Matches the ${who}'s SMS${on}` };
