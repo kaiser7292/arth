@@ -1,3 +1,5 @@
+import { listLayout } from "@/components/motion/motion";
+import Animated from "react-native-reanimated";
 import { useCallback, useRef, useState } from "react";
 import { tint } from "@/constants/brand";
 import { FlatList, Pressable, View, ScrollView } from "react-native";
@@ -150,7 +152,8 @@ export default function MerchantsScreen() {
     <ScreenContainer padTop={false}>
       <ListToolbar {...tools.toolbar} />
       {tools.filterSheet}
-      <FlatList
+      <Animated.FlatList
+        itemLayoutAnimation={listLayout()}
         data={tools.grouped}
         keyExtractor={(row) => (row.type === "heading" ? `heading-${row.key}` : row.item.name.toLowerCase())}
         keyboardShouldPersistTaps="handled"

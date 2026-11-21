@@ -1,3 +1,5 @@
+import { listLayout } from "@/components/motion/motion";
+import Animated from "react-native-reanimated";
 import { useGroupDrawers, type DrawerFlags } from "@/hooks/use-group-drawers";
 import { useCallback, useMemo, useState } from "react";
 import { FlatList, View } from "react-native";
@@ -230,7 +232,8 @@ export default function TogetherTransactionsScreen() {
         onClearAll={clearFilters}
       />
 
-      <FlatList
+      <Animated.FlatList
+        itemLayoutAnimation={listLayout()}
         data={drawerList}
         keyExtractor={(item) => (item.type === "day" ? `day-${item.date}` : item.type === "group" ? `group-${item.key}` : item.row.id)}
         renderItem={renderItem}

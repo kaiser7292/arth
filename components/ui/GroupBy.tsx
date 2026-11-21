@@ -1,3 +1,6 @@
+import { listLayout } from "@/components/motion/motion";
+import { drawerEntering } from "@/components/motion/drawer-motion";
+import Animated from "react-native-reanimated";
 import { Chevron } from "@/components/motion/Chevron";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
@@ -52,6 +55,7 @@ export function GroupHeading({
   const theme = useTheme();
   if (onToggle && flat) {
     return (
+      <Animated.View layout={listLayout()}>
       <Pressable
         onPress={onToggle}
         className="flex-row items-center border-b border-border"
@@ -78,11 +82,12 @@ export function GroupHeading({
         )}
         <Chevron open={!!open} size={18} color={theme.mutedForeground} />
       </Pressable>
+      </Animated.View>
     );
   }
   if (onToggle) {
     return (
-      <View style={{ marginHorizontal: inset ? MX : 0, marginTop: 10 }}>
+      <Animated.View layout={listLayout()} style={{ marginHorizontal: inset ? MX : 0, marginTop: 10 }}>
         <Pressable
           onPress={onToggle}
           className="flex-row items-center bg-card border border-border"
@@ -110,7 +115,7 @@ export function GroupHeading({
           {total !== 0 && <MoneyChip amount={total} tone={!signed ? "moved" : total > 0 ? "in" : "out"} />}
           <Chevron open={!!open} size={18} color={theme.mutedForeground} />
         </Pressable>
-      </View>
+      </Animated.View>
     );
   }
   const color = !signed ? theme.mutedForeground : total > 0 ? theme.success : theme.foreground;
@@ -139,15 +144,25 @@ export function DrawerCell({
   flat = false,
   children,
 }: {
-  row: { inDrawer?: boolean; last?: boolean };
+  row: { inDrawer?: boolean; last?: boolean; groupKey?: string };
   inset?: boolean;
   /** Under a flat heading: the row as it is, a plain list like Transactions. */
   flat?: boolean;
   children: ReactNode;
 }) {
-  if (!row.inDrawer || flat) return <>{children}</>;
+  if (!row.inDrawer) return <>{children}</>;
+  // Fades in when its drawer was just opened; glides when rows above it come or go.
+  if (flat) {
+    return (
+      <Animated.View entering={drawerEntering(row.groupKey)} layout={listLayout()}>
+        {children}
+      </Animated.View>
+    );
+  }
   return (
-    <View
+    <Animated.View
+      entering={drawerEntering(row.groupKey)}
+      layout={listLayout()}
       className={`bg-card border-x border-border ${row.last ? "border-b" : ""}`}
       style={{
         marginHorizontal: inset ? MX : 0,
@@ -165,6 +180,6 @@ export function DrawerCell({
       ) : (
         children
       )}
-    </View>
+    </Animated.View>
   );
 }

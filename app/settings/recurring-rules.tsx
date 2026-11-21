@@ -1,3 +1,5 @@
+import { listLayout } from "@/components/motion/motion";
+import Animated from "react-native-reanimated";
 import { useCallback, useEffect, useState } from "react";
 import { formatAmount } from "@/utils/format";
 import { View, Pressable, FlatList } from "react-native";
@@ -147,7 +149,8 @@ export default function RecurringRulesScreen() {
       </View>
       <ListToolbar {...tools.toolbar} />
       {tools.filterSheet}
-      <FlatList
+      <Animated.FlatList
+        itemLayoutAnimation={listLayout()}
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}

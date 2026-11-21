@@ -1,3 +1,5 @@
+import { drawerEntering } from "@/components/motion/drawer-motion";
+import Animated from "react-native-reanimated";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { Chevron } from "@/components/motion/Chevron";
 import { Text } from "@/components/ui";
@@ -123,9 +125,9 @@ export function GroupDrawerHeader({
   );
 }
 
-/** A row inside an open month: part of the plain list under the heading. */
-export function DrawerBody({ children }: { children: React.ReactNode }) {
-  return <View>{children}</View>;
+/** A row inside an open month: part of the plain list under the heading. Fades in when its month was just opened. */
+export function DrawerBody({ children, group }: { children: React.ReactNode; group?: string }) {
+  return <Animated.View entering={drawerEntering(group)}>{children}</Animated.View>;
 }
 
 /**
