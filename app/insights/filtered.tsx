@@ -1,3 +1,5 @@
+import { listLayout } from "@/components/motion/motion";
+import Animated from "react-native-reanimated";
 import { useAddCategory } from "@/hooks/use-add-category";
 import { useTheme } from "@/hooks/use-theme";
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -272,7 +274,8 @@ export default function InsightFilteredListScreen() {
           <ListToolbar {...tools.toolbar} />
           {tools.filterSheet}
           {addCategory.sheet}
-          <FlatList
+          <Animated.FlatList
+        itemLayoutAnimation={listLayout()}
             initialNumToRender={12}
             maxToRenderPerBatch={10}
             windowSize={7}

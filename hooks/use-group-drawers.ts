@@ -1,4 +1,4 @@
-import { animateLayoutChange } from "@/components/motion/motion";
+import { markDrawerOpened } from "@/components/motion/drawer-motion";
 import { useEffect, useMemo, useState } from "react";
 
 export interface DrawerFlags {
@@ -8,6 +8,8 @@ export interface DrawerFlags {
   /** On a row: it sits inside its drawer; the last one closes the card. */
   inDrawer?: boolean;
   last?: boolean;
+  /** On a row: its drawer's key, so it can fade in when that drawer was just opened. */
+  groupKey?: string;
 }
 
 /**
@@ -27,6 +29,7 @@ export function useGroupDrawers<R extends object>(
     const firstKey = keyOf(first);
     const out: (R & DrawerFlags)[] = [];
     let open = false;
+    let currentKey = "";
     let lastRow = -1;
     const closeCard = () => {
       if (lastRow >= 0) out[lastRow] = { ...out[lastRow], last: true };
@@ -36,12 +39,14 @@ export function useGroupDrawers<R extends object>(
       if (isHeading(r)) {
         closeCard();
         const key = keyOf(r);
-        open = (key === firstKey) !== flipped.has(key);
+        currentKey = key;
+        const isOpen = (key === firstKey) !== flipped.has(key);
+        open = isOpen;
         out.push({
           ...r,
           open,
           onToggle: () => {
-            animateLayoutChange();
+            if (!isOpen) markDrawerOpened(key);
             setFlipped((prev) => {
               const next = new Set(prev);
               if (next.has(key)) next.delete(key);
@@ -51,7 +56,7 @@ export function useGroupDrawers<R extends object>(
           },
         });
       } else if (open) {
-        out.push({ ...r, inDrawer: true, last: false });
+        out.push({ ...r, inDrawer: true, last: false, groupKey: currentKey });
         lastRow = out.length - 1;
       }
     }

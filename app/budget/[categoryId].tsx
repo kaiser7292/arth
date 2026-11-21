@@ -1,3 +1,5 @@
+import { listLayout } from "@/components/motion/motion";
+import Animated from "react-native-reanimated";
 import { tint } from "@/constants/brand";
 import { useTheme } from "@/hooks/use-theme";
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -305,7 +307,8 @@ export default function CategoryDetailScreen() {
       {tools.filterSheet}
 
       {/* Transactions */}
-      <FlatList
+      <Animated.FlatList
+        itemLayoutAnimation={listLayout()}
         initialNumToRender={12}
         maxToRenderPerBatch={10}
         windowSize={7}

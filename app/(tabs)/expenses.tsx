@@ -1,4 +1,4 @@
-import { animateLayoutChange } from "@/components/motion/motion";
+import { markDrawerOpened } from "@/components/motion/drawer-motion";
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
 import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, CREDIT_KINDS, PICKABLE_CREDIT_KINDS, creditLook, type CreditKind } from "@/services/expense-types";
@@ -484,12 +484,12 @@ export default function ExpensesScreen() {
   const loadedMonthsRef = useRef(loadedMonths);
   loadedMonthsRef.current = loadedMonths;
   const toggleMonth = useCallback((month: string) => {
-    animateLayoutChange();
     const next = new Set(openMonthsRef.current);
     if (next.has(month)) {
       next.delete(month);
     } else {
       next.add(month);
+      markDrawerOpened(month);
       // Rows already loaded stay until the next reload; a data change reloads everything anyway.
       if (filterNature !== "transfers" && !loadedMonthsRef.current.has(month) && lastFiltersRef.current) {
         void loadMonth(month, lastFiltersRef.current, loadGen.current);
@@ -1298,7 +1298,7 @@ export default function ExpensesScreen() {
           );
         case "day":
           return (
-            <DrawerBody>
+            <DrawerBody group={row.month}>
               <View className="px-4 pt-3 pb-1.5 flex-row items-baseline justify-between border-t border-border">
                 <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground" style={{ letterSpacing: 0.6 }}>
                   {transactionDayLabel(row.date)}
@@ -1308,7 +1308,7 @@ export default function ExpensesScreen() {
             </DrawerBody>
           );
         case "item":
-          return <DrawerBody>{renderItem(row.item)}</DrawerBody>;
+          return <DrawerBody group={row.month}>{renderItem(row.item)}</DrawerBody>;
         case "loading":
           return <DrawerLoading />;
         case "empty":
@@ -1669,7 +1669,8 @@ export default function ExpensesScreen() {
               {rangeRow}
               {filterNature === "transfers" ? (
                 transferDrawerMode ? (
-                  <FlatList
+                  <Animated.FlatList
+                  itemLayoutAnimation={listLayout()}
                     style={{ flex: 1 }}
                     data={transferDrawerRows}
                     keyExtractor={(row) => drawerKey(row, (t) => t.id)}
@@ -1686,7 +1687,8 @@ export default function ExpensesScreen() {
                     }
                   />
                 ) : (
-                <FlatList
+                <Animated.FlatList
+                  itemLayoutAnimation={listLayout()}
                   style={{ flex: 1 }}
                   initialNumToRender={12}
                   maxToRenderPerBatch={10}

@@ -1,3 +1,5 @@
+import { listLayout } from "@/components/motion/motion";
+import Animated from "react-native-reanimated";
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperSheet";
 import { View, FlatList, Pressable, BackHandler } from "react-native";
@@ -389,7 +391,8 @@ export default function SmsScanRunsScreen() {
         <ListToolbar {...tools.toolbar} inset={false} />
         {tools.filterSheet}
 
-        <FlatList
+        <Animated.FlatList
+        itemLayoutAnimation={listLayout()}
           initialNumToRender={12}
           maxToRenderPerBatch={10}
           windowSize={7}

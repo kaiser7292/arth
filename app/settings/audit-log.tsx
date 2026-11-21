@@ -1,4 +1,4 @@
-import { animateLayoutChange } from "@/components/motion/motion";
+import { markDrawerOpened } from "@/components/motion/drawer-motion";
 import { Button, Chip, DateInput, EmptyState, ListToolbar, RadioRow, ScreenContainer, Sheet, Text, moneyTone } from "@/components/ui";
 import { DrawerBody, DrawerEnd, DrawerHeader } from "@/components/expense/MonthDrawer";
 import { tint } from "@/constants/brand";
@@ -295,14 +295,14 @@ export default function AuditLogScreen() {
   );
 
   const toggleSection = useCallback((title: string) => {
-    animateLayoutChange();
+    if (isSectionCollapsed(title)) markDrawerOpened(title);
     setToggledSections((prev) => {
       const next = new Set(prev);
       if (next.has(title)) next.delete(title);
       else next.add(title);
       return next;
     });
-  }, []);
+  }, [isSectionCollapsed]);
 
   const sections = allSections.map((s) =>
     isSectionCollapsed(s.title) ? { ...s, data: [] } : s,
@@ -386,14 +386,14 @@ export default function AuditLogScreen() {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: AuditLogEntry }) => {
+    ({ item, section }: { item: AuditLogEntry; section?: { title: string } }) => {
       const color = actionColor(item.actionType, theme);
       const amountTone = moneyTone(theme, item.objectType === "credit" ? "in" : item.objectType === "transfer" ? "moved" : "out");
       const meta = [OBJECT_OPTIONS.find((o) => o.key === item.objectType)?.label.replace(/s$/, ""), item.date, item.accountLabel]
         .filter(Boolean)
         .join(" · ");
       return (
-        <DrawerBody>
+        <DrawerBody group={section?.title}>
           <Pressable
             onPress={() => handleOpen(item)}
             disabled={!item.navigable}
