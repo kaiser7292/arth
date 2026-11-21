@@ -1,3 +1,4 @@
+import { animateLayoutChange } from "@/components/motion/motion";
 import { useEffect, useMemo, useState } from "react";
 
 export interface DrawerFlags {
@@ -39,13 +40,15 @@ export function useGroupDrawers<R extends object>(
         out.push({
           ...r,
           open,
-          onToggle: () =>
+          onToggle: () => {
+            animateLayoutChange();
             setFlipped((prev) => {
               const next = new Set(prev);
               if (next.has(key)) next.delete(key);
               else next.add(key);
               return next;
-            }),
+            });
+          },
         });
       } else if (open) {
         out.push({ ...r, inDrawer: true, last: false });
