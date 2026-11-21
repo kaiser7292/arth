@@ -129,8 +129,6 @@ export function HomeTile({
               className="text-meta font-semibold text-muted-foreground"
               style={{ flexShrink: 1 }}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.8}
             >
               {name}
             </Text>
