@@ -107,6 +107,7 @@ export function HomeTile({
   const dot = label.lastIndexOf(" · ");
   const name = dot > 0 ? label.slice(0, dot) : label;
   const count = dot > 0 ? label.slice(dot + 3) : null;
+  const [rowWidth, setRowWidth] = useState(0);
 
   return (
     <Animated.View entering={enterUp(index)} style={{ flexBasis: "46%", flexGrow: 1 }}>
@@ -117,7 +118,14 @@ export function HomeTile({
         accessibilityLabel={accessibilityLabel ?? `${label}, ${formatAmount(value)}${sub ? `, ${sub}` : ""}`}
       >
         <Card className="py-3 px-3 flex-1">
-          <View className="flex-row items-center" style={{ gap: 6 }}>
+          <View
+            className="flex-row items-center"
+            style={{ gap: 6 }}
+            onLayout={(e) => {
+              const w = Math.round(e.nativeEvent.layout.width);
+              if (w !== rowWidth) setRowWidth(w);
+            }}
+          >
             <View className="w-7 h-7 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
               {accountType ? (
                 <AccountTypeIcon type={accountType} size={15} color={theme.primary} />
@@ -126,9 +134,15 @@ export function HomeTile({
               )}
             </View>
             <Text
+              // Shrink-to-fit measures once, at the first layout, when the tile has no width yet
+              // (owner, Nov 2026: "Card dues" stayed tiny until Home's data loaded). Keyed on the
+              // row's real width, so it measures again as soon as the tile has one.
+              key={rowWidth}
               className="text-meta font-semibold text-muted-foreground"
               style={{ flexShrink: 1 }}
               numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
             >
               {name}
             </Text>
