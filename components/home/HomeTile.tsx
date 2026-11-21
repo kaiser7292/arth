@@ -71,6 +71,17 @@ function useCountUp(target: number): number {
 }
 
 /**
+ * The figure's size, from the length of the final amount (not the counting one, so it doesn't jump):
+ * heading size while it fits half the screen, smaller for lakhs and crores (owner, Nov 2026: the
+ * Investments figure was cut off).
+ */
+function figureSize(chars: number): { fontSize: number; lineHeight: number } {
+  if (chars <= 9) return { fontSize: 17, lineHeight: 22 };
+  if (chars <= 11) return { fontSize: 15, lineHeight: 20 };
+  return { fontSize: 13, lineHeight: 18 };
+}
+
+/**
  * One account or people-and-money summary on Home, two to a row: an icon and name, one big figure,
  * one line of context and an optional bar. Tapping opens the full screen the old card opened.
  */
@@ -116,7 +127,13 @@ export function HomeTile({
             </Text>
             <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
           </View>
-          <Text className="text-heading font-bold mt-2.5" style={{ color: toneColor }} numberOfLines={1} adjustsFontSizeToFit>
+          <Text
+            className="text-heading font-bold mt-2.5"
+            style={{ color: toneColor, ...figureSize(formatAmount(Math.round(value)).length) }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
             {formatAmount(Math.round(shown))}
           </Text>
           {sub ? (
