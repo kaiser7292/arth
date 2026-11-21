@@ -91,4 +91,9 @@ describe("ExpenseListItem", () => {
     fireEvent(getByText("Book store"), "longPress");
     expect(onLongPress).toHaveBeenCalled();
   });
+
+  it("names a sub-category with its parent on the row", () => {
+    const { getByText } = render(<ExpenseListItem expense={base} category={cat} categoryLabel="Shopping › Books" />);
+    expect(getByText("Shopping › Books")).toBeTruthy();
+  });
 });

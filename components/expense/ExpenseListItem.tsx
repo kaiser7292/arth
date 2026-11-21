@@ -18,6 +18,8 @@ import { MONEY_EVENT_META } from "./money-event-meta";
 interface ExpenseListItemProps {
   expense: Expense;
   category?: Category | null;
+  /** The category as shown: "Food › Groceries" for a sub-category. Defaults to its name. */
+  categoryLabel?: string;
   paymentMode?: PaymentMode | null;
   account?: FinancialAccount | null;
   /** Sum of approved refund credits linked to this expense. Defaults to 0. */
@@ -69,6 +71,7 @@ export function rowStatus(expense: Expense, refundState: RefundState): RowStatus
 function ExpenseListItemInner({
   expense,
   category,
+  categoryLabel,
   paymentMode,
   account,
   refundedAmount = 0,
@@ -164,7 +167,7 @@ function ExpenseListItemInner({
         <View className="flex-row items-center mt-1" style={{ gap: 8 }}>
         <View className="flex-1 flex-row items-center" style={{ gap: 6, minWidth: 0 }}>
           {look ? (
-            <Chip variant="category" label={look.name} color={look.color} />
+            <Chip variant="category" label={!isCredit && categoryLabel ? categoryLabel : look.name} color={look.color} />
           ) : showAddCategory ? (
             <Chip variant="add" label="Add category" onPress={() => onAddCategory?.(expense)} accessibilityLabel={`Add a category to ${transactionTitle(expense)}`} />
           ) : null}

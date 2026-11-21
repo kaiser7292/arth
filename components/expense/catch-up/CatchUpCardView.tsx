@@ -1,3 +1,4 @@
+import { categoryPath } from "@/utils/category-tree";
 import { tint } from "@/constants/brand";
 import { isPartOn } from "@/services/customise";
 import { CREDIT_KIND_LABELS, PICKABLE_CREDIT_KINDS, creditKindOf, creditLook, type CreditKind } from "@/services/expense-types";
@@ -285,7 +286,7 @@ function SingleExpenseBody({
           backgroundColor: category ? tint(category.color, 0.08) : "transparent",
         }}
         accessibilityRole="button"
-        accessibilityLabel={category ? `Category ${category.name}, tap to change` : "Choose a category"}
+        accessibilityLabel={category ? `Category ${categoryPath(category, categoryMap)}, tap to change` : "Choose a category"}
       >
         <Ionicons
           name={(category?.icon as keyof typeof Ionicons.glyphMap) ?? "pricetag-outline"}
@@ -296,7 +297,7 @@ function SingleExpenseBody({
           className="text-body font-semibold ml-1.5"
           style={{ color: category?.color ?? theme.mutedForeground }}
         >
-          {category?.name ?? "Choose category"}
+          {category ? categoryPath(category, categoryMap) : "Choose category"}
         </Text>
         <Ionicons name="chevron-down" size={14} color={category?.color ?? theme.mutedForeground} style={{ marginLeft: 4 }} />
       </Pressable>

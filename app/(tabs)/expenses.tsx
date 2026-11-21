@@ -641,6 +641,14 @@ export default function ExpensesScreen() {
     [filterSignature, debouncedSearch, filterStartDate, filterEndDate, datePreset, customStartDate, customEndDate, filterCreditKinds, filterCategoryIds, filterPaymentModeIds, filterAccountIds, filterTagIds, filterMerchantNames, filterRefundedStatus, filterAvoidability, filterRuleIds, filterStatus, sortBy, filterNature, summaryGroupBy, loading, loadEverything, drawerMode, drawerBy, minAmount, maxAmount, loadMonth],
   );
 
+  // Categories change elsewhere (a sub-category added in Catch Up or Settings): re-read them each
+  // time the tab is shown, or a transaction filed under a new one shows no category at all.
+  useFocusEffect(
+    useCallback(() => {
+      getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => {});
+    }, []),
+  );
+
   // Load reference data once (skipped if already seeded from preload)
   useEffect(() => {
     if (preloaded) return;

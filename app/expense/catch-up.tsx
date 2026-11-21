@@ -728,10 +728,12 @@ export default function CatchUpScreen() {
       const commit = picker?.commit ?? false;
       setPicker(null);
       if (!cardExpense) return;
+      // A sub-category just made in the picker isn't in the list yet: read the list again.
+      if (!categoryMap.has(categoryId)) getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => {});
       setPicked((p) => ({ ...p, [cardExpense.id]: categoryId }));
       if (commit) primary(categoryId);
     },
-    [picker, cardExpense, primary],
+    [picker, cardExpense, primary, categoryMap],
   );
 
   const onCcAccountSelected = useCallback(
@@ -943,6 +945,7 @@ export default function CatchUpScreen() {
         selectedId={cardExpense ? categoryFor(cardExpense) : null}
         onSelect={onPickCategory}
         merchantName={cardExpense?.merchant_name}
+        allowCreate
         onClose={() => setPicker(null)}
       />
 
