@@ -1,3 +1,4 @@
+import { categoryPath } from "@/utils/category-tree";
 import React, { useCallback } from "react";
 import { ExpenseListItem } from "./ExpenseListItem";
 import type { Expense } from "@/services/expense";
@@ -40,6 +41,8 @@ function ExpenseListRowInner({
   onAddCategory,
 }: ExpenseListRowProps) {
   const category = item.category_id ? categoryMap.get(item.category_id) ?? null : null;
+  // "Food › Groceries" for a sub-category (095).
+  const categoryLabel = category ? categoryPath(category, categoryMap) : undefined;
   const paymentMode = item.payment_mode_id ? paymentModeMap.get(item.payment_mode_id) ?? null : null;
   const account = item.account_id ? accountMap.get(item.account_id) ?? null : null;
   const refundedAmount = refundedMap?.get(item.id) ?? 0;
@@ -51,6 +54,7 @@ function ExpenseListRowInner({
     <ExpenseListItem
       expense={item}
       category={category}
+      categoryLabel={categoryLabel}
       paymentMode={paymentMode}
       account={account}
       refundedAmount={refundedAmount}
