@@ -1,3 +1,4 @@
+import { animateLayoutChange } from "@/components/motion/motion";
 import { Button, Chip, DateInput, EmptyState, ListToolbar, RadioRow, ScreenContainer, Sheet, Text, moneyTone } from "@/components/ui";
 import { DrawerBody, DrawerEnd, DrawerHeader } from "@/components/expense/MonthDrawer";
 import { tint } from "@/constants/brand";
@@ -294,6 +295,7 @@ export default function AuditLogScreen() {
   );
 
   const toggleSection = useCallback((title: string) => {
+    animateLayoutChange();
     setToggledSections((prev) => {
       const next = new Set(prev);
       if (next.has(title)) next.delete(title);
@@ -395,7 +397,7 @@ export default function AuditLogScreen() {
           <Pressable
             onPress={() => handleOpen(item)}
             disabled={!item.navigable}
-            className="flex-row items-start px-4 py-3 border-t border-border"
+            className="flex-row items-start px-4 py-3 border-b border-border"
             accessibilityRole={item.navigable ? "button" : undefined}
           >
             <View className="w-10 h-10 rounded-control items-center justify-center mr-3" style={{ backgroundColor: tint(color, 0.12) }}>

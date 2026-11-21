@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { Platform } from "react-native";
+import { AccessibilityInfo, LayoutAnimation, Platform, UIManager } from "react-native";
 import { Easing, FadeIn, FadeInUp, FadeOut, LinearTransition, ZoomIn, ReduceMotion, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { MOTION } from "@/constants/design-tokens";
 
@@ -12,6 +12,33 @@ import { MOTION } from "@/constants/design-tokens";
  * Nothing in this folder needs its own check for that, except JS-driven count-ups
  * (AnimatedNumber), which read useReducedMotion() themselves.
  */
+
+// Old-architecture Android needs LayoutAnimation switched on; the new architecture has it built in.
+if (Platform.OS === "android" && !(globalThis as { nativeFabricUIManager?: unknown }).nativeFabricUIManager) {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
+
+// "Remove animations" on the phone, kept current so a tap doesn't have to ask.
+let reduceMotion = false;
+AccessibilityInfo.isReduceMotionEnabled()
+  .then((v) => (reduceMotion = v))
+  .catch(() => {});
+AccessibilityInfo.addEventListener?.("reduceMotionChanged", (v: boolean) => (reduceMotion = v));
+
+/**
+ * Animates whatever the next state change does to the layout: a drawer opening or closing. Its
+ * rows fade in or out and everything below glides to its new place instead of jumping. Call it
+ * right before the state change. Skipped when "Remove animations" is on.
+ */
+export function animateLayoutChange(duration: number = MOTION.base): void {
+  if (reduceMotion) return;
+  LayoutAnimation.configureNext({
+    duration,
+    create: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+    update: { type: LayoutAnimation.Types.easeInEaseOut },
+    delete: { type: LayoutAnimation.Types.easeInEaseOut, property: LayoutAnimation.Properties.opacity },
+  });
+}
 
 /** The one easing curve: cubic-bezier(0.22, 0.61, 0.36, 1). */
 export const EASE = Easing.bezier(0.22, 0.61, 0.36, 1);

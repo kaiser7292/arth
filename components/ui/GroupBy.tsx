@@ -1,4 +1,4 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Chevron } from "@/components/motion/Chevron";
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
@@ -76,7 +76,7 @@ export function GroupHeading({
         ) : (
           total !== 0 && <MoneyChip amount={total} tone={!signed ? "moved" : total > 0 ? "in" : "out"} />
         )}
-        <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />
+        <Chevron open={!!open} size={18} color={theme.mutedForeground} />
       </Pressable>
     );
   }
@@ -108,7 +108,7 @@ export function GroupHeading({
             {count != null ? <Text className="text-meta text-muted-foreground mt-0.5">{count} {count === 1 ? noun?.one ?? "item" : noun?.many ?? "items"}</Text> : null}
           </View>
           {total !== 0 && <MoneyChip amount={total} tone={!signed ? "moved" : total > 0 ? "in" : "out"} />}
-          <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={theme.mutedForeground} />
+          <Chevron open={!!open} size={18} color={theme.mutedForeground} />
         </Pressable>
       </View>
     );

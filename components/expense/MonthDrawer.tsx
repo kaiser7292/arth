@@ -1,7 +1,5 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { useEffect } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import { Chevron } from "@/components/motion/Chevron";
 import { Text } from "@/components/ui";
 import type { MoneyToneName } from "@/components/ui/money-tone";
 import { TotalsPill } from "@/components/ui/TotalsPill";
@@ -16,19 +14,6 @@ export type DrawerMode = "all" | "spend" | "credit" | "transfer";
 
 const CARD_MX = 16;
 
-/** The rotating arrow on a month's header. */
-function Chevron({ open, color }: { open: boolean; color: string }) {
-  const turn = useSharedValue(open ? 1 : 0);
-  useEffect(() => {
-    turn.value = withTiming(open ? 1 : 0, { duration: 260 });
-  }, [open, turn]);
-  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }));
-  return (
-    <Animated.View style={style}>
-      <Ionicons name="chevron-down" size={18} color={color} />
-    </Animated.View>
-  );
-}
 
 /**
  * A drawer's header: a plain row, not a card (owner, Nov 2026: "why did we put everything in a
@@ -67,7 +52,7 @@ export function DrawerHeader({
       </Text>
       {right}
       <View className="flex-1" />
-      <Chevron open={open} color={theme.mutedForeground} />
+      <Chevron open={open} size={18} color={theme.mutedForeground} />
     </Pressable>
   );
 }
@@ -143,9 +128,12 @@ export function DrawerBody({ children }: { children: React.ReactNode }) {
   return <View>{children}</View>;
 }
 
-/** The end of an open month: a line before the next month's heading. */
+/**
+ * The end of an open month. The last row's own hairline already divides it from the next
+ * heading; a second line here sat 6px under it and read as a stray line (owner, Nov 2026).
+ */
 export function DrawerEnd() {
-  return <View className="border-b border-border" style={{ height: 6 }} />;
+  return <View style={{ height: 0 }} />;
 }
 
 /** While an open month's rows load. */

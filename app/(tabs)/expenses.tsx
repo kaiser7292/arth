@@ -1,3 +1,4 @@
+import { animateLayoutChange } from "@/components/motion/motion";
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
 import { CREDIT_KIND_LABELS, CREDIT_KIND_LOOKS, CREDIT_KINDS, PICKABLE_CREDIT_KINDS, creditLook, type CreditKind } from "@/services/expense-types";
@@ -483,6 +484,7 @@ export default function ExpensesScreen() {
   const loadedMonthsRef = useRef(loadedMonths);
   loadedMonthsRef.current = loadedMonths;
   const toggleMonth = useCallback((month: string) => {
+    animateLayoutChange();
     const next = new Set(openMonthsRef.current);
     if (next.has(month)) {
       next.delete(month);
