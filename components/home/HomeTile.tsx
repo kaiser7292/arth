@@ -71,6 +71,16 @@ function useCountUp(target: number): number {
 }
 
 /**
+ * The figure's size, from the length of the final amount (not the counting one, so it doesn't jump):
+ * heading size while it fits half the screen, smaller for lakhs and crores.
+ */
+function figureSize(chars: number): { fontSize: number; lineHeight: number } {
+  if (chars <= 9) return { fontSize: 17, lineHeight: 22 };
+  if (chars <= 11) return { fontSize: 15, lineHeight: 20 };
+  return { fontSize: 13, lineHeight: 18 };
+}
+
+/**
  * One account or people-and-money summary on Home, two to a row: an icon and name, one big figure,
  * one line of context and an optional bar. Tapping opens the full screen the old card opened.
  */
@@ -93,6 +103,10 @@ export function HomeTile({
   const toneColor = { default: theme.foreground, success: theme.success, danger: theme.danger, warning: theme.warning }[tone];
   const subColor = { muted: theme.mutedForeground, success: theme.success, danger: theme.danger, warning: theme.warning }[subTone];
   const barColor = { primary: theme.primary, success: theme.success, warning: theme.warning, danger: theme.danger }[progressTone];
+  // "Investments · 4": the name and its count, so the count can't be the part that's cut off.
+  const dot = label.lastIndexOf(" · ");
+  const name = dot > 0 ? label.slice(0, dot) : label;
+  const count = dot > 0 ? label.slice(dot + 3) : null;
 
   return (
     <Animated.View entering={enterUp(index)} style={{ flexBasis: "46%", flexGrow: 1 }}>
@@ -103,20 +117,38 @@ export function HomeTile({
         accessibilityLabel={accessibilityLabel ?? `${label}, ${formatAmount(value)}${sub ? `, ${sub}` : ""}`}
       >
         <Card className="py-3 px-3 flex-1">
-          <View className="flex-row items-center" style={{ gap: 8 }}>
-            <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+          <View className="flex-row items-center" style={{ gap: 6 }}>
+            <View className="w-7 h-7 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
               {accountType ? (
-                <AccountTypeIcon type={accountType} size={17} color={theme.primary} />
+                <AccountTypeIcon type={accountType} size={15} color={theme.primary} />
               ) : (
-                <Ionicons name={icon} size={17} color={theme.primary} />
+                <Ionicons name={icon} size={15} color={theme.primary} />
               )}
             </View>
-            <Text className="text-meta font-semibold text-muted-foreground flex-1" numberOfLines={1}>
-              {label}
+            <Text
+              className="text-meta font-semibold text-muted-foreground"
+              style={{ flexShrink: 1 }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+            >
+              {name}
             </Text>
+            {count != null && (
+              <View className="rounded-pill px-1.5" style={{ backgroundColor: theme.alpha("foreground", 0.06), flexShrink: 0 }}>
+                <Text className="text-label font-semibold text-muted-foreground">{count}</Text>
+              </View>
+            )}
+            <View className="flex-1" />
             <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
           </View>
-          <Text className="text-heading font-bold mt-2.5" style={{ color: toneColor }} numberOfLines={1} adjustsFontSizeToFit>
+          <Text
+            className="text-heading font-bold mt-2.5"
+            style={{ color: toneColor, ...figureSize(formatAmount(Math.round(value)).length) }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+          >
             {formatAmount(Math.round(shown))}
           </Text>
           {sub ? (
