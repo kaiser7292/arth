@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import type { Href } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
-import { Card, StatusPill, Text } from "@/components/ui";
+import { Card, SectionTitle, StatusPill, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -46,33 +46,28 @@ export function CheckInsCard() {
 
   return (
     <Card className="mx-4 mt-3">
-      <View className="flex-row items-center justify-between mb-1">
-        <View className="flex-row items-center">
-          <View
-            className="w-9 h-9 rounded-full items-center justify-center mr-3"
-            style={{ backgroundColor: theme.alpha("primary", 0.1) }}
+      <SectionTitle
+        icon="albums-outline"
+        title="Check-ins"
+        hint="Quick swipes to keep things tidy"
+        active
+        right={<StatusPill label={`${total}`} color={theme.primary} />}
+      />
+      <View className="mt-1.5">
+        {rows.map((r, i) => (
+          <Pressable
+            key={r.key}
+            onPress={() => router.push(r.href)}
+            className={`flex-row items-center ${i > 0 ? "border-t border-border" : ""}`}
+            style={{ minHeight: 48, paddingLeft: 42, gap: 8 }}
+            accessibilityRole="button"
           >
-            <Ionicons name="albums-outline" size={18} color={theme.primary} />
-          </View>
-          <View>
-            <Text className="text-sm font-semibold text-foreground">Check-ins</Text>
-            <Text className="text-xs text-muted-foreground">Quick swipes to keep things tidy</Text>
-          </View>
-        </View>
-        <StatusPill label={`${total}`} color={theme.primary} />
+            <Ionicons name={r.icon} size={15} color={theme.primary} />
+            <Text className="text-body text-foreground flex-1">{r.label(counts[r.key])}</Text>
+            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+          </Pressable>
+        ))}
       </View>
-      {rows.map((r) => (
-        <Pressable
-          key={r.key}
-          onPress={() => router.push(r.href)}
-          className="flex-row items-center ml-12 py-2"
-          accessibilityRole="button"
-        >
-          <Ionicons name={r.icon} size={14} color={theme.primary} style={{ marginRight: 8 }} />
-          <Text className="text-sm text-foreground flex-1">{r.label(counts[r.key])}</Text>
-          <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
-        </Pressable>
-      ))}
     </Card>
   );
 }
