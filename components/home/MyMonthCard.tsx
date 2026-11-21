@@ -3,7 +3,7 @@ import { Pressable, View, type GestureResponderEvent } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { AnimatedNumber, PressableScale } from "@/components/motion";
-import { Card, ProgressBar, StatusPill, Text } from "@/components/ui";
+import { Card, ProgressBar, SectionTitle, StatusPill, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
@@ -28,7 +28,7 @@ export interface MyMonthBudget {
 }
 
 function SectionLabel({ children }: { children: string }) {
-  return <Text className="text-xs font-semibold text-muted-foreground">{children}</Text>;
+  return <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">{children}</Text>;
 }
 
 /**
@@ -54,25 +54,25 @@ export function MyMonthCard({ showCashFlow = true, budget = null }: { showCashFl
 
   const cashFlow = showCashFlow ? data : null;
   if (!cashFlow && !budget) return null;
+  const daysLeft = Math.max(1, getDaysRemaining(month));
 
   return (
     <PressableScale onPress={() => router.push("/summary/my-month")} accessibilityRole="button" accessibilityLabel="Open My Month">
       <Card className="mx-4 mt-3">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground">
-            My Month · {formatMonthLabel(month, "long").split(" ")[0]}
-          </Text>
-          <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
-        </View>
-
-        {cashFlow && <CashFlow d={cashFlow} month={month} />}
+        <SectionTitle
+          icon="calendar-outline"
+          title="My Month"
+          hint={`${formatMonthLabel(month, "long").split(" ")[0]} · ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left`}
+          active
+          right={<Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />}
+        />
 
         {budget && (
           <Pressable
             onPress={() => router.push("/(tabs)/budget")}
             accessibilityRole="button"
             accessibilityLabel="Budget, open Budget"
-            className={cashFlow ? "mt-3 pt-3 border-t border-border" : "mt-2"}
+            className="mt-3.5"
           >
             <View className="flex-row items-center justify-between">
               <SectionLabel>Budget</SectionLabel>
@@ -87,17 +87,23 @@ export function MyMonthCard({ showCashFlow = true, budget = null }: { showCashFl
               accessibilityRole="button"
               accessibilityLabel="Spent against budget, see transactions"
             >
-              <AnimatedNumber value={budget.spent} className="text-heading font-bold text-foreground" />
+              <AnimatedNumber value={budget.spent} className="text-title font-bold text-foreground" />
               <Text className="text-meta text-muted-foreground ml-1.5">of {formatAmount(budget.total)}</Text>
             </Pressable>
             <ProgressBar value={budget.progress} color={budget.color} height={8} animated className="mt-2" />
             <View className="flex-row justify-between mt-1.5">
-              <Text className="text-xs font-medium" style={{ color: budget.remaining >= 0 ? theme.success : theme.danger }}>
+              <Text className="text-meta font-semibold" style={{ color: budget.remaining >= 0 ? theme.success : theme.danger }}>
                 {budget.remaining >= 0 ? `${formatAmount(budget.remaining)} of budget left` : `${formatAmount(-budget.remaining)} over budget`}
               </Text>
-              <Text className="text-xs text-faint-foreground">{budget.daysLeft} days left</Text>
+              <Text className="text-meta text-muted-foreground">{budget.daysLeft} days left</Text>
             </View>
           </Pressable>
+        )}
+
+        {cashFlow && (
+          <View className={budget ? "mt-3.5 pt-3.5 border-t border-border" : "mt-3.5"}>
+            <CashFlow d={cashFlow} month={month} />
+          </View>
         )}
       </Card>
     </PressableScale>
@@ -140,21 +146,19 @@ function CashFlow({ d, month }: { d: MyMonth; month: string }) {
 
   return (
     <>
-      <View className="mt-1.5">
-        <SectionLabel>Cash flow</SectionLabel>
-      </View>
-      <View className="flex-row mt-1.5">
+      <SectionLabel>Cash flow</SectionLabel>
+      <View className="flex-row mt-2">
         <Pressable onPress={drill("in", "Money in")} className="flex-1 mr-3" accessibilityRole="button" accessibilityLabel="Money in, see transactions">
           <View className="flex-row items-center">
-            <Ionicons name="arrow-down-circle" size={15} color={theme.success} />
-            <Text className="text-xs text-muted-foreground ml-1">Money in</Text>
+            <View className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.success }} />
+            <Text className="text-meta text-muted-foreground ml-1.5">Money in</Text>
           </View>
           <AnimatedNumber value={moneyIn} className="text-heading font-bold text-foreground mt-0.5" numberOfLines={1} />
         </Pressable>
         <Pressable onPress={drill("out", "Money out")} className="flex-1" accessibilityRole="button" accessibilityLabel="Money out, see transactions">
           <View className="flex-row items-center">
-            <Ionicons name="arrow-up-circle" size={15} color={theme.danger} />
-            <Text className="text-xs text-muted-foreground ml-1">Money out</Text>
+            <View className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.foreground }} />
+            <Text className="text-meta text-muted-foreground ml-1.5">Money out</Text>
           </View>
           <AnimatedNumber value={moneyOut} className="text-heading font-bold text-foreground mt-0.5" numberOfLines={1} />
         </Pressable>
@@ -177,7 +181,7 @@ function CashFlow({ d, month }: { d: MyMonth; month: string }) {
         ))}
       </View>
 
-      <Text className="text-xs font-medium mt-2.5" style={{ color: messageColor }} numberOfLines={2}>
+      <Text className="text-meta font-semibold mt-2.5" style={{ color: messageColor }} numberOfLines={2}>
         {message}
       </Text>
     </>

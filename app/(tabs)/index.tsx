@@ -34,7 +34,8 @@ import { FirstScanSummaryCard } from "@/components/home/FirstScanSummaryCard";
 import { YearReviewReadyCard } from "@/components/home/YearReviewReadyCard";
 import { InvestmentsSummaryCard } from "@/components/home/InvestmentsSummaryCard";
 import { WalletSummary } from "@/components/home/WalletSummary";
-import { Card, ContextualHeader, Money, ProgressBar, ScreenContainer, StatusPill, SwipePager, Text } from "@/components/ui";
+import { Card, ContextualHeader, Money, ProgressBar, ScreenContainer, SectionTitle, StatusPill, SwipePager, Text } from "@/components/ui";
+import { Chevron } from "@/components/motion/Chevron";
 import type { SwipePagerPage } from "@/components/ui";
 import { AnimatedNumber, Appear, PressableScale } from "@/components/motion";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -134,8 +135,8 @@ function renderHomeCards({ cards, present }: { cards: Partial<Record<HomeCardId,
     if (heading) {
       closeRow();
       out.push(
-        <View key={`h-${id}`} className="mx-4 mt-5 mb-1">
-          <Text className="text-xs font-semibold uppercase tracking-wider text-faint-foreground">{heading}</Text>
+        <View key={`h-${id}`} className="mx-4 mt-6 mb-1">
+          <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">{heading}</Text>
         </View>,
       );
     }
@@ -594,30 +595,18 @@ export default function HomeScreen() {
               onPress={() => setRemindersOpen(!remindersOpen)}
               accessibilityLabel={`${remindersOpen ? "Collapse" : "Expand"} reminders`}
               accessibilityRole="button"
-              className="flex-row items-center justify-between"
             >
-            <View className="flex-row items-center flex-1">
-              <Ionicons name="repeat-outline" size={18} color={theme.primary} />
-              <Text className="text-sm font-semibold text-foreground ml-2">
-                Reminders
-              </Text>
-              <View className="ml-2 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
-                <Text className="text-xs font-bold" style={{ color: theme.primary }}>
-                  {dueReminders.length}
-                </Text>
-              </View>
-              {autoMatches.length > 0 && (
-                <View className="ml-1.5 px-1.5 py-0.5 rounded-full" style={{ backgroundColor: theme.success + "22" }}>
-                  <Text className="text-xs font-bold" style={{ color: theme.success }}>
-                    {autoMatches.length} matched
-                  </Text>
-                </View>
-              )}
-            </View>
-              <Ionicons
-                name={remindersOpen ? "chevron-up" : "chevron-down"}
-                size={16}
-                color={colors.textSecondary}
+              <SectionTitle
+                icon="repeat-outline"
+                title="Reminders"
+                active
+                right={
+                  <View className="flex-row items-center" style={{ gap: 6 }}>
+                    <StatusPill label={`${dueReminders.length}`} color={theme.primary} />
+                    {autoMatches.length > 0 && <StatusPill label={`${autoMatches.length} matched`} color={theme.success} />}
+                    <Chevron open={remindersOpen} size={16} color={theme.mutedForeground} />
+                  </View>
+                }
               />
             </Pressable>
             {remindersOpen && (
@@ -789,29 +778,21 @@ export default function HomeScreen() {
               onPress={() => setDuesOpen(!duesOpen)}
               accessibilityLabel={`${duesOpen ? "Collapse" : "Expand"} upcoming dues`}
               accessibilityRole="button"
-              className="flex-row items-center justify-between"
             >
-              <View className="flex-row items-center flex-1">
-                <Ionicons name="time-outline" size={18} color={theme.warning} />
-                <Text className="text-sm font-semibold text-foreground ml-2">
-                  Upcoming Dues
-                </Text>
-                <View className="ml-2 px-1.5 py-0.5 rounded-full bg-warning/8">
-                  <Text className="text-xs font-bold" style={{ color: theme.warning }}>
-                    {upcomingDues.length}
-                  </Text>
-                </View>
-              </View>
-              <View className="flex-row items-center">
-                <Text className="text-sm font-semibold mr-2" style={{ color: theme.warning }}>
-                  {formatAmount(upcomingDues.reduce((s, f) => s + f.amount, 0))}
-                </Text>
-                <Ionicons
-                  name={duesOpen ? "chevron-up" : "chevron-down"}
-                  size={16}
-                  color={colors.textSecondary}
-                />
-              </View>
+              <SectionTitle
+                icon="time-outline"
+                title="Upcoming dues"
+                color={theme.warning}
+                right={
+                  <View className="flex-row items-center" style={{ gap: 6 }}>
+                    <StatusPill label={`${upcomingDues.length}`} color={theme.warning} />
+                    <Text className="text-body font-bold" style={{ color: theme.warning }}>
+                      {formatAmount(upcomingDues.reduce((s, f) => s + f.amount, 0))}
+                    </Text>
+                    <Chevron open={duesOpen} size={16} color={theme.mutedForeground} />
+                  </View>
+                }
+              />
             </Pressable>
             {duesOpen && (
               <>

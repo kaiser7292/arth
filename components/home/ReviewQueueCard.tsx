@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
-import { Card, StatusPill, Text } from "@/components/ui";
+import { Card, SectionTitle, StatusPill, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 
 export interface ReviewQueueCounts {
@@ -57,51 +57,37 @@ export function ReviewQueueCard({ counts, onPress, onCatchUp }: ReviewQueueCardP
       accessibilityLabel={`${total} items need action: ${lines.map((i) => `${i.count} ${i.label}`).join(", ")}`}
     >
       <Card className="mx-4 mt-3">
-        <View className="flex-row items-center justify-between mb-2">
-          <View className="flex-row items-center">
-            <View
-              className="w-9 h-9 rounded-full items-center justify-center mr-3"
-              style={{ backgroundColor: theme.alpha("primary", 0.1) }}
-            >
-              <Ionicons name="clipboard-outline" size={18} color={theme.primary} />
+        <SectionTitle
+          icon="clipboard-outline"
+          title="Action required"
+          hint="Tap to review and resolve"
+          active
+          right={
+            <View className="flex-row items-center" style={{ gap: 6 }}>
+              <StatusPill label={`${total}`} color={theme.primary} />
+              <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
             </View>
-            <View>
-              <Text className="text-sm font-semibold text-foreground">
-                Action Required
-              </Text>
-              <Text className="text-xs text-muted-foreground">
-                Tap to review and resolve
-              </Text>
+          }
+        />
+        <View className="mt-2" style={{ paddingLeft: 42 }}>
+          {lines.map((line) => (
+            <View key={line.key} className="flex-row items-center" style={{ minHeight: 30, gap: 8 }}>
+              <Ionicons name={line.icon} size={14} color={theme.primary} />
+              <Text className="text-body font-bold text-foreground">{line.count}</Text>
+              <Text className="text-body text-muted-foreground">{line.label}</Text>
             </View>
-          </View>
-          <View className="flex-row items-center">
-            <StatusPill label={`${total}`} color={theme.primary} />
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={theme.alpha("primary", 0.25)}
-              style={{ marginLeft: 6 }}
-            />
-          </View>
+          ))}
         </View>
-        {lines.map((line) => (
-          <View key={line.key} className="flex-row items-center ml-12 mb-0.5">
-            <Ionicons name={line.icon} size={12} color={theme.primary} style={{ marginRight: 6 }} />
-            <Text className="text-xs text-muted-foreground">
-              {line.count} {line.label}
-            </Text>
-          </View>
-        ))}
         {onCatchUp && (
           <Pressable
             onPress={onCatchUp}
-            className="flex-row items-center justify-center mt-3 py-2.5 rounded-lg"
-            style={{ backgroundColor: theme.primary }}
+            className="flex-row items-center justify-center mt-3 rounded-pill"
+            style={{ backgroundColor: theme.primary, height: 44, gap: 8 }}
             accessibilityRole="button"
             accessibilityLabel={`Catch up on ${total} items one at a time`}
           >
             <Ionicons name="albums-outline" size={16} color={theme.primaryForeground} />
-            <Text className="text-sm font-semibold ml-1.5" style={{ color: theme.primaryForeground }}>
+            <Text className="text-body font-bold" style={{ color: theme.primaryForeground }}>
               Catch up ({total})
             </Text>
           </Pressable>

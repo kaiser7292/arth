@@ -103,18 +103,20 @@ export function HomeTile({
         accessibilityLabel={accessibilityLabel ?? `${label}, ${formatAmount(value)}${sub ? `, ${sub}` : ""}`}
       >
         <Card className="py-3 px-3 flex-1">
-          <View className="flex-row items-center">
-            {accountType ? (
-              <AccountTypeIcon type={accountType} size={14} color={theme.mutedForeground} />
-            ) : (
-              <Ionicons name={icon} size={14} color={theme.mutedForeground} />
-            )}
-            <Text className="text-xs text-muted-foreground ml-1.5 flex-1" numberOfLines={1}>
+          <View className="flex-row items-center" style={{ gap: 8 }}>
+            <View className="w-8 h-8 rounded-control items-center justify-center" style={{ backgroundColor: theme.alpha("primary", 0.1) }}>
+              {accountType ? (
+                <AccountTypeIcon type={accountType} size={17} color={theme.primary} />
+              ) : (
+                <Ionicons name={icon} size={17} color={theme.primary} />
+              )}
+            </View>
+            <Text className="text-meta font-semibold text-muted-foreground flex-1" numberOfLines={1}>
               {label}
             </Text>
-            <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} />
+            <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
           </View>
-          <Text className="text-lg font-bold mt-2" style={{ color: toneColor }} numberOfLines={1} adjustsFontSizeToFit>
+          <Text className="text-heading font-bold mt-2.5" style={{ color: toneColor }} numberOfLines={1} adjustsFontSizeToFit>
             {formatAmount(Math.round(shown))}
           </Text>
           {sub ? (
@@ -123,7 +125,7 @@ export function HomeTile({
             </Text>
           ) : null}
           {progress != null && (
-            <View className="h-1.5 rounded-full overflow-hidden mt-2" style={{ backgroundColor: theme.border }}>
+            <View className="h-1 rounded-full overflow-hidden mt-2.5" style={{ backgroundColor: theme.alpha("foreground", 0.08) }}>
               <View className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(1, progress)) * 100}%`, backgroundColor: barColor }} />
             </View>
           )}
