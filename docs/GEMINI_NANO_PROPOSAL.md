@@ -159,6 +159,26 @@ Manual scans (the user pulled to refresh) run AI inline, since the app is open.
 - **Check:** must be made only of words from the original (no new words), shorter or equal length.
 - **Result:** display name only — never touches amount, date or account.
 
+### 6.6 Knowing your accounts — relationships, not just fields
+
+Reading amount / account / merchant isn't enough for the cases rules don't cover yet. The first Pixel run showed it: "A/C XXXXX903667 has a debit by transfer of Rs 30,155 … Avl Bal Rs 0.00" looks like a ₹30,155 spend, but it was an SBI FD being closed with the proceeds going back to savings. Counted as an expense, it would be wrong twice: a fake spend, plus an FD still showing in net worth.
+
+**Design: Nano labels and points, code does the bookkeeping.**
+
+1. **A short "money map" goes into the prompt.** One line per account, built from `financial_accounts` and `investment_products`, e.g. `A3 | FD | SBI | ••3667 | funded from A1` or `A1 | savings | SBI | ••4821`. Names and digits only, never balances or history. Gemini Nano takes about 4,000 tokens per prompt, so the map stays under ~25 lines (most recently active first).
+2. **Nano picks one event from a fixed list:** `spend`, `income`, `refund`, `own_transfer`, `fd_open`, `fd_close`, `card_payment`, `loan_emi`, `investment`, `wallet_topup`, `not_txn`. It also names the accounts involved by their map id (`from: "A3", to: "A1"`), or `new` when the account isn't in the map.
+3. **Code checks and books it through flows that already exist.**
+   - The account digits must match the SMS (same check as today).
+   - `fd_close` and `fd_open` go through the existing FD handling (`detectFdEvent`, `investment_products`).
+   - `own_transfer` and `card_payment` become `account_transfers`, not expenses.
+   - Everything still lands in the review queue, worded as the event: "SBI FD ••3667 closed, ₹30,155 back to savings ••4821".
+4. **Pairing is code's job, not Nano's.** One event often arrives as two or three SMS: the FD debit to zero, the "account closed" notice, and the savings credit. Code pairs them when the amount matches within ±2 days on the two accounts the map links. Nano labels each message on its own, which small models do reliably. Following a chain across messages is where they slip.
+5. **Unknown account → a suggestion, never a silent guess.** `new` turns into a review card: "Looks like an FD at SBI ending 3667 was closed. Add it so your net worth is right?"
+
+**Why this split:** Nano is good at reading the *meaning* of a message it has never seen. It's weak at arithmetic, remembering across messages, and anything it can make up (it invented "9096" in the first run). So it gets the judgement calls, and Arth's code keeps the money logic it already does correctly.
+
+**Test before building:** add the event label and the money map to the lab, re-run the 50 messages on the Pixel, and check the labels. Then build it in Phase 1 alongside reading unrecognised messages.
+
 ### Later ideas (not v1)
 
 - Spotting subscriptions / recurring payments from free text
@@ -187,7 +207,7 @@ One migration, following the Database Changes Checklist in `CLAUDE.md`:
 - **Review queue:** small "AI" badge on items or fields the model filled; tapping shows which fields.
 - **Scan Runs:** a new category *Read by AI* alongside hardcoded / template / filtered / unrecognized, with the raw body and the AI's answer.
 - **Help center:** one article explaining what the AI does and doesn't do.
-- Phones without Gemini Nano see none of this except the status line in Settings.
+- Phones without Gemini Nano see none of this — not even the Settings row.
 
 ---
 
@@ -237,8 +257,8 @@ Each phase ships behind the `ai_nano` flag and is tested on a release build on t
 
 ## 12. Open Questions
 
-1. Default on or off for new installs on supported phones? (Proposal: on, with the note in Settings.)
-2. Should AI-read transactions ever auto-approve when the same format has been approved N times? (Proposal: no — instead, turn it into a template so rules take over.)
+1. ~~Default on or off for new installs on supported phones?~~ **Decided (Nov 2026): on by default on supported phones; on phones without Gemini Nano the whole feature is hidden — no Settings row, no badge, nothing.**
+2. ~~Should AI-read transactions ever auto-approve?~~ **Decided (Nov 2026): no. Every AI result goes through the review queue; repeat formats become templates instead.**
 3. Phase 0 first, or straight to Phase 1? (Proposal: Phase 0 — one day of work, and it decides whether the rest is worth building.)
 
 ---
