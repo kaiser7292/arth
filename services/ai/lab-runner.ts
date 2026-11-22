@@ -22,6 +22,8 @@ export interface RunRow {
   raw?: string;
   ms?: number;
   error?: string;
+  /** "Add to Catch Up" was tapped: the transaction made, or null when Arth didn't add one. */
+  added?: { expenseId: string | null; note: string | null };
 }
 
 export interface LabRun {
@@ -107,6 +109,11 @@ export async function startLabRun(rows: RunRow[], label: string, map?: MoneyMap)
   const stopped = stopRequested;
   set({ running: false, paused: false, stopped });
   if (!stopped) finishListeners.forEach((l) => l(state));
+}
+
+/** Remember that a row was added to Catch Up (kept with the run, so it shows when you come back). */
+export function markLabRowAdded(id: string, added: NonNullable<RunRow["added"]>): void {
+  set({ rows: state.rows.map((r) => (r.id === id ? { ...r, added } : r)) });
 }
 
 export function stopLabRun(): void {

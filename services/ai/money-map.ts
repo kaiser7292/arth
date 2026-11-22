@@ -10,7 +10,7 @@
 
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { getIgnoredAccountIds } from "@/services/account-ignore";
+import { getIgnoredAccounts } from "@/services/account-ignore";
 
 export interface MapAccount {
   /** Short id used in the prompt: "A1". */
@@ -46,6 +46,7 @@ const KIND: Record<string, string> = {
   wallet: "wallet",
   pension: "EPF/pension",
   demat: "demat",
+  ignored: "account",
 };
 
 export interface AccountRow {
@@ -156,7 +157,8 @@ export function namedAccounts(text: string, map: MoneyMap): NamedAccount[] {
 
 export async function loadMoneyMap(): Promise<MoneyMap> {
   const db = getDatabase();
-  const ignored = getIgnoredAccountIds();
+  const ignoredList = getIgnoredAccounts();
+  const ignored = new Set(ignoredList.map((i) => i.accountId));
   const rows = await db.getAllAsync<AccountRow>(
     `SELECT fa.id, fa.is_active, fa.account_type, fa.bank_name, fa.account_label, fa.account_identifier, fa.closed_at,
             ip.instrument, ip.source_account_id, ip.status AS product_status
@@ -169,5 +171,21 @@ export async function loadMoneyMap(): Promise<MoneyMap> {
   // Inactive rows are deleted or merged accounts, except the ones the user ignored (ignoring
   // marks the account inactive): those stay in, marked.
   const active = rows.filter((r) => r.is_active === 1 || ignored.has(r.id));
+  // The ignored list remembers bank and digits on its own (the scan checks it, not the account
+  // row), so an ignored account whose row is gone or merged is still recognised.
+  for (const i of ignoredList) {
+    if (active.some((r) => r.id === i.accountId)) continue;
+    active.push({
+      id: i.accountId,
+      account_type: "ignored",
+      bank_name: i.bank,
+      account_label: null,
+      account_identifier: i.digits,
+      closed_at: null,
+      instrument: null,
+      source_account_id: null,
+      product_status: null,
+    });
+  }
   return buildMoneyMap(active, MAX_MAP_ACCOUNTS, ignored);
 }

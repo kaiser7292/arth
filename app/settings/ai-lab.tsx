@@ -23,7 +23,8 @@ import { countLabMessages, listLabMessages, setAiLabUnlocked } from "@/services/
 import { loadMoneyMap, moneyMapLines, type MoneyMap } from "@/services/ai/money-map";
 import { downloadNano, getNanoStatus, warmupNano, type NanoStatus } from "@/services/ai/nano";
 import { readSmsWithNano } from "@/services/ai/tasks/read-sms";
-import { getLabRun, startLabRun, stopLabRun, subscribeLabRun } from "@/services/ai/lab-runner";
+import { getLabRun, markLabRowAdded, startLabRun, stopLabRun, subscribeLabRun } from "@/services/ai/lab-runner";
+import { addAiReadToCatchUp } from "@/services/ai/add-ai-read";
 import { EVENT_TEXT, outcomeOf, ResultRow, secs, type Outcome, type RunRow } from "@/components/ai/LabResultRow";
 import { isoDate } from "@/utils/local-date";
 
@@ -58,6 +59,27 @@ const SIZE_OPTIONS = [
 export default function AiLabScreen() {
   const router = useRouter();
   const toast = useToast();
+
+  // "Add to Catch Up" on a scanned message the AI read: through the same path as a pattern's reading.
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const addRow = async (row: RunRow) => {
+    if (row.outcome?.kind !== "transaction" || row.date == null) return;
+    setAddingId(row.id);
+    try {
+      const res = await addAiReadToCatchUp(row.id, row.outcome.result, row.body, row.sender, row.date);
+      const note = res.expenseId
+        ? null
+        : res.error
+          ? `Couldn't add it: ${res.error}`
+          : "Arth didn't add it: it already has this transaction, or the account is ignored or before your start date";
+      markLabRowAdded(row.id, { expenseId: res.expenseId, note });
+      toast(res.expenseId ? "Added to Catch Up" : "Not added", res.expenseId ? { actionLabel: "Open", onAction: () => router.push("/expense/catch-up") } : undefined);
+    } catch (e) {
+      markLabRowAdded(row.id, { expenseId: null, note: `Couldn't add it: ${e instanceof Error ? e.message : String(e)}` });
+    } finally {
+      setAddingId(null);
+    }
+  };
   const theme = useTheme();
 
   // Gemini Nano itself.
@@ -373,6 +395,9 @@ export default function AiLabScreen() {
                   open={openId === r.id}
                   onToggle={() => setOpenId(openId === r.id ? null : r.id)}
                   last={i === shown.length - 1}
+                  onAdd={() => void addRow(r)}
+                  adding={addingId === r.id}
+                  onOpenCatchUp={() => router.push("/expense/catch-up")}
                 />
               ))}
             </View>
