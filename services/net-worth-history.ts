@@ -14,9 +14,8 @@
  * month in JS with the same closing formula (computeClosing).
  *
  * Per account, the chain is anchored by:
- *  A. its opening-balance rows — mirrors getOrCreateMonthBalance: a manual
- *     override row is taken as-is, any other row is re-anchored to the
- *     previous month's closing, a missing row carries the closing forward;
+ *  A. its opening-balance rows — each saved opening is taken as-is, as the
+ *     ledger shows it; a missing row carries the closing forward;
  *  B. (pension / FD, no rows) opening 0 at the first activity, as
  *     computeUnseededBalance does;
  *  C. (no rows, has an SMS balance) last_known_balance in the month of
@@ -27,6 +26,7 @@
 import { START_DATE_HIDDEN } from "@/utils/start-date-marker";
 import { getDatabase } from "@/database";
 import { computeClosing } from "@/services/account-balance";
+import { batchBalanceSheetClosings } from "@/services/balance-sheet";
 import { V15_FLAGS } from "@/services/feature-flags";
 import { getLoanOutstandingsByFAForDates } from "@/services/loan-accounts";
 import {
@@ -255,7 +255,10 @@ export function chainAccount(params: {
     for (let m = start; m <= lastMonth; m = nextMonth(m)) {
       const row = anchors.get(m);
       let opening: number | null;
-      if (row) opening = row.override || prev == null ? row.opening : prev;
+      // A saved opening is taken as-is, as the account's ledger and the Balance Sheet table read it
+      // (the ledger only re-checks a month against the one before when that month is opened).
+      // Re-deriving every month from the first row made the card disagree with both (Nov 2026).
+      if (row) opening = row.opening;
       else opening = prev;
       if (opening == null) continue; // before the first row
       prev = round2(close(opening, m));
@@ -435,6 +438,16 @@ export async function computeNetWorthHistory(
     if (first) startCandidates.push(first);
   }
 
+  // Today: each account's figure exactly as the Balance Sheet table's Today column has it (the
+  // same function), so the card's "Net worth today" and the table never disagree.
+  const todayClosings = await batchBalanceSheetClosings(
+    chainAccounts,
+    currentMonth,
+    true,
+    new Set(chainAccounts.filter((a) => isPensionLikeAccount(a, products.get(a.id))).map((a) => a.id)),
+  );
+  if (todayClosings.size > 0) startCandidates.push(currentMonth);
+
   // ── Market accounts ──
   const portfolio = new Map<string, [string, number][]>();
   const fund = new Map<string, [string, number][]>();
@@ -506,7 +519,9 @@ export async function computeNetWorthHistory(
     for (const a of chainAccounts) {
       if (!counts(a.id, asOf)) continue;
       const chain = chains.get(a.id)!;
-      const v = chain.closing.get(m);
+      // Today: the table's figure; only an account the table has no figure for (no opening row this
+      // month and no SMS balance) keeps the carried-forward one rather than dropping to nothing.
+      const v = m === currentMonth ? (todayClosings.get(a.id)?.value ?? chain.closing.get(m)) : chain.closing.get(m);
       if (v == null) continue;
       if (chain.estimated.has(m)) estimated = true;
       if (a.account_type === "credit_card") cards += Math.max(0, v);
