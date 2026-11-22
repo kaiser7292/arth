@@ -329,7 +329,11 @@ export default function SettingsScreen() {
                     <View className="rounded-card bg-card border border-border px-4 mt-3">
                       <View className="flex-row items-center justify-between py-3 border-b border-border">
                         <Text className="text-meta text-muted-foreground">App name</Text>
-                        <Text className="text-body font-semibold text-foreground">Arth · अर्थ</Text>
+                        {/* अर्थ in the phone's own font: Inter has no Devanagari, and at semi-bold the
+                            owner's phone drew nothing in its place (Nov 2026). */}
+                        <Text className="text-body font-semibold text-foreground">
+                          Arth · <Text style={{ fontFamily: "sans-serif" }}>अर्थ</Text>
+                        </Text>
                       </View>
                       <AppUpdateRow />
                       <Pressable onPress={tapVersion} accessibilityLabel="Version" className="flex-row items-center justify-between py-3">
