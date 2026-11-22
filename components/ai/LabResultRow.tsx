@@ -3,7 +3,7 @@ import { Pressable, View } from "react-native";
 import { Chip, MoneyChip, Text, type MoneyToneName } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import type { RunRow } from "@/services/ai/lab-runner";
-import type { AccountLink, AiReadSms, SmsEvent } from "@/services/ai/tasks/read-sms";
+import type { AccountLink, AiReadSms, Channel, SmsEvent } from "@/services/ai/tasks/read-sms";
 import { formatDisplayDate } from "@/utils/date";
 
 export type { RunRow };
@@ -12,27 +12,53 @@ export type { RunRow };
 
 export const EVENT_TEXT: Record<SmsEvent, string> = {
   spend: "Spend",
+  bill: "Bill",
+  salary: "Salary",
   income: "Income",
+  interest: "Interest",
+  dividend: "Dividend",
   refund: "Refund",
+  cashback: "Cashback",
+  reversal: "Reversal",
   own_transfer: "Own transfer",
-  fd_open: "FD opened",
-  fd_close: "FD closed",
   card_payment: "Card bill paid",
   loan_emi: "Loan EMI",
+  fd_open: "FD opened",
+  fd_close: "FD closed",
+  sip: "SIP",
   investment: "Investment",
+  investment_withdrawal: "Investment withdrawn",
+  insurance: "Insurance",
+  tax: "Tax",
+  atm_cash: "ATM cash",
   wallet_topup: "Wallet top-up",
+  fee: "Fee",
   not_txn: "Not a transaction",
 };
 
+const CHANNEL_TEXT: Record<Channel, string> = {
+  upi: "UPI",
+  card: "Card",
+  netbanking: "Net banking",
+  neft: "NEFT",
+  imps: "IMPS",
+  rtgs: "RTGS",
+  nach: "NACH",
+  atm: "ATM",
+  cheque: "Cheque",
+  wallet: "Wallet",
+};
+
 export const MOVED: ReadonlySet<SmsEvent> = new Set(["own_transfer", "fd_open", "fd_close", "card_payment", "wallet_topup"]);
+const IN_EVENTS: ReadonlySet<SmsEvent> = new Set(["salary", "income", "interest", "dividend", "refund", "cashback", "reversal", "investment_withdrawal"]);
 
 export function toneFor(r: AiReadSms): MoneyToneName {
   if (r.event && MOVED.has(r.event)) return "moved";
-  if (r.event === "income" || r.event === "refund") return "in";
+  if (r.event && IN_EVENTS.has(r.event)) return "in";
   return r.type === "credit" ? "in" : "out";
 }
 
-export type Outcome = "transaction" | "not_transaction" | "rejected" | "error";
+export type Outcome = "transaction" | "not_transaction" | "ignored" | "rejected" | "error";
 
 export const outcomeOf = (r: RunRow): Outcome | null => (r.error ? "error" : (r.outcome?.kind ?? null));
 export const secs = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
@@ -51,7 +77,7 @@ export function ResultRow({ row, open, onToggle, last }: { row: RunRow; open: bo
   const tx = row.outcome?.kind === "transaction" ? row.outcome.result : null;
 
   const icon: keyof typeof Ionicons.glyphMap =
-    kind === "transaction" ? "checkmark" : kind === "not_transaction" ? "remove" : kind === "rejected" ? "alert" : kind === "error" ? "close" : "ellipsis-horizontal";
+    kind === "transaction" ? "checkmark" : kind === "not_transaction" ? "remove" : kind === "ignored" ? "eye-off-outline" : kind === "rejected" ? "alert" : kind === "error" ? "close" : "ellipsis-horizontal";
   const role = kind === "transaction" ? "success" : kind === "rejected" ? "warning" : kind === "error" ? "danger" : "mutedForeground";
   const color = theme[role];
 
@@ -63,6 +89,8 @@ export function ResultRow({ row, open, onToggle, last }: { row: RunRow; open: bo
         : "Money out"
     : kind === "not_transaction"
       ? "Not a transaction"
+      : row.outcome?.kind === "ignored"
+        ? `Ignored account · ${row.outcome.account.name} ••${row.outcome.account.digits ?? ""}`
       : kind === "rejected"
         ? "Rejected by the checks"
         : kind === "error"
@@ -109,6 +137,15 @@ export function ResultRow({ row, open, onToggle, last }: { row: RunRow; open: bo
           {[tx.from, tx.to].some((l) => l?.account && !l.inSms) ? <Chip variant="status" label="from your accounts" tone="primary" /> : null}
         </View>
       ) : null}
+      {tx && (tx.auto || tx.channel || tx.scheme || tx.time || tx.fx) ? (
+        <View className="flex-row items-center flex-wrap mt-2 ml-12" style={{ gap: 6 }}>
+          {tx.auto ? <Chip variant="status" label={tx.auto.sure ? "Autopay" : "Autopay?"} tone="primary" /> : null}
+          {tx.channel ? <Chip variant="status" label={CHANNEL_TEXT[tx.channel]} /> : null}
+          {tx.scheme ? <Chip variant="status" label={tx.scheme} /> : null}
+          {tx.time ? <Chip variant="status" label={tx.time} /> : null}
+          {tx.fx ? <Chip variant="status" label={`${tx.fx.currency} ${tx.fx.amount}`} tone="accent" /> : null}
+        </View>
+      ) : null}
       {problems.length > 0 && !open ? (
         <Text className="text-meta mt-1 ml-12" style={{ color: theme.warning }} numberOfLines={1}>
           {problems[0]}
@@ -123,6 +160,7 @@ export function ResultRow({ row, open, onToggle, last }: { row: RunRow; open: bo
               {row.body}
             </Text>
           </View>
+          {tx?.ref ? <Text className="text-meta text-muted-foreground">Reference {tx.ref}</Text> : null}
           {[...problems, ...warnings].map((w) => (
             <View key={w} className="flex-row items-start">
               <Ionicons name="information-circle-outline" size={14} color={theme.warning} style={{ marginTop: 2, marginRight: 4 }} />
