@@ -31,7 +31,8 @@ function seed(sql = "") {
   mockSqlite.exec(`
     CREATE TABLE financial_accounts (
       id TEXT PRIMARY KEY, user_id TEXT, account_type TEXT, last_known_balance REAL,
-      last_balance_date TEXT, created_at TEXT, is_active INTEGER DEFAULT 1, closed_at TEXT
+      last_balance_date TEXT, created_at TEXT, is_active INTEGER DEFAULT 1, closed_at TEXT,
+      account_label TEXT, bank_name TEXT, account_identifier TEXT
     );
     CREATE TABLE account_month_balances (
       account_id TEXT, month TEXT, opening_balance REAL, is_manual_override INTEGER DEFAULT 0
@@ -78,7 +79,7 @@ describe("computeNetWorthHistory", () => {
     expect(at("2026-04").netWorth).toBe(140000);
   });
 
-  it("re-anchors a non-override row to the previous closing but keeps a manual override", async () => {
+  it("takes every saved opening as the ledger shows it, override or not", async () => {
     seed(`
       INSERT INTO financial_accounts (id, user_id, account_type) VALUES ('s1', 'u1', 'savings');
       INSERT INTO account_month_balances VALUES ('s1', '2026-01', 1000, 0);
@@ -86,8 +87,32 @@ describe("computeNetWorthHistory", () => {
       INSERT INTO account_month_balances VALUES ('s1', '2026-03', 7000, 1);
     `);
     const { at } = await byMonth("2026-03-20");
-    expect(at("2026-02").netWorth).toBe(1000);
+    expect(at("2026-01").netWorth).toBe(1000);
+    expect(at("2026-02").netWorth).toBe(5555);
     expect(at("2026-03").netWorth).toBe(7000);
+  });
+
+  it("shows today's figures exactly as the Balance Sheet table's Today column", async () => {
+    // Owner's case (Nov 2026): a saved October opening that doesn't follow on from September
+    // (an older transaction changed later), plus an FD with no opening row that the table values
+    // at its SMS / principal balance. The card used to re-derive October and land lower.
+    seed(`
+      INSERT INTO financial_accounts (id, user_id, account_type) VALUES ('s1', 'u1', 'savings');
+      INSERT INTO financial_accounts (id, user_id, account_type, last_known_balance) VALUES ('fd1', 'u1', 'investment', 100000);
+      INSERT INTO investment_products (id, financial_account_id, instrument, valuation) VALUES ('p1', 'fd1', 'fd', 'contract');
+      INSERT INTO account_month_balances VALUES ('s1', '2026-09', 50000, 0);
+      INSERT INTO expenses (id, account_id, amount, nature, date) VALUES ('e1', 's1', 20537, 'realized', '2026-09-10');
+      INSERT INTO account_month_balances VALUES ('s1', '2026-10', 50000, 0);
+      INSERT INTO account_month_balances VALUES ('s1', '2026-11', 50000, 0);
+      INSERT INTO expenses (id, account_id, amount, nature, date) VALUES ('e2', 's1', 1000, 'realized', '2026-11-05');
+      INSERT INTO account_transfers VALUES ('t1', 's1', 'fd1', 100000, '2026-08-01', NULL);
+    `);
+    const { getBalanceSheetColumn } = await import("../../services/balance-sheet");
+    const table = await getBalanceSheetColumn("u1", "2026-11-22", "Today", true, null);
+    const { at } = await byMonth("2026-11-22");
+    expect(at("2026-11").netWorth).toBe(table.netWorth);
+    expect(at("2026-11").liquidCash).toBe(149000); // 50000 − 1000 + FD 100000
+    expect(at("2026-10").liquidCash).toBe(150000); // the saved October opening, not 50000 − 20537
   });
 
   it("counts a closed account in the months it was open, not after", async () => {

@@ -250,9 +250,14 @@ async function batchHisaabAsOf(
  * The self-heal write (`getOrCreateMonthBalance` may update a stale opening) is
  * intentionally skipped here; it happens lazily when the user visits the account
  * ledger. This is acceptable for the balance sheet overview.
+ *
+ * Also used by services/net-worth-history.ts for today's point, so the net worth card and the
+ * table's Today column always show the same per-account figures.
  */
-async function batchBalanceSheetClosings(
-  accounts: AccountRow[],
+type ClosingAccount = Pick<AccountRow, "id" | "account_type" | "last_known_balance">;
+
+export async function batchBalanceSheetClosings(
+  accounts: ClosingAccount[],
   month: string,
   isLive: boolean,
   pensionLikeIds: Set<string>,
@@ -332,7 +337,7 @@ async function batchBalanceSheetClosings(
   const adjMap = new Map<string, number>();
   for (const r of adjRows) adjMap.set(r.account_id, r.net);
 
-  const pensionUnseeded: AccountRow[] = [];
+  const pensionUnseeded: ClosingAccount[] = [];
 
   for (const a of accounts) {
     const opening = openingMap.get(a.id);
