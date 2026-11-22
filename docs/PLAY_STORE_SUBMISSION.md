@@ -26,7 +26,16 @@ card and UPI transactions from transaction alert SMS.
 > disclosure explaining what is read, why, and that nothing leaves the device, with explicit
 > "Agree and continue" / "No thanks" choices. Users can turn SMS reading off at any time.
 
-**Demo video (required):** record on a phone with a fresh install, showing:
+**Use case to tick:** only **SMS-based money management**. Never tick **Default SMS handler**:
+Arth is not a default SMS app (it requests READ_SMS only, with no SMS_DELIVER receiver), and in
+Nov 2026 the 4.4x update was rejected for exactly that ("Issue with default handler capability" and
+"Unable to verify core functionality").
+
+**How to verify (paste into the form's instructions box; 489 of 500 characters):**
+
+> No login needed. Arth is an SMS-based money manager: it reads bank, card, UPI and EPFO transaction SMS on the device to record transactions and balances. To test, send the device this SMS from any number with today's date: "Rs.500.00 debited from HDFC Bank a/c XX5678 on DD-MM-YY for UPI txn to SWIGGY. UPI Ref 123456789012". Open Arth, tap Agree and continue, allow SMS, tap Start reading. It appears in Transactions. SMS never leave the device. Turn off: Settings > Transaction Messages.
+
+**Demo video (optional on the form, but Google asked for one after the Nov 2026 rejection):** record on a phone with a fresh install, showing:
 1. Onboarding reaching the "Allow Arth to read your SMS?" screen, scrolling through it.
 2. Tapping "Agree and continue", then the Android permission prompt, then Allow.
 3. A scan finding bank SMS and the transactions arriving in the review queue.
