@@ -414,6 +414,8 @@ export default function ExpensesScreen() {
   }, [expenses.length]);
 
   const lastVersionRef = useRef<string | null>(null);
+  /** A full reload asked for while another was running; it runs once that one finishes. */
+  const pendingReloadRef = useRef(false);
 
   /**
    * Signature of everything that changes WHICH rows should be shown.
@@ -500,6 +502,13 @@ export default function ExpensesScreen() {
 
   const loadExpenses = useCallback(
     async (reset = true) => {
+      // A reload asked for while one is running waits for it instead of being dropped. Clear all
+      // changes the dates first and the grouping a render later: the second reload used to be
+      // stamped as done and skipped, leaving totals counted for the old grouping and a blank list.
+      if (loading) {
+        if (reset) pendingReloadRef.current = true;
+        return;
+      }
       if (reset) {
         // Stamp includes the query, not just the data version. Version alone asks "has
         // anything been written?" - changing a filter writes nothing, so a bare version
@@ -509,7 +518,6 @@ export default function ExpensesScreen() {
         if (lastVersionRef.current === stamp) return;
         lastVersionRef.current = stamp;
       }
-      if (loading) return;
       setLoading(true);
       try {
         // Handle transfers separately
@@ -648,6 +656,14 @@ export default function ExpensesScreen() {
       getCategories(DEFAULT_USER_ID).then(setCategories).catch(() => {});
     }, []),
   );
+
+  // Run the reload that came in while the last one was still loading, with the filters as they are now.
+  useEffect(() => {
+    if (!loading && pendingReloadRef.current) {
+      pendingReloadRef.current = false;
+      void loadExpenses(true);
+    }
+  }, [loading, loadExpenses]);
 
   // Load reference data once (skipped if already seeded from preload)
   useEffect(() => {
