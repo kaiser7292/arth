@@ -58,6 +58,11 @@ export function getIgnoredAccountIds(): Set<string> {
   return new Set(read().map((i) => i.accountId));
 }
 
+/** Every ignored account as remembered (bank and digits), whether or not its account row still exists. */
+export function getIgnoredAccounts(): { accountId: string; bank: string; digits: string }[] {
+  return read().map((i) => ({ accountId: i.accountId, bank: i.bank, digits: i.digits }));
+}
+
 /** The account and any twin of it: same bank (loosely), same last 3-4 digits (XX304 = XX9304). */
 async function accountAndTwins(accountId: string): Promise<{ ids: string[]; bank: string; digits: string } | null> {
   const db = getDatabase();

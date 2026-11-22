@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
-import { Chip, MoneyChip, Text, type MoneyToneName } from "@/components/ui";
+import { Button, Chip, MoneyChip, Text, type MoneyToneName } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import type { RunRow } from "@/services/ai/lab-runner";
 import type { AccountLink, AiReadSms, Channel, SmsEvent } from "@/services/ai/tasks/read-sms";
@@ -71,7 +71,24 @@ export function side(l: AccountLink | null): string {
 }
 
 /** One message's result: what it was, the amount, and (opened) the SMS and the model's answer. */
-export function ResultRow({ row, open, onToggle, last }: { row: RunRow; open: boolean; onToggle: () => void; last?: boolean }) {
+export function ResultRow({
+  row,
+  open,
+  onToggle,
+  last,
+  onAdd,
+  adding,
+  onOpenCatchUp,
+}: {
+  row: RunRow;
+  open: boolean;
+  onToggle: () => void;
+  last?: boolean;
+  /** "Add to Catch Up": shown on a reading the user can add (a scanned message, not a pasted one). */
+  onAdd?: () => void;
+  adding?: boolean;
+  onOpenCatchUp?: () => void;
+}) {
   const theme = useTheme();
   const kind = outcomeOf(row);
   const tx = row.outcome?.kind === "transaction" ? row.outcome.result : null;
@@ -178,6 +195,31 @@ export function ResultRow({ row, open, onToggle, last }: { row: RunRow; open: bo
             </View>
           ) : null}
           {row.error ? <Text className="text-meta" style={{ color: theme.danger }}>{row.error}</Text> : null}
+          {tx && row.added ? (
+            <View className="flex-row items-center">
+              <Ionicons
+                name={row.added.expenseId ? "checkmark-circle" : "information-circle-outline"}
+                size={16}
+                color={row.added.expenseId ? theme.success : theme.mutedForeground}
+                style={{ marginRight: 6 }}
+              />
+              <Text className="text-meta text-foreground flex-1">
+                {row.added.expenseId ? "Added to Catch Up" : (row.added.note ?? "Arth didn't add it")}
+              </Text>
+              {row.added.expenseId && onOpenCatchUp ? (
+                <Pressable onPress={onOpenCatchUp} accessibilityRole="button" hitSlop={8}>
+                  <Text className="text-meta font-semibold text-primary">Open Catch Up</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : tx && onAdd ? (
+            <View>
+              <Button title="Add to Catch Up" variant="secondary" onPress={onAdd} loading={adding} />
+              <Text className="text-label text-muted-foreground mt-1.5">
+                It goes to Catch Up like any detected transaction: you can still edit it there, or reject it.
+              </Text>
+            </View>
+          ) : null}
         </View>
       ) : null}
     </Pressable>

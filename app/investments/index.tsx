@@ -505,25 +505,35 @@ function LegendRow({
   hint: string;
 }) {
   const theme = useTheme();
+  // Whole rupees, as on Net worth: paise on a legend only made long amounts wrap.
+  const value = formatAmount(Math.round(amount));
+  // Two lines, the same as Net worth's breakdown, so nothing wraps or gets cut: name and amount
+  // (the amount takes the width it needs), then the share bar with its percentage.
   return (
     <PressableScale
       onPress={onPress}
-      style={{ minHeight: 44, flexDirection: "row", alignItems: "center", paddingVertical: 8 }}
+      style={{ minHeight: 44, paddingVertical: 7 }}
       accessibilityRole="button"
-      accessibilityLabel={`${label}, ${percent} percent, ${formatAmount(amount)}`}
+      accessibilityLabel={`${label}, ${value}, ${percent} percent`}
       accessibilityHint={hint}
     >
-      <View className="w-2.5 h-2.5 rounded-control mr-2.5" style={{ backgroundColor: color, opacity }} />
-      <View className="flex-1">
-        <Text className="text-meta text-foreground" numberOfLines={1}>{label}</Text>
-        {/* Share of the total, filling when the row appears. */}
-        <View style={{ opacity }}>
-          <ProgressBar value={percent / 100} color={color} height={3} className="mt-1" />
-        </View>
+      <View className="flex-row items-center" style={{ gap: 8 }}>
+        <View className="w-2.5 h-2.5 rounded-control" style={{ backgroundColor: color, opacity }} />
+        <Text className="text-meta text-foreground flex-1" numberOfLines={1}>
+          {label}
+        </Text>
+        <Text className="text-meta font-semibold text-foreground" numberOfLines={1} style={{ fontVariant: ["tabular-nums"] }}>
+          {value}
+        </Text>
+        <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
       </View>
-      <Text className="text-label text-muted-foreground w-24 text-right">{formatAmount(amount)}</Text>
-      <Text className="text-body font-semibold text-foreground w-11 text-right">{percent}%</Text>
-      <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} style={{ marginLeft: 4 }} />
+      <View className="flex-row items-center mt-1.5" style={{ gap: 8, paddingLeft: 18, paddingRight: 22 }}>
+        {/* Share of the total, filling when the row appears. */}
+        <View className="flex-1" style={{ opacity }}>
+          <ProgressBar value={Math.min(1, percent / 100)} color={color} height={3} />
+        </View>
+        <Text className="text-label text-muted-foreground w-9 text-right">{percent}%</Text>
+      </View>
     </PressableScale>
   );
 }
