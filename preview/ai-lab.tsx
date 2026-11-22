@@ -11,10 +11,10 @@ import type { MapAccount } from "@/services/ai/money-map";
 
 const PHONE = 390;
 
-const savings: MapAccount = { ref: "A1", accountId: "s", kind: "savings", name: "SBI", digits: "4821", fundedFrom: null, closed: false };
-const fd: MapAccount = { ref: "A2", accountId: "f", kind: "FD", name: "SBI", digits: "3667", fundedFrom: "A1", closed: false };
-const icici: MapAccount = { ref: "A3", accountId: "i", kind: "savings", name: "ICICI", digits: "304", fundedFrom: null, closed: false };
-const icici2: MapAccount = { ref: "A4", accountId: "j", kind: "savings", name: "ICICI", digits: "185", fundedFrom: null, closed: false };
+const savings: MapAccount = { ref: "A1", accountId: "s", kind: "savings", name: "SBI", digits: "4821", fundedFrom: null, closed: false, ignored: false };
+const fd: MapAccount = { ref: "A2", accountId: "f", kind: "FD", name: "SBI", digits: "8142", fundedFrom: "A1", closed: false, ignored: false };
+const icici: MapAccount = { ref: "A3", accountId: "i", kind: "savings", name: "ICICI", digits: "702", fundedFrom: null, closed: false, ignored: false };
+const icici2: MapAccount = { ref: "A4", accountId: "j", kind: "savings", name: "ICICI", digits: "419", fundedFrom: null, closed: false, ignored: false };
 
 const ROWS: RunRow[] = [
   {
@@ -22,20 +22,26 @@ const ROWS: RunRow[] = [
     sender: "CBSSBI",
     date: Date.parse("2026-11-16"),
     ms: 2900,
-    body: "Dear Customer, Your A/C XXXXX903667 has a debit by transfer of Rs 30,155.00 on 16/11/26. Avl Bal Rs 0.00 -SBI",
-    raw: '{"txn":true,"type":"debit","amount":30155,"last4":"3667","balance":0,"event":"fd_close","from":"A2","to":"A1"}',
+    body: "Dear Customer, Your A/C XXXXX708142 has a debit by transfer of Rs 41,260.00 on 16/11/26. Avl Bal Rs 0.00 -SBI",
+    raw: '{"txn":true,"type":"debit","amount":41260,"last4":"8142","balance":0,"event":"fd_close","from":"A2","to":"A1"}',
     outcome: {
       kind: "transaction",
       warnings: [],
       result: {
         type: "debit",
-        amount: 30155,
-        last4: "3667",
+        amount: 41260,
+        last4: "8142",
         merchant: null,
         balance: 0,
         event: "fd_close",
         from: { ref: "A2", account: fd, inSms: true },
         to: { ref: "A1", account: savings, inSms: false },
+        channel: null,
+        auto: null,
+        ref: null,
+        scheme: null,
+        time: null,
+        fx: null,
       },
     },
   },
@@ -44,19 +50,25 @@ const ROWS: RunRow[] = [
     sender: "BP-ICICIT-S",
     date: Date.parse("2026-11-19"),
     ms: 2700,
-    body: "ICICI Bank Acct XX304 debited with Rs 9,615.00 on 19-Nov-26 & Acct XX185 credited.",
+    body: "ICICI Bank Acct XX702 debited with Rs 7,340.00 on 19-Nov-26 & Acct XX419 credited.",
     outcome: {
       kind: "transaction",
       warnings: [],
       result: {
         type: "debit",
-        amount: 9615,
-        last4: "304",
+        amount: 7340,
+        last4: "702",
         merchant: null,
         balance: null,
         event: "own_transfer",
         from: { ref: "A3", account: icici, inSms: true },
         to: { ref: "A4", account: icici2, inSms: true },
+        channel: "imps",
+        auto: null,
+        ref: null,
+        scheme: null,
+        time: null,
+        fx: null,
       },
     },
   },
@@ -65,11 +77,11 @@ const ROWS: RunRow[] = [
     sender: "AD-HDFCBK-S",
     date: Date.parse("2026-11-18"),
     ms: 3100,
-    body: "Rs.349 spent on HDFC Bank Card x9528 at RSP*SWIGGY PVT LTD on 2026-11-18.",
+    body: "Rs.349 spent on HDFC Bank Card x7732 at RSP*SWIGGY PVT LTD on 2026-11-18.",
     outcome: {
       kind: "transaction",
       warnings: ['"A9" isn\'t one of your accounts, dropped'],
-      result: { type: "debit", amount: 349, last4: "9528", merchant: "RSP*SWIGGY PVT LTD", balance: null, event: "spend", from: null, to: null },
+      result: { type: "debit", amount: 349, last4: "7732", merchant: "RSP*SWIGGY PVT LTD", balance: null, event: "spend", from: null, to: null, channel: "card", auto: { sure: true }, ref: null, scheme: null, time: "20:11", fx: null },
     },
   },
   {
@@ -85,7 +97,7 @@ const ROWS: RunRow[] = [
     sender: "AD-CBSSBI",
     date: Date.parse("2026-11-16"),
     ms: 2500,
-    body: "Dear Customer, On request, A/C XXXXX903667 has been closed and proceeds are transferred.",
+    body: "Dear Customer, On request, A/C XXXXX708142 has been closed and proceeds are transferred.",
     outcome: { kind: "rejected", problems: ["No amount"] },
   },
 ];

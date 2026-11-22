@@ -116,18 +116,20 @@ export function stopLabRun(): void {
 }
 
 /** Counts for a finished or running set of rows. */
-export function summariseLabRun(rows: RunRow[]): { done: number; transactions: number; notTransactions: number; rejected: number; errors: number } {
+export function summariseLabRun(rows: RunRow[]): { done: number; transactions: number; notTransactions: number; ignored: number; rejected: number; errors: number } {
   let transactions = 0;
   let notTransactions = 0;
+  let ignored = 0;
   let rejected = 0;
   let errors = 0;
   for (const r of rows) {
     if (r.error) errors++;
     else if (r.outcome?.kind === "transaction") transactions++;
     else if (r.outcome?.kind === "not_transaction") notTransactions++;
+    else if (r.outcome?.kind === "ignored") ignored++;
     else if (r.outcome?.kind === "rejected") rejected++;
   }
-  return { done: transactions + notTransactions + rejected + errors, transactions, notTransactions, rejected, errors };
+  return { done: transactions + notTransactions + ignored + rejected + errors, transactions, notTransactions, ignored, rejected, errors };
 }
 
 /** Tests only. */

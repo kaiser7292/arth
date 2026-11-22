@@ -196,6 +196,7 @@ export default function AiLabScreen() {
     { value: "all", label: "All", n: rows.length },
     { value: "transaction", label: "Transactions", n: count("transaction") },
     { value: "not_transaction", label: "Not transactions", n: count("not_transaction") },
+    { value: "ignored", label: "Ignored accounts", n: count("ignored") },
     { value: "rejected", label: "Rejected", n: count("rejected") },
     { value: "error", label: "No answer", n: count("error") },
   ];

@@ -161,23 +161,59 @@ Manual scans (the user pulled to refresh) run AI inline, since the app is open.
 
 ### 6.6 Knowing your accounts — relationships, not just fields
 
-Reading amount / account / merchant isn't enough for the cases rules don't cover yet. The first Pixel run showed it: "A/C XXXXX903667 has a debit by transfer of Rs 30,155 … Avl Bal Rs 0.00" looks like a ₹30,155 spend, but it was an SBI FD being closed with the proceeds going back to savings. Counted as an expense, it would be wrong twice: a fake spend, plus an FD still showing in net worth.
+Reading amount / account / merchant isn't enough for the cases rules don't cover yet. The first Pixel run showed it: "A/C XXXXX708142 has a debit by transfer of Rs 41,260 … Avl Bal Rs 0.00" looks like a ₹41,260 spend, but it was an SBI FD being closed with the proceeds going back to savings. Counted as an expense, it would be wrong twice: a fake spend, plus an FD still showing in net worth.
 
 **Design: Nano labels and points, code does the bookkeeping.**
 
-1. **A short "money map" goes into the prompt.** One line per account, built from `financial_accounts` and `investment_products`, e.g. `A3 | FD | SBI | ••3667 | funded from A1` or `A1 | savings | SBI | ••4821`. Names and digits only, never balances or history. Gemini Nano takes about 4,000 tokens per prompt, so the map stays under ~25 lines (most recently active first).
+1. **A short "money map" goes into the prompt.** One line per account, built from `financial_accounts` and `investment_products`, e.g. `A3 | FD | SBI | ••8142 | funded from A1` or `A1 | savings | SBI | ••4821`. Names and digits only, never balances or history. Gemini Nano takes about 4,000 tokens per prompt, so the map stays under ~25 lines (most recently active first).
 2. **Nano picks one event from a fixed list:** `spend`, `income`, `refund`, `own_transfer`, `fd_open`, `fd_close`, `card_payment`, `loan_emi`, `investment`, `wallet_topup`, `not_txn`. It also names the accounts involved by their map id (`from: "A3", to: "A1"`), or `new` when the account isn't in the map.
 3. **Code checks and books it through flows that already exist.**
    - The account digits must match the SMS (same check as today).
    - `fd_close` and `fd_open` go through the existing FD handling (`detectFdEvent`, `investment_products`).
    - `own_transfer` and `card_payment` become `account_transfers`, not expenses.
-   - Everything still lands in the review queue, worded as the event: "SBI FD ••3667 closed, ₹30,155 back to savings ••4821".
+   - Everything still lands in the review queue, worded as the event: "SBI FD ••8142 closed, ₹41,260 back to savings ••4821".
 4. **Pairing is code's job, not Nano's.** One event often arrives as two or three SMS: the FD debit to zero, the "account closed" notice, and the savings credit. Code pairs them when the amount matches within ±2 days on the two accounts the map links. Nano labels each message on its own, which small models do reliably. Following a chain across messages is where they slip.
-5. **Unknown account → a suggestion, never a silent guess.** `new` turns into a review card: "Looks like an FD at SBI ending 3667 was closed. Add it so your net worth is right?"
+5. **Unknown account → a suggestion, never a silent guess.** `new` turns into a review card: "Looks like an FD at SBI ending 8142 was closed. Add it so your net worth is right?"
 
 **Why this split:** Nano is good at reading the *meaning* of a message it has never seen. It's weak at arithmetic, remembering across messages, and anything it can make up (it invented "9096" in the first run). So it gets the judgement calls, and Arth's code keeps the money logic it already does correctly.
 
 **Test before building:** add the event label and the money map to the lab, re-run the 50 messages on the Pixel, and check the labels. Then build it in Phase 1 alongside reading unrecognised messages.
+
+### 6.7 Deeper transaction context: what it was, not just how much
+
+Amount, account and merchant say *that* money moved. The judgement calls are about *what it was*: an autopay, a SIP into a fund, an EMI, a transfer between your own accounts, salary, a card bill. Arth already stores most of this. The AI's job is to fill it in, from the message, where rules can't.
+
+**What Nano is asked for**, in short keys so answers stay fast:
+
+| Key | Values | Goes into Arth as |
+|---|---|---|
+| `event` | spend, bill, salary, income, interest, dividend, refund, cashback, own_transfer, card_payment, loan_emi, fd_open, fd_close, sip, investment, investment_withdrawal, insurance, tax, atm_cash, wallet_topup, fee, reversal | `nature` (debit or credit), `money_event` (fd_open, fd_closure, self_transfer, sip, investment, investment_withdrawal), `credit_kind` (salary, interest, dividend, refund, cashback…) |
+| `channel` | upi, card, netbanking, neft, imps, rtgs, nach, atm, cheque, wallet | the matching `payment_mode_id` |
+| `auto` | true for autopay, NACH / ECS, e-mandate debits, standing instructions, recurring card charges | an Autopay mark. Matched to a recurring rule (`fulfills_rule_id`) when one fits the merchant and amount; otherwise a "Make this recurring?" suggestion |
+| `from` / `to` | your account ids from the money map, or `new` | own transfers, card bills and FD moves become `account_transfers` between those accounts, not spending |
+| `ref` | the UPI / IMPS / NEFT reference | duplicate detection and pairing both halves of a transfer (your XX702 debit and XX419 credit carry the same IMPS ref) |
+| `scheme` | fund, policy or loan name ("Parag Parikh Flexi Cap", "HDFC Home Loan") | SIPs matched to an investment bucket; EMIs to the loan (`expense_loan_links`) |
+| `time` | "14:32" when the SMS has it | `transaction_time` |
+| `fx` | `{amount, currency}` for foreign card spends | `currency`, `fx_rate` |
+
+**Checks, per field.**
+- Every value must come from its fixed list.
+- `ref`, `time`, the `fx` currency code and the `scheme` words must be written in the SMS.
+- `event` must agree with the direction: salary, interest and refunds are money in; EMIs, SIPs and bills are money out.
+- `fd_close` needs an FD in the money map, or `new`. `loan_emi` needs a loan.
+- `auto` without an autopay word in the SMS (autopay, mandate, NACH, ECS, SI, standing instruction, recurring, auto-debit) is kept only as a suggestion.
+
+**Accounts are matched in code, not guessed.** Before Nano is asked, Arth finds every account digit the SMS writes ("XX702", "card ending 7731", "Account XXXX6702") and matches it to your accounts by their last digits. A bank showing 3 digits still finds the account Arth holds with 4. The prompt then says exactly "SMS names: 702 = A5 (ICICI savings)". The second Pixel run showed why: ICICI writes "XX702" for an account Arth stores as ••6702, and without this Nano invented a different ICICI card. The account's type then settles what the words don't: money into a credit card is a card bill payment, and a debit on a credit card is a purchase, never a card payment.
+
+**Ignored accounts are skipped, before Nano is asked.** Accounts you ignored (Settings → account → Ignore) are in the account list, marked "ignored", so "XX702" is recognised as yours rather than guessed at. A message whose account is ignored is skipped, as the scan already skips it. When every account a message names is ignored, Nano isn't asked at all.
+
+**Two levels of trust in Catch Up.**
+- **Read from the message:** grounded values such as amount, account, ref, time and scheme. These are filled in.
+- **AI's judgement:** inferred values such as the event when the words don't say it, `auto` without an autopay word, or an account worked out from the map. These show as one-tap suggestion chips ("Autopay?", "SIP into Parag Parikh?", "Transfer to SBI savings?"), never silently set.
+
+**Rule-read messages get the context too.** Rules read the fields of 25+ banks well, but they often can't tell an autopay or a SIP from a spend. So for every new transaction where rules left `event`, `channel` or `auto` unknown, a shorter context-only prompt fills those in. Rules' own values are never overwritten. Arth's code detectors (`detectSip`, `detectFdEvent`, `inferCreditKind`) run first; the AI is asked only where they're silent.
+
+**Speed.** The richer answer is about 40 more output tokens, roughly +1 s per transaction. "Not a transaction" stays a few tokens. Everything runs in the queue, never in front of you.
 
 ### Later ideas (not v1)
 
@@ -239,6 +275,42 @@ Each phase ships behind the `ai_nano` flag and is tested on a release build on t
 - **Android 7 still installs Arth.** The Prompt API needs API 26; the module's manifest overrides the library's minSdk and never touches it below Android 8.
 - **Google's own logging.** ML Kit pulls in Google's `datatransport` logging libraries (as the text reader already does through Play services). Check what they send before release, and whether the Play data safety form needs a line.
 - **Hidden screen:** Settings → tap Version 7 times → *On-device AI lab* (About). "Hide this screen" hides it again. Read-only: nothing is written to the database.
+
+---
+
+### Phase 1 build plan (Nov 2026): every scan is rules → templates → AI → Catch Up
+
+**The flow.** In `parseSmsBatch`, a message that neither the built-in patterns nor a user template reads today becomes "unrecognised". In Phase 1 it gets one more try:
+
+1. **Rules, then templates:** unchanged.
+2. **AI:** Gemini Nano reads it with the money map (6.6). The result passes the checks (6.1), then becomes the same `ParsedSMS` shape the patterns produce, marked `parse_source = 'ai'`.
+3. **Everything after is Arth's existing pipeline:** account filtering, `processParseResults`, `createExpenseFromSms`, Smart Rules, duplicate detection, own-transfer pairing. No second path to keep in sync.
+4. **Catch Up:** AI-read transactions are `pending_review` like any SMS detection, so they're already Catch Up cards. They get an AI badge and dotted underlines on the fields the model filled.
+5. **Background scans:** Gemini Nano can't run then, so the message is saved as `ai_status = 'queued'` on `pending_sms`. The next time Arth opens, a low-priority pass reads the queue and the results join Catch Up. Settings → Scan Runs shows "Waiting for AI".
+
+**Making it smarter.** Gemini Nano can't be trained by an app: there's no way to give it your own adapter (only Google's built-in features use those). So "training" means feeding it better context and learning from you:
+
+| Technique | What it does | Cost |
+|---|---|---|
+| **Examples from your own history** | Before each read, pick the 2–3 messages most like this one that you already approved (same sender first, then similar wording), each with what Arth recorded. They replace the fixed examples in the prompt. The model then copies how *your* banks write, not a generic HDFC example. | ~300 tokens per prompt; no download |
+| **Your corrections become examples** | When you fix an AI-filled field in Catch Up, the corrected version is what future prompts see. Each fix makes the next read of that sender better. | none |
+| **Formats graduate to templates** | When you've approved 2 AI reads in the same format (`formatKey`), Arth drafts a template from them (`guessSpans` + the AI's fields) and offers it in Catch Up: "Read these automatically from now on?" After that, the template reads it instantly and the AI isn't needed. | none |
+| **A second look when unsure** | If the checks drop a field or the direction is borderline, ask once more with the dropped field named. Keep only an answer both reads agree on. | about 2× time, only on doubtful messages |
+| **Pattern-level guards in code** | Mandate set-ups, "will be debited", "refund initiated", OTPs: decided in code before the model is even asked, so no time is spent and nothing is misread. | none |
+
+**Who does this better, and what we adopt** (researched Nov 2026):
+
+- **Most SMS money apps are regex only.** That includes the open-source ones (PennyWise AI, Cashiro); their on-device AI is for chat, not reading. Arth's rules → templates → AI order is already ahead of them.
+- **SMSpend** sends a message to cloud Gemini when its parsers miss. Arth stays on-device, but adopts the idea that a format the AI has read should stop needing the AI. That's "Formats graduate to templates" above.
+- **FinnAI SLM** (finndot, Apache 2.0) is Qwen3-1.7B fine-tuned on Indian bank SMS: UPI, NEFT, IMPS, cards, salary, ATM; English, Hindi and Hinglish.
+  - Self-reported on its own synthetic test set: 99.7% amount exact match and about 95% full-record match, against about 29% for the untuned base model.
+  - Its v4 on-device build is a 930 MB LiteRT-LM file that runs on any recent Android, not just phones with Gemini Nano.
+  - **Not adopted now:** it's a 930 MB optional download plus a new native runtime, exactly the trade-off that removed the Llama assistant in 4.11.0, and its numbers are on synthetic messages. **Later, maybe:** add it to the AI lab as a second engine and compare both on your real messages. If it clearly wins, offer it as an optional download for phones without Gemini Nano.
+- **Research** ("How Small Can You Go?", arXiv 2606.08051) found that small models tuned for one job get close to large-model accuracy on bank transaction text. That supports specialised models like FinnAI, and supports leaning on your own examples with Gemini Nano.
+
+**Build order:** (a) AI step in the scan + the queue + Catch Up badges, reading the full context of 6.7 (event, channel, autopay, accounts, ref, scheme, time, foreign currency) and filling the context of rule-read transactions, with the database change below; (b) examples from your history + corrections; (c) formats graduate to templates; (d) second look when unsure. Each step is tested in the AI lab on your messages before it's switched on.
+
+**Database change (migration 095, full checklist):** `expenses.parse_source`, `expenses.ai_fields`, `pending_sms.ai_status`, all in `TABLE_SCHEMAS`.
 
 ---
 
