@@ -6,6 +6,7 @@ import { initDatabase } from "@/database";
 import { useHouseholdSync } from "@/hooks/use-household-sync";
 import { AlertProvider } from "@/hooks/use-alert";
 import { ToastProvider } from "@/components/ui";
+import { LabRunToaster } from "@/components/ai/LabRunToaster";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
@@ -627,6 +628,7 @@ export default function RootLayout(): React.JSX.Element {
     <ToastProvider>
     <ThemeProvider value={navigationTheme}>
       <StatusBar style="auto" />
+      <LabRunToaster />
       {/* Every screen slides in from the right (see useStackScreenOptions); task screens that
           open on top - add/edit expense, the AI assistant - rise from the bottom instead. */}
       <Stack screenOptions={{ animation: "ios_from_right" }}>
