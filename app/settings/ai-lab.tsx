@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Pressable, ScrollView, Switch, View } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -23,6 +23,7 @@ import { countLabMessages, listLabMessages, setAiLabUnlocked } from "@/services/
 import { loadMoneyMap, moneyMapLines, type MoneyMap } from "@/services/ai/money-map";
 import { downloadNano, getNanoStatus, warmupNano, type NanoStatus } from "@/services/ai/nano";
 import { readSmsWithNano } from "@/services/ai/tasks/read-sms";
+import { getLabRun, startLabRun, stopLabRun, subscribeLabRun } from "@/services/ai/lab-runner";
 import { EVENT_TEXT, outcomeOf, ResultRow, secs, type Outcome, type RunRow } from "@/components/ai/LabResultRow";
 import { isoDate } from "@/utils/local-date";
 
@@ -82,9 +83,9 @@ export default function AiLabScreen() {
   const [to, setTo] = useState(() => isoDate(new Date()));
   const [size, setSize] = useState<"25" | "50" | "100">("50");
   const [available, setAvailable] = useState<number | null>(null);
-  const [rows, setRows] = useState<RunRow[]>([]);
-  const [running, setRunning] = useState(false);
-  const stopRef = useRef(false);
+  // The run lives outside the screen (services/ai/lab-runner.ts), so leaving the lab doesn't stop it.
+  const run = useSyncExternalStore(subscribeLabRun, getLabRun);
+  const { rows, running, paused } = run;
   const [filter, setFilter] = useState<Filter>("all");
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -93,9 +94,6 @@ export default function AiLabScreen() {
     loadMoneyMap()
       .then(setMap)
       .catch(() => setMap(null));
-    return () => {
-      stopRef.current = true;
-    };
   }, [refreshStatus]);
 
   const span = useMemo((): [number, number] => {
@@ -170,16 +168,11 @@ export default function AiLabScreen() {
       return;
     }
     const start: RunRow[] = messages.map((m) => ({ id: m.id, sender: m.address, body: m.body, date: m.sms_date }));
-    setRows(start);
     setFilter("all");
     setOpenId(null);
-    setRunning(true);
-    stopRef.current = false;
-    for (let i = 0; i < start.length && !stopRef.current; i++) {
-      const done = await readOne(start[i]);
-      setRows((prev) => prev.map((r) => (r.id === done.id ? done : r)));
-    }
-    setRunning(false);
+    const dates = range === "custom" ? `${from} to ${to}` : `Last ${range} days`;
+    toast("Reading in the background. You can leave this screen.");
+    void startLabRun(start, `${dates} · ${start.length} messages`, useMap && map ? map : undefined);
   };
 
   // Results.
@@ -325,7 +318,20 @@ export default function AiLabScreen() {
                 <Text className="text-meta text-muted-foreground">{times.length ? `${secs(avg)} each` : ""}</Text>
               </View>
               <ProgressBar value={rows.length ? finished.length / rows.length : 0} />
-              <Button title="Stop" variant="outline" onPress={() => (stopRef.current = true)} className="mt-3" />
+              <View className="flex-row items-start mt-2">
+                <Ionicons
+                  name={paused ? "pause-circle-outline" : "information-circle-outline"}
+                  size={14}
+                  color={theme.mutedForeground}
+                  style={{ marginTop: 2, marginRight: 4 }}
+                />
+                <Text className="text-meta text-muted-foreground flex-1">
+                  {paused
+                    ? "Paused while Arth is in the background. Carries on when you come back."
+                    : "You can leave this screen. Arth tells you when it's done."}
+                </Text>
+              </View>
+              <Button title="Stop" variant="outline" onPress={stopLabRun} className="mt-3" />
             </View>
           ) : (
             <Button
@@ -340,6 +346,12 @@ export default function AiLabScreen() {
         {finished.length > 0 ? (
           <Card>
             <SectionTitle icon="stats-chart-outline" title="Results" hint={`${finished.length} read · ${secs(avg)} average · 9 in 10 under ${secs(p90)}`} />
+            {run.label ? (
+              <Text className="text-meta text-muted-foreground mt-1">
+                {run.label}
+                {run.stopped ? " · stopped" : ""}
+              </Text>
+            ) : null}
             <ChipWrap className="mt-3">
               {FILTERS.filter((f) => f.value === "all" || f.n > 0).map((f) => (
                 <Chip key={f.value} label={`${f.label} ${f.n}`} on={filter === f.value} onPress={() => setFilter(f.value)} />

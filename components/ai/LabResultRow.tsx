@@ -2,8 +2,11 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
 import { Chip, MoneyChip, Text, type MoneyToneName } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
-import type { AccountLink, AiReadSms, ReadSmsOutcome, SmsEvent } from "@/services/ai/tasks/read-sms";
+import type { RunRow } from "@/services/ai/lab-runner";
+import type { AccountLink, AiReadSms, SmsEvent } from "@/services/ai/tasks/read-sms";
 import { formatDisplayDate } from "@/utils/date";
+
+export type { RunRow };
 
 /** Pieces of the On-device AI lab (app/settings/ai-lab.tsx), shared with its preview page. */
 
@@ -30,17 +33,6 @@ export function toneFor(r: AiReadSms): MoneyToneName {
 }
 
 export type Outcome = "transaction" | "not_transaction" | "rejected" | "error";
-
-export interface RunRow {
-  id: string;
-  sender: string;
-  body: string;
-  date?: number;
-  outcome?: ReadSmsOutcome;
-  raw?: string;
-  ms?: number;
-  error?: string;
-}
 
 export const outcomeOf = (r: RunRow): Outcome | null => (r.error ? "error" : (r.outcome?.kind ?? null));
 export const secs = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
