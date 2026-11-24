@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAvoidingView, Modal, Pressable, ScrollView, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SegmentedControl } from "@/components/motion";
@@ -59,6 +60,7 @@ function describe(a: ProjectionAssumption, withReturn: boolean): string {
 
 /** Where your investments could get to, with more money going in, in the future's rupees and today's. */
 export default function ProjectionsScreen() {
+  const insets = useSafeAreaInsets();
   const theme = useTheme();
   const [lines, setLines] = useState<Line[] | null>(null);
   const [assumptions, setAssumptions] = useState(loadAssumptions);
@@ -346,7 +348,7 @@ export default function ProjectionsScreen() {
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <Pressable
           onPress={() => setEditing(null)}
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "flex-start", paddingTop: 50, paddingHorizontal: 16, paddingBottom: 16 }}
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "flex-start", paddingTop: insets.top + 24, paddingHorizontal: 16, paddingBottom: 16 }}
         >
           <Pressable onPress={() => {}} style={{ flexShrink: 1 }}>
             <Card className="shrink">

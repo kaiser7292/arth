@@ -3,7 +3,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, TextInput, View } from "react-native";
-import { LoadingState, Text } from "@/components/ui";
+import { FAB, LoadingState, Text } from "@/components/ui";
 import { FastScrollRail } from "@/components/ui/FastScrollRail";
 import { VaultIcon } from "@/components/ui/VaultIcon";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
@@ -112,19 +112,9 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
   if (!loaded) return <LoadingState message="Loading vault..." icon="lock-closed-outline" />;
 
   const empty = entries.length === 0;
-  // On the Home tab there is no round button, so "Add entry" goes under the list.
-  const addBelow = showInlineAdd ? (
-    <Pressable
-      onPress={() => router.push("/vault/add")}
-      className="mt-3 flex-row items-center justify-center rounded-card border border-dashed"
-      style={{ minHeight: 52, gap: 6, borderColor: theme.primary, backgroundColor: theme.alpha("primary", 0.04) }}
-      accessibilityRole="button"
-    >
-      <Ionicons name="add" size={18} color={theme.primary} />
-      <Text className="text-body font-semibold" style={{ color: theme.primary }}>
-        Add entry
-      </Text>
-    </Pressable>
+  // On the Home tab the page brings its own round add button, the same one Categories and /vault use.
+  const addFab = showInlineAdd ? (
+    <FAB icon="add" label="Add entry" onPress={() => router.push("/vault/add")} accessibilityLabel="Add a vault entry" />
   ) : null;
 
   return (
@@ -145,7 +135,6 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
           <Text className="text-meta text-muted-foreground mt-1 text-center px-6">
             Store your banking logins, card PINs, subscriptions, and any other credentials here — all encrypted on your device.
           </Text>
-          <View className="self-stretch">{addBelow}</View>
         </View>
       ) : (
         <View style={{ flex: 1 }}>
@@ -182,7 +171,6 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
                 </View>
               ))
             )}
-            {addBelow}
           </ScrollView>
           <FastScrollRail
             items={groups.map((g) => ({
@@ -194,6 +182,7 @@ export function VaultPage({ showInlineAdd = false }: { showInlineAdd?: boolean }
           />
         </View>
       )}
+      {addFab}
     </View>
   );
 }

@@ -916,6 +916,8 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "duration_ms",
     "error",
     "created_at",
+    "source", // migration 096
+    "label", // migration 096
   ] as const,
 
   sms_scan_details: [
@@ -933,6 +935,11 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "parsed_type",
     "applied_rule_ids", // migration 061
     "created_at",
+    "message_ref", // migration 096
+    "ai_result", // migration 096
+    "ai_ms", // migration 096
+    "added_expense_id", // migration 096
+    "added_note", // migration 096
   ] as const,
 
   vault_entries: [

@@ -126,6 +126,10 @@ const MODE_LABELS: Record<SplitMode, string> = {
   they_owe_full: "they owe all of it",
   i_owe_full: "you owe all of it",
 };
+/** How a split's mode reads to the user ("split equally", "they owe all of it"), never the stored value. */
+export function splitModeLabel(mode: SplitMode | string | null | undefined): string {
+  return MODE_LABELS[mode as SplitMode] ?? "split";
+}
 const MODE_OF: Record<SplitMode, DraftMode> = {
   equal: "equal",
   percentage: "percent",

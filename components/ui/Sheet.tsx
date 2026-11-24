@@ -114,8 +114,9 @@ export function Sheet({
     return () => sub.remove();
   }, [visible]);
   const full = page || typing;
-  // An Android Modal that isn't statusBarTranslucent already starts below the status bar.
-  const topPad = Platform.OS === "ios" ? insets.top : 0;
+  // The Modal is drawn behind the status bar on both platforms: with edge-to-edge on (app.json),
+  // React Native 0.81 forces every Android Modal statusBarTranslucent, whatever the prop says.
+  const topPad = insets.top;
 
   useEffect(() => {
     let alive = true;
@@ -187,11 +188,9 @@ export function Sheet({
       animationType="none"
       visible={visible}
       onRequestClose={close}
-      // Deliberately NOT statusBarTranslucent. That makes the Modal window fullscreen on
-      // Android, and a fullscreen window ignores adjustResize - the keyboard then covers the
-      // bottom of the sheet instead of shrinking it, which hides exactly the fields a sheet
-      // puts last (Notes, Until). The cap below measures the container rather than the window,
-      // so it stays correct without needing the window to be fullscreen.
+      // No statusBarTranslucent prop: with edge-to-edge on, React Native makes the Modal window
+      // fullscreen regardless, so the page pads itself by insets.top (see topPad). The cap below
+      // measures the container rather than the window, so it stays correct either way.
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View

@@ -375,6 +375,11 @@ export default function AiLabScreen() {
                 {run.stopped ? " · stopped" : ""}
               </Text>
             ) : null}
+            {run.historyId && !run.running ? (
+              <Pressable onPress={() => router.push("/settings/sms-scan-runs")} className="mt-1" accessibilityRole="button">
+                <Text className="text-meta font-medium" style={{ color: theme.primary }}>Saved to Scan history</Text>
+              </Pressable>
+            ) : null}
             <ChipWrap className="mt-3">
               {FILTERS.filter((f) => f.value === "all" || f.n > 0).map((f) => (
                 <Chip key={f.value} label={`${f.label} ${f.n}`} on={filter === f.value} onPress={() => setFilter(f.value)} />

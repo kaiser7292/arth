@@ -100,7 +100,7 @@ export default function TransactionMessagesScreen() {
     setAccountIds(getSmsScanAccountIds());
     setNames(getSelfNames());
     getActiveAccounts(DEFAULT_USER_ID).then(setAccounts).catch(() => {});
-    getScanRuns(DEFAULT_USER_ID, 1).then((r) => setLastRun(r[0] ?? null)).catch(() => {});
+    getScanRuns(DEFAULT_USER_ID, 1, "sms").then((r) => setLastRun(r[0] ?? null)).catch(() => {});
     countUnrecognisedSms().then(setUnread).catch(() => {});
     scanAllDuplicatesCached(DEFAULT_USER_ID).then((r) => setDupGroups(r.duplicateGroupCount)).catch(() => {});
   }, []);
