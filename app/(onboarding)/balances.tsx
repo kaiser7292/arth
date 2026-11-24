@@ -20,6 +20,9 @@ import { formatDisplayDate } from "@/utils/date";
 import { parseAmount } from "@/utils/expense-validation";
 import { todayIso } from "@/utils/local-date";
 import { logger } from "@/utils/logger";
+import { isAiReadingOn } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
+import { guessAccountType } from "@/services/ai/tasks/account-type";
 
 /** The everyday account types a detected account can be; the rest are set up on their own screens. */
 const TYPES: { type: AccountType; label: string }[] = [
@@ -52,6 +55,8 @@ export default function OnboardingBalances() {
   const [balances, setBalances] = useState<Record<string, string>>({});
   const [sources, setSources] = useState<Record<string, Source>>({});
   const [doubts, setDoubts] = useState<Map<string, AccountTypeDoubt>>(new Map());
+  /** Doubts whose suggestion came from on-device AI reading the account's messages. */
+  const [aiGuessed, setAiGuessed] = useState<Set<string>>(new Set());
   const fresh = getStartDate() != null;
 
   useFocusEffect(
@@ -90,6 +95,27 @@ export default function OnboardingBalances() {
           setTypes(Object.fromEntries(list.map((a) => [a.id, (a.account_type as string) === "bank" ? "savings" : a.account_type])));
           setSources((prev) => ({ ...from, ...prev }));
           setBalances((prev) => ({ ...prefill, ...prev }));
+          // The list is ready: don't hold it behind the AI below.
+          setLoading(false);
+
+          // "Not sure what this is": let on-device AI read a few of its messages and suggest a type.
+          // After the screen has shown, one account at a time; a tap on a type still decides.
+          const unknown = list.filter((a) => unsure.get(a.id)?.suggested === null);
+          if (unknown.length > 0 && isAiReadingOn() && (await getNanoStatus().catch(() => "unavailable")) === "available") {
+            for (const a of unknown) {
+              if (!live) return;
+              const guess = await guessAccountType(a.id, a.bank_name ?? "", a.account_identifier).catch(() => null);
+              if (!live) return;
+              const current = (a.account_type as string) === "bank" ? "savings" : a.account_type;
+              if (!guess || guess === current) continue;
+              setDoubts((d) => {
+                // Already answered by a tap: leave it.
+                if (!d.has(a.id)) return d;
+                return new Map(d).set(a.id, { suggested: guess });
+              });
+              setAiGuessed((g) => new Set(g).add(a.id));
+            }
+          }
         } catch (e) {
           logger.warn("Onboarding balances: load failed", e);
         } finally {
@@ -168,7 +194,11 @@ export default function OnboardingBalances() {
                   {doubt && (
                     <View className="flex-row items-center self-start px-2 py-0.5 rounded-full mb-2" style={{ backgroundColor: theme.alpha("warning", 0.14) }}>
                       <Text className="text-xs font-semibold" style={{ color: theme.warning }}>
-                        {doubt.suggested && TYPE_NAME[doubt.suggested] ? `Looks like ${TYPE_NAME[doubt.suggested]}. Which is it?` : "Not sure what this is. Which is it?"}
+                        {doubt.suggested && TYPE_NAME[doubt.suggested]
+                          ? aiGuessed.has(a.id)
+                            ? `On-device AI thinks it's ${TYPE_NAME[doubt.suggested]}. Which is it?`
+                            : `Looks like ${TYPE_NAME[doubt.suggested]}. Which is it?`
+                          : "Not sure what this is. Which is it?"}
                       </Text>
                     </View>
                   )}

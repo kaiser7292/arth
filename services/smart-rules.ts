@@ -1149,7 +1149,7 @@ export async function runRetroactiveApply(scope: RetroactiveScope): Promise<numb
 
       if (application.mark_auto && e.status === "pending_review") {
         await db.runAsync(
-          `UPDATE expenses SET status = 'approved', updated_at = datetime('now') WHERE id = ?;`,
+          `UPDATE expenses SET status = 'approved', updated_at = datetime('now') WHERE id = ? AND (parse_source IS NULL OR parse_source != 'ai');`,
           e.id,
         );
       }
@@ -1239,7 +1239,7 @@ export async function applyRuleActionsToExpense(ruleId: string, expenseId: strin
 
   if (application.mark_auto && e.status === "pending_review") {
     await db.runAsync(
-      `UPDATE expenses SET status = 'approved', updated_at = datetime('now') WHERE id = ?;`,
+      `UPDATE expenses SET status = 'approved', updated_at = datetime('now') WHERE id = ? AND (parse_source IS NULL OR parse_source != 'ai');`,
       expenseId,
     );
   }

@@ -88,6 +88,10 @@ export interface Expense {
   is_investment?: number | null;
   /** migration 080 — what a credit is (salary, interest, …). NULL for debits and older credits. */
   credit_kind?: CreditKind | null;
+  /** migration 097 — "ai" when on-device AI read the message this came from; NULL otherwise. */
+  parse_source?: string | null;
+  /** migration 097 — JSON list of the fields the AI filled. */
+  ai_fields?: string | null;
   /** The month this salary credit counts for, when it doesn't follow the setting (migration 090). */
   salary_for_month?: string | null;
   /** migration 087 — set on rows Together writes from what another household member shared. */

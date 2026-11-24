@@ -8,11 +8,16 @@ import { formatDateForDisplay } from "@/utils/expense-validation";
 export function FirstScanSummaryView({
   summary,
   reviewLabel = "Waiting for review",
+  splitAi = false,
 }: {
   summary: FirstScanSummary;
   /** Onboarding approves the scan, so only possible duplicates are left to look at there. */
   reviewLabel?: string;
+  /** Show what on-device AI read on its own row, and leave it out of reviewLabel's count. */
+  splitAi?: boolean;
 }) {
+  const aiRow = splitAi && summary.readByAi > 0;
+  const others = aiRow ? Math.max(0, summary.toReview - summary.readByAi) : summary.toReview;
   const rows: [string, string][] = [
     ["Accounts found", String(summary.accountsFound)],
     ["Top spend", summary.topMerchant ? `${summary.topMerchant.name} · ${formatAmount(summary.topMerchant.amount)}` : "—"],
@@ -43,10 +48,16 @@ export function FirstScanSummaryView({
           </Text>
         </View>
       ))}
-      <View className="flex-row justify-between py-2">
+      <View className={`flex-row justify-between py-2${aiRow ? " border-b border-border" : ""}`}>
         <Text className="text-sm text-muted-foreground">{reviewLabel}</Text>
-        <Text className="text-sm font-semibold text-foreground">{summary.toReview}</Text>
+        <Text className="text-sm font-semibold text-foreground">{others}</Text>
       </View>
+      {aiRow && (
+        <View className="flex-row justify-between py-2">
+          <Text className="text-sm text-muted-foreground">Read by on-device AI, to check</Text>
+          <Text className="text-sm font-semibold text-foreground">{summary.readByAi}</Text>
+        </View>
+      )}
     </View>
   );
 }

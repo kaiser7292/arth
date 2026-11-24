@@ -71,6 +71,7 @@ export function aiReadToParsed(r: AiReadSms, sender: string, smsDate: number): P
     fdEvent: r.event === "fd_open" ? "open" : r.event === "fd_close" ? "closure" : null,
     declaredTransfer: moved && other != null ? true : undefined,
     counterpartyAcctLast4: moved ? (other?.digits ?? null) : null,
+    parseSource: "ai",
   };
 }
 

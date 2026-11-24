@@ -60,6 +60,9 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   });
 }
 
+/** Settles when the model call in progress (if any) has finished. */
+let lane: Promise<void> = Promise.resolve();
+
 /** Ask the model one question. Throws NanoUnavailableError when it can't be asked right now. */
 export async function askNano(
   prompt: string,
@@ -71,10 +74,19 @@ export async function askNano(
   if (AppState.currentState !== "active") {
     throw new NanoUnavailableError("Android only runs on-device AI while Arth is open.");
   }
-  return withTimeout(
-    generateWithNano(prompt, opts.temperature ?? 0, opts.maxOutputTokens ?? 256),
-    opts.timeoutMs ?? NANO_TIMEOUT_MS,
-  );
+  // One call at a time: the queue, onboarding's account and merchant questions and the lab can
+  // all ask at once, and AICore refuses overlapping calls. The next call waits for the native call
+  // to finish, not just for its timeout, so a slow answer never overlaps the next question.
+  // The timeout counts from when this call starts, not while it waits its turn.
+  const before = lane;
+  let release: () => void = () => {};
+  lane = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await before;
+  const call = generateWithNano(prompt, opts.temperature ?? 0, opts.maxOutputTokens ?? 256);
+  call.then(release, release);
+  return withTimeout(call, opts.timeoutMs ?? NANO_TIMEOUT_MS);
 }
 
 /**

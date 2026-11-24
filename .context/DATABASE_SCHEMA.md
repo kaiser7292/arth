@@ -113,6 +113,7 @@
 | 084 | upi_ids_and_image_templates | `financial_accounts.upi_ids` + `image_templates` (Smart image templates) |
 | 085 | image_template_sample | `image_templates.sample_lines` (edit a picture template) |
 | 096 | scan_history_ai | `sms_scan_runs.source` (sms/ai) + `label`; AI fields on `sms_scan_details` (`message_ref`, `ai_result`, `ai_ms`, `added_expense_id`, `added_note`): AI lab runs saved to Scan history |
+| 097 | ai_reading | `expenses.parse_source` ("ai" when on-device AI read the message) + `ai_fields` (JSON list of what it filled); `pending_sms.ai_status` (queued / added / not_txn / ignored / rejected / duplicate / error) + partial index: the on-device AI queue |
 
 ## Backup & Restore
 

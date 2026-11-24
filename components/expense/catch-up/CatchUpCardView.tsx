@@ -26,6 +26,7 @@ import type { PaymentMode } from "@/services/payment-mode";
 import { formatDateForDisplay } from "@/utils/expense-validation";
 import { formatAmount } from "@/utils/format";
 import { MONEY_EVENT_META } from "../money-event-meta";
+import { isReadByAi, ReadByAiChip } from "@/components/ai/ReadByAiChip";
 
 interface CatchUpCardViewProps {
   card: CatchUpCard;
@@ -132,6 +133,8 @@ export function CatchUpCardView({
           {kindLabel}
         </Text>
       </View>
+
+      {(card.kind === "pending" || card.kind === "uncategorized") && isReadByAi(card.expense) && <ReadByAiChip />}
 
       {(card.kind === "pending" || card.kind === "uncategorized") && (
         <SingleExpenseBody

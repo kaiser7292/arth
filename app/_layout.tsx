@@ -371,6 +371,11 @@ export default function RootLayout(): React.JSX.Element {
       if (outcome.reason === "error") {
         logger.warn("App-open SMS scan failed:", outcome.error);
       }
+      // Messages a background scan couldn't read waited for on-device AI, which only runs while
+      // Arth is open: read some now.
+      import("@/services/ai/reading-queue")
+        .then((q) => q.scheduleAiQueue())
+        .catch(() => {});
       // iPhone: bank messages the Shortcuts automation handed over while Arth was closed.
       await importHandedMessages();
       // The Shortcuts action's copy of the notification switch (missing on a fresh install).

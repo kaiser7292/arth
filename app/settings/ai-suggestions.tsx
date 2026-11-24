@@ -14,6 +14,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import { setAiSetupPending } from "@/services/ai-share";
 import { continueAfterAi } from "@/services/onboarding-flow";
+import { takeLocalReply } from "@/services/ai/local-setup";
 import {
   applySuggestions,
   DELIBERATE_TYPES,
@@ -79,7 +80,10 @@ interface Run {
 export default function AiSuggestionsScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ paste?: string; onboarding?: string }>();
+  // local=1: suggestions from on-device AI (onboarding's "Set up on this phone"), handed over in
+  // memory instead of pasted; they're checked straight away.
+  const params = useLocalSearchParams<{ paste?: string; onboarding?: string; local?: string }>();
+  const fromPhone = params.local === "1";
   const inOnboarding = params.onboarding === "1";
 
   const [busy, setBusy] = useState<string | null>(null);
@@ -161,11 +165,22 @@ export default function AiSuggestionsScreen() {
     }
   }, [read]);
 
-  // Opened from "Paste AI reply": read the clipboard straight away.
+  // Opened from "Paste AI reply": read the clipboard straight away. From on-device AI: read what
+  // it handed over.
   useEffect(() => {
-    if (params.paste === "1") pasteFromClipboard();
+    if (fromPhone) {
+      const text = takeLocalReply();
+      if (text) void read(text);
+      else setMessage("Nothing came back from on-device AI. Go back and try again, or set up by hand.");
+    } else if (params.paste === "1") pasteFromClipboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // On-device AI's suggestions need no "here's what you pasted" step: check them at once.
+  useEffect(() => {
+    if (fromPhone && pasted && !run) void check();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pasted]);
 
   const ticked = useMemo(() => reply?.accepted.filter((s) => !unticked.has(s.key)) ?? [], [reply, unticked]);
 

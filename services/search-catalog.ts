@@ -1,6 +1,7 @@
 import { isPathOn } from "@/services/customise";
 import { Platform } from "react-native";
 import { getFlag } from "@/services/feature-flags";
+import { aiReadingBuilt } from "@/services/ai/ai-reading";
 
 /**
  * Everything "Search or do" can do or open that isn't the person's own data. Each entry says where it
@@ -21,7 +22,7 @@ export interface CatalogEntry {
   target?: SearchTarget;
   /** Not a screen: the search screen carries this out itself. */
   action?: "toggleAmounts";
-  only?: "household" | "ios" | "android";
+  only?: "household" | "ios" | "android" | "on-device-ai";
 }
 
 const add = (id: string, title: string, icon: string, pathname: string, words?: string, params?: Record<string, string>, only?: CatalogEntry["only"]): CatalogEntry => ({
@@ -280,6 +281,7 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   go("image-templates", "Picture templates", "images-outline", "/settings/image-templates"),
   go("scan-history", "Scan history", "time-outline", "/settings/sms-scan-runs", "messages runs"),
   go("messages", "Transaction messages", "chatbubbles-outline", "/settings/transaction-messages", "sms"),
+  go("on-device-ai", "On-device AI", "sparkles-outline", "/settings/on-device-ai", "gemini nano ai unrecognised unread messages", undefined, "on-device-ai"),
   go("iphone", "iPhone bank messages", "phone-portrait-outline", "/settings/iphone-bank-messages", "shortcut", undefined, "ios"),
   go("voice", "Voice input", "mic-outline", "/settings/voice-input"),
   go("cards-setting", "Customise Arth", "options-outline", "/settings/customise", "home cards tabs features"),
@@ -315,6 +317,7 @@ export function availableCatalog(): CatalogEntry[] {
     if (e.only === "household") return getFlag("household");
     if (e.only === "ios") return Platform.OS === "ios";
     if (e.only === "android") return Platform.OS === "android";
+    if (e.only === "on-device-ai") return aiReadingBuilt();
     return true;
   });
 }

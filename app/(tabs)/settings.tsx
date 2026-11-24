@@ -5,6 +5,8 @@ import { useCustomisation } from "@/hooks/use-customisation";
 import { ContextualHeader, ScreenContainer, Segmented, Text, useToast } from "@/components/ui";
 import { GroupLabel, LinkRow } from "@/components/ui/LinkRow";
 import { isAiLabUnlocked, setAiLabUnlocked, TAPS_TO_UNLOCK } from "@/services/ai/ai-lab";
+import { aiReadingBuilt } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -19,7 +21,7 @@ import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 import { PRIVACY_POLICY_URL, TERMS_URL } from "@/components/sms/SmsDisclosure";
 import { isDemoBuild, seedDemoData } from "@/services/demo-data";
@@ -67,6 +69,18 @@ export default function SettingsScreen() {
   const [, setIgnoreTick] = useState(0);
   // Tap Version 7 times to show the On-device AI lab, like Android's developer options.
   const [aiLab, setAiLab] = useState(isAiLabUnlocked);
+  // On-device AI's row shows only on phones that have Gemini Nano (or can download it).
+  const [onDeviceAi, setOnDeviceAi] = useState(false);
+  useEffect(() => {
+    if (!aiReadingBuilt()) return;
+    let live = true;
+    getNanoStatus()
+      .then((s) => live && setOnDeviceAi(s !== "unavailable"))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
   const versionTaps = useRef({ count: 0, at: 0 });
   const tapVersion = () => {
     if (Platform.OS !== "android") return;
@@ -150,6 +164,9 @@ export default function SettingsScreen() {
       color: uiTheme.data.series[3],
       items: [
         { key: "messages", icon: "chatbubbles-outline", label: "Transaction messages", subtitle: messagesLine, keywords: "sms scan templates duplicates", onPress: go("/settings/transaction-messages") },
+        ...(onDeviceAi
+          ? [{ key: "ondevice", icon: "sparkles-outline" as const, label: "On-device AI", subtitle: "Reads the bank messages Arth doesn't know, on this phone", keywords: "gemini nano ai unrecognised", onPress: go("/settings/on-device-ai") }]
+          : []),
         { key: "merchants", icon: "storefront-outline", label: "Merchants", subtitle: "Names, merged names and the category each one goes to", onPress: go("/settings/merchants") },
         {
           key: "start",

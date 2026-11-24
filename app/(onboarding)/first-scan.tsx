@@ -1,8 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, Switch, View } from "react-native";
 
 import { RunProgress, type FeedItem } from "@/components/ai/RunProgress";
 import { FirstScanSummaryView } from "@/components/onboarding/FirstScanSummaryView";
@@ -19,6 +19,9 @@ import {
   type FirstScanSummary,
   type LookbackMonths,
 } from "@/services/first-scan";
+import { aiReadingBuilt, isAiReadingSwitchOn, setAiReadingSwitch } from "@/services/ai/ai-reading";
+import { downloadNano, getNanoStatus, type NanoStatus } from "@/services/ai/nano";
+import { countQueued, getAiQueueState, runAiQueue, subscribeAiQueue } from "@/services/ai/reading-queue";
 import { runSmsScan, type ScanProgress } from "@/services/sms/sms-orchestrator";
 import { setStartDate } from "@/services/start-date";
 import { todayIso } from "@/utils/date";
@@ -31,7 +34,11 @@ const OPTIONS: { months: LookbackMonths; label: string; note?: string }[] = [
   { months: 6, label: "Last 6 months" },
 ];
 
-type Phase = "choose" | "scanning" | "summary";
+type Phase = "choose" | "scanning" | "ai" | "summary";
+
+/** How long setup waits for Android to finish downloading the on-device model before moving on. */
+const MODEL_WAIT_MS = 3 * 60 * 1000;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
  * Onboarding, right after SMS permission: how far back to read, then "Here's your money".
@@ -39,6 +46,11 @@ type Phase = "choose" | "scanning" | "summary";
  * transactions as they're found - since months of messages can take minutes. It runs to the end
  * before onboarding moves on: the accounts step lists what the scan found, so leaving early would
  * show half of them. The screen is kept awake meanwhile.
+ *
+ * On phones with Gemini Nano, a switch lets on-device AI read the messages no pattern knows. The
+ * model's download (if Android hasn't got it yet) starts with the scan, so it's usually ready by
+ * the end. After the history is approved, the AI reads what was left over; its finds are never
+ * approved in bulk and wait in Catch Up. "Continue" lets it finish in the background.
  */
 export default function OnboardingFirstScan() {
   const router = useRouter();
@@ -53,9 +65,40 @@ export default function OnboardingFirstScan() {
   const [feed, setFeed] = useState<FeedItem[]>([]);
   /** Taking a while: say so, so it doesn't look stuck. */
   const [isLong, setIsLong] = useState(false);
+  /** Gemini Nano on this phone; null while checking, or when the build has no on-device AI. */
+  const [aiStatus, setAiStatus] = useState<NanoStatus | null>(null);
+  const [aiOn, setAiOn] = useState(isAiReadingSwitchOn);
+  /** Waiting for Android to finish the model download. */
+  const [aiWaiting, setAiWaiting] = useState(false);
+  const aiRun = useSyncExternalStore(subscribeAiQueue, getAiQueueState);
+  const moveOn = useRef<(() => void) | null>(null);
+  const aiOffered = aiStatus != null && aiStatus !== "unavailable";
 
   useEffect(() => {
-    if (phase !== "scanning") return;
+    if (!aiReadingBuilt()) return;
+    let live = true;
+    getNanoStatus()
+      .then((st) => {
+        if (live) setAiStatus(st);
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  // The AI pass's finds, for the live list.
+  const lastAiId = useRef(0);
+  useEffect(() => {
+    const it = aiRun.latest;
+    if (phase !== "ai" || !it || it.id === lastAiId.current) return;
+    lastAiId.current = it.id;
+    const text = `${it.merchant || (it.credit ? "Money in" : "Payment")} · ₹${Math.round(it.amount).toLocaleString("en-IN")}`;
+    setFeed((f) => [{ id: 100000 + it.id, text, ok: true }, ...f].slice(0, 8));
+  }, [aiRun.latest, phase]);
+
+  useEffect(() => {
+    if (phase !== "scanning" && phase !== "ai") return;
     // A locked screen can pause the scan; keep it on until the scan is done.
     activateKeepAwakeAsync("first-scan").catch(() => {});
     const t = setTimeout(() => setIsLong(true), FIRST_SCAN_WAIT_MS);
@@ -82,13 +125,55 @@ export default function OnboardingFirstScan() {
     else next();
   };
 
+  /**
+   * After the history is approved: on-device AI reads what no pattern knew. Waits for the model
+   * if Android is still downloading it. Resolves when it's done, or when the person moves on (the
+   * reading then carries on by itself).
+   */
+  const readWithAi = async () => {
+    if ((await countQueued().catch(() => 0)) === 0) return;
+    setFeed([]);
+    setPhase("ai");
+    const skipped = new Promise<void>((resolve) => {
+      moveOn.current = resolve;
+    });
+    let gaveUpWaiting = false;
+    const waitForModel = async () => {
+      const until = Date.now() + MODEL_WAIT_MS;
+      for (;;) {
+        const st = await getNanoStatus().catch((): NanoStatus => "unavailable");
+        if (st === "available") return true;
+        if (st === "unavailable" || Date.now() > until || gaveUpWaiting) return false;
+        setAiWaiting(true);
+        await sleep(3000);
+      }
+    };
+    const work = (async () => {
+      const ready = await waitForModel();
+      setAiWaiting(false);
+      if (ready) await runAiQueue({ label: "During setup" });
+    })();
+    await Promise.race([work, skipped]);
+    gaveUpWaiting = true;
+    moveOn.current = null;
+  };
+
   const start = async () => {
+    // The switch decides whether this scan's unread messages are queued for the AI.
+    if (aiOffered) {
+      setAiReadingSwitch(aiOn);
+      if (aiOn && aiStatus === "downloadable") {
+        // Fetched while the scan runs, so it's usually ready by the end.
+        void downloadNano().catch((e) => logger.warn("First scan: model download failed", e));
+      }
+    }
     setPhase("scanning");
     const since = lookbackStartDate(months);
     let feedId = 0;
     const promise = startFirstScan(since, () =>
       runSmsScan({
         manual: true,
+        aiQueue: false,
         onProgress: (p) => {
           setProgress(p);
           if (p.latest) {
@@ -106,6 +191,13 @@ export default function OnboardingFirstScan() {
       await approveFirstScan(DEFAULT_USER_ID);
     } catch (e) {
       logger.warn("First scan: approving everything failed; items stay in review", e);
+    }
+    if (aiOffered && aiOn) {
+      try {
+        await readWithAi();
+      } catch (e) {
+        logger.warn("First scan: on-device AI pass failed (non-fatal)", e);
+      }
     }
     try {
       setSummary(await buildFirstScanSummary(DEFAULT_USER_ID, since));
@@ -154,6 +246,42 @@ export default function OnboardingFirstScan() {
     );
   }
 
+  if (phase === "ai") {
+    const r = aiRun;
+    const doing = aiWaiting
+      ? "Getting on-device AI ready (Android is downloading it)"
+      : r.paused
+        ? "Paused while Arth is in the background"
+        : r.total > 0
+          ? `Reading message ${Math.min(r.done + 1, r.total)} of ${r.total}`
+          : "Starting on-device AI";
+    return (
+      <RunProgress
+        standalone
+        title="Reading the messages Arth didn't know · on-device AI, on this phone"
+        done={r.done}
+        total={r.total}
+        fraction={r.total > 0 ? Math.max(0.03, r.done / r.total) : 0.02}
+        doing={doing}
+        counters={[
+          { label: "Messages read", value: r.done },
+          { label: "Transactions found", value: r.added },
+          { label: "Money out", value: r.moneyOut, format: (n) => `₹${formatCompact(Math.round(n))}` },
+          { label: "Money in", value: r.moneyIn, format: (n) => `₹${formatCompact(Math.round(n))}` },
+        ]}
+        feed={feed}
+        footer={
+          <View className="px-6 pb-6 pt-2">
+            <Text className="text-xs text-muted-foreground text-center mb-3 leading-5">
+              {"What the AI finds waits in Catch Up for you to check. It only counts in your reports once you approve it."}
+            </Text>
+            <Button title="Continue, finish in the background" variant="outline" onPress={() => moveOn.current?.()} />
+          </View>
+        }
+      />
+    );
+  }
+
   if (phase === "summary" && summary) {
     return (
       <ScreenContainer safe padTop>
@@ -161,7 +289,7 @@ export default function OnboardingFirstScan() {
           <Text className="text-2xl font-bold text-foreground mb-2">Here’s your money</Text>
           <Text className="text-sm text-muted-foreground mb-5">From your transaction messages since {summary.since}.</Text>
           <Card>
-            <FirstScanSummaryView summary={summary} reviewLabel="Possible duplicates to check" />
+            <FirstScanSummaryView summary={summary} reviewLabel="Possible duplicates to check" splitAi />
           </Card>
           <Text className="text-base font-semibold text-foreground mt-6 mb-1">Count these months in your reports?</Text>
           <Text className="text-sm text-muted-foreground mb-3 leading-5">
@@ -198,7 +326,13 @@ export default function OnboardingFirstScan() {
         </ScrollView>
         <View className="px-6 pb-6 pt-2">
           <Button
-            title={history === "use" && summary.toReview > 0 ? "Check possible duplicates" : "Continue"}
+            title={
+              history === "use" && summary.toReview > 0
+                ? summary.readByAi > 0
+                  ? "Check what's waiting"
+                  : "Check possible duplicates"
+                : "Continue"
+            }
             onPress={() => void goOn()}
             loading={applying}
             className="mb-3"
@@ -239,6 +373,20 @@ export default function OnboardingFirstScan() {
             </Pressable>
           );
         })}
+        {aiOffered && (
+          <View className="flex-row items-center rounded-xl border px-4 py-3.5 mt-3 bg-card" style={{ borderColor: theme.border }}>
+            <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
+            <View className="flex-1 mx-3">
+              <Text className="text-base text-foreground">Read the rest with on-device AI</Text>
+              <Text className="text-xs text-muted-foreground mt-0.5 leading-4">
+                {aiStatus === "available"
+                  ? "Gemini Nano reads messages Arth doesn't know, on this phone. You check what it finds."
+                  : "Gemini Nano reads messages Arth doesn't know, on this phone. Android downloads it while Arth reads."}
+              </Text>
+            </View>
+            <Switch value={aiOn} onValueChange={setAiOn} accessibilityLabel="Read the rest with on-device AI" />
+          </View>
+        )}
       </ScrollView>
       <View className="px-6 pb-6 pt-2">
         <Button title="Start reading" onPress={() => void start()} />

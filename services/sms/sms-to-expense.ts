@@ -188,7 +188,7 @@ export async function createExpenseFromSms(
         // Non-fatal - payment mode is optional
       }
     }
-    const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: true });
+    const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: parsed.parseSource !== "ai" });
 
     // Not income: an FD paying out, or the user's own money arriving from another account.
     try {
@@ -492,7 +492,7 @@ export async function createExpenseFromSms(
         now,
       );
       await linkExpenseToAccount(userId, expenseId, parsed.cardLast4, parsed.bank, parsed.accountNickname);
-      const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: true });
+      const appliedRuleIds = await applyRulesToSmsCredit(expenseId, rawBody, { allowAutoApprove: parsed.parseSource !== "ai" });
       await markSmsProcessed(pendingSmsId, expenseId);
       await bumpDataVersion();
       return { success: true, expenseId, isCredit: false, error: null, appliedRuleIds };
@@ -548,7 +548,8 @@ export async function createExpenseFromSms(
           if (ruleApp.category_id) categoryId = ruleApp.category_id;
           ruleCategoryId = ruleApp.category_id;
           if (ruleApp.payment_mode) paymentModeId = ruleApp.payment_mode;
-          if (ruleApp.mark_auto) status = "approved";
+          // What on-device AI read always waits for a look, whatever the rule says.
+          if (ruleApp.mark_auto && parsed.parseSource !== "ai") status = "approved";
           ruleSplitPersonId = ruleApp.split_person_id;
           ruleSplitMode = ruleApp.split_mode;
           ruleSplitPaidBy = ruleApp.split_paid_by;
