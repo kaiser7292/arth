@@ -1,4 +1,5 @@
 import { AutoSyncCard } from '@/components/broker/AutoSyncCard';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState, useCallback } from 'react';
 import { ActivityIndicator, Modal, ScrollView, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
@@ -34,6 +35,7 @@ import {
 } from '@/components/portfolio/PortfolioList';
 
 export default function ZebpayConnectScreen() {
+  const insets = useSafeAreaInsets();
   const alert = useAlert();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -274,7 +276,7 @@ export default function ZebpayConnectScreen() {
       {/* Demat account picker modal */}
       <Modal visible={showAccountPicker} transparent animationType="slide">
         <Pressable className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.4)' }} onPress={() => setShowAccountPicker(false)} />
-        <View className="bg-background rounded-t-card p-4 pb-8" style={{ maxHeight: '60%' }}>
+        <View className="bg-background rounded-t-card p-4" style={{ maxHeight: '60%', paddingBottom: insets.bottom + 32 }}>
           <Text className="text-body font-bold text-foreground mb-1">Link an account</Text>
           <Text className="text-label text-muted-foreground mb-4">
             Choose the account where Zebpay portfolio snapshots will be saved.

@@ -5,10 +5,16 @@
  *
  * Android only runs on-device AI while Arth is on screen. When Arth goes to the background the
  * run pauses on the message it was on and carries on when Arth comes back, instead of marking
- * the rest as errors. Nothing is saved: closing Arth ends the run.
+ * the rest as errors. Closing Arth ends the run.
+ *
+ * When a run finishes or is stopped, the messages it read are saved to Scan history
+ * (sms_scan_runs with source "ai"), next to the SMS scans, so a run can be looked at again later.
  */
 
 import { AppState } from "react-native";
+import { DEFAULT_USER_ID } from "@/constants/app";
+import { markScanDetailAdded, saveScanRun, type ScanDetail, type ScanDetailCategory } from "@/services/sms/sms-scan-logging";
+import { logger } from "@/utils/logger";
 import type { MoneyMap } from "./money-map";
 import { NanoUnavailableError } from "./nano";
 import { readSmsWithNano, type ReadSmsOutcome } from "./tasks/read-sms";
@@ -35,9 +41,76 @@ export interface LabRun {
   stopped: boolean;
   /** What was asked for, e.g. "Last 90 days · 50 messages". */
   label: string;
+  /** The Scan history run it was saved as, once it ended. */
+  historyId?: string;
 }
 
 const EMPTY: LabRun = { rows: [], running: false, paused: false, stopped: false, label: "" };
+
+function categoryOf(row: RunRow): ScanDetailCategory | null {
+  if (row.error) return "ai_error";
+  switch (row.outcome?.kind) {
+    case "transaction":
+      return "ai_transaction";
+    case "not_transaction":
+      return "ai_not_money";
+    case "ignored":
+      return "ai_ignored";
+    case "rejected":
+      return "ai_rejected";
+    default:
+      return null; // not read yet: the run was stopped first
+  }
+}
+
+/** A read row as a Scan history detail. Exported for tests. */
+export function labRowToDetail(row: RunRow): ScanDetail | null {
+  const category = categoryOf(row);
+  if (!category) return null;
+  const o = row.outcome;
+  return {
+    smsAddress: row.sender,
+    smsBodyPreview: row.body,
+    smsDate: row.date ?? null,
+    category,
+    filterReason: row.error ?? (o?.kind === "rejected" ? o.problems.join("; ") : null),
+    parsedAmount: o?.kind === "transaction" ? o.result.amount : null,
+    parsedMerchant: o?.kind === "transaction" ? o.result.merchant : null,
+    parsedType: o?.kind === "transaction" ? o.result.type : null,
+    messageRef: row.id,
+    aiResult: o ?? null,
+    aiMs: row.ms ?? null,
+    addedExpenseId: row.added?.expenseId ?? null,
+    addedNote: row.added?.note ?? null,
+  };
+}
+
+async function saveToHistory(run: LabRun, durationMs: number): Promise<string | undefined> {
+  const details = run.rows.map(labRowToDetail).filter((d): d is ScanDetail => d != null);
+  if (details.length === 0) return undefined;
+  try {
+    return await saveScanRun({
+      userId: DEFAULT_USER_ID,
+      source: "ai",
+      label: run.label,
+      isManual: true,
+      smsReadCount: details.length,
+      hardcodedMatchCount: 0,
+      templateMatchCount: 0,
+      filteredCount: 0,
+      unrecognizedCount: 0,
+      skippedCount: 0,
+      expenseCreatedCount: 0,
+      creditCreatedCount: 0,
+      durationMs,
+      error: run.stopped ? "Stopped before the end" : null,
+      details,
+    });
+  } catch (e) {
+    logger.warn("Failed to save AI scan to history (non-fatal):", e);
+    return undefined;
+  }
+}
 
 let state: LabRun = EMPTY;
 let stopRequested = false;
@@ -99,7 +172,8 @@ async function readOne(row: RunRow, map: MoneyMap | undefined): Promise<RunRow> 
 export async function startLabRun(rows: RunRow[], label: string, map?: MoneyMap): Promise<void> {
   if (state.running) return;
   stopRequested = false;
-  set({ rows, running: true, paused: false, stopped: false, label });
+  const startedAt = Date.now();
+  set({ rows, running: true, paused: false, stopped: false, label, historyId: undefined });
   for (const row of rows) {
     if (stopRequested) break;
     const done = await readOne(row, map);
@@ -108,12 +182,17 @@ export async function startLabRun(rows: RunRow[], label: string, map?: MoneyMap)
   }
   const stopped = stopRequested;
   set({ running: false, paused: false, stopped });
+  const historyId = await saveToHistory(state, Date.now() - startedAt);
+  if (historyId) set({ historyId });
   if (!stopped) finishListeners.forEach((l) => l(state));
 }
 
 /** Remember that a row was added to Catch Up (kept with the run, so it shows when you come back). */
 export function markLabRowAdded(id: string, added: NonNullable<RunRow["added"]>): void {
   set({ rows: state.rows.map((r) => (r.id === id ? { ...r, added } : r)) });
+  if (state.historyId) {
+    markScanDetailAdded(state.historyId, id, added).catch((e) => logger.warn("Failed to note Catch Up add in history:", e));
+  }
 }
 
 export function stopLabRun(): void {

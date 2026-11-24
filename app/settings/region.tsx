@@ -18,6 +18,9 @@ import {
     setDateFormat,
     setNumberGrouping,
     getShortAmountStyle,
+    getReportAmountStyle,
+    setReportAmountStyle,
+    type ReportAmountStyle,
     setShortAmountStyle,
     type ShortAmountStyle,
     setTimezone,
@@ -25,7 +28,7 @@ import {
 import { getFYStartMonth, setFYStartMonth } from "@/services/settings";
 
 import { formatDateWith, todayIso } from "@/utils/date";
-import { formatAmountPreview } from "@/utils/format";
+import { formatAmount, formatAmountPreview, formatReportShort } from "@/utils/format";
 import { formatDateTimeInTimezone } from "@/utils/timezone";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useMemo, useState } from "react";
@@ -72,6 +75,7 @@ export default function RegionSettingsScreen() {
   const [currency, setCurrencyState] = useState<CurrencyCode>(getCurrency());
   const [grouping, setGroupingState] = useState<NumberGrouping>(getNumberGrouping());
   const [shortStyle, setShortStyleState] = useState<ShortAmountStyle>(getShortAmountStyle());
+  const [reportStyle, setReportStyleState] = useState<ReportAmountStyle>(getReportAmountStyle());
   const [dateFormat, setDateFormatState] = useState<DateFormat>(getDateFormat());
   const [timezoneState, setTimezoneState] = useState<string>(getTimezone());
 
@@ -157,6 +161,28 @@ export default function RegionSettingsScreen() {
                 onPress={() => {
                   setShortAmountStyle(o.value);
                   setShortStyleState(o.value);
+                  bumpDataVersion();
+                }}
+              />
+            ))}
+          </RegionRow>
+          <RegionRow
+            label="Report numbers"
+            sample={reportStyle === "short" ? `${formatReportShort(2492209.1)} · tap a number for the full figure` : formatAmount(2492209.1)}
+          >
+            {(
+              [
+                { value: "full", label: "Full" },
+                { value: "short", label: "Short, tap for full" },
+              ] as { value: ReportAmountStyle; label: string }[]
+            ).map((o) => (
+              <RegionPill
+                key={o.value}
+                label={o.label}
+                on={reportStyle === o.value}
+                onPress={() => {
+                  setReportAmountStyle(o.value);
+                  setReportStyleState(o.value);
                   bumpDataVersion();
                 }}
               />

@@ -15,7 +15,7 @@ import {
     RightSpendToggle,
 } from "@/components/expense/ExpenseFormFields";
 import { SplitEditSheet } from "@/components/expense/SplitEditSheet";
-import { draftFromConfig, draftToSave } from "@/services/split-draft";
+import { draftFromConfig, draftToSave, splitModeLabel } from "@/services/split-draft";
 import { TagPicker } from "@/components/expense/TagPicker";
 import { RefundExpensePickerSheet } from "@/components/expense/RefundExpensePickerSheet";
 import {
@@ -1002,7 +1002,7 @@ export default function AddExpenseScreen() {
                       row={{ label: "Split with", color: theme.data.series[4], divider: true }}
                       icon="people-outline"
                       on={!!splitConfig}
-                      text={splitConfig ? `${splitPerson?.name ?? "Someone"} · ${splitConfig.splitMode === "equal" ? "equal" : splitConfig.splitMode}` : "Just me"}
+                      text={splitConfig ? `${splitPerson?.name ?? "Someone"} · ${splitModeLabel(splitConfig.splitMode)}` : "Just me"}
                       onPress={() => setShowSplitSheet(true)}
                       accessibilityLabel={splitConfig ? `Split with ${splitPerson?.name ?? "someone"}` : "Split with, just me"}
                       trailing={

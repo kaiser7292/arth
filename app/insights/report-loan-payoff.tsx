@@ -1,4 +1,4 @@
-import { FormulaTextInput } from "@/components/ui";
+import { FormulaTextInput, ReportAmount } from "@/components/ui";
 import { useState } from "react";
 
 import { View, ScrollView, Pressable, TextInput } from "react-native";
@@ -8,7 +8,6 @@ import { Card, EmptyState, LoadingState, ScreenContainer, SectionHeader, Text } 
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { formatAmount } from "@/utils/format";
 import { settingsStorage } from "@/services/storage";
 import {
   generateLoanPayoffReport,
@@ -67,7 +66,7 @@ function StrategyCard({
         </View>
         <View className="flex-1">
           <Text className="text-label text-muted-foreground">Interest saved</Text>
-          <Text className="text-body font-bold" style={{ color: theme.success }}>{formatAmount(strategy.interestSaved)}</Text>
+          <Text className="text-body font-bold" style={{ color: theme.success }}><ReportAmount value={strategy.interestSaved} /></Text>
         </View>
       </View>
       <View className="flex-row gap-3 mt-2">
@@ -77,7 +76,7 @@ function StrategyCard({
         </View>
         <View className="flex-1">
           <Text className="text-label text-muted-foreground">Total interest</Text>
-          <Text className="text-body font-bold" style={{ color: theme.warning }}>{formatAmount(strategy.totalInterestPaid)}</Text>
+          <Text className="text-body font-bold" style={{ color: theme.warning }}><ReportAmount value={strategy.totalInterestPaid} /></Text>
         </View>
       </View>
       {/* Timeline milestones */}
@@ -240,11 +239,11 @@ export default function LoanPayoffReportScreen() {
           <View className="flex-row gap-3 mb-3">
             <View className="flex-1 bg-card rounded-card p-3 border border-border">
               <Text className="text-label text-muted-foreground">Outstanding</Text>
-              <Text className="text-body font-bold text-foreground" style={{ color: theme.danger }}>{formatAmount(report.totalOutstanding)}</Text>
+              <Text className="text-body font-bold text-foreground" style={{ color: theme.danger }}><ReportAmount value={report.totalOutstanding} /></Text>
             </View>
             <View className="flex-1 bg-card rounded-card p-3 border border-border">
               <Text className="text-label text-muted-foreground">Monthly EMI</Text>
-              <Text className="text-body font-bold text-foreground">{formatAmount(report.totalMonthlyEMI)}</Text>
+              <Text className="text-body font-bold text-foreground"><ReportAmount value={report.totalMonthlyEMI} /></Text>
             </View>
           </View>
           <View className="flex-row gap-3 mb-3">
@@ -254,7 +253,7 @@ export default function LoanPayoffReportScreen() {
             </View>
             <View className="flex-1 bg-card rounded-card p-3 border border-border">
               <Text className="text-label text-muted-foreground">Extra/mo</Text>
-              <Text className="text-body font-bold text-foreground" style={{ color: theme.success }}>{formatAmount(report.inputs.extraMonthlyAmount)}</Text>
+              <Text className="text-body font-bold text-foreground" style={{ color: theme.success }}><ReportAmount value={report.inputs.extraMonthlyAmount} /></Text>
             </View>
           </View>
         </View>
@@ -270,10 +269,10 @@ export default function LoanPayoffReportScreen() {
               </View>
               <View className="flex-row justify-between">
                 <Text className="text-label text-muted-foreground">
-                  {formatAmount(loan.outstanding)} outstanding
+                  <ReportAmount value={loan.outstanding} /> outstanding
                 </Text>
                 <Text className="text-label text-muted-foreground">
-                  EMI {formatAmount(loan.emiAmount)}
+                  EMI <ReportAmount value={loan.emiAmount} />
                 </Text>
               </View>
             </Card>
@@ -291,7 +290,7 @@ export default function LoanPayoffReportScreen() {
               </View>
               <View className="items-end">
                 <Text className="text-label text-muted-foreground">Total interest</Text>
-                <Text className="text-body font-bold" style={{ color: theme.danger }}>{formatAmount(report.naturalTotalInterest)}</Text>
+                <Text className="text-body font-bold" style={{ color: theme.danger }}><ReportAmount value={report.naturalTotalInterest} /></Text>
               </View>
             </View>
           </Card>
@@ -322,7 +321,7 @@ export default function LoanPayoffReportScreen() {
                 After debt-free
               </Text>
               <Text className="text-label text-muted-foreground">
-                You'll free up {formatAmount(report.postDebtFreeMonthlySurplus)}/month from EMIs.
+                You'll free up <ReportAmount value={report.postDebtFreeMonthlySurplus} />/month from EMIs.
                 Redirect this to investments for maximum wealth building.
               </Text>
             </View>

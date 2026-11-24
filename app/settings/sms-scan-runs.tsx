@@ -5,7 +5,9 @@ import { SendSmsToDeveloperSheet } from "@/components/sms/SendSmsToDeveloperShee
 import { View, FlatList, Pressable, BackHandler } from "react-native";
 import { Stack, useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Card, Chip, GroupHeading, ListToolbar, LoadingState, ScreenContainer, Segmented, Text, useToast } from "@/components/ui";
+import { ResultRow, type RunRow } from "@/components/ai/LabResultRow";
+import { addAiReadToCatchUp } from "@/services/ai/add-ai-read";
 import { useListTools } from "@/hooks/use-list-tools";
 import type { ListField, ListSort } from "@/utils/list-tools";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -14,7 +16,9 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import {
   getScanRuns,
   getScanRunDetails,
+  markScanDetailAdded,
   type ScanRunRow,
+  type ScanSource,
   type ScanDetailRow,
   type ScanDetailCategory,
 } from "@/services/sms";
@@ -25,6 +29,56 @@ import { useTheme } from "@/hooks/use-theme";
 import { tint } from "@/constants/brand";
 
 type ViewMode = "list" | "drilldown" | "category";
+type SourceFilter = "all" | ScanSource;
+
+const SOURCE_OPTIONS: { value: SourceFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "sms", label: "SMS" },
+  { value: "ai", label: "AI" },
+];
+
+const SMS_CATEGORIES: ScanDetailCategory[] = ["hardcoded", "template", "filtered", "unrecognized", "skipped"];
+const AI_CATEGORIES: ScanDetailCategory[] = ["ai_transaction", "ai_not_money", "ai_ignored", "ai_rejected", "ai_error"];
+const isAiCategory = (c: string) => c.startsWith("ai_");
+
+/** Messages per category. SMS runs keep their counts on the run; AI runs count their details. */
+function countsOf(run: ScanRunRow): Record<ScanDetailCategory, number> {
+  const c = run.category_counts ?? {};
+  return {
+    hardcoded: run.hardcoded_match_count,
+    template: run.template_match_count,
+    filtered: run.filtered_count,
+    unrecognized: run.unrecognized_count,
+    skipped: run.skipped_count,
+    ai_transaction: c.ai_transaction ?? 0,
+    ai_not_money: c.ai_not_money ?? 0,
+    ai_ignored: c.ai_ignored ?? 0,
+    ai_rejected: c.ai_rejected ?? 0,
+    ai_error: c.ai_error ?? 0,
+  };
+}
+
+/** A saved AI reading, in the shape the AI lab's result row draws. */
+function aiRowOf(d: ScanDetailRow): RunRow {
+  let outcome: RunRow["outcome"];
+  try {
+    outcome = d.ai_result ? JSON.parse(d.ai_result) : undefined;
+  } catch {
+    outcome = undefined;
+  }
+  return {
+    id: d.message_ref ?? d.id,
+    sender: d.sms_address ?? "",
+    body: d.sms_body_preview ?? "",
+    date: d.sms_date ?? undefined,
+    outcome: outcome ?? undefined,
+    ms: d.ai_ms ?? undefined,
+    error: d.category === "ai_error" ? (d.filter_reason ?? "No answer") : undefined,
+    added: d.added_expense_id || d.added_note ? { expenseId: d.added_expense_id, note: d.added_note } : undefined,
+  };
+}
+
+const secs = (ms: number) => (ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`);
 
 const SCAN_FIELDS: ListField<ScanDetailRow>[] = [
   { id: "sender", label: "Sender", keyOf: (d) => d.sms_address, noneLabel: "No sender", filter: true, group: true, searchable: true },
@@ -52,6 +106,11 @@ const CATEGORY_META: Record<
   filtered: { label: "Filtered Out", icon: "funnel-outline", colorKey: "warning" },
   unrecognized: { label: "Unrecognized", icon: "help-circle-outline", colorKey: "danger" },
   skipped: { label: "Skipped (OTP, etc.)", icon: "close-circle-outline", colorKey: "danger" },
+  ai_transaction: { label: "Money messages", icon: "checkmark-circle-outline", colorKey: "success" },
+  ai_not_money: { label: "Not money", icon: "remove-circle-outline", colorKey: "info" },
+  ai_ignored: { label: "On ignored accounts", icon: "eye-off-outline", colorKey: "warning" },
+  ai_rejected: { label: "Couldn't use the reading", icon: "alert-circle-outline", colorKey: "warning" },
+  ai_error: { label: "No answer", icon: "close-circle-outline", colorKey: "danger" },
 };
 
 export default function SmsScanRunsScreen() {
@@ -61,6 +120,12 @@ export default function SmsScanRunsScreen() {
 
   const [loading, setLoading] = useState(true);
   const [runs, setRuns] = useState<ScanRunRow[]>([]);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const shownRuns = useMemo(() => (sourceFilter === "all" ? runs : runs.filter((r) => r.source === sourceFilter)), [runs, sourceFilter]);
+  const hasAiRuns = runs.some((r) => r.source === "ai");
+  const toast = useToast();
+  const [openAiId, setOpenAiId] = useState<string | null>(null);
+  const [addingId, setAddingId] = useState<string | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [selectedRun, setSelectedRun] = useState<ScanRunRow | null>(null);
@@ -122,6 +187,31 @@ export default function SmsScanRunsScreen() {
     setViewMode("category");
   }
 
+  // "Add to Catch Up" on an AI reading, from the history: the same path the AI lab takes.
+  async function addAiDetail(d: ScanDetailRow) {
+    const row = aiRowOf(d);
+    if (row.outcome?.kind !== "transaction" || row.date == null || !selectedRun) return;
+    setAddingId(d.id);
+    let added: { expenseId: string | null; note: string | null };
+    try {
+      const res = await addAiReadToCatchUp(row.id, row.outcome.result, row.body, row.sender, row.date);
+      added = {
+        expenseId: res.expenseId,
+        note: res.expenseId
+          ? null
+          : res.error
+            ? `Couldn't add it: ${res.error}`
+            : "Arth didn't add it: it already has this transaction, or the account is ignored or before your start date",
+      };
+    } catch (e) {
+      added = { expenseId: null, note: `Couldn't add it: ${e instanceof Error ? e.message : String(e)}` };
+    }
+    await markScanDetailAdded(selectedRun.id, row.id, added).catch(() => {});
+    setDetails((all) => all.map((x) => (x.id === d.id ? { ...x, added_expense_id: added.expenseId, added_note: added.note } : x)));
+    setAddingId(null);
+    toast(added.expenseId ? "Added to Catch Up" : "Not added", added.expenseId ? { actionLabel: "Open", onAction: () => router.push("/expense/catch-up") } : undefined);
+  }
+
   function handleBack() {
     if (viewMode === "category") {
       setViewMode("drilldown");
@@ -140,6 +230,7 @@ export default function SmsScanRunsScreen() {
   // ─── List View ───
 
   function renderRunCard({ item }: { item: ScanRunRow }) {
+    if (item.source === "ai") return renderAiRunCard(item);
     const accountLabel = item.account_ids
       ? `${JSON.parse(item.account_ids).length} account${JSON.parse(item.account_ids).length > 1 ? "s" : ""}`
       : "All accounts";
@@ -170,6 +261,7 @@ export default function SmsScanRunsScreen() {
               <Text className="text-body font-semibold text-foreground">
                 {item.is_manual ? "Manual scan" : "Auto scan"}
               </Text>
+              {hasAiRuns && <Chip variant="status" tone="neutral" label="SMS" className="ml-1.5" />}
               <Text className="text-meta text-muted-foreground ml-1.5">
                 {dateStr} · {timeStr}
               </Text>
@@ -219,26 +311,59 @@ export default function SmsScanRunsScreen() {
     );
   }
 
+  function renderAiRunCard(item: ScanRunRow) {
+    const counts = countsOf(item);
+    const createdAt = new Date(item.created_at + "Z");
+    const timeStr = createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const dateStr = formatDate(item.created_at.slice(0, 10));
+    return (
+      <Pressable onPress={() => openDrilldown(item)} className="mb-3" accessibilityRole="button">
+        <Card>
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-center flex-1">
+              <View className="w-7 h-7 rounded-full items-center justify-center mr-2" style={{ backgroundColor: theme.alpha("primary", 0.09) }}>
+                <Ionicons name="sparkles-outline" size={14} color={theme.primary} />
+              </View>
+              <Text className="text-body font-semibold text-foreground">AI scan</Text>
+              <Chip variant="status" tone="primary" label="AI" className="ml-1.5" />
+              <Text className="text-meta text-muted-foreground ml-1.5 shrink" numberOfLines={1}>
+                {dateStr} · {timeStr}
+              </Text>
+            </View>
+            {item.added_count > 0 ? (
+              <View className="rounded-pill px-2 justify-center" style={{ height: 22, backgroundColor: theme.alpha("success", 0.1) }}>
+                <Text className="text-label font-semibold" style={{ color: theme.success }}>{item.added_count} added</Text>
+              </View>
+            ) : null}
+          </View>
+          {item.label ? <Text className="text-label text-faint-foreground mb-2">On-device AI · {item.label}</Text> : null}
+          <View className="flex-row flex-wrap items-center">
+            <FunnelPill label={`${item.sms_read_count} read`} />
+            <FunnelArrow />
+            <FunnelPill label={`${counts.ai_transaction} money`} colorKey={counts.ai_transaction > 0 ? "success" : undefined} />
+            <FunnelArrow />
+            <FunnelPill label={`${item.added_count} added`} colorKey={item.added_count > 0 ? "success" : undefined} />
+            {counts.ai_error > 0 && (
+              <>
+                <Text className="text-label text-faint-foreground mx-1">·</Text>
+                <FunnelPill label={`${counts.ai_error} no answer`} colorKey="danger" />
+              </>
+            )}
+          </View>
+          {item.error && <Text className="text-label text-warning mt-1">{item.error}</Text>}
+        </Card>
+      </Pressable>
+    );
+  }
+
   // ─── Drilldown View ───
 
   function renderDrilldown() {
     if (!selectedRun) return null;
 
-    const categories: ScanDetailCategory[] = [
-      "hardcoded",
-      "template",
-      "filtered",
-      "unrecognized",
-      "skipped",
-    ];
-
-    const counts: Record<ScanDetailCategory, number> = {
-      hardcoded: selectedRun.hardcoded_match_count,
-      template: selectedRun.template_match_count,
-      filtered: selectedRun.filtered_count,
-      unrecognized: selectedRun.unrecognized_count,
-      skipped: selectedRun.skipped_count,
-    };
+    const ai = selectedRun.source === "ai";
+    const categories = ai ? AI_CATEGORIES : SMS_CATEGORIES;
+    const counts = countsOf(selectedRun);
 
     const filterReasons = details
       .filter((d) => d.category === "filtered")
@@ -260,9 +385,17 @@ export default function SmsScanRunsScreen() {
               {selectedRun.sms_read_count}
             </Text>
             <Text className="text-meta text-muted-foreground">
-              SMS read
+              {ai ? "messages read by on-device AI" : "SMS read"}
             </Text>
           </View>
+          {ai && selectedRun.label ? <Text className="text-label text-faint-foreground mt-0.5">{selectedRun.label}</Text> : null}
+          {ai ? (
+            <View className="mt-2 flex-row flex-wrap">
+              <MiniStat label="Money" value={counts.ai_transaction} color={theme.success} />
+              <MiniStat label="Not money" value={counts.ai_not_money} color={theme.mutedForeground} />
+              <MiniStat label="Added" value={details.filter((d) => d.added_expense_id).length} color={theme.primary} />
+            </View>
+          ) : (
           <View className="mt-2 flex-row flex-wrap">
             <MiniStat
               label="Parsed"
@@ -280,11 +413,13 @@ export default function SmsScanRunsScreen() {
               color={theme.primary}
             />
           </View>
+          )}
           {selectedRun.duration_ms != null && (
             <Text className="text-label text-faint-foreground mt-2">
-              Completed in {selectedRun.duration_ms}ms
+              Completed in {secs(selectedRun.duration_ms)}
             </Text>
           )}
+          {ai && selectedRun.error ? <Text className="text-label text-warning mt-1">{selectedRun.error}</Text> : null}
         </Card>
 
         {/* Category cards */}
@@ -342,7 +477,7 @@ export default function SmsScanRunsScreen() {
             ListEmptyComponent={
               <View className="items-center py-8">
                 <Text className="text-meta text-muted-foreground">
-                  No SMS in this scan
+                  {ai ? "No messages were read in this run" : "No SMS in this scan"}
                 </Text>
               </View>
             }
@@ -401,6 +536,8 @@ export default function SmsScanRunsScreen() {
           renderItem={({ item: row }) =>
             row.type === "heading" ? (
               <GroupHeading label={row.label} count={row.count} total={row.total} signed={false} inset={false} open={row.open} onToggle={row.onToggle} noun={row.noun} />
+            ) : isAiCategory(row.item.category) ? (
+              <AiDetailCard detail={row.item} />
             ) : (
               <SmsDetailCard detail={row.item} ruleNameMap={ruleNameMap} />
             )
@@ -539,6 +676,46 @@ export default function SmsScanRunsScreen() {
     );
   }
 
+  // An AI reading: the AI lab's own result row, so the two screens read the same.
+  function AiDetailCard({ detail }: { detail: ScanDetailRow }) {
+    const row = aiRowOf(detail);
+    const open = openAiId === detail.id;
+    const canTeach = detail.category === "ai_transaction" && !!detail.sms_body_preview;
+    return (
+      <View className="mb-2">
+        <Card className="py-0">
+          <ResultRow
+            row={row}
+            open={open}
+            onToggle={() => setOpenAiId(open ? null : detail.id)}
+            last
+            onAdd={row.date != null ? () => void addAiDetail(detail) : undefined}
+            adding={addingId === detail.id}
+            onOpenCatchUp={() => router.push("/expense/catch-up")}
+          />
+          {canTeach && open ? (
+            // Only the AI understood this one: a template makes every scan read it.
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: "/settings/sms-templates/new",
+                  params: { prefilledBody: detail.sms_body_preview!, senderAddress: detail.sms_address ?? undefined },
+                })
+              }
+              className="flex-row items-center py-3 border-t border-border"
+              accessibilityRole="button"
+            >
+              <Ionicons name="add-circle-outline" size={14} color={theme.primary} />
+              <Text className="text-label font-medium ml-1" style={{ color: theme.primary }}>
+                Teach this format, so every scan reads it
+              </Text>
+            </Pressable>
+          ) : null}
+        </Card>
+      </View>
+    );
+  }
+
   function ParsedRow({ label, value, isWarning, isAccent }: { label: string; value: string; isWarning?: boolean; isAccent?: boolean }) {
     const valueColor = isWarning
       ? theme.warning
@@ -618,7 +795,7 @@ export default function SmsScanRunsScreen() {
   const showBackButton = viewMode !== "list";
   const title =
     viewMode === "list"
-      ? "SMS Scan Runs"
+      ? "Scan history"
       : viewMode === "drilldown" && selectedRun
         ? `Scan · ${formatDate(selectedRun.created_at.slice(0, 10))}`
         : selectedCategory
@@ -651,7 +828,7 @@ export default function SmsScanRunsScreen() {
                 No scan history
               </Text>
               <Text className="text-meta text-muted-foreground text-center mt-1 px-8">
-                Run an SMS scan from Settings to see results here.
+                Run an SMS scan, or test the on-device AI in the AI lab, to see results here.
               </Text>
             </View>
           ) : (
@@ -659,7 +836,21 @@ export default function SmsScanRunsScreen() {
               initialNumToRender={12}
               maxToRenderPerBatch={10}
               windowSize={7}
-              data={runs}
+              data={shownRuns}
+              ListHeaderComponent={
+                hasAiRuns ? (
+                  <View className="mb-3">
+                    <Segmented options={SOURCE_OPTIONS} value={sourceFilter} onChange={setSourceFilter} />
+                  </View>
+                ) : null
+              }
+              ListEmptyComponent={
+                <View className="items-center py-8">
+                  <Text className="text-meta text-muted-foreground">
+                    {sourceFilter === "ai" ? "No AI scans yet" : "No SMS scans yet"}
+                  </Text>
+                </View>
+              }
               keyExtractor={(item) => item.id}
               renderItem={renderRunCard}
               showsVerticalScrollIndicator={false}

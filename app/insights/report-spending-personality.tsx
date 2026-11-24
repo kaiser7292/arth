@@ -4,12 +4,11 @@ import { View, ScrollView, Pressable } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
-import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, SectionHeader, Text, ReportAmount } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { formatAmount } from "@/utils/format";
 import { getExpensesPaginated } from "@/services/expense-queries";
 import { toIsoDate } from "@/utils/date";
 import {
@@ -228,7 +227,7 @@ export default function SpendingPersonalityReportScreen() {
                     </View>
                     <View className="flex-row items-center gap-2">
                       <Text className="text-label font-semibold text-foreground">
-                        {formatAmount(cat.totalSpent)}
+                        <ReportAmount value={cat.totalSpent} />
                       </Text>
                       {cat.trend !== "stable" && (
                         <Ionicons
@@ -241,7 +240,7 @@ export default function SpendingPersonalityReportScreen() {
                   </View>
                   <View className="flex-row items-center gap-2 mb-1">
                     <Text className="text-label text-muted-foreground">
-                      {Math.round(cat.percentage)}% of total · avg {formatAmount(cat.avgMonthly)}/mo
+                      {Math.round(cat.percentage)}% of total · avg <ReportAmount value={cat.avgMonthly} />/mo
                     </Text>
                   </View>
                   <View className="h-1.5 bg-border rounded-full overflow-hidden">
@@ -276,12 +275,12 @@ export default function SpendingPersonalityReportScreen() {
                     <View className="flex-1">
                       <Text className="text-label text-foreground">{m.merchant}</Text>
                       <Text className="text-label text-muted-foreground">
-                        {m.transactionCount} txns · avg {formatAmount(m.avgTransaction)}/txn
+                        {m.transactionCount} txns · avg <ReportAmount value={m.avgTransaction} />/txn
                       </Text>
                     </View>
                   </View>
                   <View className="flex-row items-center gap-1">
-                    <Text className="text-label font-semibold text-foreground">{formatAmount(m.totalSpent)}</Text>
+                    <Text className="text-label font-semibold text-foreground"><ReportAmount value={m.totalSpent} /></Text>
                     <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} />
                   </View>
                 </Pressable>
@@ -301,7 +300,7 @@ export default function SpendingPersonalityReportScreen() {
                 return (
                   <View key={d.day} className="flex-1 items-center gap-1">
                     <Text className="text-label" style={{ color: isPeak ? theme.warning : theme.mutedForeground }}>
-                      {formatAmount(d.avgSpend)}
+                      <ReportAmount value={d.avgSpend} />
                     </Text>
                     <View
                       className="w-full rounded-t"
@@ -336,14 +335,14 @@ export default function SpendingPersonalityReportScreen() {
             <View className="flex-row items-center justify-between">
               <View>
                 <Text className="text-label text-muted-foreground">Weekday avg</Text>
-                <Text className="text-body font-bold text-foreground">{formatAmount(report.weekdayAvgDaily)}/day</Text>
+                <Text className="text-body font-bold text-foreground"><ReportAmount value={report.weekdayAvgDaily} />/day</Text>
               </View>
               <View className="items-center px-3">
                 <Text className="text-label text-muted-foreground">vs</Text>
               </View>
               <View className="items-end">
                 <Text className="text-label text-muted-foreground">Weekend avg</Text>
-                <Text className="text-body font-bold text-foreground">{formatAmount(report.weekendAvgDaily)}/day</Text>
+                <Text className="text-body font-bold text-foreground"><ReportAmount value={report.weekendAvgDaily} />/day</Text>
               </View>
             </View>
             {report.weekendMultiple > 1.1 && (
@@ -377,14 +376,14 @@ export default function SpendingPersonalityReportScreen() {
                       adjustsFontSizeToFit
                       minimumFontScale={0.75}
                     >
-                      {formatAmount(m.total)}
+                      <ReportAmount value={m.total} />
                     </Text>
                   </View>
                 );
               })}
               <View className="flex-row justify-between mt-2 pt-2 border-t border-border">
                 <Text className="text-label text-muted-foreground">
-                  Monthly avg: {formatAmount(report.monthlyAvg)}
+                  Monthly avg: <ReportAmount value={report.monthlyAvg} />
                 </Text>
                 <Text className="text-label text-muted-foreground">
                   Volatility: {Math.round(report.monthlyVolatility)}%
@@ -400,14 +399,14 @@ export default function SpendingPersonalityReportScreen() {
             <View className="flex-row gap-3">
               <View className="flex-1 bg-card rounded-card p-3 border border-border">
                 <Text className="text-label text-muted-foreground">Highest month</Text>
-                <Text className="text-body font-bold" style={{ color: theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.highestSpendMonth.total)}</Text>
+                <Text className="text-body font-bold" style={{ color: theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}><ReportAmount value={report.highestSpendMonth.total} /></Text>
                 <Text className="text-label text-muted-foreground">
                   {new Date(report.highestSpendMonth.month + "-01").toLocaleString("en-IN", { month: "short", year: "numeric" })}
                 </Text>
               </View>
               <View className="flex-1 bg-card rounded-card p-3 border border-border">
                 <Text className="text-label text-muted-foreground">Lowest month</Text>
-                <Text className="text-body font-bold" style={{ color: theme.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{formatAmount(report.lowestSpendMonth.total)}</Text>
+                <Text className="text-body font-bold" style={{ color: theme.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}><ReportAmount value={report.lowestSpendMonth.total} /></Text>
                 <Text className="text-label text-muted-foreground">
                   {new Date(report.lowestSpendMonth.month + "-01").toLocaleString("en-IN", { month: "short", year: "numeric" })}
                 </Text>

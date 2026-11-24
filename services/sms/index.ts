@@ -80,9 +80,11 @@ export {
   getScanRunDetails,
   deleteScanRun,
   saveScanRun,
+  markScanDetailAdded,
 } from "./sms-scan-logging";
 export type {
   ScanRunRow,
   ScanDetailRow,
   ScanDetailCategory,
+  ScanSource,
 } from "./sms-scan-logging";

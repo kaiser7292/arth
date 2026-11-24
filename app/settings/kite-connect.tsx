@@ -1,4 +1,5 @@
 import { AutoSyncCard } from '@/components/broker/AutoSyncCard';
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NO_DAY_ORDERS, type DayOrderTally } from '@/services/kite-day-orders';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, View } from 'react-native';
@@ -75,6 +76,7 @@ import {
 } from '@/services/kite-connect';
 
 export default function KiteConnectScreen() {
+  const insets = useSafeAreaInsets();
   const alert = useAlert();
   // Sent here by Sync in Investments: go straight to the login, then back so that sync carries on.
   const { loginForSync } = useLocalSearchParams<{ loginForSync?: string }>();
@@ -677,7 +679,7 @@ export default function KiteConnectScreen() {
 
       {/* ── Account picker modal ── */}
       <Modal visible={showAccountPicker} transparent animationType="slide">
-        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingBottom: insets.bottom }}>
           <View style={{ backgroundColor: theme.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
             <Text className="text-body font-bold text-foreground mb-1">Link demat account</Text>
             <Text className="text-label text-muted-foreground mb-4">
@@ -724,7 +726,7 @@ export default function KiteConnectScreen() {
 
       {/* ── Vault entry picker modal ── */}
       <Modal visible={showVaultPicker} transparent animationType="slide">
-        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+        <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0,0,0,0.5)', paddingBottom: insets.bottom }}>
           <View style={{ backgroundColor: theme.background, borderRadius: 16, padding: 20, maxHeight: '70%' }}>
             <Text className="text-body font-bold text-foreground mb-1">Zerodha login from Vault</Text>
             <Text className="text-label text-muted-foreground mb-4">

@@ -29,6 +29,7 @@ const KEYS = {
   DATE_FORMAT: "locale_date_format",
   TIMEZONE: "locale_timezone",
   SHORT_AMOUNTS: "locale_short_amounts",
+  REPORT_AMOUNTS: "locale_report_amounts",
 } as const;
 
 export const LOCALE_PREFERENCES_KEYS = [
@@ -37,6 +38,7 @@ export const LOCALE_PREFERENCES_KEYS = [
   KEYS.DATE_FORMAT,
   KEYS.TIMEZONE,
   KEYS.SHORT_AMOUNTS,
+  KEYS.REPORT_AMOUNTS,
 ] as const;
 
 /**
@@ -105,6 +107,21 @@ export function getShortAmountStyle(): ShortAmountStyle {
 export function setShortAmountStyle(style: ShortAmountStyle): void {
   settingsStorage.set(KEYS.SHORT_AMOUNTS, style);
   cache = null;
+}
+
+/**
+ * How the reports (Insights → Reports) print amounts: in full ("₹24,92,209.10") or short
+ * ("₹24.92L", tap it for the full figure). Owner, Nov 2026: full until chosen, so nothing changes
+ * unless asked. Short exists for the crore-sized numbers a full figure can't fit.
+ */
+export type ReportAmountStyle = "full" | "short";
+
+export function getReportAmountStyle(): ReportAmountStyle {
+  return settingsStorage.getString(KEYS.REPORT_AMOUNTS) === "short" ? "short" : "full";
+}
+
+export function setReportAmountStyle(style: ReportAmountStyle): void {
+  settingsStorage.set(KEYS.REPORT_AMOUNTS, style);
 }
 
 export function getDateFormat(): DateFormat {
