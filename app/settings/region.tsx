@@ -168,7 +168,7 @@ export default function RegionSettingsScreen() {
           </RegionRow>
           <RegionRow
             label="Report numbers"
-            sample={reportStyle === "short" ? `${formatReportShort(2492209.1)} · tap a number for the full figure` : formatAmount(2492209.1)}
+            sample={reportStyle === "short" ? formatReportShort(2492209.1) : formatAmount(2492209.1)}
           >
             {(
               [

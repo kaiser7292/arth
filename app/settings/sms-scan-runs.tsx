@@ -247,7 +247,7 @@ export default function SmsScanRunsScreen() {
       <Pressable onPress={() => openDrilldown(item)} className="mb-3">
         <Card>
           <View className="flex-row items-center justify-between mb-2">
-            <View className="flex-row items-center">
+            <View className="flex-row items-center flex-1 mr-2">
               <View
                 className="w-7 h-7 rounded-full items-center justify-center mr-2"
                 style={{ backgroundColor: theme.alpha("primary", 0.09) }}
@@ -262,9 +262,6 @@ export default function SmsScanRunsScreen() {
                 {item.is_manual ? "Manual scan" : "Auto scan"}
               </Text>
               {hasAiRuns && <Chip variant="status" tone="neutral" label="SMS" className="ml-1.5" />}
-              <Text className="text-meta text-muted-foreground ml-1.5">
-                {dateStr} · {timeStr}
-              </Text>
             </View>
             {/* What came of it, at a glance (board "Scan history") */}
             {totalExpenses > 0 ? (
@@ -277,8 +274,8 @@ export default function SmsScanRunsScreen() {
           </View>
 
           <View className="flex-row items-center mb-2">
-            <Text className="text-label text-faint-foreground">
-              {dateLabel} · {accountLabel}
+            <Text className="text-label text-faint-foreground flex-1" numberOfLines={2}>
+              {dateStr} · {timeStr} · {dateLabel} · {accountLabel}
             </Text>
           </View>
 
@@ -326,9 +323,6 @@ export default function SmsScanRunsScreen() {
               </View>
               <Text className="text-body font-semibold text-foreground">AI scan</Text>
               <Chip variant="status" tone="primary" label="AI" className="ml-1.5" />
-              <Text className="text-meta text-muted-foreground ml-1.5 shrink" numberOfLines={1}>
-                {dateStr} · {timeStr}
-              </Text>
             </View>
             {item.added_count > 0 ? (
               <View className="rounded-pill px-2 justify-center" style={{ height: 22, backgroundColor: theme.alpha("success", 0.1) }}>
@@ -336,7 +330,9 @@ export default function SmsScanRunsScreen() {
               </View>
             ) : null}
           </View>
-          {item.label ? <Text className="text-label text-faint-foreground mb-2">On-device AI · {item.label}</Text> : null}
+          <Text className="text-label text-faint-foreground mb-2" numberOfLines={2}>
+            {dateStr} · {timeStr}{item.label ? ` · ${item.label}` : ""}
+          </Text>
           <View className="flex-row flex-wrap items-center">
             <FunnelPill label={`${item.sms_read_count} read`} />
             <FunnelArrow />
