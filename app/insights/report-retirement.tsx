@@ -4,7 +4,7 @@ import { useState } from "react";
 import { View, ScrollView, Pressable, TextInput } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { Card, LoadingState, ProgressBar, ScreenContainer, SectionHeader, Sheet, Text } from "@/components/ui";
+import { Card, LoadingState, ProgressBar, ScreenContainer, SectionHeader, Sheet, Text, ReportAmount } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -115,7 +115,7 @@ function NumberRow({
   );
 }
 
-function MetricBox({ label, value, color }: { label: string; value: string; color?: string }) {
+function MetricBox({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) {
   return (
     <View className="flex-1 bg-card rounded-card p-3 border border-border">
       <Text className="text-label text-muted-foreground">{label}</Text>
@@ -382,16 +382,16 @@ export default function RetirementReportScreen() {
         <View className="px-4">
           <SectionHeader title="Where You Stand Today" />
           <View className="flex-row gap-3 mb-3">
-            <MetricBox label="Monthly income" value={formatAmount(report.currentMonthlyInHand)} />
-            <MetricBox label="Monthly expenses" value={formatAmount(report.currentMonthlyExpenses)} color={theme.danger} />
+            <MetricBox label="Monthly income" value=<ReportAmount value={report.currentMonthlyInHand} /> />
+            <MetricBox label="Monthly expenses" value=<ReportAmount value={report.currentMonthlyExpenses} /> color={theme.danger} />
           </View>
           <View className="flex-row gap-3 mb-3">
             <MetricBox label="Savings rate" value={`${Math.round(report.currentSavingsRate)}%`} color={theme.success} />
-            <MetricBox label="Monthly surplus" value={formatAmount(report.currentMonthlySurplus)} color={theme.success} />
+            <MetricBox label="Monthly surplus" value=<ReportAmount value={report.currentMonthlySurplus} /> color={theme.success} />
           </View>
           <View className="flex-row gap-3">
-            <MetricBox label="Net worth" value={formatAmount(report.netWorth)} color={report.netWorth >= 0 ? theme.success : theme.danger} />
-            <MetricBox label="Monthly EMI" value={report.monthlyEMI > 0 ? formatAmount(report.monthlyEMI) : "None"} color={report.monthlyEMI > 0 ? theme.warning : theme.success} />
+            <MetricBox label="Net worth" value=<ReportAmount value={report.netWorth} /> color={report.netWorth >= 0 ? theme.success : theme.danger} />
+            <MetricBox label="Monthly EMI" value={report.monthlyEMI > 0 ? <ReportAmount value={report.monthlyEMI} /> : "None"} color={report.monthlyEMI > 0 ? theme.warning : theme.success} />
           </View>
         </View>
 
@@ -403,9 +403,9 @@ export default function RetirementReportScreen() {
               Expenses reduced to {report.inputs.postRetirementExpensePct}% post-retirement
             </Text>
             {[
-              { label: "Monthly expenses today (excl. EMI)", value: formatAmount(report.retirementMonthlyExpenseToday) },
-              { label: `At retirement (${report.inputs.inflationPct}% inflation × ${report.inputs.postRetirementExpensePct}%)`, value: formatAmount(report.retirementMonthlyExpenseInflated), color: theme.warning },
-              { label: "Annual expense (future)", value: formatAmount(report.retirementAnnualExpense) },
+              { label: "Monthly expenses today (excl. EMI)", value: <ReportAmount value={report.retirementMonthlyExpenseToday} /> },
+              { label: `At retirement (${report.inputs.inflationPct}% inflation × ${report.inputs.postRetirementExpensePct}%)`, value: <ReportAmount value={report.retirementMonthlyExpenseInflated} />, color: theme.warning },
+              { label: "Annual expense (future)", value: <ReportAmount value={report.retirementAnnualExpense} /> },
               { label: "Target corpus (28× annual)", value: fmtCompact(report.targetCorpus), color: tint },
               { label: `Existing assets at retirement (${report.inputs.expectedReturnPct}%)`, value: fmtCompact(report.existingAssetsAtRetirement), color: theme.success },
               { label: "Gap to fill via SIP", value: fmtCompact(report.gapToFill), color: report.gapToFill > 0 ? theme.danger : theme.success },
@@ -430,7 +430,7 @@ export default function RetirementReportScreen() {
           <Card>
             <View className="items-center py-2">
               <Text className="text-display font-bold" style={{ color: theme.success }}>
-                {formatAmount(report.requiredMonthlySIP)}/mo
+                <ReportAmount value={report.requiredMonthlySIP} />/mo
               </Text>
               <Text className="text-label text-muted-foreground mt-1">
                 with {report.sipAnnualStepUpPct}% annual step-up for {report.yearsToRetirement} years
@@ -575,10 +575,10 @@ export default function RetirementReportScreen() {
                   <ProgressBar value={(m.progressPct) / 100} color={m.progressPct >= 50 ? theme.success : theme.warning} height={6} animated={false} className="mb-1.5" />
                   <View className="flex-row items-center justify-between">
                     <Text className="text-label text-muted-foreground">
-                      {formatAmount(m.currentSaved)} saved · {m.progressPct}%
+                      <ReportAmount value={m.currentSaved} /> saved · {m.progressPct}%
                     </Text>
                     <Text className="text-label font-semibold" style={{ color: tint }} numberOfLines={1}>
-                      {formatAmount(m.monthlyNeeded)}/mo
+                      <ReportAmount value={m.monthlyNeeded} />/mo
                     </Text>
                   </View>
                   <Text className="text-label text-muted-foreground mt-1 opacity-70">

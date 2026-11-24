@@ -4,12 +4,11 @@ import { View, ScrollView, Pressable } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 
-import { Card, LoadingState, ScreenContainer, SectionHeader, Text } from "@/components/ui";
+import { Card, LoadingState, ScreenContainer, SectionHeader, Text, ReportAmount } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { formatAmount } from "@/utils/format";
 import { getExpensesPaginated } from "@/services/expense-queries";
 import { getFYStartMonth } from "@/services/settings";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
@@ -36,7 +35,7 @@ function gradeColor(grade: string, theme: Theme) {
   return theme.danger;
 }
 
-function StatBox({ label, value, color }: { label: string; value: string; color?: string }) {
+function StatBox({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) {
   return (
     <View className="bg-card rounded-card p-3 border border-border flex-1">
       <Text className="text-label text-muted-foreground mb-1">{label}</Text>
@@ -273,8 +272,8 @@ export default function FinancialHealthReportScreen() {
         <View className="px-4 mt-4">
           <SectionHeader title="Net Worth" />
           <View className="flex-row gap-3 mb-3">
-            <StatBox label="Total assets" value={formatAmount(report.totalAssets)} color={theme.success} />
-            <StatBox label="Total liabilities" value={formatAmount(report.totalLiabilities)} color={theme.danger} />
+            <StatBox label="Total assets" value=<ReportAmount value={report.totalAssets} /> color={theme.success} />
+            <StatBox label="Total liabilities" value=<ReportAmount value={report.totalLiabilities} /> color={theme.danger} />
           </View>
           <Card>
             <View className="flex-row items-center justify-between">
@@ -285,7 +284,7 @@ export default function FinancialHealthReportScreen() {
                 className="text-heading font-bold"
                 style={{ color: report.netWorth >= 0 ? theme.success : theme.danger }}
               >
-                {formatAmount(report.netWorth)}
+                <ReportAmount value={report.netWorth} />
               </Text>
             </View>
           </Card>
@@ -343,7 +342,7 @@ export default function FinancialHealthReportScreen() {
                 </Text>
                 {/* Header */}
                 <View className="flex-row items-center pb-1.5 mb-1 border-b border-border">
-                  <Text className="text-label font-semibold text-muted-foreground w-10">Month</Text>
+                  <Text className="text-label font-semibold text-muted-foreground w-12" numberOfLines={1}>Month</Text>
                   <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">Income</Text>
                   <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">Spent</Text>
                   <Text className="text-label font-semibold text-muted-foreground flex-1 text-right">Saved</Text>
@@ -351,11 +350,11 @@ export default function FinancialHealthReportScreen() {
                 </View>
                 {report.monthlySavingsRates.map((m) => (
                   <View key={m.month} className="flex-row items-center py-1.5 border-b border-border">
-                    <Text className="text-label text-muted-foreground w-10">{m.month}</Text>
-                    <Text className="text-label text-foreground flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.income)}</Text>
-                    <Text className="text-label flex-1 text-right" style={{ color: theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatAmount(m.expenses)}</Text>
+                    <Text className="text-label text-muted-foreground w-12">{m.month}</Text>
+                    <Text className="text-label text-foreground flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}><ReportAmount value={m.income} /></Text>
+                    <Text className="text-label flex-1 text-right" style={{ color: theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}><ReportAmount value={m.expenses} /></Text>
                     <Text className="text-label font-medium flex-1 text-right" style={{ color: m.saved >= 0 ? theme.success : theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                      {formatAmount(m.saved)}
+                      <ReportAmount value={m.saved} />
                     </Text>
                     <Text className="text-label font-semibold w-10 text-right" style={{ color: m.rate >= 30 ? theme.success : m.rate >= 0 ? theme.warning : theme.danger }}>
                       {Math.round(m.rate)}%
@@ -364,15 +363,15 @@ export default function FinancialHealthReportScreen() {
                 ))}
                 {/* Average row */}
                 <View className="flex-row items-center pt-2 mt-1">
-                  <Text className="text-label font-semibold text-foreground w-10">Avg</Text>
+                  <Text className="text-label font-semibold text-foreground w-12">Avg</Text>
                   <Text className="text-label font-semibold text-foreground flex-1 text-right" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                    {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.income, 0) / report.monthlySavingsRates.length)}
+                    <ReportAmount value={report.monthlySavingsRates.reduce((s, m) => s + m.income, 0) / report.monthlySavingsRates.length} />
                   </Text>
                   <Text className="text-label font-semibold flex-1 text-right" style={{ color: theme.danger }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                    {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.expenses, 0) / report.monthlySavingsRates.length)}
+                    <ReportAmount value={report.monthlySavingsRates.reduce((s, m) => s + m.expenses, 0) / report.monthlySavingsRates.length} />
                   </Text>
                   <Text className="text-label font-semibold flex-1 text-right" style={{ color: theme.success }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-                    {formatAmount(report.monthlySavingsRates.reduce((s, m) => s + m.saved, 0) / report.monthlySavingsRates.length)}
+                    <ReportAmount value={report.monthlySavingsRates.reduce((s, m) => s + m.saved, 0) / report.monthlySavingsRates.length} />
                   </Text>
                   <Text className="text-label font-bold w-10 text-right" style={{ color: report.avgSavingsRate >= 30 ? theme.success : theme.warning }}>
                     {Math.round(report.avgSavingsRate)}%
@@ -406,7 +405,7 @@ export default function FinancialHealthReportScreen() {
             />
             <StatBox
               label="Monthly EMI"
-              value={report.monthlyEMI > 0 ? formatAmount(report.monthlyEMI) : "None"}
+              value={report.monthlyEMI > 0 ? <ReportAmount value={report.monthlyEMI} /> : "None"}
               color={report.monthlyEMI > 0 ? theme.warning : theme.success}
             />
           </View>
@@ -424,9 +423,9 @@ export default function FinancialHealthReportScreen() {
                   </Text>
                 </View>
                 <Text className="text-label text-muted-foreground">
-                  You need {formatAmount(report.emergencyTarget)} (6 months expenses).
-                  Current liquid buffer: {formatAmount(report.liquidAssets)}.
-                  Gap: {formatAmount(report.emergencyGap)}.
+                  You need <ReportAmount value={report.emergencyTarget} /> (6 months expenses).
+                  Current liquid buffer: <ReportAmount value={report.liquidAssets} />.
+                  Gap: <ReportAmount value={report.emergencyGap} />.
                 </Text>
               </View>
             </Card>
@@ -480,7 +479,7 @@ export default function FinancialHealthReportScreen() {
                         adjustsFontSizeToFit
                         minimumFontScale={0.75}
                       >
-                        {formatAmount(c.amount)}
+                        <ReportAmount value={c.amount} />
                       </Text>
                     </View>
                   </Pressable>
@@ -521,7 +520,7 @@ export default function FinancialHealthReportScreen() {
                     adjustsFontSizeToFit
                     minimumFontScale={0.75}
                   >
-                    {formatAmount(report.fixedVsDiscretionary.fixed)}
+                    <ReportAmount value={report.fixedVsDiscretionary.fixed} />
                   </Text>
                 </View>
               </Pressable>
@@ -547,7 +546,7 @@ export default function FinancialHealthReportScreen() {
                     adjustsFontSizeToFit
                     minimumFontScale={0.75}
                   >
-                    {formatAmount(report.fixedVsDiscretionary.discretionary)}
+                    <ReportAmount value={report.fixedVsDiscretionary.discretionary} />
                   </Text>
                 </View>
               </Pressable>
@@ -570,8 +569,8 @@ export default function FinancialHealthReportScreen() {
                     <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} />
                   </View>
                   <Text className="text-label text-muted-foreground">
-                    {formatAmount(s.currentMonth)} this month — {s.spikeMultiple.toFixed(1)}x your 3-month average of{" "}
-                    {formatAmount(s.avgPrevious)}
+                    <ReportAmount value={s.currentMonth} /> this month — {s.spikeMultiple.toFixed(1)}x your 3-month average of{" "}
+                    <ReportAmount value={s.avgPrevious} />
                   </Text>
                 </Card>
               </Pressable>

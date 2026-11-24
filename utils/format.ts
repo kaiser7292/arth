@@ -8,7 +8,7 @@
  * sublabels, not primary values.
  */
 
-import { getCurrency, getNumberGrouping, getShortAmountStyle, type ShortAmountStyle } from "@/services/locale-preferences";
+import { getCurrency, getNumberGrouping, getReportAmountStyle, getShortAmountStyle, type ShortAmountStyle } from "@/services/locale-preferences";
 import { isAmountsHidden } from "@/services/privacy-mode";
 import { getCurrencyDef, type CurrencyCode, type NumberGrouping } from "@/constants/currencies";
 
@@ -104,6 +104,33 @@ export function formatShortAmount(n: number): string {
   const body = shortAmountBody(Math.abs(n), getShortAmountStyle());
   const sign = n < 0 && /[1-9]/.test(body) ? "-" : "";
   return code === "NONE" || !def.symbol ? `${sign}${body}` : `${sign}${def.symbol}${body}`;
+}
+
+/**
+ * A report figure, short to two places: "₹24.92L", "₹1.26Cr", "₹65.43K" ("₹3L", not "₹3.00L").
+ * Under a thousand it is whole rupees. Report screens print it only when the user picked short
+ * report numbers (Settings → Region); see components/ui/ReportAmount.
+ */
+export function formatReportShort(n: number): string {
+  const code = getCurrency();
+  const def = getCurrencyDef(code);
+  const symbol = code === "NONE" || !def.symbol ? "" : def.symbol;
+  if (isAmountsHidden()) return symbol + AMOUNT_MASK;
+  const abs = Math.abs(n);
+  let body = String(Math.round(abs));
+  for (const step of SHORT_STEPS[getShortAmountStyle()]) {
+    if (abs >= step.at) {
+      body = (abs / step.at).toFixed(2).replace(/.?0+$/, "") + step.suffix;
+      break;
+    }
+  }
+  const sign = n < 0 && /[1-9]/.test(body) ? "-" : "";
+  return sign + symbol + body;
+}
+
+/** A report figure as the user chose to see them: in full, or short (formatReportShort). */
+export function formatReportAmount(n: number): string {
+  return getReportAmountStyle() === "short" ? formatReportShort(n) : formatAmount(n);
 }
 
 /**

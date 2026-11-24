@@ -49,6 +49,7 @@ export type { SwipePagerPage } from "./SwipePager";
 export { SwipeableRow } from "./SwipeableRow";
 export { WidgetCard } from "./WidgetCard";
 export { Text, Money } from "./Text";
+export { ReportAmount } from "./ReportAmount";
 export type { TextProps, MoneyProps } from "./Text";
 export { Sheet, BottomSheet } from "./Sheet";
 export type { SheetProps } from "./Sheet";

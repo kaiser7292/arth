@@ -51,6 +51,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("locale_currency", "string"),
   S("locale_number_grouping", "string"),
   S("locale_short_amounts", "string"),
+  S("locale_report_amounts", "string"),
   S("locale_date_format", "string"),
   S("locale_timezone", "string"),
   S("privacy_hide_amounts", "boolean"),
