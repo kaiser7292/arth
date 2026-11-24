@@ -25,6 +25,7 @@ import {
 import { listRules } from "@/services/smart-rules";
 import { formatAmount } from "@/utils/format";
 import { formatDate } from "@/utils/date";
+import { isoDate } from "@/utils/local-date";
 import { useTheme } from "@/hooks/use-theme";
 import { tint } from "@/constants/brand";
 
@@ -40,6 +41,11 @@ const SOURCE_OPTIONS: { value: SourceFilter; label: string }[] = [
 const SMS_CATEGORIES: ScanDetailCategory[] = ["hardcoded", "template", "filtered", "unrecognized", "skipped"];
 const AI_CATEGORIES: ScanDetailCategory[] = ["ai_transaction", "ai_not_money", "ai_ignored", "ai_rejected", "ai_error"];
 const isAiCategory = (c: string) => c.startsWith("ai_");
+
+/** created_at is SQLite UTC ("YYYY-MM-DD HH:MM:SS"). The T form parses reliably on Hermes. */
+function runCreatedAt(createdAt: string): Date {
+  return new Date(createdAt.replace(" ", "T") + "Z");
+}
 
 /** Messages per category. SMS runs keep their counts on the run; AI runs count their details. */
 function countsOf(run: ScanRunRow): Record<ScanDetailCategory, number> {
@@ -237,9 +243,10 @@ export default function SmsScanRunsScreen() {
     const dateLabel = item.start_date
       ? `${formatDate(item.start_date)} → ${item.end_date ? formatDate(item.end_date) : "Today"}`
       : "Since last check";
-    const createdAt = new Date(item.created_at + "Z");
+    const createdAt = runCreatedAt(item.created_at);
     const timeStr = createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const dateStr = formatDate(item.created_at.slice(0, 10));
+    // created_at is UTC (datetime('now')): take the day from the local Date, like the time.
+    const dateStr = formatDate(isoDate(createdAt));
 
     const totalExpenses = item.expense_created_count + item.credit_created_count;
 
@@ -310,9 +317,10 @@ export default function SmsScanRunsScreen() {
 
   function renderAiRunCard(item: ScanRunRow) {
     const counts = countsOf(item);
-    const createdAt = new Date(item.created_at + "Z");
+    const createdAt = runCreatedAt(item.created_at);
     const timeStr = createdAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    const dateStr = formatDate(item.created_at.slice(0, 10));
+    // created_at is UTC (datetime('now')): take the day from the local Date, like the time.
+    const dateStr = formatDate(isoDate(createdAt));
     return (
       <Pressable onPress={() => openDrilldown(item)} className="mb-3" accessibilityRole="button">
         <Card>
@@ -793,7 +801,7 @@ export default function SmsScanRunsScreen() {
     viewMode === "list"
       ? "Scan history"
       : viewMode === "drilldown" && selectedRun
-        ? `Scan · ${formatDate(selectedRun.created_at.slice(0, 10))}`
+        ? `Scan · ${formatDate(isoDate(runCreatedAt(selectedRun.created_at)))}`
         : selectedCategory
           ? CATEGORY_META[selectedCategory].label
           : "Details";
