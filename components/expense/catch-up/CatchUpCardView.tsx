@@ -35,6 +35,10 @@ interface CatchUpCardViewProps {
   paymentModeMap: Map<string, PaymentMode>;
   /** Category the card will apply on a right swipe (pending / uncategorized only). */
   categoryId: string | null;
+  /** The category came from on-device AI (no mapping or rule knew the merchant). */
+  categoryByAi?: boolean;
+  /** On-device AI's idea of what the payment was, with the action it opens. */
+  aiHint?: { label: string; onPress: () => void; onDismiss: () => void } | null;
   onPickCategory: () => void;
   /** Edit the merchant right on the card; open the payment mode picker (pending / uncategorized only). */
   onPickMerchant: () => void;
@@ -91,6 +95,8 @@ export function CatchUpCardView({
   accountMap,
   paymentModeMap,
   categoryId,
+  categoryByAi,
+  aiHint,
   onPickCategory,
   onPickMerchant,
   editingMerchant,
@@ -136,6 +142,20 @@ export function CatchUpCardView({
 
       {(card.kind === "pending" || card.kind === "uncategorized") && isReadByAi(card.expense) && <ReadByAiChip />}
 
+      {aiHint && (card.kind === "pending" || card.kind === "uncategorized") && (
+        <View className="flex-row items-center rounded-xl px-3 py-2 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+          <Ionicons name="sparkles-outline" size={14} color={theme.primary} />
+          <Pressable onPress={aiHint.onPress} className="flex-1 mx-2" accessibilityRole="button">
+            <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+              {aiHint.label}
+            </Text>
+          </Pressable>
+          <Pressable onPress={aiHint.onDismiss} hitSlop={10} accessibilityRole="button" accessibilityLabel="Not this">
+            <Ionicons name="close" size={16} color={theme.mutedForeground} />
+          </Pressable>
+        </View>
+      )}
+
       {(card.kind === "pending" || card.kind === "uncategorized") && (
         <SingleExpenseBody
           expense={card.expense}
@@ -144,6 +164,7 @@ export function CatchUpCardView({
           accountMap={accountMap}
           paymentModeMap={paymentModeMap}
           categoryId={categoryId}
+          categoryByAi={categoryByAi}
           onPickCategory={onPickCategory}
           onPickMerchant={onPickMerchant}
           editingMerchant={editingMerchant}
@@ -182,6 +203,7 @@ function SingleExpenseBody({
   accountMap,
   paymentModeMap,
   categoryId,
+  categoryByAi,
   onPickCategory,
   onPickMerchant,
   editingMerchant,
@@ -210,6 +232,7 @@ function SingleExpenseBody({
   accountMap: Map<string, FinancialAccount>;
   paymentModeMap: Map<string, PaymentMode>;
   categoryId: string | null;
+  categoryByAi?: boolean;
   onPickCategory: () => void;
   onPickMerchant: () => void;
   editingMerchant: boolean;
@@ -304,6 +327,9 @@ function SingleExpenseBody({
         </Text>
         <Ionicons name="chevron-down" size={14} color={category?.color ?? theme.mutedForeground} style={{ marginLeft: 4 }} />
       </Pressable>
+      )}
+      {!isCredit && categoryByAi && category && (
+        <Text className="text-label text-muted-foreground mt-1">Suggested by on-device AI · tap to change</Text>
       )}
 
       <FieldChip

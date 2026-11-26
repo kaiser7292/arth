@@ -94,7 +94,7 @@ function levenshteinSimilarity(a: string, b: string): number {
  *  - One is a substring of the other → 0.80
  *  - Levenshtein similarity on lowercased alphanumeric chars
  */
-function merchantFuzzyScore(a: string, b: string): number {
+export function merchantFuzzyScore(a: string, b: string): number {
   const la = a.toLowerCase().replace(/[^a-z0-9]/g, "");
   const lb = b.toLowerCase().replace(/[^a-z0-9]/g, "");
 

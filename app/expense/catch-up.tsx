@@ -58,6 +58,8 @@ import type { PaymentMode } from "@/services/payment-mode";
 import { getPaymentModes } from "@/services/payment-mode";
 import { getReviewQueueSnapshot } from "@/services/review-queue-snapshot";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
+import { aiSuggestions, answerAiJob } from "@/services/ai/jobs";
+import { contextAction, type PaymentContext } from "@/services/ai/tasks/payment-context";
 import { reconcilePresentedAlerts } from "@/services/transaction-alerts";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
@@ -197,6 +199,17 @@ export default function CatchUpScreen() {
   }, [cardKey]);
 
   // Fetch a suggestion for the card on screen (the SMS pipeline may already have set one).
+  /** Cards whose suggested category came from on-device AI. */
+  const [aiCategoryIds, setAiCategoryIds] = useState<Set<string>>(new Set());
+  /** On-device AI's idea of what each card's payment was (null: none, or dismissed). */
+  const [aiContext, setAiContext] = useState<Record<string, PaymentContext | null>>({});
+  useEffect(() => {
+    if (!cardExpense || cardExpense.id in aiContext) return;
+    const id = cardExpense.id;
+    aiSuggestions<PaymentContext>("context", [id])
+      .then((m) => setAiContext((c) => ({ ...c, [id]: m.get(id) ?? null })))
+      .catch(() => setAiContext((c) => ({ ...c, [id]: null })));
+  }, [cardExpense, aiContext]);
   useEffect(() => {
     if (!cardExpense || cardExpense.id in suggestions) return;
     const id = cardExpense.id;
@@ -205,7 +218,14 @@ export default function CatchUpScreen() {
       return;
     }
     categorizeByMerchant(DEFAULT_USER_ID, cardExpense.merchant_name)
-      .then((r) => setSuggestions((s) => ({ ...s, [id]: r.categoryId })))
+      .then(async (r) => {
+        if (r.categoryId) return setSuggestions((s) => ({ ...s, [id]: r.categoryId }));
+        // No mapping or rule knows this merchant: on-device AI's pick, if it made one.
+        const ai = await aiSuggestions<{ categoryId: string }>("category", [id]).catch(() => new Map<string, { categoryId: string }>());
+        const pick = ai.get(id)?.categoryId ?? null;
+        if (pick) setAiCategoryIds((s) => new Set(s).add(id));
+        setSuggestions((s) => ({ ...s, [id]: pick }));
+      })
       .catch(() => setSuggestions((s) => ({ ...s, [id]: null })));
   }, [cardExpense, suggestions]);
 
@@ -492,7 +512,7 @@ export default function CatchUpScreen() {
   // ── Card actions ──
 
   const openCard = useCallback(
-    async (id: string, act?: "money" | "withdraw") => {
+    async (id: string, act?: "money" | "withdraw" | "recurring" | "loan" | "invest" | "transfer") => {
       // The edit screen must see the committed state, not what's held for Undo.
       await deferred.flush();
       undoPoint.current = null;
@@ -884,6 +904,26 @@ export default function CatchUpScreen() {
             accountMap={accountMap}
             paymentModeMap={paymentModeMap}
             categoryId={cardExpense ? categoryFor(cardExpense) : null}
+            aiHint={(() => {
+              const ctx = cardExpense ? aiContext[cardExpense.id] : null;
+              if (!cardExpense || !ctx) return null;
+              const id = cardExpense.id;
+              const { label, act } = contextAction(ctx);
+              return {
+                label,
+                onPress: () => {
+                  answerAiJob("context", id, "accepted").catch(() => {});
+                  void openCard(id, act);
+                },
+                onDismiss: () => {
+                  answerAiJob("context", id, "dismissed").catch(() => {});
+                  setAiContext((c) => ({ ...c, [id]: null }));
+                },
+              };
+            })()}
+            categoryByAi={
+              !!cardExpense && aiCategoryIds.has(cardExpense.id) && !(cardExpense.id in picked) && !cardExpense.category_id
+            }
             onPickCategory={() => setPicker({ commit: false })}
             onPickMerchant={() => setMerchantOpen(true)}
             editingMerchant={merchantOpen}

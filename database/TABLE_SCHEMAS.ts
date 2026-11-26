@@ -270,6 +270,9 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "business_receipt_account_ids", // 077
   ] as const,
 
+  // Migration 098 - on-device AI jobs (docs/ON_DEVICE_AI_PHASE2_PROPOSAL.md).
+  ai_jobs: ["id", "user_id", "kind", "ref_id", "status", "result", "created_at", "done_at"] as const,
+
   pending_sms: [
     "id",
     "user_id",

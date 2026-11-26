@@ -155,6 +155,8 @@ export const BACKUP_TABLES = [
   // v17.6.x — SMS scan run logging. sms_scan_details depends on sms_scan_runs.
   "sms_scan_runs",
   "sms_scan_details",
+  // Migration 098 - on-device AI jobs and your answers to them. No FKs (ref_id is free-form).
+  "ai_jobs",
   // v18.x — password vault. Independent table, no FK dependencies.
   "vault_entries",
   // v18.x — reconciliation. Sessions before items (FK: items.session_id → sessions.id).

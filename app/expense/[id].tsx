@@ -1720,6 +1720,19 @@ export default function ExpenseDetailScreen() {
     else if (expense.money_event === "investment_withdrawal" && expense.account_id) setWithdrawalSheetVisible(true);
   }, [act, loaded, expense]);
 
+  // act=recurring / loan / invest / transfer: Catch Up's on-device AI suggestion about what a
+  // payment was (services/ai/tasks/payment-context.ts) opens the action it named.
+  useEffect(() => {
+    if (moneyActDone.current || !loaded || !expense) return;
+    if (act !== "recurring" && act !== "loan" && act !== "invest" && act !== "transfer") return;
+    moneyActDone.current = true;
+    if (act === "recurring") setRecurringSheetVisible(true);
+    else if (act === "loan") setLoanSheetVisible(true);
+    else if (act === "invest") setInvestmentSheetVisible(true);
+    else if (expense.nature === "credit") setCreditTransferPickerVisible(true);
+    else setTransferPickerVisible(true);
+  }, [act, loaded, expense]);
+
   // act=withdraw: Catch Up's "Money back from an investment" on a plain credit.
   useEffect(() => {
     if (act !== "withdraw" || moneyActDone.current || !loaded || !expense) return;

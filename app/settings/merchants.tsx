@@ -18,6 +18,7 @@ import { compareUnicode } from "@/utils/unicode-sort";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getErrorMessage } from "@/utils/error-message";
 import { useTheme } from "@/hooks/use-theme";
+import { MergeOffersCard } from "@/components/ai/MergeOffersCard";
 import { dismissMerchantUndo, undoMerchantChange, usePendingMerchantUndo } from "@/services/merchant-undo";
 import { listMerchants, type MerchantSummary } from "@/services/merchants-overview";
 
@@ -160,6 +161,9 @@ export default function MerchantsScreen() {
         contentContainerStyle={{ paddingBottom: selecting ? 160 : pendingUndo ? 120 : 40 }}
         ListHeaderComponent={
           <View>
+            <View className="px-4">
+              <MergeOffersCard />
+            </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 10 }}>
               {quick.map((q) => {
                 const on = q.key === null ? showOn.length === 0 : showOn.length === 1 && showOn[0] === q.key;

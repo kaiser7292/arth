@@ -34,6 +34,9 @@ import type { ParsedSMS } from "./bank-patterns";
 import { detectInvestmentWithdrawal, detectSip, inferCreditKind, sipFundLabel } from "./money-signals";
 import { resolveFdClosure, resolveSelfTransfer, setMoneyEvent } from "@/services/money-events";
 import { markSmsFailed, markSmsIgnored, markSmsProcessed } from "./sms-parser";
+import { isAiJobOn } from "@/services/ai/ai-reading";
+import { queueAiJob } from "@/services/ai/jobs";
+import { worthAsking } from "@/services/ai/tasks/payment-context";
 import { todayIso } from "@/utils/local-date";
 
 export interface SmsExpenseResult {
@@ -677,6 +680,17 @@ export async function createExpenseFromSms(
         logger.warn("Debit money-event resolution failed (non-fatal):", e);
       }
 
+      // No mapping, brand or rule knew the merchant: on-device AI picks one of your categories
+      // later, shown in Catch Up as a suggestion (services/ai/job-runner.ts).
+      if (!categoryId && normalizedMerchant && isAiJobOn("category")) {
+        queueAiJob("category", expenseId).catch(() => {});
+      }
+      // A hint the payment was more than a spend (mandate, EMI, SIP...) that Arth's own detectors
+      // didn't settle (checked again when asked: a money event set later wins): on-device AI says
+      // which, shown in Catch Up as a suggestion.
+      if (status === "pending_review" && isAiJobOn("context") && worthAsking(rawBody, null)) {
+        queueAiJob("context", expenseId).catch(() => {});
+      }
       await markSmsProcessed(pendingSmsId, expenseId);
       await bumpDataVersion();
       return { success: true, expenseId, isCredit: false, error: null, appliedRuleIds: matchedRuleIds.length > 0 ? matchedRuleIds : null };

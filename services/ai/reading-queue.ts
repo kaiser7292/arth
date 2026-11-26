@@ -25,6 +25,7 @@ import { markSmsIgnored } from "@/services/sms/sms-parser";
 import { formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { isAiReadingOn } from "./ai-reading";
+import { runAiJobs } from "./job-runner";
 import { addAiReadToCatchUp } from "./add-ai-read";
 import { labRowToDetail, type RunRow } from "./lab-runner";
 import { loadMoneyMap, type MoneyMap } from "./money-map";
@@ -206,11 +207,8 @@ async function work(opts: AiQueueRunOptions): Promise<AiQueueState> {
     set({ running: false, unavailable: status });
     return state;
   }
+  // Messages first; with none waiting, the run still answers the other questions (ai_jobs).
   const queued = await loadQueued(opts.limit ?? 500);
-  if (queued.length === 0) {
-    set({ running: false });
-    return state;
-  }
   set({ total: queued.length });
 
   let map = await loadMoneyMap();
@@ -308,6 +306,12 @@ async function work(opts: AiQueueRunOptions): Promise<AiQueueState> {
 
   // Failures at the very end of the queue (no later answer to compare with): one more try next time.
   if (!state.gaveUp && !stopRequested) await recordFailures();
+
+  // Then the other questions waiting for the AI (categories, merchant names, ...), unless the
+  // model stopped answering.
+  if (!state.gaveUp && !stopRequested) {
+    await runAiJobs({ shouldStop: () => stopRequested, untilActive }).catch((e) => logger.warn("AI jobs failed (non-fatal)", e));
+  }
 
   // Own transfers read by the AI pair up with their other half, as after an SMS scan.
   if (Number.isFinite(oldestAdded)) {

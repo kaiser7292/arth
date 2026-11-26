@@ -36,3 +36,45 @@ export function setAiReadingSwitch(on: boolean): void {
 export function isAiReadingOn(): boolean {
   return aiReadingBuilt() && isAiReadingSwitchOn();
 }
+
+// ─── Per-job switches (Settings → On-device AI) ──────────────────────────────
+
+/** The jobs on-device AI does besides reading messages, each with its own switch. */
+export const AI_JOBS = [
+  { key: "picture", label: "Pictures Arth can't read", note: "Reads the amount or merchant a payment picture's reader missed" },
+  { key: "category", label: "Categories for new merchants", note: "Suggests one of your categories in Catch Up" },
+  { key: "template", label: "Learn message formats", note: "After two approved AI reads, offers to read that format by itself" },
+  { key: "merchant_merge", label: "Same place, different names", note: "Suggests merging merchant names that are one place" },
+  { key: "context", label: "What a payment was", note: "Spots autopays, SIPs, EMIs and card bills" },
+  { key: "month_note", label: "Your month in words", note: "Two or three sentences at the top of Insights" },
+  { key: "voice", label: "Voice and search in plain words", note: "Fills in what you say, and turns searches into filters" },
+] as const;
+export type AiJobKey = (typeof AI_JOBS)[number]["key"];
+
+const JOBS_OFF_KEY = "ai_jobs_off";
+
+function jobsOff(): Set<string> {
+  try {
+    const raw = settingsStorage.getString(JOBS_OFF_KEY);
+    return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+/** On-device AI is on, and this job hasn't been switched off. */
+export function isAiJobOn(key: AiJobKey): boolean {
+  return isAiReadingOn() && !jobsOff().has(key);
+}
+
+export function isAiJobSwitchOn(key: AiJobKey): boolean {
+  return !jobsOff().has(key);
+}
+
+export function setAiJobSwitch(key: AiJobKey, on: boolean): void {
+  const off = jobsOff();
+  if (on) off.delete(key);
+  else off.add(key);
+  settingsStorage.set(JOBS_OFF_KEY, JSON.stringify([...off]));
+  bumpDataVersion();
+}

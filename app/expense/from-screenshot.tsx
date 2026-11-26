@@ -39,7 +39,7 @@ import {
 } from "@/services/receipt/image-templates";
 import { addUpiId } from "@/services/account-upi";
 import { prepareFromPicture } from "@/services/receipt/picture-flow";
-import { isAiReadingOn } from "@/services/ai/ai-reading";
+import { isAiJobOn } from "@/services/ai/ai-reading";
 import { getNanoStatus } from "@/services/ai/nano";
 import { fillGuess, needsAiHelp, readPictureWithNano } from "@/services/ai/tasks/read-picture";
 import { DEFAULT_USER_ID } from "@/constants/app";
@@ -318,7 +318,7 @@ export default function FromScreenshotScreen() {
   async function helpWithAi(g: ReceiptGuess) {
     const seq = ++readSeq.current;
     setAiPicture(null);
-    if (!needsAiHelp(g) || !isAiReadingOn()) return;
+    if (!needsAiHelp(g) || !isAiJobOn("picture")) return;
     if ((await getNanoStatus().catch(() => "unavailable")) !== "available" || seq !== readSeq.current) return;
     setAiPicture("asking");
     try {

@@ -358,7 +358,8 @@ export async function runSmsScan(
     setLastAutoScanRun(Date.now());
     // Messages this scan couldn't read wait for on-device AI; read them shortly, while Arth is
     // open. Onboarding runs the queue itself (after approving the history), so it opts out.
-    if (options.aiQueue !== false && parseResult.unrecognized > 0) {
+    // New transactions can leave questions for it too (a category for a merchant no mapping knows).
+    if (options.aiQueue !== false && (parseResult.unrecognized > 0 || processResult.created > 0)) {
       import("@/services/ai/reading-queue")
         .then((q) => q.scheduleAiQueue())
         .catch((e) => logger.warn("Scheduling the AI queue failed (non-fatal):", e));

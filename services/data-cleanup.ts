@@ -374,6 +374,7 @@ export async function cleanupData(
       // Delete expense splits referencing these expenses
       await db.runAsync(`DELETE FROM expense_splits WHERE expense_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
       await db.runAsync(`DELETE FROM household_expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
+      await db.runAsync(`DELETE FROM ai_jobs WHERE kind IN ('category', 'context') AND ref_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
 
       const expenseResult = await db.runAsync(`DELETE FROM expenses WHERE ${condition};`, ...params);
       result.expensesDeleted = expenseResult.changes;
