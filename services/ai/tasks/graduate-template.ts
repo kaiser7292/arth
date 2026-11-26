@@ -13,6 +13,7 @@
 import { getDatabase } from "@/database";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { compileTemplate, type TaggedSpan } from "@/services/sms/template-compiler";
+import { normalizeSms } from "@/services/sms/sms-normalize";
 import { formatKey, formatLabel, guessSpans, senderCode } from "@/services/sms/template-guess";
 import { createUserTemplate, listUserTemplates, type UserTxType } from "@/services/sms/user-sms-templates";
 import { identifyBank } from "@/services/sms/bank-senders";
@@ -78,9 +79,10 @@ export function draftTemplate(a: AiRead, b: AiRead): TemplateOffer | null {
   const compiled = compileTemplate({ smsBody: a.body, spans, style: "flexible" });
   if (!compiled.ok) return null;
   const rx = new RegExp(compiled.patternRegex, "i");
-  // It must read both messages, each with its own approved amount.
+  // It must read both messages, each with its own approved amount. Templates match the normalised
+  // message (sms-normalize.ts), as the scan and the backlog do.
   for (const r of [a, b]) {
-    const m = rx.exec(r.body);
+    const m = rx.exec(normalizeSms(r.body).text);
     const got = m?.groups?.amount ?? null;
     if (!m || got == null || Math.abs(Number(got.replace(/,/g, "")) - r.amount) >= 0.005) return null;
   }
@@ -126,7 +128,7 @@ export async function considerGraduating(approvedIds: string[]): Promise<number>
   let offered = 0;
   for (const [key, group] of byKey) {
     if (group.length < READS_TO_LEARN || !group.some((r) => touched.has(r.id))) continue;
-    if (templates.some((t) => t.pattern_regex && new RegExp(t.pattern_regex, "i").test(group[0].body))) continue;
+    if (templates.some((t) => t.pattern_regex && new RegExp(t.pattern_regex, "i").test(normalizeSms(group[0].body).text))) continue;
     const draft = draftTemplate(group[0], group[1]);
     if (!draft) continue;
     await putAiJobResult("template", key, draft);

@@ -7,6 +7,7 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { bumpDataVersion } from "@/services/settings";
 import { acceptMergeOffer, dismissMergeOffer, mergeOffers, type MergeOffer } from "@/services/ai/tasks/merchant-merge";
 import { logger } from "@/utils/logger";
+import { withMerchantUndo } from "@/services/merchant-undo";
 
 /**
  * "Same place?" (docs/ON_DEVICE_AI_PHASE2_PROPOSAL.md, job 2): merchant names on-device AI thinks
@@ -30,8 +31,11 @@ export function MergeOffersCard() {
     setBusy(o.key);
     try {
       if (merge) {
-        const moved = await acceptMergeOffer(o);
-        setNote(`${o.other.name} now shows as ${o.keep.name}${moved > 0 ? ` (${moved} transaction${moved === 1 ? "" : "s"})` : ""}.`);
+        // Undoable like every other merge: the Merchants screen's Undo bar shows this message.
+        await withMerchantUndo(
+          () => acceptMergeOffer(o),
+          (moved) => `${o.other.name} now shows as ${o.keep.name}${moved > 0 ? ` (${moved} transaction${moved === 1 ? "" : "s"})` : ""}`,
+        );
       } else {
         await dismissMergeOffer(o.key);
       }

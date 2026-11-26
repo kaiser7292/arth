@@ -128,6 +128,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("ai_lab_unlocked", "boolean", DEVICE("a hidden test screen opened by tapping Version 7 times on this phone")),
   S("ai_nano_enabled", "boolean"),
   S("ai_jobs_off", "string"),
+  S("ai_merge_searched_at", "number", DEVICE("when this phone last looked for merchant names that may be one place; a timer, rebuilt on its own")),
   S("biometric_last_unlock_at", "number", PROGRESS),
   S("biometric_app_start_time", "number", PROGRESS),
   S("biometric_home_screen_landed", "boolean", PROGRESS),

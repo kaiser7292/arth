@@ -425,6 +425,7 @@ export async function deleteSmsRecord(id: string): Promise<void> {
   }
   await db.runAsync("DELETE FROM pending_sms WHERE id = ?;", id);
   if (linkedExpenseId) {
+    await db.runAsync("DELETE FROM ai_jobs WHERE kind IN ('category', 'context') AND ref_id = ?;", linkedExpenseId);
     await db.runAsync("DELETE FROM expenses WHERE id = ?;", linkedExpenseId);
   }
   await bumpDataVersion();
@@ -492,6 +493,7 @@ export async function deleteAllSmsRecords(userId: string): Promise<number> {
   }
   const result = await db.runAsync("DELETE FROM pending_sms WHERE user_id = ?;", userId);
   for (const { expense_id } of linkedRows) {
+    await db.runAsync("DELETE FROM ai_jobs WHERE kind IN ('category', 'context') AND ref_id = ?;", expense_id);
     await db.runAsync("DELETE FROM expenses WHERE id = ?;", expense_id);
   }
   if (result.changes > 0) await bumpDataVersion();

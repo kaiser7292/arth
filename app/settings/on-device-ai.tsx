@@ -17,6 +17,7 @@ import {
   subscribeAiQueue,
 } from "@/services/ai/reading-queue";
 import { logger } from "@/utils/logger";
+import { AiJobsSettings } from "@/components/ai/AiJobsSettings";
 
 /** How far back "Read older messages too" looks. */
 const OLDER_DAYS = 90;
@@ -157,7 +158,11 @@ export default function OnDeviceAiScreen() {
               {run.running ? (
                 <>
                   <Text className="text-sm text-foreground">
-                    {run.paused ? "Paused until Arth is open again" : `Reading ${run.done} of ${run.total}`}
+                    {run.paused
+                      ? "Paused until Arth is open again"
+                      : run.tidying
+                        ? "Tidying up: categories, merchant names, what payments were"
+                        : `Reading ${run.done} of ${run.total}`}
                     {run.added > 0 ? ` · ${run.added} added` : ""}
                   </Text>
                   <Button title="Stop" variant="outline" onPress={stopAiQueue} className="mt-3" />
@@ -189,6 +194,8 @@ export default function OnDeviceAiScreen() {
             </Card>
           </>
         )}
+
+        {on && <AiJobsSettings />}
 
         <Text className="text-xs text-muted-foreground px-1 leading-5">
           Runs entirely on this phone through Android&apos;s AICore. No message, amount or account leaves the phone. Each run is

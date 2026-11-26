@@ -222,12 +222,14 @@ export default function CatchUpScreen() {
         if (r.categoryId) return setSuggestions((s) => ({ ...s, [id]: r.categoryId }));
         // No mapping or rule knows this merchant: on-device AI's pick, if it made one.
         const ai = await aiSuggestions<{ categoryId: string }>("category", [id]).catch(() => new Map<string, { categoryId: string }>());
-        const pick = ai.get(id)?.categoryId ?? null;
+        // Only a category that still exists (it may have been deleted since the AI answered).
+        const aiPick = ai.get(id)?.categoryId ?? null;
+        const pick = aiPick && categoryMap.has(aiPick) ? aiPick : null;
         if (pick) setAiCategoryIds((s) => new Set(s).add(id));
         setSuggestions((s) => ({ ...s, [id]: pick }));
       })
       .catch(() => setSuggestions((s) => ({ ...s, [id]: null })));
-  }, [cardExpense, suggestions]);
+  }, [cardExpense, suggestions, categoryMap]);
 
   const categoryFor = useCallback(
     // Credits: your pick or their own category — merchant suggestions are tuned for spending.
@@ -533,7 +535,9 @@ export default function CatchUpScreen() {
           }
           setDescriptionOpen(false);
         }
-        const categoryId = target ? categoryFor(target) : null;
+        // An on-device AI guess you haven't accepted isn't saved just because you opened the card.
+        const aiGuessOnly = !!target && aiCategoryIds.has(id) && !(id in picked);
+        const categoryId = target && !aiGuessOnly ? categoryFor(target) : null;
         if (target && categoryId && categoryId !== target.category_id) {
           await queueWrite(async () => {
             await bulkAssignCategory([id], categoryId);
@@ -546,7 +550,7 @@ export default function CatchUpScreen() {
       editingId.current = id;
       router.push(act ? { pathname: "/expense/[id]", params: { id, act } } : `/expense/${id}`);
     },
-    [deferred, router, queueWrite, patchCardExpense, categoryFor],
+    [deferred, router, queueWrite, patchCardExpense, categoryFor, aiCategoryIds, picked],
   );
 
   // "It's not an FD" / "It's not mine" / "It's not a SIP": drop the hint and approve as usual.
@@ -906,15 +910,14 @@ export default function CatchUpScreen() {
             categoryId={cardExpense ? categoryFor(cardExpense) : null}
             aiHint={(() => {
               const ctx = cardExpense ? aiContext[cardExpense.id] : null;
-              if (!cardExpense || !ctx) return null;
+              // Settled another way since (a money event, paired as a transfer): nothing to suggest.
+              if (!cardExpense || !ctx || cardExpense.money_event || cardExpense.reclassified_as_transfer === 1) return null;
               const id = cardExpense.id;
               const { label, act } = contextAction(ctx);
               return {
                 label,
-                onPress: () => {
-                  answerAiJob("context", id, "accepted").catch(() => {});
-                  void openCard(id, act);
-                },
+                // Not marked answered: backing out of the action leaves the hint for later.
+                onPress: () => void openCard(id, act),
                 onDismiss: () => {
                   answerAiJob("context", id, "dismissed").catch(() => {});
                   setAiContext((c) => ({ ...c, [id]: null }));

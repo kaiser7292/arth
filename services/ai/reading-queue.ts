@@ -67,6 +67,10 @@ export interface AiQueueState {
   unavailable?: NanoStatus;
   /** The run ended because the model kept failing. */
   gaveUp?: boolean;
+  /** Past the messages, answering the other questions (categories, names, ...). */
+  tidying?: boolean;
+  /** Suggestions the other questions produced this run. */
+  suggested?: number;
 }
 
 export interface AiQueueRunOptions {
@@ -74,6 +78,8 @@ export interface AiQueueRunOptions {
   limit?: number;
   /** Shown in Scan history, e.g. "During setup · 40 messages". */
   label?: string;
+  /** false: messages only (onboarding reads messages, not the other questions). Default true. */
+  jobs?: boolean;
 }
 
 const EMPTY: AiQueueState = { running: false, paused: false, total: 0, done: 0, added: 0, notMoney: 0, leftOut: 0, errors: 0, moneyIn: 0, moneyOut: 0 };
@@ -309,8 +315,13 @@ async function work(opts: AiQueueRunOptions): Promise<AiQueueState> {
 
   // Then the other questions waiting for the AI (categories, merchant names, ...), unless the
   // model stopped answering.
-  if (!state.gaveUp && !stopRequested) {
-    await runAiJobs({ shouldStop: () => stopRequested, untilActive }).catch((e) => logger.warn("AI jobs failed (non-fatal)", e));
+  if (opts.jobs !== false && !state.gaveUp && !stopRequested) {
+    set({ tidying: true });
+    const suggested = await runAiJobs({ shouldStop: () => stopRequested, untilActive }).catch((e) => {
+      logger.warn("AI jobs failed (non-fatal)", e);
+      return 0;
+    });
+    set({ tidying: false, suggested });
   }
 
   // Own transfers read by the AI pair up with their other half, as after an SMS scan.
@@ -343,8 +354,9 @@ async function work(opts: AiQueueRunOptions): Promise<AiQueueState> {
       details,
     }).catch((e) => logger.warn("AI queue: saving to Scan history failed (non-fatal)", e));
   }
-  set({ running: false, paused: false });
-  bumpDataVersion();
+  set({ running: false, paused: false, tidying: false });
+  // Screens reload only when something changed: most runs on app open find nothing to do.
+  if (state.added > 0 || state.done > 0 || (state.suggested ?? 0) > 0) bumpDataVersion();
   return state;
 }
 

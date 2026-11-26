@@ -1722,16 +1722,26 @@ export default function ExpenseDetailScreen() {
 
   // act=recurring / loan / invest / transfer: Catch Up's on-device AI suggestion about what a
   // payment was (services/ai/tasks/payment-context.ts) opens the action it named.
+  // Only when the screen itself would offer that action: the same conditions as its buttons
+  // (linkable, canCreditTransfer below), and no reminder twice.
   useEffect(() => {
     if (moneyActDone.current || !loaded || !expense) return;
     if (act !== "recurring" && act !== "loan" && act !== "invest" && act !== "transfer") return;
     moneyActDone.current = true;
-    if (act === "recurring") setRecurringSheetVisible(true);
-    else if (act === "loan") setLoanSheetVisible(true);
-    else if (act === "invest") setInvestmentSheetVisible(true);
-    else if (expense.nature === "credit") setCreditTransferPickerVisible(true);
-    else setTransferPickerVisible(true);
-  }, [act, loaded, expense]);
+    const linkableNow =
+      expense.nature === "realized" && !expense.refund_of_expense_id && !expense.purchase_group_id && !investmentLink && !loanLink && !transfer;
+    if (act === "recurring") {
+      if (!recurringRule) setRecurringSheetVisible(true);
+    } else if (act === "loan") {
+      if (V15_FLAGS.v17_loans_v1 && linkableNow) setLoanSheetVisible(true);
+    } else if (act === "invest") {
+      if (V15_FLAGS.v17_expense_investment_link && linkableNow) setInvestmentSheetVisible(true);
+    } else if (!transfer && !expense.reclassified_as_transfer) {
+      if (expense.nature === "credit") {
+        if (expense.account_id && !linkedSettlement) setCreditTransferPickerVisible(true);
+      } else setTransferPickerVisible(true);
+    }
+  }, [act, loaded, expense, investmentLink, loanLink, transfer, recurringRule, linkedSettlement]);
 
   // act=withdraw: Catch Up's "Money back from an investment" on a plain credit.
   useEffect(() => {

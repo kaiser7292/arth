@@ -25,6 +25,9 @@ import type { VoiceSettings } from "@/services/voice-settings";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
 import { isoDate } from "@/utils/local-date";
+import { isAiJobOn } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
+import { readVoiceWithNano } from "@/services/ai/tasks/read-voice";
 
 type VoiceState = "idle" | "listening" | "speaking";
 type SessionType = "expense" | "transfer";
@@ -257,6 +260,8 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     }).catch(() => {});
   }, []);
 
+  /** Counts sentences sent to on-device AI, so only the latest answer is used. */
+  const aiAskRef = useRef(0);
   const navigateRef = useRef((_s: VoiceSession) => {});
   navigateRef.current = (s: VoiceSession) => {
     onClose();
@@ -396,6 +401,8 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
   // Open/close handling
   useEffect(() => {
+    // Opened or closed: an AI answer still coming is about the old sentence.
+    aiAskRef.current++;
     if (visible) {
       setVoiceSettings(getVoiceSettings());
       const blank = makeBlank();
@@ -436,6 +443,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
     // ── "Open form" command ───────────────────────────────────────────────────
     if (!prev.confirming && /\b(done|finish|that'?s? all|go ahead|open form)\b/i.test(transcript)) {
+      aiAskRef.current++;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       navigateRef.current(prev);
       return;
@@ -544,13 +552,38 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
       updated.merchant = transcript.trim();
     }
 
-    sessionRef.current = updated;
-    setSession({ ...updated });
-    setCurrentQuestion("");
-    currentQuestionRef.current = "";
-    pendingFieldRef.current = null;
+    const finish = (u: VoiceSession) => {
+      sessionRef.current = u;
+      setSession({ ...u });
+      setCurrentQuestion("");
+      currentQuestionRef.current = "";
+      pendingFieldRef.current = null;
+      determineNext(u);
+    };
 
-    determineNext(updated);
+    // The first sentence, with the merchant, category or mode still empty: on-device AI reads it
+    // with your own category and mode names (services/ai/tasks/read-voice.ts), 3 s at most.
+    const needs = !updated.merchant || !updated.categoryId || !updated.paymentModeId;
+    if (!pending && needs && !updated.transferFromAccountId && !updated.transferToAccountId && isAiJobOn("voice")) {
+      const asked = ++aiAskRef.current;
+      const catNames = cats.map((c) => c.name);
+      const modeNames = pms.map((m) => m.name);
+      void (async () => {
+        const ready = (await getNanoStatus().catch(() => "unavailable")) === "available";
+        const r = ready ? await readVoiceWithNano(transcript, catNames, modeNames) : null;
+        // Spoken again, closed, cancelled or finished meanwhile: this answer is about an old sentence.
+        if (asked !== aiAskRef.current || sessionRef.current !== prev) return;
+        if (r) {
+          if (updated.amount == null && r.amount != null) updated.amount = r.amount;
+          if (!updated.merchant && r.merchant) updated.merchant = r.merchant;
+          if (!updated.categoryId && r.category) updated.categoryId = cats.find((c) => c.name === r.category)?.id;
+          if (!updated.paymentModeId && r.mode) updated.paymentModeId = pms.find((m) => m.name === r.mode)?.id;
+        }
+        finish(updated);
+      })();
+      return;
+    }
+    finish(updated);
   });
 
   useSpeechRecognitionEvent("error", () => { if (!visible) return; setVoiceState("idle"); });
@@ -560,6 +593,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   });
 
   const handleCancel = () => {
+    aiAskRef.current++;
     Speech.stop();
     SpeechRecognition.abort();
     setVoiceState("idle");
@@ -569,6 +603,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   };
 
   const handleDoneSoFar = () => {
+    aiAskRef.current++;
     Speech.stop();
     SpeechRecognition.abort();
     setCurrentQuestion("");

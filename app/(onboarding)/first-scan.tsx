@@ -151,7 +151,8 @@ export default function OnboardingFirstScan() {
     const work = (async () => {
       const ready = await waitForModel();
       setAiWaiting(false);
-      if (ready) await runAiQueue({ label: "During setup" });
+      // Messages only: the other questions (categories, names) come later, after setup.
+      if (ready) await runAiQueue({ label: "During setup", jobs: false });
     })();
     await Promise.race([work, skipped]);
     gaveUpWaiting = true;

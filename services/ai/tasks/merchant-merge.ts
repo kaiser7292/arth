@@ -11,6 +11,7 @@
  */
 
 import { getDatabase } from "@/database";
+import { settingsStorage } from "@/services/storage";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { learnMerchantAlias, merchantFuzzyScore, propagateMerchantRename, renameCanonical } from "@/services/merchant-alias";
 import { listMerchants, type MerchantSummary } from "@/services/merchants-overview";
@@ -18,6 +19,8 @@ import { askNano, extractJsonObject } from "../nano";
 import { aiSuggestions, answerAiJob, finishAiJob, failAiJob, queueAiJob, queuedAiJobs } from "../jobs";
 
 export const PAIRS_PER_DAY = 20;
+/** When candidate pairs were last looked for (device-only timer). */
+const SEARCHED_AT_KEY = "ai_merge_searched_at";
 const PAIRS_PER_PROMPT = 5;
 const SEP = " ⇄ ";
 
@@ -45,13 +48,16 @@ export function candidatePairs(names: string[], vpaByName: Map<string, Set<strin
     const k = pairKey(a, b);
     if (!out.has(k) || why === "same_upi") out.set(k, { a, b, why });
   };
+  // Worked out once per name, not once per pair.
+  const firsts = names.map(firstWord);
   for (let i = 0; i < names.length; i++) {
     for (let j = i + 1; j < names.length; j++) {
       const [a, b] = [names[i], names[j]];
+      if (firsts[i] && firsts[i] === firsts[j]) add(a, b, "first_word");
+      // Names of very different length are never "close": skip the costly comparison.
+      if (Math.abs(a.length - b.length) > Math.max(a.length, b.length) / 2) continue;
       const score = merchantFuzzyScore(a, b);
       if (score >= 0.5 && score < 0.75) add(a, b, "similar");
-      const fa = firstWord(a);
-      if (fa && fa === firstWord(b)) add(a, b, "first_word");
     }
   }
   // Paid to the same UPI ID under two names.
@@ -84,13 +90,11 @@ async function vpasByMerchant(): Promise<Map<string, Set<string>>> {
 }
 
 /** Queue today's new candidate pairs (pairs already asked or answered are skipped). */
-export async function findMergeCandidates(): Promise<number> {
-  const db = getDatabase();
-  const last = await db.getFirstAsync<{ at: string | null }>(
-    `SELECT MAX(created_at) AS at FROM ai_jobs WHERE user_id = ? AND kind = 'merchant_merge';`,
-    DEFAULT_USER_ID,
-  );
-  if (last?.at && Date.now() - new Date(`${last.at.replace(" ", "T")}Z`).getTime() < 86400000) return 0;
+export async function findMergeCandidates(now: number = Date.now()): Promise<number> {
+  // Once a day: comparing every pair of names is the costly part, and names change slowly.
+  const last = settingsStorage.getNumber(SEARCHED_AT_KEY) ?? 0;
+  if (now - last < 86400000) return 0;
+  settingsStorage.set(SEARCHED_AT_KEY, now);
   const merchants = (await listMerchants()).filter((m) => m.txCount > 0);
   const pairs = candidatePairs(
     merchants.map((m) => m.name),

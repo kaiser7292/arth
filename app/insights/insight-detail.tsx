@@ -40,7 +40,8 @@ const monthShort = (month: string) => {
 
 export default function InsightDetailScreen() {
   const router = useRouter();
-  const { insightId } = useLocalSearchParams<{ insightId: string; title: string }>();
+  // month: from "Your month in words" on a past month; without it, this month.
+  const { insightId, month } = useLocalSearchParams<{ insightId: string; title: string; month?: string }>();
   
   const theme = useTheme();
   const [detail, setDetail] = useState<InsightDetail | null>(null);
@@ -52,7 +53,7 @@ export default function InsightDetailScreen() {
   const loadData = useCallback(async () => {
     if (!insightId) return;
     try {
-      const data = await getInsightDrill(DEFAULT_USER_ID, insightId);
+      const data = await getInsightDrill(DEFAULT_USER_ID, insightId, month || undefined);
       setDetail(data);
       const catId = data?.insight.categoryId ?? (insightId.split("_").length > 2 ? insightId.split("_")[1] : undefined);
       setTrend(catId ? await getCategoryMonthlyTrend(DEFAULT_USER_ID, catId, 6).catch(() => []) : []);

@@ -825,6 +825,7 @@ export async function purgeOldDeletedExpenses(userId: string, daysOld = 30): Pro
       ...params,
     );
 
+    await db.runAsync(`DELETE FROM ai_jobs WHERE kind IN ('category', 'context') AND ref_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
     const result = await db.runAsync(`DELETE FROM expenses WHERE ${condition};`, ...params);
     changes = result.changes;
   });
