@@ -1,5 +1,5 @@
 import { FormulaTextInput } from "@/components/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, Pressable, ScrollView, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -38,6 +38,11 @@ import {
   type TextPick,
 } from "@/services/receipt/image-templates";
 import { addUpiId } from "@/services/account-upi";
+import { prepareFromPicture } from "@/services/receipt/picture-flow";
+import { isAiReadingOn } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
+import { fillGuess, needsAiHelp, readPictureWithNano } from "@/services/ai/tasks/read-picture";
+import { DEFAULT_USER_ID } from "@/constants/app";
 import { formatAmount } from "@/utils/format";
 import { formatDisplayDate } from "@/utils/date";
 import { LoadingState } from "@/components/ui";
@@ -137,7 +142,18 @@ export default function FromScreenshotScreen() {
   const [phase, setPhase] = useState<Phase>(params.uri || params.text ? "reading" : "pick");
   const [error, setError] = useState<string | null>(null);
   const [guess, setGuess] = useState<ReceiptGuess | null>(null);
+  /** On-device AI helping with a picture the reader couldn't place: asking, or what it filled. */
+  const [aiPicture, setAiPicture] = useState<"asking" | string[] | null>(null);
+  /** Which reading the AI's answer belongs to: a newer picture or a re-read makes it stale. */
+  const readSeq = useRef(0);
+  /** The guess and kind on screen now, for checking an AI answer is still about them. */
+  const guessNow = useRef<ReceiptGuess | null>(null);
+  const kindNow = useRef<ReceiptKind>("expense");
+  /** Linking text to fields: the AI leaves the guess alone (a template would save its type). */
+  const teachingNow = useRef(false);
   const [kind, setKind] = useState<ReceiptKind>("expense");
+  guessNow.current = guess;
+  kindNow.current = kind;
   const [accounts, setAccounts] = useState<OwnAccount[]>([]);
   const [duplicate, setDuplicate] = useState<PossibleDuplicate | null>(null);
   const [duplicateTransfer, setDuplicateTransfer] = useState(false);
@@ -156,6 +172,7 @@ export default function FromScreenshotScreen() {
 
   // Teaching a template: which piece is which field.
   const [teaching, setTeaching] = useState(false);
+  teachingNow.current = teaching;
   const [picks, setPicks] = useState<Partial<Record<TemplateField, TextPick>>>({});
   const [tapped, setTapped] = useState<number | null>(null);
   // Words chosen on the tapped piece (inclusive); null = the whole piece.
@@ -170,6 +187,8 @@ export default function FromScreenshotScreen() {
   const teachFirst = params.teach === "1" || !!params.templateId;
   const reteachId = params.templateId ?? null;
   const read = useCallback(async (source: { uri?: string; text?: string }) => {
+    // A new reading: any AI answer still coming is about the old one.
+    readSeq.current++;
     setPhase("reading");
     setError(null);
     setShowRead(false);
@@ -212,6 +231,8 @@ export default function FromScreenshotScreen() {
     setGuess(g);
     setKind(g.kind);
     setPhase("read");
+    // Not while teaching a template: the template saves the type, and the AI mustn't set it unseen.
+    if (!teachFirst) void helpWithAi(g);
     if (teachFirst && p && p.length) {
       setPicks(findPicks(p, g));
       setTapped(null);
@@ -289,7 +310,50 @@ export default function FromScreenshotScreen() {
 
   const accountName = (a: OwnAccount) => `${a.account_label || a.bank_name}${a.account_identifier && a.account_type !== "wallet" ? ` ··${a.account_identifier.slice(-4)}` : ""}`;
 
+  /**
+   * The reader left the amount or the merchant empty: ask on-device AI to read the picture's text
+   * (services/ai/tasks/read-picture.ts). Fills only empty fields, only for this same reading, and
+   * the screen works as before if the AI isn't there or doesn't answer in time.
+   */
+  async function helpWithAi(g: ReceiptGuess) {
+    const seq = ++readSeq.current;
+    setAiPicture(null);
+    if (!needsAiHelp(g) || !isAiReadingOn()) return;
+    if ((await getNanoStatus().catch(() => "unavailable")) !== "available" || seq !== readSeq.current) return;
+    setAiPicture("asking");
+    try {
+      const r = await readPictureWithNano(g.text);
+      // Stale if a newer reading started, or you've changed the fields or the type meanwhile.
+      if (seq !== readSeq.current || guessNow.current !== g || kindNow.current !== g.kind || teachingNow.current) {
+        if (seq === readSeq.current) setAiPicture(null);
+        return;
+      }
+      const { guess: filledGuess, filled } = fillGuess(g, r);
+      if (filled.length > 0) {
+        setGuess(filledGuess);
+        if (filledGuess.kind !== g.kind) setKind(filledGuess.kind);
+      }
+      setAiPicture(filled.length > 0 ? filled : null);
+    } catch {
+      if (seq === readSeq.current) setAiPicture(null);
+    }
+  }
+
+  // Continue now waits on the message steps (names, category, rules): one tap at a time.
+  const proceeding = useRef(false);
+  const [preparing, setPreparing] = useState(false);
   const proceed = async () => {
+    if (!guess || proceeding.current) return;
+    proceeding.current = true;
+    setPreparing(true);
+    try {
+      await goToAdd();
+    } finally {
+      proceeding.current = false;
+      setPreparing(false);
+    }
+  };
+  const goToAdd = async () => {
     if (!guess) return;
     if (rememberUpi && unlinked.length) {
       for (const u of unlinked) await addUpiId(u.account.id, u.id).catch(() => {});
@@ -305,7 +369,22 @@ export default function FromScreenshotScreen() {
       router.replace({ pathname: "/expense/add", params: { ...base, type: "transfer", ...(to ? { prefillToAccountId: to.id } : {}) } });
       return;
     }
-    if (guess.party) base.prefillMerchant = guess.party;
+    // The same steps a bank message goes through: your merchant names, the category your merchant
+    // mappings give, then Smart Rules (services/receipt/picture-flow.ts).
+    const prepared = await prepareFromPicture(DEFAULT_USER_ID, {
+      merchant: guess.party ?? null,
+      amount: guess.amount ?? null,
+      date: guess.date ?? null,
+      accountId: from?.id ?? null,
+      note: description || null,
+      credit: kind === "credit",
+    });
+    if (prepared.merchant) base.prefillMerchant = prepared.merchant;
+    if (prepared.rawMerchant) base.prefillRawMerchant = prepared.rawMerchant;
+    if (prepared.categoryId) base.prefillCategoryId = prepared.categoryId;
+    if (prepared.paymentModeId) base.prefillPaymentModeId = prepared.paymentModeId;
+    if (!description && prepared.description) base.prefillDescription = prepared.description;
+    if (prepared.isRightSpend !== null) base.prefillRightSpend = String(prepared.isRightSpend);
     router.replace({
       pathname: "/expense/add",
       params: {
@@ -733,6 +812,17 @@ export default function FromScreenshotScreen() {
               </View>
             )}
 
+            {aiPicture && (
+              <View className="flex-row items-center mt-3">
+                <Ionicons name="sparkles-outline" size={14} color={theme.primary} />
+                <Text className="text-xs ml-1.5 flex-1" style={{ color: theme.primary }}>
+                  {aiPicture === "asking"
+                    ? "Asking on-device AI to read the rest…"
+                    : `Read by on-device AI: ${aiPicture.join(", ")}. Check before you continue.`}
+                </Text>
+              </View>
+            )}
+
             {template && (
               <View className="flex-row items-center mt-3">
                 <Ionicons name="sparkles-outline" size={14} color={theme.primary} />
@@ -821,10 +911,10 @@ export default function FromScreenshotScreen() {
               </Text>
             )}
 
-            {pieces && uri && (!guess.amount || (kind !== "transfer" && !guess.party) || !guess.date) && (
+            {pieces && uri && (!guess.amount || (kind !== "transfer" && !guess.party) || !guess.date || Array.isArray(aiPicture)) && (
               <Button title="Link the text to fields" variant="outline" onPress={startTeaching} className="mt-4" />
             )}
-            <Button title={duplicate || duplicateTransfer ? "Add anyway" : "Continue"} onPress={() => void proceed()} className="mt-3" />
+            <Button title={duplicate || duplicateTransfer ? "Add anyway" : "Continue"} onPress={() => void proceed()} loading={preparing} className="mt-3" />
             <Text className="text-xs text-muted-foreground text-center mt-2">You can change anything on the next screen before saving.</Text>
 
             {pieces && uri && (

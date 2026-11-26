@@ -131,14 +131,15 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
 
   const now = new Date().toISOString(); // Local time in ISO format
   await db.runAsync(
-    `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, applied_rule_ids, credit_kind, source, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
+    `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, applied_rule_ids, credit_kind, source, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
     id,
     input.user_id,
     round2(input.amount),
     input.currency ?? "INR",
     description,
     input.merchant_name ?? null,
+    input.raw_merchant_name ?? null,
     categoryId,
     paymentModeId,
     input.account_id ?? null,

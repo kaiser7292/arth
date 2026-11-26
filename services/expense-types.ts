@@ -163,6 +163,8 @@ export interface CreateExpenseInput {
   amount: number;
   description?: string;
   merchant_name?: string;
+  /** The merchant as the source had it (a payment picture), when merchant_name is your chosen name. */
+  raw_merchant_name?: string | null;
   category_id?: string;
   payment_mode_id?: string;
   date: string;

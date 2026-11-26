@@ -117,6 +117,7 @@ describe("createExpense", () => {
       "INR",
       "Lunch",
       null, // merchant_name
+      null, // raw_merchant_name (only set for payment pictures)
       "cat-1",
       "pm-1",
       null, // account_id (not provided)
@@ -156,16 +157,17 @@ describe("createExpense", () => {
     // description, merchant_name, category_id, payment_mode_id, is_right_spend should be null
     expect(insert!.params[4]).toBeNull(); // description
     expect(insert!.params[5]).toBeNull(); // merchant_name
-    expect(insert!.params[6]).toBeNull(); // category_id
-    expect(insert!.params[7]).toBeNull(); // payment_mode_id
-    expect(insert!.params[8]).toBeNull(); // account_id
-    expect(insert!.params[9]).toBe("2026-04-12"); // date
-    expect(insert!.params[10]).toBe("00:00:00"); // transaction_time
-    expect(insert!.params[11]).toBe("realized"); // nature
-    expect(insert!.params[12]).toBeNull(); // is_right_spend
-    expect(insert!.params[13]).toBeNull(); // refund_of_expense_id
-    expect(insert!.params[14]).toBeNull(); // purchase_group_id
-    expect(insert!.params[15]).toBeNull(); // due_date
+    expect(insert!.params[6]).toBeNull(); // raw_merchant_name
+    expect(insert!.params[7]).toBeNull(); // category_id
+    expect(insert!.params[8]).toBeNull(); // payment_mode_id
+    expect(insert!.params[9]).toBeNull(); // account_id
+    expect(insert!.params[10]).toBe("2026-04-12"); // date
+    expect(insert!.params[11]).toBe("00:00:00"); // transaction_time
+    expect(insert!.params[12]).toBe("realized"); // nature
+    expect(insert!.params[13]).toBeNull(); // is_right_spend
+    expect(insert!.params[14]).toBeNull(); // refund_of_expense_id
+    expect(insert!.params[15]).toBeNull(); // purchase_group_id
+    expect(insert!.params[16]).toBeNull(); // due_date
   });
 
   it("sets source as manual and status as approved", async () => {
