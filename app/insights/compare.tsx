@@ -20,6 +20,7 @@ import { changePctColor } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadingState } from "@/components/ui";
+import { SpendCalendar } from "@/components/insights/SpendCalendar";
 
 
 function changeArrow(pct: number): keyof typeof Ionicons.glyphMap {
@@ -40,7 +41,7 @@ export default function PeriodComparisonScreen() {
   const { colors } = useColorScheme();
   const theme = useTheme();
   const [presets] = useState<ComparisonPreset[]>(() => getComparisonPresets());
-  const [selectedPreset, setSelectedPreset] = useState<string>("This Month vs Last Month");
+  const [selectedPreset, setSelectedPreset] = useState<string>("This Month vs Last Month, same day");
 
   // Date range inputs
   const [r1Start, setR1Start] = useState("");
@@ -106,7 +107,8 @@ export default function PeriodComparisonScreen() {
       if (r1Start && r1End && r2Start && r2End) {
         runComparison(r1Start, r1End, r2Start, r2End);
       } else if (presets.length > 0) {
-        const defaultPreset = presets.find((p) => p.label === "This Month vs Last Month") ?? presets[0];
+        // By the same day, like the Your month card (Year over year has its own screen).
+        const defaultPreset = presets.find((p) => p.label === "This Month vs Last Month, same day") ?? presets[0];
         handlePresetSelect(defaultPreset);
       }
     }, [r1Start, r1End, r2Start, r2End]),
@@ -289,6 +291,11 @@ export default function PeriodComparisonScreen() {
                 </Text>
               </View>
             </Card>
+
+            {/* This month, day by day (the same-day comparison only) */}
+            {selectedPreset === "This Month vs Last Month, same day" && (
+              <SpendCalendar month={data.range2.start.slice(0, 7)} upTo={data.range2.end} />
+            )}
 
             {/* Category Comparison */}
             {data.byCategory.length > 0 && (

@@ -1,14 +1,14 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { View, ScrollView, Pressable, Modal } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { PeriodBar } from "@/components/insights/PeriodBar";
-import { Card, EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Amount, Card, EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
-import { formatAmount } from "@/utils/format";
+import { formatAmount, formatReportShort } from "@/utils/format";
 import { insightPeriodLabel, insightPeriodRange, isInsightPeriod, type InsightPeriod } from "@/utils/insight-periods";
 import { getFYStartMonth } from "@/services/settings";
 import {
@@ -84,7 +84,9 @@ export default function BudgetVsActualScreen() {
     })();
 
   const [loadFailed, setLoadFailed] = useState(false);
+  const loadSeq = useRef(0);
   const loadData = useCallback(async () => {
+    const seq = ++loadSeq.current;
     try {
       const fySM = getFYStartMonth();
       setFyStartMonth(fySM);
@@ -96,13 +98,15 @@ export default function BudgetVsActualScreen() {
         r.startDate,
         r.endDate,
       );
+      if (seq !== loadSeq.current) return; // a newer period is loading
       setResult(data);
       setLoadFailed(false);
     } catch {
+      if (seq !== loadSeq.current) return;
       setLoadFailed(true);
       // DB not ready
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [period, customStartMonth, customEndMonth]);
 
@@ -187,69 +191,45 @@ export default function BudgetVsActualScreen() {
           />
         ) : (
           <>
-            {/* ── Summary card ─────────────────────────── */}
+            {/* ── Summary: one hero figure, the rest on a line below (numbers never wrap) ── */}
             <View className="px-4 mb-3">
               <Card>
-                {isCurrentMonth && result && result.totalBudget > 0 && (
-                  <Text className="text-label text-muted-foreground mb-2">
-                    {`Day ${new Date().getDate()} of ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} — prorated budget`}
-                  </Text>
-                )}
-                <View className="flex-row justify-between mb-3">
-                  <View className="flex-1">
-                    <Text className="text-label text-muted-foreground mb-0.5">
-                      {isCurrentMonth ? "Expected to date" : "Total Budget"}
+                <Text className="text-label text-muted-foreground mb-0.5">
+                  {isCurrentMonth ? "Spent so far" : `Spent · ${getPeriodLabel(period)}`}
+                </Text>
+                <View className="flex-row items-baseline" style={{ gap: 10 }}>
+                  <Amount value={result?.totalActual ?? 0} className="text-hero font-bold text-foreground flex-shrink" />
+                  {budgetForSummary > 0 && (
+                    <Text className="text-meta font-bold ml-auto" style={{ color: isOver ? theme.danger : theme.success }}>
+                      {Math.round(((result?.totalActual ?? 0) / budgetForSummary) * 100)}%
                     </Text>
-                    <Text className="text-heading font-bold text-foreground">
-                      {formatAmount(budgetForSummary)}
-                    </Text>
-                    {isCurrentMonth && result && result.totalBudget > 0 && (
-                      <Text className="text-label text-muted-foreground">
-                        Full month: {formatAmount(result.totalBudget)}
-                      </Text>
-                    )}
-                  </View>
-                  <View className="flex-1 items-center">
-                    <Text className="text-label text-muted-foreground mb-0.5">
-                      Spent
-                    </Text>
-                    <Text className="text-heading font-bold text-foreground">
-                      {formatAmount(result?.totalActual ?? 0)}
-                    </Text>
-                  </View>
-                  <View className="flex-1 items-end">
-                    <Text className="text-label text-muted-foreground mb-0.5">
-                      {isOver ? "Over by" : "Under by"}
-                    </Text>
-                    <Text
-                      className="text-heading font-bold"
-                      style={{ color: isOver ? theme.danger : theme.success }}
-                    >
+                  )}
+                </View>
+                {budgetForSummary > 0 && (
+                  <Text className="text-meta text-muted-foreground mt-1">
+                    {isCurrentMonth ? "Expected by today " : "Budget "}
+                    {formatAmount(budgetForSummary)}
+                    {" · "}
+                    <Text className="text-meta" style={{ color: isOver ? theme.danger : theme.success }}>
+                      {isOver ? "over by " : "under by "}
                       {formatAmount(Math.abs(variance))}
                     </Text>
-                  </View>
-                </View>
-
-                {/* Aggregate progress bar */}
+                  </Text>
+                )}
+                {isCurrentMonth && result && result.totalBudget > 0 && (
+                  <Text className="text-label text-muted-foreground mt-0.5">
+                    {`Day ${new Date().getDate()} of ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} · full month ${formatAmount(result.totalBudget)}`}
+                  </Text>
+                )}
                 {result && result.totalBudget > 0 && (
-                  <View className="mt-1">
+                  <View className="h-2 rounded-full overflow-hidden mt-3" style={{ backgroundColor: theme.border }}>
                     <View
-                      className="h-2 rounded-full overflow-hidden"
-                      style={{ backgroundColor: theme.border }}
-                    >
-                      <View
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.min(100, Math.round(((result.totalActual) / budgetForSummary) * 100))}%`,
-                          backgroundColor: isOver ? theme.danger : theme.primary,
-                        }}
-                      />
-                    </View>
-                    <Text className="text-label text-muted-foreground mt-1 text-right">
-                      {result.totalBudget > 0
-                        ? `${Math.round((result.totalActual / budgetForSummary) * 100)}% of ${isCurrentMonth ? "prorated " : ""}budget`
-                        : ""}
-                    </Text>
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.round((result.totalActual / budgetForSummary) * 100))}%`,
+                        backgroundColor: isOver ? theme.danger : theme.primary,
+                      }}
+                    />
                   </View>
                 )}
               </Card>
@@ -264,7 +244,8 @@ export default function BudgetVsActualScreen() {
                   </Text>
                   {result.monthly.map((mo) => {
                     const moOver = mo.actual > mo.budget && mo.budget > 0;
-                    const barMax = Math.max(mo.budget, mo.actual, 1);
+                    // The bar is the share of that month's budget spent (full when over, or with no budget).
+                    const barPct = mo.budget > 0 ? Math.min(100, Math.round((mo.actual / mo.budget) * 100)) : mo.actual > 0 ? 100 : 0;
                     return (
                       <Pressable
                         key={mo.month}
@@ -273,59 +254,34 @@ export default function BudgetVsActualScreen() {
                         accessibilityRole="button"
                         accessibilityLabel={`${shortMonth(mo.month)}, ${formatAmount(mo.actual)} of ${formatAmount(mo.budget)}. Open My Month`}
                       >
-                        <View className="flex-row items-center justify-between mb-1">
-                          <Text className="text-label font-medium text-muted-foreground w-8">
-                            {shortMonth(mo.month)}
+                        <View className="flex-row items-baseline mb-1.5" style={{ gap: 8 }}>
+                          <Text className="text-meta font-medium text-muted-foreground w-9">{shortMonth(mo.month)}</Text>
+                          <Text className="text-meta flex-1" numberOfLines={1}>
+                            <Text className="text-meta font-bold" style={{ color: moOver ? theme.danger : theme.foreground }}>
+                              {formatReportShort(mo.actual)}
+                            </Text>
+                            <Text className="text-meta text-muted-foreground">{mo.budget > 0 ? ` of ${formatReportShort(mo.budget)}` : ""}</Text>
                           </Text>
-                          <View className="flex-1 mx-2">
-                            {/* Budget bar */}
-                            <View className="flex-row items-center mb-0.5">
-                              <View
-                                className="h-1.5 rounded-full"
-                                style={{
-                                  width: `${Math.round((mo.budget / barMax) * 100)}%`,
-                                  backgroundColor: theme.border,
-                                  minWidth: mo.budget > 0 ? 4 : 0,
-                                }}
-                              />
-                            </View>
-                            {/* Actual bar */}
-                            <View className="flex-row items-center">
-                              <View
-                                className="h-2 rounded-full"
-                                style={{
-                                  width: `${Math.round((mo.actual / barMax) * 100)}%`,
-                                  backgroundColor: moOver ? theme.danger : theme.primary,
-                                  minWidth: mo.actual > 0 ? 4 : 0,
-                                }}
-                              />
-                            </View>
-                          </View>
-                          <View className="items-end" style={{ width: 72 }}>
-                            <Text
-                              className="text-label font-semibold"
-                              style={{ color: moOver ? theme.danger : theme.foreground }}
-                            >
-                              {formatAmount(mo.actual)}
+                          {mo.budget > 0 && (
+                            <Text className="text-label font-bold" style={{ color: moOver ? theme.danger : theme.primary }}>
+                              {Math.round((mo.actual / mo.budget) * 100)}%
                             </Text>
-                            <Text className="text-label text-muted-foreground">
-                              / {formatAmount(mo.budget)}
-                            </Text>
-                          </View>
+                          )}
+                        </View>
+                        <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+                          <View
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${barPct}%`,
+                              backgroundColor: moOver ? theme.danger : theme.primary,
+                              minWidth: mo.actual > 0 ? 4 : 0,
+                            }}
+                          />
                         </View>
                       </Pressable>
                     );
                   })}
-                  <View className="flex-row items-center gap-3 mt-1">
-                    <View className="flex-row items-center gap-1.5">
-                      <View className="w-4 h-1.5 rounded-full" style={{ backgroundColor: theme.border }} />
-                      <Text className="text-label text-muted-foreground">Budget</Text>
-                    </View>
-                    <View className="flex-row items-center gap-1.5">
-                      <View className="w-4 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
-                      <Text className="text-label text-muted-foreground">Actual</Text>
-                    </View>
-                  </View>
+                  <Text className="text-label text-muted-foreground">Tap a month for its full figures</Text>
                 </Card>
               </View>
             )}

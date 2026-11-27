@@ -4,7 +4,7 @@ import { Text as RNText } from "react-native";
 import { useToast } from "./Toast";
 
 /**
- * An amount on a report, printed the way Settings → Region → "Report numbers" asks.
+ * An amount on a report, printed the way Settings → Region → "Tight spaces" asks.
  *
  * Full (the default): "₹24,92,209.10", exactly as before. Short: "₹24.92L" - and a tap shows the
  * full figure, so nothing is lost when a crore-sized number would not fit (owner, Nov 2026).

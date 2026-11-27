@@ -18,7 +18,7 @@ import {
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
-import { formatAmount } from "@/utils/format";
+import { formatAmount, formatExactAmount } from "@/utils/format";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getActiveAccounts, getCcExpenseTotals, clearCcDues, getClosedAccounts } from "@/services/financial-account";
@@ -272,7 +272,7 @@ export default function CreditCardsScreen() {
           const overdue = dues.filter((a) => daysUntil(a.due_date!) < 0);
           const next = dues.filter((a) => daysUntil(a.due_date!) >= 0).sort((a, b) => a.due_date!.localeCompare(b.due_date!))[0];
           const nextText = next
-            ? `${overdue.length > 0 ? "Next: " : ""}${next.bank_name} ••${next.account_identifier} · ${formatAmount(next.total_due!)} ${(() => {
+            ? `${overdue.length > 0 ? "Next: " : ""}${next.bank_name} ••${next.account_identifier} · ${formatExactAmount(next.total_due!)} ${(() => {
                 const d = daysUntil(next.due_date!);
                 return d === 0 ? "due today" : d === 1 ? "due tomorrow" : `in ${d} days`;
               })()}`
@@ -303,7 +303,7 @@ export default function CreditCardsScreen() {
                   <View className="flex-1" style={{ minWidth: 0 }}>
                     {overdue.length > 0 && (
                       <Text className="text-meta font-semibold" style={{ color: theme.danger }}>
-                        {overdue.length} {overdue.length === 1 ? "bill" : "bills"} overdue · {formatAmount(overdue.reduce((s, a) => s + (a.total_due ?? 0), 0))}
+                        {overdue.length} {overdue.length === 1 ? "bill" : "bills"} overdue · {formatExactAmount(overdue.reduce((s, a) => s + (a.total_due ?? 0), 0))}
                       </Text>
                     )}
                     {nextText && (
@@ -379,7 +379,7 @@ export default function CreditCardsScreen() {
                 const hasDue = account.total_due != null && account.total_due > 0;
                 const overdueNow = hasDue && !!account.due_date && daysUntil(account.due_date) < 0;
                 const dueText = hasDue
-                  ? `${account.due_date ? (overdueNow ? `Overdue since ${shortDate(account.due_date)}` : `Due ${shortDate(account.due_date)}`) : "Due"} · ${formatAmount(account.total_due!)}${account.min_due != null ? ` · min ${formatAmount(account.min_due)}` : ""}`
+                  ? `${account.due_date ? (overdueNow ? `Overdue since ${shortDate(account.due_date)}` : `Due ${shortDate(account.due_date)}`) : "Due"} · ${formatExactAmount(account.total_due!)}${account.min_due != null ? ` · min ${formatExactAmount(account.min_due)}` : ""}`
                   : "";
                 const parts = [
                   `Spent ${formatAmount(spent)}`,

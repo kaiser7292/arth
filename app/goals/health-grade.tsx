@@ -310,7 +310,7 @@ export default function HealthGradeScreen() {
 
           {/* The full report: net worth, savings trend, spending mix, spikes, and the PDF. */}
           <Pressable
-            onPress={() => router.push("/insights/report-financial-health")}
+            onPress={() => router.push("/goals/financial-health")}
             className="rounded-card bg-card border border-border px-4 mb-4 flex-row items-center"
             style={{ minHeight: 56, gap: 12 }}
             accessibilityRole="button"

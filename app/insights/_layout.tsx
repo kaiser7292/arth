@@ -1,12 +1,16 @@
 import { FeatureGate } from "@/components/FeatureOff";
 import { useStackScreenOptions } from "@/components/ui/stack-options";
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 
 export default function InsightsStackLayout() {
   const screenOptions = useStackScreenOptions();
+  // The transaction list a drill-down opens is shared: Budget vs actual, Financial health and Year
+  // over year live outside Insights and open it too, so it stays open with Insights switched off.
+  const pathname = usePathname();
+  const shared = pathname === "/insights/filtered";
 
   return (
-    <FeatureGate feature="insights">
+    <FeatureGate feature="insights" bypass={shared}>
     <Stack
       screenOptions={screenOptions}
     >
@@ -15,16 +19,11 @@ export default function InsightsStackLayout() {
       <Stack.Screen name="forecast" options={{ title: "Forecast" }} />
       <Stack.Screen name="patterns" options={{ title: "My Spending Patterns" }} />
       <Stack.Screen name="merchants" options={{ title: "Merchant Analytics" }} />
+      <Stack.Screen name="where-it-goes" options={{ title: "Where it goes" }} />
       <Stack.Screen name="compare" options={{ title: "Compare Periods" }} />
       <Stack.Screen name="filtered" options={{ title: "Transactions" }} />
-      <Stack.Screen name="budget-vs-actual" options={{ title: "Budget vs Actual" }} />
       <Stack.Screen name="cash-flow" options={{ title: "Money in and out" }} />
-      <Stack.Screen name="reports" options={{ title: "Reports" }} />
       <Stack.Screen name="export-for-ai" options={{ title: "Export for AI Insights" }} />
-      <Stack.Screen name="report-financial-health" options={{ title: "Financial Health" }} />
-      <Stack.Screen name="report-retirement" options={{ title: "Retirement Readiness" }} />
-      <Stack.Screen name="report-loan-payoff" options={{ title: "Loan Payoff Strategy" }} />
-      <Stack.Screen name="report-spending-personality" options={{ title: "Spending Personality" }} />
       <Stack.Screen name="month-story" options={{ title: "Your month", headerShown: false, animation: "fade_from_bottom" }} />
       <Stack.Screen name="year-review" options={{ title: "Year in Review", headerShown: false, animation: "fade_from_bottom" }} />
     </Stack>

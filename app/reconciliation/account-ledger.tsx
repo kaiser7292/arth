@@ -48,7 +48,7 @@ import { getVaultEntriesForAccount } from "@/services/vault";
 import { getPersonsByIds, getSettlementsForCredits } from "@/services/hisaab";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { formatLocalDate } from "@/utils/fiscal-year";
-import { formatAdjustmentDescription, formatAmount } from "@/utils/format";
+import { formatAdjustmentDescription, formatExactAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
 import { transactionTitle } from "@/utils/transaction-title";
 import { getCategories } from "@/services/category";
@@ -807,6 +807,7 @@ const loadData = useCallback(async () => {
             <View className="mb-2">
               <Text className="text-meta text-muted-foreground">{isCreditCard ? "Utilized" : "Closing balance"}</Text>
               <Money
+                exact
                 value={closing}
                 className="text-hero font-bold mt-0.5"
                 style={{ color: closing < 0 && !isCreditCard ? theme.danger : theme.foreground }}
@@ -829,7 +830,7 @@ const loadData = useCallback(async () => {
               const isThisMonth = month === getCurrentMonth();
               const endLabel = isThisMonth ? "today" : dayLabel(endDate);
               const lines: { label: string; amount: string; sign?: "+" | "−" | "" }[] = [
-                { label: `${isCreditCard ? "Started the cycle at" : "Opening balance"} · ${dayLabel(startDate)}`, amount: formatAmount(opening) },
+                { label: `${isCreditCard ? "Started the cycle at" : "Opening balance"} · ${dayLabel(startDate)}`, amount: formatExactAmount(opening) },
               ];
               // Savings and wallets: everything in, everything out, transfers on the side they went.
               const typeNow = thisAccount?.account_type;
@@ -843,18 +844,18 @@ const loadData = useCallback(async () => {
                 const rest = Math.round((closing - (opening + inflow - outflow)) * 100) / 100;
                 if (rest > 0) inflow = Math.round((inflow + rest) * 100) / 100;
                 else if (rest < 0) outflow = Math.round((outflow - rest) * 100) / 100;
-                lines.push({ label: `Inflow · ${ins.length}`, sign: "+", amount: formatAmount(inflow) });
-                lines.push({ label: `Outflow · ${outs.length}`, sign: "−", amount: formatAmount(outflow) });
-                return <Statement lines={lines} total={{ label: `Closing balance · ${endLabel}`, amount: formatAmount(closing) }} />;
+                lines.push({ label: `Inflow · ${ins.length}`, sign: "+", amount: formatExactAmount(inflow) });
+                lines.push({ label: `Outflow · ${outs.length}`, sign: "−", amount: formatExactAmount(outflow) });
+                return <Statement lines={lines} total={{ label: `Closing balance · ${endLabel}`, amount: formatExactAmount(closing) }} />;
               }
               if (totalCredits > 0)
-                lines.push({ label: `${isCreditCard ? "Paid back" : "Money in"}${nCredits ? ` · ${plural(nCredits, "credit", "credits")}` : ""}`, sign: isCreditCard ? "−" : "+", amount: formatAmount(totalCredits) });
+                lines.push({ label: `${isCreditCard ? "Paid back" : "Money in"}${nCredits ? ` · ${plural(nCredits, "credit", "credits")}` : ""}`, sign: isCreditCard ? "−" : "+", amount: formatExactAmount(totalCredits) });
               if (totalExpenses > 0)
-                lines.push({ label: `${isCreditCard ? "Spent this cycle" : "Money out"}${nExpenses ? ` · ${plural(nExpenses, "expense", "expenses")}` : ""}`, sign: sign < 0 ? "−" : "+", amount: formatAmount(totalExpenses) });
-              if (!isCreditCard && totalTransfersOut > 0) lines.push({ label: `Transfers out${nOut ? ` · ${nOut}` : ""}`, sign: "−", amount: formatAmount(totalTransfersOut) });
-              if (!isCreditCard && totalTransfersIn > 0) lines.push({ label: `Transfers in${nIn ? ` · ${nIn}` : ""}`, sign: "+", amount: formatAmount(totalTransfersIn) });
-              if (Math.abs(adj) >= 0.01) lines.push({ label: "Balance adjustments", sign: adj >= 0 ? "+" : "−", amount: formatAmount(Math.abs(adj)) });
-              return <Statement lines={lines} total={{ label: `${isCreditCard ? "Utilized" : "Closing balance"} · ${endLabel}`, amount: formatAmount(closing) }} />;
+                lines.push({ label: `${isCreditCard ? "Spent this cycle" : "Money out"}${nExpenses ? ` · ${plural(nExpenses, "expense", "expenses")}` : ""}`, sign: sign < 0 ? "−" : "+", amount: formatExactAmount(totalExpenses) });
+              if (!isCreditCard && totalTransfersOut > 0) lines.push({ label: `Transfers out${nOut ? ` · ${nOut}` : ""}`, sign: "−", amount: formatExactAmount(totalTransfersOut) });
+              if (!isCreditCard && totalTransfersIn > 0) lines.push({ label: `Transfers in${nIn ? ` · ${nIn}` : ""}`, sign: "+", amount: formatExactAmount(totalTransfersIn) });
+              if (Math.abs(adj) >= 0.01) lines.push({ label: "Balance adjustments", sign: adj >= 0 ? "+" : "−", amount: formatExactAmount(Math.abs(adj)) });
+              return <Statement lines={lines} total={{ label: `${isCreditCard ? "Utilized" : "Closing balance"} · ${endLabel}`, amount: formatExactAmount(closing) }} />;
             })()}
 
             {/* Reconcile + Vault shortcuts */}
@@ -962,8 +963,8 @@ const loadData = useCallback(async () => {
                       title={isCreditCard ? "Correct what's used" : "Correct the balance"}
                       hint={
                         isCreditCard
-                          ? `Arth has ${formatAmount(closing)} used${cardLimit > 0 ? ` of ${formatAmount(cardLimit)}, ${formatAmount(cardLimit - closing)} available` : ""}. The difference goes in today: a debit if more is used, a credit if less.`
-                          : `Arth has ${formatAmount(closing)}. The difference goes in today: a credit if there's more, a debit if less.`
+                          ? `Arth has ${formatExactAmount(closing)} used${cardLimit > 0 ? ` of ${formatExactAmount(cardLimit)}, ${formatExactAmount(cardLimit - closing)} available` : ""}. The difference goes in today: a debit if more is used, a credit if less.`
+                          : `Arth has ${formatExactAmount(closing)}. The difference goes in today: a credit if there's more, a debit if less.`
                       }
                       className="mb-4"
                     />
@@ -988,7 +989,7 @@ const loadData = useCallback(async () => {
                     />
                     {target != null && isThisMonth && (
                       <Text className="text-meta mb-3" style={{ color: Math.abs(diff) < 0.01 ? theme.mutedForeground : isDebit ? theme.danger : theme.success }}>
-                        {Math.abs(diff) < 0.01 ? "Already matches: nothing to add." : `Adds a ${isDebit ? "debit" : "credit"} of ${formatAmount(Math.abs(diff))}.`}
+                        {Math.abs(diff) < 0.01 ? "Already matches: nothing to add." : `Adds a ${isDebit ? "debit" : "credit"} of ${formatExactAmount(Math.abs(diff))}.`}
                       </Text>
                     )}
                   </>
@@ -1125,6 +1126,7 @@ const loadData = useCallback(async () => {
               <DrawerCell key={entry.id} row={row} flat>
               <Animated.View layout={listLayout()}>
               <TransactionRow
+                exact
                 highlighted={isFocused}
                 onLayout={isFocused ? (e) => {
                   if (didScrollToFocus.current) return;
@@ -1151,7 +1153,7 @@ const loadData = useCallback(async () => {
                 status={rowStatus}
                 date={formatEntryDate(entry.date)}
                 note={entry.splitPersonName ? `Split with ${entry.splitPersonName}` : null}
-                after={balanceAfter.has(entry.id) ? `${isCreditCard ? "Owed" : "Balance"} ${formatAmount(balanceAfter.get(entry.id)!)}` : null}
+                after={balanceAfter.has(entry.id) ? `${isCreditCard ? "Owed" : "Balance"} ${formatExactAmount(balanceAfter.get(entry.id)!)}` : null}
               />
               </Animated.View>
             </DrawerCell>

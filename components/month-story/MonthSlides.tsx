@@ -6,6 +6,7 @@ import Animated, { Easing, useAnimatedProps, useReducedMotion, useSharedValue, w
 import { Text } from "@/components/ui";
 import { BODY, Chip, Count, Float, H1, H2, Headline, Pop, Slide, SLIDE_COLORS, SOFT, Sub, WHITE } from "@/components/year-review/StoryCards";
 import { dayLabel, monthLong, type MonthStory } from "@/services/month-story";
+import { DayGrid } from "@/components/insights/SpendCalendar";
 import { formatShortAmount } from "@/utils/format";
 
 /**
@@ -189,6 +190,15 @@ export function BigDaySlide({ s }: { s: MonthStory }) {
       <Sub delay={900}>
         {d.count} payment{d.count === 1 ? "" : "s"} that day{pay ? `, ${compact(pay.amount)} of it at ${pay.name}` : ""}.
       </Sub>
+      <Pop delay={1200} style={{ marginTop: 18 }}>
+        <DayGrid
+          month={s.month}
+          perDay={[...s.cumulative.map((v, i) => v - (i > 0 ? s.cumulative[i - 1] : 0)), ...new Array<number>(s.daysInMonth - s.cumulative.length).fill(0)]}
+          upToDay={s.day}
+          highlight={Number(d.date.slice(8, 10))}
+          light
+        />
+      </Pop>
     </Big>
   );
 }

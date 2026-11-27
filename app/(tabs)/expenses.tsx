@@ -321,7 +321,7 @@ export default function ExpensesScreen() {
   );
 
   // Preset: navigate to a specific tab after save (refund → credits, etc.)
-  const params = useLocalSearchParams<{ preset?: string; filterMonth?: string; filterAvoidability?: string; search?: string; select?: string; show?: string; hint?: string; request?: string }>();
+  const params = useLocalSearchParams<{ preset?: string; filterMonth?: string; filterAvoidability?: string; search?: string; ask?: string; select?: string; show?: string; hint?: string; request?: string }>();
   const presetParam = params.preset;
   const presetAppliedRef = useRef(false);
   // "See all" from Search or do. Keyed on the text, so each new search applies even with the tab open.
@@ -981,6 +981,25 @@ export default function ExpensesScreen() {
   const applyNLSearch = useCallback(() => {
     applyNLSearchWith(search);
   }, [applyNLSearchWith, search]);
+
+  // "Ask about your money" from Insights: read like the search box's Enter. Keyed on the request,
+  // so asking the same words again still applies.
+  const pendingAsk = useRef<string | null>(null);
+  useEffect(() => {
+    if (params.ask) pendingAsk.current = params.ask;
+  }, [params.ask, params.request]);
+  useEffect(() => {
+    // Wait for the categories, so on-device AI can map words onto them.
+    if (!pendingAsk.current || categories.length === 0) return;
+    const ask = pendingAsk.current;
+    pendingAsk.current = null;
+    // A fresh question starts from a clean list, not under the last one's filters.
+    setFilterCategoryIds([]);
+    setFilterMerchantNames([]);
+    setMinAmount("");
+    setMaxAmount("");
+    applyNLSearchWith(ask);
+  }, [params.ask, params.request, categories.length, applyNLSearchWith]);
 
   // Voice search
   const [isVoiceSearching, setIsVoiceSearching] = useState(false);

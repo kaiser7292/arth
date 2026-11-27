@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View, type LayoutChangeEvent } from "react-native";
 import { tint } from "@/constants/brand";
 import { useTheme } from "@/hooks/use-theme";
-import { formatAmount } from "@/utils/format";
+import { formatAmount, formatExactAmount } from "@/utils/format";
 import { Chip, type ChipTone } from "./Chip";
 import { moneyTone } from "./money-tone";
 import { Text } from "./Text";
@@ -15,6 +15,8 @@ export interface TransactionRowStatus {
 }
 
 export interface TransactionRowProps {
+  /** To the last paisa even with Settings → Region → Decimals on Round off (account ledgers). */
+  exact?: boolean;
   /** The tile's icon and colour: the category, a credit's type, a transfer. */
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
@@ -78,7 +80,9 @@ export function TransactionRow({
   onLayout,
   accessibilityLabel,
   accessibilityHint,
+  exact,
 }: TransactionRowProps) {
+  const money = exact ? formatExactAmount : formatAmount;
   const theme = useTheme();
   const fg = amountColor ?? (flow === "out" ? theme.danger : moneyTone(theme, flow).fg);
   const shownSign = sign ?? (flow === "in" || (flow === "moved" && plus) ? "+" : "");
@@ -91,7 +95,7 @@ export function TransactionRow({
       className={`flex-row items-start ${inCard ? "px-3.5" : "px-4"} py-3 ${inCard ? (divider ? "border-t border-border" : "") : "border-b border-border"}`}
       style={highlighted ? { backgroundColor: theme.alpha("primary", 0.12), borderLeftWidth: 3, borderLeftColor: theme.primary } : undefined}
       accessibilityRole={onPress ? "button" : undefined}
-      accessibilityLabel={accessibilityLabel ?? `${title}, ${shownSign}${formatAmount(amount)}${date ? `, ${date}` : ""}`}
+      accessibilityLabel={accessibilityLabel ?? `${title}, ${shownSign}${money(amount)}${date ? `, ${date}` : ""}`}
       accessibilityHint={accessibilityHint}
     >
       <View className="w-10 h-10 rounded-control items-center justify-center mr-3" style={{ backgroundColor: tint(color, 0.12) }}>
@@ -105,7 +109,7 @@ export function TransactionRow({
           </Text>
           <Text className="text-body font-bold shrink-0" style={{ color: fg, fontVariant: ["tabular-nums"] }}>
             {shownSign}
-            {formatAmount(amount)}
+            {money(amount)}
           </Text>
         </View>
 

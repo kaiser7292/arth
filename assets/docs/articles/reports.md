@@ -1,7 +1,7 @@
 ---
 title: Reports
 slug: reports
-summary: Four personal reports built from your own data - Financial health, Retirement readiness, Loan payoff strategy and Spending personality - each downloadable as a PDF.
+summary: Personal reports built from your own data - Financial health, Retirement readiness, Loan payoff strategy and Spending personality - each downloadable as a PDF.
 tags: [reports, PDF, financial health, retirement, retirement readiness, corpus, SIP, loan payoff, avalanche, snowball, spending personality, insights, export]
 contextKeys: [reports, insights-reports]
 phrasings:
@@ -17,13 +17,18 @@ phrasings:
   - Share my financial report
 ---
 
-Arth can build four in-depth reports from your own data. Each one runs on your phone and can be saved as a PDF.
+Arth can build in-depth reports from your own data. Each one runs on your phone and can be saved as a PDF.
 
 ## Where to find them
 
-**Home tab → Insights page → Reports.**
+Each report lives where it belongs:
 
-## The four reports
+- **Financial health** - the **Financial health** card at the top of the Goals tab.
+- **Retirement readiness** - the **Retirement readiness** tile under Plan on the Goals tab. You can switch it off in **Settings → Customise Arth**.
+- **Loan payoff** - **Goals → Loans & debt → Payoff plan**.
+- **Spending personality** - a slide in **Year in review** (Home → Insights → Explore → Year in review).
+
+## The reports
 
 ### Financial health
 
@@ -45,11 +50,11 @@ Compares paying off your loans **avalanche** style (highest interest first) agai
 
 ### Spending personality
 
-Needs no input. Gives your spending an archetype, and shows your top categories and merchants, the monthly trend, which days of the week you spend most, how consistent you are, and behavioural shifts worth noticing.
+Needs no input. Gives your spending an archetype from recent months, with its traits. It's one slide in Year in review.
 
 ## Save as PDF
 
-Tap **Download PDF** at the bottom of any report. Arth creates the PDF on your phone and opens the share sheet so you can save or send it. Your answers to the retirement and loan questions are remembered for next time.
+Tap **Download PDF** at the bottom of the Financial health, Retirement readiness or Payoff plan screen. Arth creates the PDF on your phone and opens the share sheet so you can save or send it. Your answers to the retirement and loan questions are remembered for next time.
 
 > A PDF contains your financial details. Share it only with people you trust.
 

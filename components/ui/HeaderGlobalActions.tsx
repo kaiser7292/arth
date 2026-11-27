@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -8,8 +8,9 @@ import { isAmountsHidden, toggleAmountsHidden } from "@/services/privacy-mode";
 /**
  * Search and Hide amounts, on the right of every inner screen's header, the same two Home has.
  * Mic and Scan stay on Home and inside Search ("Search or do something"), so titles keep their room.
+ * `leading` puts a screen's own buttons before them (the yearly plan's Year over year).
  */
-export function HeaderGlobalActions({ color }: { color?: string } = {}) {
+export function HeaderGlobalActions({ color, leading }: { color?: string; leading?: ReactNode } = {}) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const tint = color ?? colors.tint;
@@ -20,6 +21,7 @@ export function HeaderGlobalActions({ color }: { color?: string } = {}) {
 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginRight: 4, gap: 6 }}>
+      {leading}
       <Pressable
         onPress={() => router.push("/search")}
         hitSlop={8}

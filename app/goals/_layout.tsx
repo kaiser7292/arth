@@ -49,6 +49,18 @@ export default function GoalsLayout() {
         options={{ title: "Capital gains reference" }}
       />
       <Stack.Screen
+        name="retirement"
+        options={{ title: "Retirement readiness" }}
+      />
+      <Stack.Screen
+        name="loan-payoff"
+        options={{ title: "Payoff plan" }}
+      />
+      <Stack.Screen
+        name="financial-health"
+        options={{ title: "Financial health" }}
+      />
+      <Stack.Screen
         name="health-grade"
         options={{ title: "Financial health" }}
       />

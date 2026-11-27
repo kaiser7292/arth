@@ -24,6 +24,7 @@ import {
 import { useTheme, type Theme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 import { useAlert } from "@/hooks/use-alert";
+import { isPartOn } from "@/services/customise";
 
 /** Takes the theme as an argument: this is a plain helper, not a component, so it must not
  *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
@@ -101,7 +102,15 @@ export default function FinancialHealthReportScreen() {
     return { startDate: toIsoDate(start), endDate: toIsoDate(end) };
   }
 
+  /** The transaction lists open in Insights: with Insights switched off, say so instead. */
+  function insightsOn(): boolean {
+    if (isPartOn("insights")) return true;
+    alert("Insights is off", "Turn Insights on in Settings → Customise Arth to see these transactions.");
+    return false;
+  }
+
   async function drillCategory(categoryId: string, categoryName: string) {
+    if (!insightsOn()) return;
     try {
       const { startDate, endDate } = getFYDates();
       const txns = await getExpensesPaginated(
@@ -121,6 +130,7 @@ export default function FinancialHealthReportScreen() {
   }
 
   async function drillSpikeCategory(categoryId: string, categoryName: string) {
+    if (!insightsOn()) return;
     try {
       const now = new Date();
       const startDate = toIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -142,6 +152,7 @@ export default function FinancialHealthReportScreen() {
   }
 
   async function drillFixedOrDiscretionary(type: "fixed" | "discretionary") {
+    if (!insightsOn()) return;
     try {
       const { startDate, endDate } = getFYDates();
       const txns = await getExpensesPaginated(

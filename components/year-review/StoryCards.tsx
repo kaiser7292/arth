@@ -19,6 +19,7 @@ import Animated, {
 import { Text } from "@/components/ui";
 import { formatAmount, formatCompact } from "@/utils/format";
 import { monthName, type YearReview } from "@/services/reports/year-review";
+import type { SpendingPersonalityReport } from "@/services/reports/spending-personality-report";
 
 /**
  * Year in Review as a story: full-screen slides, each in its own colours, where everything moves
@@ -42,6 +43,7 @@ export const SLIDE_COLORS = {
   invested: ["#1A8A80", "#0C447C"],
   hisaab: ["#C2532A", "#4B1528"],
   vs: ["#4F45B0", "#4B1528"],
+  persona: ["#8A4FC4", "#26215C"],
   wrap: ["#2E2770", "#0B0B14"],
 } as const satisfies Record<string, readonly [string, string]>;
 
@@ -603,6 +605,32 @@ export function VsLastYearSlide({ r }: { r: YearReview }) {
             </Pop>
           );
         })}
+      </View>
+    </Slide>
+  );
+}
+
+/**
+ * Your spending personality (moved here from Insights → Reports): the archetype the spending
+ * personality report works out from recent months, with its traits.
+ */
+export function PersonalitySlide({ p }: { p: SpendingPersonalityReport }) {
+  const a = p.archetype;
+  return (
+    <Slide colors={SLIDE_COLORS.persona} eyebrow={`Your spending personality · last ${p.monthsAnalyzed} months`}>
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <Pop delay={100}>
+          <Float>
+            <Text style={{ fontSize: 64, lineHeight: 76 }}>{a.emoji}</Text>
+          </Float>
+        </Pop>
+        <Pop delay={250} style={{ marginTop: 10 }}>
+          <Text style={{ ...H1, fontSize: 40, lineHeight: 46 }}>{a.name}</Text>
+        </Pop>
+        <Sub delay={450}>{a.description}</Sub>
+        {a.traits.slice(0, 3).map((t, i) => (
+          <Chip key={t} icon="checkmark-circle-outline" label={t} delay={700 + i * 150} />
+        ))}
       </View>
     </Slide>
   );

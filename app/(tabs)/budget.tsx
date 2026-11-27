@@ -5,7 +5,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Card, Chip, ChipWrap, ContextualHeader, FieldRow, PeriodNavigator, ProgressBar, ScreenContainer, SwipePager, Text } from "@/components/ui";
+import { Card, Chip, ChipWrap, ContextualHeader, FieldRow, PeriodNavigator, ProgressBar, ScreenContainer, Segmented, SwipePager, Text } from "@/components/ui";
 import { tint } from "@/constants/brand";
 import { AnimatedNumber, Nudge, PressableScale } from "@/components/motion";
 import { FoldGroup } from "@/components/ui/FormParts";
@@ -328,6 +328,24 @@ export default function BudgetScreen() {
         }
       />
       <PeriodNavigator mode="month" value={month} onChange={setMonth} />
+
+      {/* Longer than a month: Budget vs actual for 3 or 6 months or the FY (moved here from Insights,
+          docs/INSIGHTS_STREAMLINE_PROPOSAL.md §2.1). The month stays this page; the others open it. */}
+      {activePageIndex === 0 && (
+        <Segmented
+          className="mx-4 mt-2"
+          value="month"
+          options={[
+            { value: "month", label: "Month" },
+            { value: "last_3m", label: "3M" },
+            { value: "last_6m", label: "6M" },
+            { value: "this_fy", label: "FY" },
+          ]}
+          onChange={(v) => {
+            if (v !== "month") router.push({ pathname: "/budget/vs-actual", params: { period: v } });
+          }}
+        />
+      )}
 
       {/* What shows on Overview, and how categories sort (only on Overview) */}
       {activePageIndex === 0 && showWidgetManager && (

@@ -7,7 +7,7 @@ import { tint } from "@/constants/brand";
 
 /**
  * A row that opens another screen: a tinted icon square, a title, a live line under it, an
- * optional value on the right and a chevron. The rows of the Goals tab's Track and Analyse lists,
+ * optional value on the right and a chevron. The rows of the Goals tab's Track list,
  * the Settings home and most "Your data" style cards on the revamp boards.
  *
  * Sits inside a card. `divider` draws the hairline above it (off for the first row).

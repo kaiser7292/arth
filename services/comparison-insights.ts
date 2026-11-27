@@ -372,7 +372,7 @@ export async function getThisVsLastMonthTotals(
   userId: string,
 ): Promise<{ currentMonth: number; previousMonth: number }> {
   const presets = getComparisonPresets();
-  const preset = presets.find((p) => p.label === "This Month vs Last Month") ?? presets[1];
+  const preset = presets.find((p) => p.label === "This Month vs Last Month") ?? presets[2];
   const [current, previous] = await Promise.all([
     queryRangeSummary(userId, preset.range2Start, preset.range2End),
     queryRangeSummary(userId, preset.range1Start, preset.range1End),
@@ -459,15 +459,23 @@ export function getComparisonPresets(): ComparisonPreset[] {
   const lastQEndDate = new Date(year, qMonth, 0);
   const lastQEnd = `${lastQEndDate.getFullYear()}-${String(lastQEndDate.getMonth() + 1).padStart(2, "0")}-${String(lastQEndDate.getDate()).padStart(2, "0")}`;
 
-  // Year-over-Year (same month last year)
-  const yoyLastYearStart = `${year - 1}-${String(month + 1).padStart(2, "0")}-01`;
-  const yoyLastYearEnd = getLastDayOfMonth(`${year - 1}-${String(month + 1).padStart(2, "0")}`);
+  // This month so far against last month up to the same day (its last day when it's shorter), so
+  // a part month is never compared with a whole one (docs/INSIGHTS_STREAMLINE_PROPOSAL.md §2.2).
+  const today = `${year}-${String(month + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const lastMonthSameDay = `${lastMonthYM}-${String(Math.min(now.getDate(), Number(lastMonthEnd.slice(8, 10)))).padStart(2, "0")}`;
 
   // This Week vs Last Week
   const thisWeek = getWeekBounds(0);
   const lastWeek = getWeekBounds(-1);
 
   return [
+    {
+      label: "This Month vs Last Month, same day",
+      range1Start: lastMonthStart,
+      range1End: lastMonthSameDay,
+      range2Start: thisMonthStart,
+      range2End: today,
+    },
     {
       label: "This Week vs Last Week",
       range1Start: lastWeek.start,
@@ -488,13 +496,6 @@ export function getComparisonPresets(): ComparisonPreset[] {
       range1End: lastQEnd,
       range2Start: thisQStart,
       range2End: thisQEnd,
-    },
-    {
-      label: "Year-over-Year (This Month)",
-      range1Start: yoyLastYearStart,
-      range1End: yoyLastYearEnd,
-      range2Start: thisMonthStart,
-      range2End: thisMonthEnd,
     },
   ];
 }

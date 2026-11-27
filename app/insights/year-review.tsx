@@ -22,6 +22,7 @@ import {
   MerchantsSlide,
   MonthsSlide,
   NetWorthSlide,
+  PersonalitySlide,
   Pop,
   SavingsSlide,
   SLIDE_COLORS,
@@ -32,6 +33,7 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { exportYearReviewPDF, sharePDF } from "@/services/reports/report-pdf-export";
 import { buildShareLines, getReviewableFYs, getYearReview, type YearReview } from "@/services/reports/year-review";
 import { getFYStartMonth } from "@/services/settings";
+import { generateSpendingPersonalityReport, type SpendingPersonalityReport } from "@/services/reports/spending-personality-report";
 import { settingsStorage } from "@/services/storage";
 import { getCurrentFY, getFYLabel } from "@/utils/fiscal-year";
 import { formatAmount } from "@/utils/format";
@@ -94,9 +96,29 @@ export default function YearReviewScreen() {
   // Cached by data version inside getYearReview, so coming back with nothing changed is instant.
   useDataRefresh(load);
 
+  // Your spending personality: its own slide, left out when it can't be worked out.
+  // It reads recent months, so it belongs only to the year still running. Undefined while it loads:
+  // the story waits, so no slide appears under someone mid-way through it.
+  const [persona, setPersona] = useState<SpendingPersonalityReport | null | undefined>(undefined);
+  const isCurrentFy = fy === getCurrentFY(startMonth);
+  useEffect(() => {
+    if (!isCurrentFy) {
+      setPersona(null);
+      return;
+    }
+    let live = true;
+    setPersona(undefined);
+    generateSpendingPersonalityReport(DEFAULT_USER_ID)
+      .then((p) => live && setPersona(p.monthsAnalyzed > 0 ? p : null))
+      .catch(() => live && setPersona(null));
+    return () => {
+      live = false;
+    };
+  }, [isCurrentFy]);
+
   // Slides with nothing to say are left out (no loans → no loans slide).
   const slides = useMemo(() => {
-    if (!review || review.totals.txCount === 0) return [];
+    if (!review || review.totals.txCount === 0 || persona === undefined) return [];
     const r = review;
     const out: { key: string; colors: readonly [string, string]; node: React.ReactNode }[] = [];
     const add = (key: keyof typeof SLIDE_COLORS, node: React.ReactNode) => out.push({ key, colors: SLIDE_COLORS[key], node });
@@ -109,10 +131,11 @@ export default function YearReviewScreen() {
     if (r.debt && r.debt.reduced !== 0) add("debt", <DebtSlide r={r} />);
     if (r.invested && r.invested.amount > 0) add("invested", <InvestedSlide r={r} />);
     if (r.hisaab && (r.hisaab.settledAmount > 0 || r.hisaab.netAtEnd !== 0)) add("hisaab", <HisaabSlide r={r} />);
+    if (persona) add("persona", <PersonalitySlide p={persona} />);
     if (r.vsLastYear && r.vsLastYear.changes.length > 0) add("vs", <VsLastYearSlide r={r} />);
     add("wrap", null);
     return out;
-  }, [review]);
+  }, [review, persona]);
   const last = slides.length - 1;
   const onShareSlide = page === last && slides.length > 0;
 
@@ -279,7 +302,7 @@ export default function YearReviewScreen() {
     );
   }
 
-  if (!review || (loading && slides.length === 0)) {
+  if (!review || ((loading || persona === undefined) && slides.length === 0)) {
     return (
       <Backdrop colors={SLIDE_COLORS.intro}>
         <Confetti count={14} />

@@ -126,7 +126,7 @@ export default function CashFlowScreen() {
               </View>
               {flow.left > 0 && flow.cameIn > 0 && (
                 <Text className="text-meta text-muted-foreground">
-                  {Math.round((flow.left / flow.cameIn) * 100)}% of what came in{months > 1 ? ` · ${formatAmount(Math.round(flow.left / months))} a month` : ""}
+                  You kept {Math.round((flow.left / flow.cameIn) * 100)}% of what came in{months > 1 ? ` · ${formatAmount(Math.round(flow.left / months))} a month` : ""}
                 </Text>
               )}
               {quietShort && <Text className="text-meta text-muted-foreground">Your income for this month hasn't come yet</Text>}

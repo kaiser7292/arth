@@ -15,11 +15,11 @@ phrasings:
   - Year on year analysis
   - Historical spending comparison
   - Two year comparison
-  - Goals analyse section
+  - Where is Year over year
   - How has my saving changed year on year?
 ---
 
-The **Year-over-Year comparison** (Goals tab → Analyse section → Year-over-Year) puts this fiscal year and the previous one side by side so you can see at a glance whether your finances are moving in the right direction.
+The **Year-over-Year comparison** (Home tab → Insights page → Explore → Year over year, or the swap icon at the top of the Yearly plan) puts this fiscal year and the previous one side by side so you can see at a glance whether your finances are moving in the right direction.
 
 ## What is shown
 

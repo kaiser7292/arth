@@ -27,7 +27,7 @@ function FeatureOff({ feature }: { feature: FeatureId }) {
 }
 
 /** For a feature's layout: the screens when it's on, the page above when it's off. */
-export function FeatureGate({ feature, children }: { feature: FeatureId; children: React.ReactNode }) {
+export function FeatureGate({ feature, children, bypass }: { feature: FeatureId; children: React.ReactNode; bypass?: boolean }) {
   useCustomisation();
-  return isPartOn(feature) ? <>{children}</> : <FeatureOff feature={feature} />;
+  return isPartOn(feature) || bypass ? <>{children}</> : <FeatureOff feature={feature} />;
 }

@@ -14,6 +14,8 @@ import { loadMonthStory, monthLong, plainHeadline, prevYm, storyFacts, storyTile
 import { isAmountsHidden } from "@/services/privacy-mode";
 import { formatShortAmount } from "@/utils/format";
 import { logger } from "@/utils/logger";
+import { DEFAULT_USER_ID } from "@/constants/app";
+import { getAnalyticsForecast } from "@/services/analytics-forecast";
 
 const CHART_H = 76;
 
@@ -29,6 +31,8 @@ export function MonthStoryCard() {
   const router = useRouter();
   const [story, setStory] = useState<MonthStory | null>(null);
   const [aiHeadline, setAiHeadline] = useState<string | null>(null);
+  /** Where this month is likely to end (services/analytics-forecast.ts), drawn dotted on the chart. */
+  const [projected, setProjected] = useState<number | null>(null);
   const loadSeq = useRef(0);
   /** The facts being written right now, if any: data refreshes mid-write don't start another. */
   const writingKey = useRef<string | null>(null);
@@ -40,6 +44,14 @@ export function MonthStoryCard() {
       const s = await loadMonthStory(month);
       if (seq !== loadSeq.current) return;
       setStory(s);
+      // The forecast is a nice-to-have: without it the chart simply stops at today.
+      try {
+        const f = s.isCurrent && s.payments > 0 && s.day < s.daysInMonth ? await getAnalyticsForecast(DEFAULT_USER_ID) : null;
+        if (seq !== loadSeq.current) return;
+        setProjected(f && f.month === month && f.projectedTotal > s.spent ? f.projectedTotal : null);
+      } catch {
+        if (seq === loadSeq.current) setProjected(null);
+      }
       // Amounts hidden: the AI line carries numbers, so the plain (masked) one shows.
       if (s.payments === 0 || isAmountsHidden()) return setAiHeadline(null);
       const facts = storyFacts(s);
@@ -101,11 +113,23 @@ export function MonthStoryCard() {
           </View>
         )}
 
-        {s.prevTotal > 0 && <PaceChart s={s} />}
+        {s.prevTotal > 0 && <PaceChart s={s} projected={projected} />}
         <View className="flex-row items-center mt-1.5" style={{ gap: 14 }}>
           <Legend color={theme.primary} label={`${monthLong(s.month).slice(0, 3)} ${formatShortAmount(Math.round(s.spent))}`} />
           {s.prevTotal > 0 && <Legend color={theme.mutedForeground} dashed label={`${prevShort} by day ${Math.min(s.day, s.prevCumulative.length)} ${formatShortAmount(Math.round(s.prevSameDay))}`} />}
         </View>
+        {projected != null && (
+          <Pressable
+            onPress={() => router.push("/insights/forecast" as never)}
+            hitSlop={8}
+            className="flex-row items-center mt-1.5 self-start"
+            accessibilityRole="button"
+            accessibilityLabel={`Likely ${formatShortAmount(Math.round(projected))} by ${s.daysInMonth} ${monthLong(s.month).slice(0, 3)}. Open the forecast`}
+          >
+            <Legend color={theme.primary} dotted label={`Likely ${formatShortAmount(Math.round(projected))} by ${s.daysInMonth} ${monthLong(s.month).slice(0, 3)}`} />
+            <Ionicons name="chevron-forward" size={12} color={theme.mutedForeground} style={{ marginLeft: 2 }} />
+          </Pressable>
+        )}
 
         {tiles.length > 0 && (
           <View className="flex-row mt-3" style={{ gap: 8 }}>
@@ -128,7 +152,7 @@ export function MonthStoryCard() {
 
       <View className="flex-row items-center mt-3">
         {s.budgetsOver > 0 ? (
-          <Pressable onPress={() => router.push("/insights/budget-vs-actual" as never)} hitSlop={8} className="flex-row items-center" accessibilityRole="button">
+          <Pressable onPress={() => router.push("/budget/vs-actual" as never)} hitSlop={8} className="flex-row items-center" accessibilityRole="button">
             <Ionicons name="alert-circle-outline" size={14} color={theme.warning} />
             <Text className="text-xs font-semibold ml-1" style={{ color: theme.warning }}>
               {s.budgetsOver} budget{s.budgetsOver === 1 ? "" : "s"} over
@@ -150,22 +174,22 @@ export function MonthStoryCard() {
   );
 }
 
-function Legend({ color, label, dashed }: { color: string; label: string; dashed?: boolean }) {
+function Legend({ color, label, dashed, dotted }: { color: string; label: string; dashed?: boolean; dotted?: boolean }) {
   return (
     <View className="flex-row items-center">
-      <View style={{ width: 12, height: 0, borderTopWidth: 2, borderColor: color, borderStyle: dashed ? "dashed" : "solid" }} />
+      <View style={{ width: 12, height: 0, borderTopWidth: 2, borderColor: color, borderStyle: dotted ? "dotted" : dashed ? "dashed" : "solid" }} />
       <Text className="text-label text-muted-foreground ml-1.5">{label}</Text>
     </View>
   );
 }
 
-/** This month's spending added up day by day (solid), over last month's (dashed). */
-function PaceChart({ s }: { s: MonthStory }) {
+/** This month's spending added up day by day (solid), over last month's (dashed), and dotted on to the forecast. */
+function PaceChart({ s, projected }: { s: MonthStory; projected: number | null }) {
   const theme = useTheme();
   const [w, setW] = useState(0);
   const onLayout = (e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width);
   const days = Math.max(s.daysInMonth, s.prevCumulative.length);
-  const top = Math.max(s.cumulative[s.cumulative.length - 1] ?? 0, s.prevCumulative[s.prevCumulative.length - 1] ?? 0, 1);
+  const top = Math.max(s.cumulative[s.cumulative.length - 1] ?? 0, s.prevCumulative[s.prevCumulative.length - 1] ?? 0, projected ?? 0, 1);
   const x = (i: number) => (days <= 1 ? 0 : (i / (days - 1)) * (w - 8) + 4);
   const y = (v: number) => CHART_H - 4 - (v / top) * (CHART_H - 10);
   const path = (pts: number[]) => pts.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
@@ -177,6 +201,16 @@ function PaceChart({ s }: { s: MonthStory }) {
           <Svg width={w} height={CHART_H}>
             <Path d={path(s.prevCumulative)} stroke={theme.mutedForeground} strokeWidth={1.5} strokeDasharray="4 4" fill="none" opacity={0.7} />
             {lastI >= 0 && <Path d={path(s.cumulative)} stroke={theme.primary} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
+            {lastI >= 0 && projected != null && (
+              <Path
+                d={`M${x(lastI).toFixed(1)} ${y(s.cumulative[lastI]).toFixed(1)} L${x(s.daysInMonth - 1).toFixed(1)} ${y(projected).toFixed(1)}`}
+                stroke={theme.primary}
+                strokeWidth={2}
+                strokeDasharray="2 4"
+                strokeLinecap="round"
+                fill="none"
+              />
+            )}
             {lastI >= 0 && <Circle cx={x(lastI)} cy={y(s.cumulative[lastI])} r={4} fill={theme.primary} />}
           </Svg>
         </WipeIn>

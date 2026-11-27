@@ -17,6 +17,10 @@ export default function BudgetLayout() {
         options={{ title: "Spending Split" }}
       />
       <Stack.Screen
+        name="vs-actual"
+        options={{ title: "Budget vs actual" }}
+      />
+      <Stack.Screen
         name="transactions"
         options={{ title: "Expenses" }}
       />

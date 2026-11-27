@@ -32,8 +32,8 @@ Buckets can optionally link to milestones - a bucket's growth then counts toward
 **Goals tab** (bottom nav).
 - "Life Milestones" card → all your milestones, active and completed, sorted by due date (soonest first; milestones with no date go last).
 - "Investment Buckets" section → all buckets with current vs target.
-- "Yearly Plan" card → planned vs actual this FY.
-- "YoY Comparison" link → side-by-side with last FY.
+- Track → "Yearly plan" → planned vs actual this FY. Its swap icon at the top opens Year over year.
+- Year over year also lives in Home → Insights → Explore.
 
 ## Create a milestone
 
