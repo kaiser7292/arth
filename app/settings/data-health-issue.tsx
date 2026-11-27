@@ -41,7 +41,7 @@ const HOW: Record<HealthCheckId, string> = {
   refunds: "Open a refund and link it to the purchase it refunds.",
   redemptions: "Open one and choose the investment it came from, or say it's regular income.",
   sips: "Open one and link it to its investment bucket.",
-  balance_gaps: "Open the account's ledger to find what's missing, or match it to the bank from Fix my data.",
+  balance_gaps: "Open the account's ledger to find what's missing, or match it to the bank from Data health.",
   account_types: "Open the account and set the right type.",
   merchant_spellings: "Under each name, the entries spelled differently. Open the merchant to merge the names.",
   merchant_categories: "Under each merchant, the entries filed outside its usual category.",

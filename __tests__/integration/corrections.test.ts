@@ -284,7 +284,7 @@ describe("the Fix my data file", () => {
     const json = mockWritten.get(f.fileName) ?? "";
     const data = JSON.parse(json);
 
-    expect(data.format).toBe("arth-corrections/1");
+    expect(data.format).toBe("arth-corrections/2");
     expect(data.request).toMatch(/consistent/);
     expect(data.reply_instructions.join(" ")).toMatch(/mark_transfer/);
     expect(data.accounts_for_fixes.map((a: { fix_ref: string }) => a.fix_ref)).toContain(accountFixRef(ACC.card));
@@ -294,6 +294,72 @@ describe("the Fix my data file", () => {
     expect(json).not.toMatch(/LEAK_/);
     // The keys first, so an assistant reading only the start still has the instructions.
     expect(Object.keys(data).slice(0, 5)).toEqual(["guide", "format", "request", "reply_instructions", "health"]);
+  });
+});
+
+describe("one request for every round trip (docs/AI_HUB_PROPOSAL.md §4)", () => {
+  it("asks for a setup in the same file and format, with the setup kinds in the instructions", async () => {
+    const { buildFixExport } = await import("../../services/corrections/export");
+    const f = await buildFixExport(USER, { includePeople: false, includeNotes: false, focus: "everything", period: "all_time" });
+    const data = JSON.parse(mockWritten.get(f.fileName) ?? "{}");
+    expect(f.fileName).toMatch(/^arth-for-ai_/);
+    expect(data.format).toBe("arth-corrections/2");
+    expect(data.request).toMatch(/Set Arth up/);
+    const howTo = data.reply_instructions.join(" ");
+    expect(howTo).toMatch(/- set_income:/);
+    expect(howTo).toMatch(/add_transaction/);
+    expect(howTo).toMatch(/mark_duplicate/);
+  });
+
+  it("leaves income and goals out of the instructions when you only ask for fixes", async () => {
+    const { buildCorrectionInstructions } = await import("../../services/corrections/format");
+    expect(buildCorrectionInstructions().join(" ")).not.toMatch(/- set_income:/);
+    expect(buildCorrectionInstructions({ fullSetup: true }).join(" ")).toMatch(/- set_income:/);
+    expect(buildCorrectionInstructions({ unreadMessages: true }).join(" ")).toMatch(/sms_template/);
+  });
+
+  it("reads a setup-only change next to a fix, instead of turning it away", async () => {
+    const r = await readCorrections(
+      USER,
+      JSON.stringify({
+        format: "arth-corrections/2",
+        corrections: [
+          { type: "add_transaction", date: "2026-10-01", amount: 15000, kind: "spend", category: "Other", merchant: "Landlord", account: "HDFC", why: "Rent every month" },
+          { type: "set_merchant", ...t(E.swiggyOdd, "2026-10-03", 482), merchant: "Swiggy", why: "Same shop" },
+        ],
+      }),
+    );
+    expect(r.accepted.map((f) => f.type).sort()).toEqual(["add_transaction", "set_merchant"]);
+    expect(r.rejected.filter((x) => /Isn't a change Arth can make/.test(x.reason))).toEqual([]);
+  });
+
+  it("puts a missing transaction on the account its fix_ref names, even with two of one bank", async () => {
+    const r = await readCorrections(
+      USER,
+      JSON.stringify({
+        corrections: [{ type: "add_transaction", date: "2026-10-01", amount: 15000, kind: "spend", category: "Other", merchant: "Landlord", account: accountFixRef(ACC.card), why: "Rent" }],
+      }),
+    );
+    const fix = r.accepted[0] as { type: string; suggestion?: { accountId?: string | null } };
+    expect(fix.type).toBe("add_transaction");
+    expect(fix.suggestion?.accountId).toBe(ACC.card);
+  });
+
+  it("tells the assistant about unreviewed entries, and keeps net worth out of a setup file", async () => {
+    const { buildFixExport } = await import("../../services/corrections/export");
+    const f = await buildFixExport(USER, { includePeople: false, includeNotes: false, focus: "setup" });
+    const data = JSON.parse(mockWritten.get(f.fileName) ?? "{}");
+    expect(data.reply_instructions.join(" ")).toMatch(/"reviewed": false/);
+    expect(data.net_worth).toBeUndefined();
+  });
+
+  it("still reads an old setup reply written as suggestions", async () => {
+    const r = await readCorrections(
+      USER,
+      ["```json", '{"arth_suggestions":1,"suggestions":[{"type":"merchant_category","merchant":"chai point","category":"Food","why":"Tea shop"}]}', "```"].join("\n"),
+    );
+    expect(r.recognised).toBe(true);
+    expect(r.accepted.map((f) => f.type)).toEqual(["merchant_category"]);
   });
 });
 

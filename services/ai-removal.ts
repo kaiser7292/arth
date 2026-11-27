@@ -21,6 +21,8 @@ const AI_KEYS = [
   "arth_ai_chat_history",
   "arth_ai_active_model",
   "arth_ai_last_init_error",
+  // The hidden On-device AI lab, removed in 5.1 (docs/AI_HUB_PROPOSAL.md §6).
+  "ai_lab_unlocked",
 ];
 
 export function removeArthAILeftovers(): void {

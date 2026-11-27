@@ -23,7 +23,7 @@ Phase 1 settled these. Each job below keeps them, so none is repeated per job.
 5. **The same switch.** Settings → On-device AI gets one row per job, so each can be turned off on its own. Phones without Gemini Nano see none of it.
 6. **Tests:**
    - Each job's checking function is pure and unit-tested with made-up data. Real SMS details are never used: the repo is public.
-   - Each job is tried in the AI lab on your own data before it's switched on.
+   - A new job ships behind its own switch and is tried on the owner's phone first. What it did is checked in Scan history (message reading) or on the screen where it shows (the other jobs). The AI lab that used to do this was removed in 5.1 (`docs/AI_HUB_PROPOSAL.md` §6).
 
 ### 0.1 One new table: `ai_jobs`
 

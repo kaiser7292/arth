@@ -32,6 +32,12 @@ export interface CorrectionsProgress {
 export interface CorrectionsResult {
   applied: number;
   byGroup: { label: string; count: number }[];
+  /** How many applied of each kind, e.g. { set_income: 1, set_budget: 9 }. */
+  byType: Partial<Record<FixType | SharedType, number>>;
+  /** Past entries moved to a new category by merchant categories. */
+  entriesMoved: number;
+  /** Transactions the new message formats read, now waiting in the review queue. */
+  readFromMessages: number;
   failed: { title: string; reason: string }[];
   changes: MetricChange[];
 }
@@ -77,7 +83,7 @@ async function applyOne(userId: string, f: Fix): Promise<void> {
     case "mark_redemption":
       return setMoneyEvent(f.expenseId, "investment_withdrawal");
     case "link_to_bucket":
-      await linkExpenseToBucket(f.expenseId, f.bucketId, "Fix my data");
+      await linkExpenseToBucket(f.expenseId, f.bucketId, "Your AI assistant");
       return;
     case "adjust_balance":
       {
@@ -85,7 +91,7 @@ async function applyOne(userId: string, f: Fix): Promise<void> {
         const { getBalanceLines, recordBalanceDifference } = await import("@/services/balance-update");
         const line = (await getBalanceLines(userId)).find((l) => l.accountIds.includes(f.accountId));
         if (!line) throw new Error("That account isn't a bank account or wallet any more");
-        await recordBalanceDifference(userId, line, f.balance, "Matched to the bank (Fix my data)");
+        await recordBalanceDifference(userId, line, f.balance, "Matched to the bank (your AI assistant)");
       }
       return;
     case "update_goal":
@@ -105,6 +111,8 @@ export async function applyCorrections(
   userId: string,
   fixes: Fix[],
   onProgress?: (p: CorrectionsProgress) => void,
+  /** What was asked for, for the history row ("Set up everything"). */
+  request?: string,
 ): Promise<CorrectionsResult> {
   const total = fixes.length;
   onProgress?.({ done: 0, total, doing: "Measuring your figures" });
@@ -115,6 +123,8 @@ export async function applyCorrections(
   const failed: CorrectionsResult["failed"] = [];
   const counts = new Map<string, number>();
   let done = 0;
+  let entriesMoved = 0;
+  let readFromMessages = 0;
 
   for (const type of APPLY_ORDER) {
     const group = fixes.filter((f) => f.type === type);
@@ -125,6 +135,8 @@ export async function applyCorrections(
         const r = await applySuggestions(userId, group.filter(isShared).map((f) => f.suggestion));
         const ok = Object.values(r.applied).reduce((s, n) => s + (n ?? 0), 0);
         counts.set(type, ok);
+        entriesMoved += r.entriesMoved;
+        readFromMessages += r.readFromMessages;
         for (const reason of r.failed) failed.push({ title: GROUP_LABELS[type], reason });
       } catch (e) {
         logger.warn(`Fix my data: ${type} failed`, e);
@@ -155,11 +167,12 @@ export async function applyCorrections(
   addFixHistory({
     kind: "ai",
     at: new Date().toISOString(),
-    title: `${applied} correction${applied === 1 ? "" : "s"} from your AI`,
+    title: `${request ? `${request}: ` : ""}${applied} change${applied === 1 ? "" : "s"} from your AI`,
     changes: applied,
     groups: byGroup,
     moved: changes.map((c) => ({ label: c.label, before: c.before, value: c.value, unit: c.unit })),
     failed: failed.length,
   });
-  return { applied, byGroup, failed, changes };
+  const byType = Object.fromEntries(counts) as CorrectionsResult["byType"];
+  return { applied, byGroup, byType, entriesMoved, readFromMessages, failed, changes };
 }

@@ -705,7 +705,10 @@ function readAddTransaction(ctx: Context, raw: Raw): Draft {
   const merchant = str(raw.merchant, MAX_LEN.merchant);
   const categoryName = ctx.categories.get((str(raw.category, MAX_LEN.name) ?? "").toLowerCase()) ?? null;
   const accountName = (str(raw.account, MAX_LEN.merchant) ?? "").toLowerCase();
-  const matches = accountName ? ctx.accounts.filter((a) => a.name.toLowerCase() === accountName) : [];
+  // account_id: set by the corrections reader when the reply named the account by its fix_ref
+  // (services/corrections/read.ts), so two accounts with one bank name aren't ambiguous.
+  const byId = typeof raw.account_id === "string" ? ctx.accounts.filter((a) => a.id === raw.account_id) : [];
+  const matches = byId.length === 1 ? byId : accountName ? ctx.accounts.filter((a) => a.name.toLowerCase() === accountName) : [];
   return {
     type: "add_transaction",
     date: raw.date,

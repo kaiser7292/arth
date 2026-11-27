@@ -12,8 +12,6 @@ import * as Sharing from "expo-sharing";
 
 import {
   buildAiExport,
-  DEFAULT_AI_EXPORT_SECTIONS,
-  resolveAiExportPeriod,
   type AiExportOptions,
   type AiExportResult,
 } from "@/services/ai-export";
@@ -52,29 +50,27 @@ export async function shareAiFile(file: AiExportFile, options: AiExportOptions):
   }
 }
 
-/** Everything a first-time setup needs: all entries including unreviewed ones, and unread messages. */
-export async function buildSetupOptions(userId: string): Promise<AiExportOptions> {
-  const period = await resolveAiExportPeriod("all_time", userId);
-  return {
-    ...period,
-    sections: { ...DEFAULT_AI_EXPORT_SECTIONS, netWorth: false },
-    hidePeopleNames: true,
-    hideMerchantNames: false,
-    suggest: { request: "setup", includeUnreviewed: true, includeUnreadMessages: true },
-  };
-}
-
-// ─── "AI Assisted Setup" card on Home ──────────────────────────────────────
+// ─── A reply waiting (Catch Up's "Your assistant's reply" card) ─────────────
 
 const KEY_SETUP_PENDING = "ai_setup_pending";
+/** What was asked for in the file that was shared (an AiFocus), so the paste screen knows. */
+const KEY_REQUEST_FOCUS = "ai_request_focus";
 
-/** True from the moment the setup file is shared until the reply is applied or the card dismissed. */
+/** True from the moment a file is shared until the reply is applied or the card dismissed. */
 export function isAiSetupPending(): boolean {
   return storage.getBoolean(KEY_SETUP_PENDING) ?? false;
 }
 
-export function setAiSetupPending(pending: boolean): void {
+/** Sharing a file sets it with what was asked for; applying or dismissing clears it. */
+export function setAiSetupPending(pending: boolean, focus?: string): void {
+  if (pending && focus) storage.set(KEY_REQUEST_FOCUS, focus);
+  if (!pending) storage.delete(KEY_REQUEST_FOCUS);
   if (isAiSetupPending() === pending) return;
   storage.set(KEY_SETUP_PENDING, pending);
   bumpDataVersion();
+}
+
+/** What the waiting reply was asked for, if a file was shared from the request page. */
+export function getAiRequestFocus(): string | null {
+  return storage.getString(KEY_REQUEST_FOCUS) ?? null;
 }

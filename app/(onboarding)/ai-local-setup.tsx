@@ -48,7 +48,7 @@ export default function OnboardingAiLocalSetup() {
       );
       if (result.reply) {
         setLocalReply(result.reply);
-        router.push({ pathname: "/settings/ai-suggestions", params: { local: "1", onboarding: "1" } });
+        router.push({ pathname: "/settings/ai-request", params: { local: "1", onboarding: "1" } });
         setPhase("intro");
       } else {
         setNote(

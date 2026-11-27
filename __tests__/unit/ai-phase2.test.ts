@@ -2,10 +2,9 @@
 import { candidatePairs, checkMergeAnswer, pairKey } from "@/services/ai/tasks/merchant-merge";
 import { checkContextAnswer, contextAction, worthAsking } from "@/services/ai/tasks/payment-context";
 import { amountSpan, draftTemplate } from "@/services/ai/tasks/graduate-template";
-import { checkMonthAnswer, factsFrom, sentenceHolds } from "@/services/ai/tasks/month-note";
+import { checkHeadline, sentenceHolds } from "@/services/ai/tasks/month-note";
 import { checkVoiceAnswer } from "@/services/ai/tasks/read-voice";
 import { anyFilter, checkSearchAnswer, worthAskingSearch } from "@/services/ai/tasks/read-search";
-import type { Insight } from "@/services/insight-engine";
 import { normalizeSms } from "@/services/sms/sms-normalize";
 
 describe("merchant variants", () => {
@@ -69,23 +68,24 @@ describe("learning a message format", () => {
   });
 });
 
-describe("month in words", () => {
-  const insight = (over: Partial<Insight>): Insight =>
-    ({ id: "i1", type: "category_spike", severity: "warning", title: "Food is up", detail: "₹2,400 more than usual", score: 5, ...over }) as Insight;
-  it("facts come from code, biggest first", () => {
-    const f = factsFrom([insight({ id: "a", score: 1, title: "Small" }), insight({ id: "b", score: 9 })], { currentMonth: 12000, previousMonth: 10000 });
-    expect(f[0].text).toContain("so far this month");
-    expect(f[1].text).toContain("Food is up");
+describe("month headline", () => {
+  const facts = ["Spent ₹84K in November so far (day 27 of 30)", "That is ₹6.2K less than October by the same day", "Most visited place: Testmart Cafe, 14 times, ₹4.1K"];
+  it("a sentence keeps only the facts' numbers and names", () => {
+    const all = facts.join(" | ");
+    expect(sentenceHolds("You're ₹6.2K under October's pace, with Testmart Cafe 14 times.", all)).toBe(true);
+    expect(sentenceHolds("You're ₹7K under October's pace.", all)).toBe(false);
+    expect(sentenceHolds("Testmart Cafe and Zomato kept you fed.", all)).toBe(false);
+    // 84L is not 84K, and "less" never becomes "more".
+    expect(sentenceHolds("₹84L gone in November.", all)).toBe(false);
+    expect(sentenceHolds("₹6.2K more than October, wow.", all)).toBe(false);
   });
-  it("a sentence keeps only the fact's numbers and names", () => {
-    const fact = "Food is up. ₹2,400 more than usual";
-    expect(sentenceHolds("Food was ₹2,400 more than usual this month.", fact)).toBe(true);
-    expect(sentenceHolds("Food was ₹3,100 more than usual.", fact)).toBe(false);
-    expect(sentenceHolds("Food went up, mostly at Zomato.", fact)).toBe(false);
+  it("takes one clean line and drops quotes and labels", () => {
+    expect(checkHeadline(['Headline: "Testmart Cafe 14 times, and still ₹6.2K under October!"', "more"].join(String.fromCharCode(10)), facts)).toBe("Testmart Cafe 14 times, and still ₹6.2K under October!");
   });
-  it("a failed sentence falls back to the plain fact", () => {
-    const facts = factsFrom([insight({})], null);
-    expect(checkMonthAnswer('{"1":"Food was ₹9,999 more."}', facts)).toEqual([null]);
+  it("drops a headline with a made-up number, or one too long", () => {
+    expect(checkHeadline("You saved ₹9,999 in November.", facts)).toBeNull();
+    expect(checkHeadline("Hi", facts)).toBeNull();
+    expect(checkHeadline("word ".repeat(30), facts)).toBeNull();
   });
 });
 
@@ -138,13 +138,5 @@ describe("review fixes", () => {
     expect(worthAsking(BILL, null)).toBe(true);
     expect(checkContextAnswer('{"event":"card_payment"}', BILL, false)).toEqual({ event: "card_payment", scheme: null });
     expect(checkContextAnswer('{"event":"card_payment"}', BILL, false, true)).toBeNull();
-  });
-  it("a past month's line opens that month's details", () => {
-    const f = factsFrom(
-      [{ id: "i1", type: "category_spike", severity: "warning", title: "Food is up", detail: "₹2,400 more than usual", score: 5 } as Insight],
-      null,
-      "2026-10",
-    );
-    expect(f[0].href.params).toMatchObject({ insightId: "i1", month: "2026-10" });
   });
 });

@@ -45,8 +45,8 @@ export const SLIDE_COLORS = {
   wrap: ["#2E2770", "#0B0B14"],
 } as const satisfies Record<string, readonly [string, string]>;
 
-const WHITE = "#FFFFFF";
-const SOFT = "rgba(255,255,255,0.78)";
+export const WHITE = "#FFFFFF";
+export const SOFT = "rgba(255,255,255,0.78)";
 
 // ── Motion pieces ──
 
@@ -65,7 +65,7 @@ export function Pop({ delay = 0, children, style }: { delay?: number; children: 
 }
 
 /** Bobs gently up and down for as long as it's on screen. */
-function Float({ children, period = 3200, offset = 0, style }: { children: ReactNode; period?: number; offset?: number; style?: StyleProp<ViewStyle> }) {
+export function Float({ children, period = 3200, offset = 0, style }: { children: ReactNode; period?: number; offset?: number; style?: StyleProp<ViewStyle> }) {
   const reduce = useReducedMotion();
   const y = useSharedValue(0);
   useEffect(() => {
@@ -80,7 +80,7 @@ function Float({ children, period = 3200, offset = 0, style }: { children: React
 }
 
 /** A number that counts up from zero, formatted on every frame. */
-function Count({ value, format, delay = 0, style }: { value: number; format: (n: number) => string; delay?: number; style?: object }) {
+export function Count({ value, format, delay = 0, style }: { value: number; format: (n: number) => string; delay?: number; style?: object }) {
   const reduce = useReducedMotion();
   const [shown, setShown] = useState(reduce ? value : 0);
   useEffect(() => {
@@ -249,11 +249,11 @@ export function Slide({ colors, eyebrow, children, confetti }: { colors: readonl
   );
 }
 
-const H1 = { color: WHITE, fontSize: 46, fontWeight: "800" as const, lineHeight: 52, letterSpacing: -1 };
-const H2 = { color: WHITE, fontSize: 28, fontWeight: "800" as const, lineHeight: 34, letterSpacing: -0.5 };
-const BODY = { color: SOFT, fontSize: 15, lineHeight: 22 };
+export const H1 = { color: WHITE, fontSize: 46, fontWeight: "800" as const, lineHeight: 52, letterSpacing: -1 };
+export const H2 = { color: WHITE, fontSize: 28, fontWeight: "800" as const, lineHeight: 34, letterSpacing: -0.5 };
+export const BODY = { color: SOFT, fontSize: 15, lineHeight: 22 };
 
-function Headline({ children, delay = 150 }: { children: ReactNode; delay?: number }) {
+export function Headline({ children, delay = 150 }: { children: ReactNode; delay?: number }) {
   return (
     <Pop delay={delay} style={{ marginTop: 10 }}>
       <Text style={H2}>{children}</Text>
@@ -261,7 +261,7 @@ function Headline({ children, delay = 150 }: { children: ReactNode; delay?: numb
   );
 }
 
-function Sub({ children, delay = 350 }: { children: ReactNode; delay?: number }) {
+export function Sub({ children, delay = 350 }: { children: ReactNode; delay?: number }) {
   return (
     <Pop delay={delay} style={{ marginTop: 8 }}>
       <Text style={BODY}>{children}</Text>
@@ -270,7 +270,7 @@ function Sub({ children, delay = 350 }: { children: ReactNode; delay?: number })
 }
 
 /** A frosted pill for a small fact. */
-function Chip({ icon, label, delay }: { icon: keyof typeof Ionicons.glyphMap; label: string; delay: number }) {
+export function Chip({ icon, label, delay }: { icon: keyof typeof Ionicons.glyphMap; label: string; delay: number }) {
   return (
     <Pop delay={delay}>
       <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.14)", borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, marginTop: 10, alignSelf: "flex-start" }}>

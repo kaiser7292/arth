@@ -157,7 +157,7 @@ async function detectBudgetBreaches(userId: string, yearMonth: string): Promise<
        AND e.category_id IS NOT NULL
        ${NOT_LINKED_E}
      GROUP BY e.category_id
-     HAVING spent > budget;`,
+     HAVING spent > budget AND budget > 0;`,
     yearMonth,
     userId,
     startDate,

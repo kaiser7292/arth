@@ -1,5 +1,5 @@
 import { Fragment, type ReactNode } from "react";
-import { AiSetupCard } from "@/components/home/AiSetupCard";
+import { countAiItems, loadCatchUpAiItems } from "@/services/catch-up-ai";
 import { MyMonthCard } from "@/components/home/MyMonthCard";
 import { SetupChecklistCard } from "@/components/home/SetupChecklistCard";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -210,6 +210,15 @@ export default function HomeScreen() {
   });
   const [duplicateCount, setDuplicateCount] = useState(preloaded?.duplicateCount ?? 0);
   const [uncategorizedCount, setUncategorizedCount] = useState(preloaded?.uncategorizedCount ?? 0);
+  // What the AI has waiting in Catch Up (a reply to paste, formats, same-place names): counted on
+  // the Action required card, which replaced the old AI Assisted Setup card.
+  const [aiWaitingCount, setAiWaitingCount] = useState(0);
+  useDataRefresh(
+    useCallback(async () => {
+      const items = await loadCatchUpAiItems().catch(() => null);
+      setAiWaitingCount(items ? countAiItems(items) : 0);
+    }, []),
+  );
   const [showBackupReminder, setShowBackupReminder] = useState(shouldShowBackupWarning());
   const [ccAccounts, setCcAccounts] = useState<FinancialAccount[]>(preloaded?.ccAccounts ?? []);
   const [bankAccounts, setBankAccounts] = useState<FinancialAccount[]>(preloaded?.bankAccounts ?? []);
@@ -545,6 +554,7 @@ export default function HomeScreen() {
               pending: pendingCount,
               duplicates: duplicateCount,
               uncategorized: uncategorizedCount,
+              ai: aiWaitingCount,
             }}
             onPress={() => router.push("/expense/review-queue")}
             onCatchUp={() => router.push("/expense/catch-up")}
@@ -562,7 +572,6 @@ export default function HomeScreen() {
         <SelfNamePromptCard />
         <FirstScanSummaryCard />
         <SetupChecklistCard />
-        <AiSetupCard />
         {isPartOn("insights") && <YearReviewReadyCard />}
 
         {/* Cards in the order set in Customise Arth, with a title wherever the group changes. */}

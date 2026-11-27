@@ -5,7 +5,7 @@ import { CREDIT_KIND_LABELS, PICKABLE_CREDIT_KINDS, creditKindOf, creditLook, ty
 import { updateExpense } from "@/services/expense";
 import { FormulaTextInput } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Keyboard, Modal, Pressable, ScrollView, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Money, SelectSheet, Sheet, Text } from "@/components/ui";
@@ -87,6 +87,9 @@ const KIND_META: Record<CatchUpCard["kind"], { label: string; icon: keyof typeof
   match: { label: "Matches a forecast", icon: "git-compare-outline" },
   duplicate: { label: "Possible duplicate", icon: "copy-outline" },
   uncategorized: { label: "Needs a category", icon: "help-circle-outline" },
+  ai_reply: { label: "Your AI assistant", icon: "chatbox-ellipses-outline" },
+  ai_template: { label: "Learn a message format", icon: "sparkles-outline" },
+  ai_merge: { label: "Same place?", icon: "sparkles-outline" },
 };
 
 export function CatchUpCardView({
@@ -143,10 +146,10 @@ export function CatchUpCardView({
       {(card.kind === "pending" || card.kind === "uncategorized") && isReadByAi(card.expense) && <ReadByAiChip />}
 
       {aiHint && (card.kind === "pending" || card.kind === "uncategorized") && (
-        <View className="flex-row items-center rounded-xl px-3 py-2 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
+        <View className="flex-row items-center rounded-control px-3 py-2 mb-3" style={{ backgroundColor: theme.alpha("primary", 0.08) }}>
           <Ionicons name="sparkles-outline" size={14} color={theme.primary} />
           <Pressable onPress={aiHint.onPress} className="flex-1 mx-2" accessibilityRole="button">
-            <Text className="text-xs font-semibold" style={{ color: theme.primary }}>
+            <Text className="text-label font-semibold" style={{ color: theme.primary }}>
               {aiHint.label}
             </Text>
           </Pressable>
@@ -192,6 +195,12 @@ export function CatchUpCardView({
       {card.kind === "match" && <MatchBody card={card} accountMap={accountMap} />}
 
       {card.kind === "duplicate" && <DuplicateBody card={card} accountMap={accountMap} />}
+
+      {card.kind === "ai_reply" && <AiReplyBody />}
+
+      {card.kind === "ai_template" && <AiTemplateBody card={card} />}
+
+      {card.kind === "ai_merge" && <AiMergeBody card={card} />}
     </DeckCard>
   );
 }
@@ -737,6 +746,71 @@ function DuplicateBody({
         <MiniRow key={e.id} expense={e} label="Reject" labelColor={theme.danger} accountMap={accountMap} />
       ))}
     </View>
+  );
+}
+
+/** The three AI cards (docs/AI_HUB_PROPOSAL.md §3): a question, what it's about, what each answer does. */
+function AiBody({ icon, title, children, note }: { icon: keyof typeof Ionicons.glyphMap; title: string; children?: ReactNode; note: string }) {
+  const theme = useTheme();
+  return (
+    <View className="items-center">
+      <View className="rounded-card items-center justify-center mb-4" style={{ width: 56, height: 56, backgroundColor: theme.alpha("primary", 0.1) }}>
+        <Ionicons name={icon} size={26} color={theme.primary} />
+      </View>
+      <Text className="text-heading font-bold text-foreground text-center mb-3">{title}</Text>
+      {children}
+      <Text className="text-meta text-muted-foreground text-center mt-3 leading-5">{note}</Text>
+    </View>
+  );
+}
+
+function AiReplyBody() {
+  return (
+    <AiBody
+      icon="clipboard-outline"
+      title="Your assistant's reply is waiting"
+      note="You shared a file with ChatGPT, Gemini or Claude. Copy its reply there, then swipe right to paste it. You check every change before anything is saved."
+    />
+  );
+}
+
+function AiTemplateBody({ card }: { card: Extract<CatchUpCard, { kind: "ai_template" }> }) {
+  const theme = useTheme();
+  return (
+    <AiBody
+      icon="school-outline"
+      title={card.offer.label}
+      note="You approved two of these that on-device AI read. Arth can read this format by itself from now on, instantly, and read any waiting ones too."
+    >
+      <View className="self-stretch rounded-control px-3 py-2" style={{ backgroundColor: theme.alpha("foreground", 0.05) }}>
+        <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">{card.offer.bank || card.offer.address}</Text>
+        <Text className="text-meta text-foreground leading-5" numberOfLines={5}>
+          {card.offer.sample}
+        </Text>
+      </View>
+    </AiBody>
+  );
+}
+
+function AiMergeBody({ card }: { card: Extract<CatchUpCard, { kind: "ai_merge" }> }) {
+  const theme = useTheme();
+  const { keep, other } = card.offer;
+  const row = (name: string, n: number, label: string, color: string) => (
+    <View className="self-stretch flex-row items-center rounded-control px-3 py-2 mb-2" style={{ backgroundColor: theme.alpha("foreground", 0.05) }}>
+      <View className="flex-1 mr-2">
+        <Text className="text-label font-semibold uppercase tracking-wider" style={{ color }}>{label}</Text>
+        <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{name}</Text>
+      </View>
+      <Text className="text-meta text-muted-foreground">
+        {n} transaction{n === 1 ? "" : "s"}
+      </Text>
+    </View>
+  );
+  return (
+    <AiBody icon="git-merge-outline" title="Are these one place?" note="On-device AI thinks so. Merging changes the names only, and the kept name is the one with more transactions.">
+      {row(other.name, other.txCount, "Shows as", theme.mutedForeground)}
+      {row(keep.name, keep.txCount, "Keep", theme.success)}
+    </AiBody>
   );
 }
 

@@ -13,7 +13,7 @@ type Route = "local" | "ai" | "manual";
 
 /**
  * Onboarding: how to set Arth up. On this phone (on-device AI files merchants into categories;
- * shown only where Gemini Nano is ready), AI assisted (the user's assistant suggests categories,
+ * shown only where Gemini Nano is ready), With your AI assistant (the user's assistant suggests categories,
  * budgets, merchants and goals from the transactions found) or by hand (categories, income, budgets).
  * Only the chosen route's steps follow. See services/onboarding-flow.ts.
  */
@@ -133,9 +133,9 @@ export default function SetupChoice() {
         )}
         <Option
           value="ai"
-          title="AI assisted"
+          title="With your AI assistant"
           recommended={recommendAi}
-          body="Your AI assistant (Claude, ChatGPT, Gemini) sets up categories, budgets, merchants and goals from your transactions. About 5 minutes."
+          body="ChatGPT, Gemini or Claude. Arth makes a file, you paste the reply back. It sets up categories, budgets, merchants and goals, and you check each one. About 5 minutes."
           steps={["Share a file", "Paste the reply", "Review"]}
         />
         <Option
@@ -145,7 +145,7 @@ export default function SetupChoice() {
           body="Pick your categories, add your income and set budgets yourself."
           steps={["Categories", "Income", "Budgets"]}
         />
-        <Text className="text-xs text-muted-foreground text-center mt-2">You can use AI Assisted Setup any time later from Settings.</Text>
+        <Text className="text-xs text-muted-foreground text-center mt-2">You can ask your AI assistant any time later from Settings → AI.</Text>
       </ScrollView>
       <View className="px-6 pb-6 pt-2">
         <Button title={route === "ai" ? "Continue with AI" : route === "local" ? "Continue on this phone" : "Continue"} onPress={go} />

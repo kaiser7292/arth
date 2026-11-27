@@ -46,7 +46,7 @@ export const AI_JOBS = [
   { key: "template", label: "Learn message formats", note: "After two approved AI reads, offers to read that format by itself" },
   { key: "merchant_merge", label: "Same place, different names", note: "Suggests merging merchant names that are one place" },
   { key: "context", label: "What a payment was", note: "Spots autopays, SIPs, EMIs and card bills" },
-  { key: "month_note", label: "Your month in words", note: "Two or three sentences at the top of Insights" },
+  { key: "month_note", label: "Your month headline", note: "A catchy line about your month at the top of Insights" },
   { key: "voice", label: "Voice and search in plain words", note: "Fills in what you say, and turns searches into filters" },
 ] as const;
 export type AiJobKey = (typeof AI_JOBS)[number]["key"];

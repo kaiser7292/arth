@@ -7,6 +7,8 @@ export interface ReviewQueueCounts {
   pending: number;
   duplicates: number;
   uncategorized: number;
+  /** What the AI has waiting for a decision in Catch Up: a reply to paste, formats, same-place names. */
+  ai?: number;
 }
 
 interface ReviewQueueCardProps {
@@ -25,6 +27,7 @@ const KINDS: {
   { key: "pending", icon: "swap-horizontal-outline", one: "pending review", many: "pending review" },
   { key: "duplicates", icon: "copy-outline", one: "possible duplicate", many: "possible duplicates" },
   { key: "uncategorized", icon: "help-circle-outline", one: "uncategorized", many: "uncategorized" },
+  { key: "ai", icon: "sparkles-outline", one: "from AI to check", many: "from AI to check" },
 ];
 
 /**
@@ -42,17 +45,20 @@ export function ReviewQueueCard({ counts, onPress, onCatchUp }: ReviewQueueCardP
   const lines = KINDS.map(({ key, icon, one, many }) => ({
     key,
     icon,
-    count: counts[key],
+    count: counts[key] ?? 0,
     label: counts[key] === 1 ? one : many,
   })).filter((i) => i.count > 0);
 
   if (lines.length === 0) return null;
 
   const total = lines.reduce((sum, i) => sum + i.count, 0);
+  // The review queue shows no AI items: when they're all that waits, the card opens Catch Up.
+  const onlyAi = lines.every((l) => l.key === "ai");
+  const open = onlyAi && onCatchUp ? onCatchUp : onPress;
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={open}
       accessibilityRole="button"
       accessibilityLabel={`${total} items need action: ${lines.map((i) => `${i.count} ${i.label}`).join(", ")}`}
     >

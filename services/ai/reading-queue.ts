@@ -27,7 +27,7 @@ import { logger } from "@/utils/logger";
 import { isAiReadingOn } from "./ai-reading";
 import { runAiJobs } from "./job-runner";
 import { addAiReadToCatchUp } from "./add-ai-read";
-import { labRowToDetail, type RunRow } from "./lab-runner";
+import { readRowToDetail, type RunRow } from "./ai-read-row";
 import { loadMoneyMap, type MoneyMap } from "./money-map";
 import { getNanoStatus, NanoUnavailableError, type NanoStatus } from "./nano";
 import { readSmsWithNano, type AiReadSms, type ReadSmsOutcome } from "./tasks/read-sms";
@@ -334,7 +334,7 @@ async function work(opts: AiQueueRunOptions): Promise<AiQueueState> {
     }
   }
 
-  const details = rows.map(labRowToDetail).filter((d): d is ScanDetail => d != null);
+  const details = rows.map(readRowToDetail).filter((d): d is ScanDetail => d != null);
   if (details.length > 0) {
     await saveScanRun({
       userId: DEFAULT_USER_ID,

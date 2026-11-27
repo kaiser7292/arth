@@ -17,7 +17,7 @@ phrasings:
   - Download the on-device model
   - Same place different names
   - Why does Catch Up say looks like an EMI?
-  - Your month in words
+  - Your month headline
   - Search in plain words
 ---
 
@@ -43,21 +43,21 @@ Android only lets the AI run while Arth is open. Messages that arrive while Arth
 
 ## More it can do
 
-Each of these has its own switch in **Settings → On-device AI**:
+Each of these has its own switch in **Settings → AI → On this phone**:
 
 - **Pictures Arth can't read:** when a payment picture's amount or merchant can't be found, the AI reads the picture's text. It only fills empty fields, and only with what's written on the picture.
 - **Categories for new merchants:** when no mapping or rule knows a merchant, Catch Up suggests one of your categories, marked "Suggested by on-device AI". Tap the category to change it.
-- **Learn message formats:** after you approve two messages the AI read in the same format, Settings → On-device AI offers to read that format by itself. Say yes and a template reads it from then on, instantly, without the AI.
-- **Same place, different names:** Settings → Merchants shows "Same place?" for names the AI thinks are one place. Arth only asks about names that already look alike or were paid to the same UPI ID. **Not the same** is remembered.
+- **Learn message formats:** after you approve two messages the AI read in the same format, a **Learn a message format** card in Catch Up offers to read that format by itself. Say yes and a template reads it from then on, instantly, without the AI.
+- **Same place, different names:** a **Same place?** card in Catch Up (and in Settings → Merchants) shows names the AI thinks are one place. Arth only asks about names that already look alike or were paid to the same UPI ID. **Not the same** is remembered.
 - **What a payment was:** for a bank message that mentions a mandate, EMI, SIP or card bill, Catch Up may say "Looks like an EMI · Link it to the loan". Tapping it opens that action. Tap × to dismiss it.
-- **Your month in words:** the top of Insights says the month's biggest changes in two or three sentences. Every number in them comes from Arth's own figures. A sentence that adds anything else is replaced by the plain figure.
+- **Your month headline:** the Your month card at the top of Insights gets a catchy one-line headline. Arth works out every fact itself; the AI only words them. A headline with any number or name that isn't in Arth's own figures is dropped, and the plain headline shows instead.
 - **Voice and search in plain words:**
   - Saying "spent 300 on chai at office canteen by UPI" fills in the merchant, category and payment mode.
   - Searching "Swiggy over 500" in Transactions turns into filters.
 
 ## Settings
 
-Go to **Settings → On-device AI** to:
+Go to **Settings → AI → On this phone** to:
 
 - turn reading on or off
 - see whether the model is ready, or download it
@@ -68,4 +68,4 @@ Each AI run is saved in **Settings → Transaction messages → Scan history**, 
 
 ## If you don't see it
 
-On-device AI shows only on phones that have Gemini Nano. On other phones, Arth reads messages exactly as before. Messages it can't read wait in **Settings → Transaction messages**, under *messages Arth couldn't read*, where you can teach Arth the format with a template.
+On this phone works only on phones that have Gemini Nano. On other phones, Settings → AI says so in one grey line, and Arth reads messages exactly as before. Your AI assistant (ChatGPT, Gemini or Claude) still works on every phone: see **AI in Arth**. Messages it can't read wait in **Settings → Transaction messages**, under *messages Arth couldn't read*, where you can teach Arth the format with a template.

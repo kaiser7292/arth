@@ -378,7 +378,7 @@ export async function readCorrections(userId: string, pasted: string): Promise<C
     reply.rejected.push({ reason: `Only the first ${MAX_CORRECTIONS} corrections were read`, text: `${objects.length - MAX_CORRECTIONS} more` });
   }
 
-  const drafts: (Draft & { why: string | null })[] = [];
+  const drafts: (Draft & { why: string | null; shared?: boolean })[] = [];
   const ctx = await loadCtx(userId);
   // Structural fixes claim rows in apply order, so a conflict keeps the one applied first.
   const order = (t: FixType) => APPLY_ORDER.indexOf(t);
@@ -392,23 +392,36 @@ export async function readCorrections(userId: string, pasted: string): Promise<C
   }
 
   if (shared.length > 0) {
-    const setup = await readAiReply(userId, `{"suggestions": [${shared.join(",")}]}`);
+    // add_transaction names its account by fix_ref, like every correction: hand the setup reader
+    // the account itself, so the entry lands on it even when two accounts share a bank name.
+    const named = shared.map((text) => {
+      try {
+        const raw = parseLoose(text) as Raw;
+        if (String(raw?.type ?? "").toLowerCase() !== "add_transaction" || typeof raw.account !== "string") return text;
+        const a = ctx.accounts.get(raw.account.toLowerCase());
+        return a ? JSON.stringify({ ...raw, account_id: a.id }) : text;
+      } catch {
+        return text;
+      }
+    });
+    const setup = await readAiReply(userId, `{"suggestions": [${named.join(",")}]}`);
     reply.alreadySet += setup.alreadySet;
     reply.rejected.push(...setup.rejected);
     for (const s of setup.accepted) {
       if (!(SHARED_TYPES as readonly string[]).includes(s.type)) {
-        reply.rejected.push({ reason: "Is a setup change Fix my data doesn't make", text: s.title });
+        reply.rejected.push({ reason: "Isn't a change Arth can make from a reply", text: s.title });
         continue;
       }
-      drafts.push({ type: s.type as SharedType, suggestion: s, title: s.title, detail: s.detail, why: s.why });
+      drafts.push({ type: s.type as SharedType, suggestion: s, title: s.title, detail: s.detail, why: s.why, shared: true });
     }
   }
 
-  // One change twice is one change.
+  // One change twice is one change. The setup reader already did this for its own kinds, by what
+  // each one does (two formats for one bank share a title but not a pattern), so only ours here.
   const seen = new Set<string>();
-  for (const d of drafts.sort((a, b) => APPLY_ORDER.indexOf(a.type) - APPLY_ORDER.indexOf(b.type))) {
+  for (const { shared: fromSetup, ...d } of drafts.sort((a, b) => APPLY_ORDER.indexOf(a.type) - APPLY_ORDER.indexOf(b.type))) {
     const identity = `${d.type}|${d.title}|${d.detail ?? ""}`.toLowerCase();
-    if (seen.has(identity)) continue;
+    if (!fromSetup && seen.has(identity)) continue;
     seen.add(identity);
     reply.accepted.push({ ...d, key: reply.accepted.length } as Fix);
   }

@@ -18,7 +18,7 @@ import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeInsightsPreload } from "@/services/home-preload";
 import { LoadFailed } from "@/components/ui/ListToolbar";
-import { MonthInWordsCard } from "@/components/insights/MonthInWordsCard";
+import { MonthStoryCard } from "@/components/insights/MonthStoryCard";
 
 const preloaded = consumeInsightsPreload();
 
@@ -104,7 +104,7 @@ export function InsightsPage() {
         />
       }
     >
-      <MonthInWordsCard />
+      <MonthStoryCard />
 
       {insights.length > 0 && (
         <>
