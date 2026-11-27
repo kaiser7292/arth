@@ -65,14 +65,6 @@ export async function queuedAiJobs(kind: AiJobKind, limit: number, userId: strin
   );
 }
 
-export async function countQueuedAiJobs(userId: string = DEFAULT_USER_ID): Promise<number> {
-  const row = await getDatabase().getFirstAsync<{ n: number }>(
-    `SELECT COUNT(*) AS n FROM ai_jobs WHERE user_id = ? AND status IN ('queued', 'retry');`,
-    userId,
-  );
-  return row?.n ?? 0;
-}
-
 /** Record the model's checked answer (null = no usable answer). */
 export async function finishAiJob(id: string, result: unknown | null): Promise<void> {
   await getDatabase().runAsync(
@@ -145,12 +137,3 @@ export async function answerAiJob(kind: AiJobKind, refId: string, answer: "accep
   await db.runAsync(`UPDATE ai_jobs SET status = ?, done_at = datetime('now') WHERE user_id = ? AND kind = ? AND ref_id = ?;`, answer, userId, kind, refId);
 }
 
-/** Ask again (a month note when the month's data changed). Not for answered jobs. */
-export async function requeueAiJob(kind: AiJobKind, refId: string, userId: string = DEFAULT_USER_ID): Promise<void> {
-  await getDatabase().runAsync(
-    `UPDATE ai_jobs SET status = 'queued' WHERE user_id = ? AND kind = ? AND ref_id = ? AND status NOT IN ('accepted', 'dismissed');`,
-    userId,
-    kind,
-    refId,
-  );
-}

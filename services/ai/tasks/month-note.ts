@@ -10,11 +10,6 @@
 import { askNano } from "../nano";
 import { aiSuggestions, putAiJobResult } from "../jobs";
 
-/** Every number written in a text ("₹2,400", "40%", "1,23,456.50", "₹6.2K"), as numbers. Pure. */
-export function numbersOf(text: string): number[] {
-  return (text.match(/\d[\d,]*(?:\.\d+)?/g) ?? []).map((s) => Number(s.replace(/,/g, ""))).filter((n) => Number.isFinite(n));
-}
-
 /** Names: capitalised words of 3+ letters that aren't the first word of the sentence. */
 function namesOf(text: string): string[] {
   return text

@@ -14,6 +14,7 @@ import { forecastMonthEndRealistic, getHistoricalVariableAvg as getHistVarAvg } 
 import { getBudgetsForMonth } from "@/services/budget";
 import type { Expense } from "@/services/expense-types";
 import { effectiveAmountSql } from "@/services/expense-effective-amount";
+import { cachedByVersion } from "@/services/version-cache";
 
 const NOT_RECLASSIFIED = "(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)";
 
@@ -69,7 +70,7 @@ export interface AnalyticsForecast {
 // Main Entry Point
 // ═══════════════════════════════════════════════
 
-export async function getAnalyticsForecast(
+async function getAnalyticsForecastUncached(
   userId: string,
   month?: string,
 ): Promise<AnalyticsForecast> {
@@ -423,3 +424,6 @@ function computeConfidence(dataMonths: number, patternCount: number): Confidence
   if (dataMonths >= 6 && patternCount >= 5) return "confirmed";
   return "high";
 }
+
+/** getAnalyticsForecast, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getAnalyticsForecast = cachedByVersion("getAnalyticsForecast", getAnalyticsForecastUncached);

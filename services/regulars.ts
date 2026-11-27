@@ -15,6 +15,7 @@ import type { ExpenseClassificationRow } from "@/services/analytics/classifier";
 import { getSpendingRows } from "@/services/analytics/spending-rows";
 import { normalizeMerchant } from "@/services/smart-categorizer";
 import { toIsoDate } from "@/utils/date";
+import { cachedByVersion } from "@/services/version-cache";
 
 export interface Regular {
   id: string;
@@ -85,7 +86,7 @@ export function summarise(patterns: ExpenseClassificationRow[], byMerchant: Map<
   };
 }
 
-export async function loadRegulars(today: Date = new Date()): Promise<RegularsSummary> {
+async function loadRegularsUncached(today: Date = new Date()): Promise<RegularsSummary> {
   const from = new Date(today.getFullYear(), today.getMonth() - 3, 1);
   const [patterns, rows] = await Promise.all([getPatternLibrary(DEFAULT_USER_ID), getSpendingRows(DEFAULT_USER_ID, toIsoDate(from), toIsoDate(today))]);
   const byMerchant = new Map<string, Sighting[]>();
@@ -97,3 +98,6 @@ export async function loadRegulars(today: Date = new Date()): Promise<RegularsSu
   }
   return summarise(patterns, byMerchant, today);
 }
+
+/** loadRegulars, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const loadRegulars = cachedByVersion("loadRegulars", loadRegularsUncached);

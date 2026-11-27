@@ -131,6 +131,7 @@ export const SETTINGS_REGISTRY: SettingSpec[] = [
   S("ai_request_focus", "string", PROGRESS),
   S("ai_nano_enabled", "boolean"),
   S("ai_jobs_off", "string"),
+  S("diag_load_timings", "string", DEVICE("how long this phone's screens took to load; diagnostics for this device only")),
   S("ai_merge_searched_at", "number", DEVICE("when this phone last looked for merchant names that may be one place; a timer, rebuilt on its own")),
   S("biometric_last_unlock_at", "number", PROGRESS),
   S("biometric_app_start_time", "number", PROGRESS),

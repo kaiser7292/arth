@@ -9,6 +9,7 @@ export default function SettingsStackLayout() {
       screenOptions={screenOptions}
     >
       <Stack.Screen name="categories" options={{ title: "Categories" }} />
+      <Stack.Screen name="speed" options={{ title: "Speed diagnostics" }} />
       <Stack.Screen name="category-edit" options={{ title: "Category" }} />
       <Stack.Screen name="category-organise" options={{ title: "Organise categories" }} />
       <Stack.Screen name="payment-modes" options={{ title: "Payment Modes" }} />

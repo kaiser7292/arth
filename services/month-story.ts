@@ -18,6 +18,7 @@ import { toIsoDate } from "@/utils/date";
 import { formatShortAmount } from "@/utils/format";
 import { getDatabase } from "@/database";
 import { rolledUpCategorySql } from "@/services/category-rollup";
+import { cachedByVersion } from "@/services/version-cache";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -226,7 +227,7 @@ export function buildMonthStory(
   return { ...base, persona: pickPersona(base) };
 }
 
-export async function loadMonthStory(month: string, today: Date = new Date()): Promise<MonthStory> {
+async function loadMonthStoryUncached(month: string, today: Date = new Date()): Promise<MonthStory> {
   const prev = prevYm(month);
   const range = getMonthDateRange(month);
   const prevRange = getMonthDateRange(prev);
@@ -320,3 +321,6 @@ export function dayLabel(date: string): string {
   const dt = new Date(y, m - 1, d);
   return `${["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dt.getDay()]} ${d} ${MONTHS[m - 1].slice(0, 3)}`;
 }
+
+/** loadMonthStory, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const loadMonthStory = cachedByVersion("loadMonthStory", loadMonthStoryUncached);

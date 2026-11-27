@@ -3,8 +3,8 @@ import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { ScreenContainer, Segmented } from "@/components/ui";
 import { BillsSummaryCard } from "@/components/insights/BillsSummaryCard";
-import MerchantAnalyticsScreen from "./merchants";
-import PatternLibraryScreen from "./patterns";
+import MerchantAnalyticsScreen from "@/components/insights/MerchantsTab";
+import PatternLibraryScreen from "@/components/insights/RegularsTab";
 
 type Tab = "merchants" | "regulars";
 

@@ -16,6 +16,7 @@ import { logger } from "@/utils/logger";
 import { settingsStorage } from "@/services/storage";
 import type { RawSMS } from "@/services/sms/sms-reader";
 import { runSmsScan, type ScanOutcome } from "@/services/sms/sms-orchestrator";
+import { bumpDataVersion } from "@/services/settings";
 
 /** Must match BankMessageInbox.fileName in AddBankMessageIntent.swift. */
 const INBOX_FILE = "bank-messages.jsonl";
@@ -183,7 +184,11 @@ export function getLastArrival(): Arrival | null {
 
 export function markArrivalSeen(): void {
   const a = getLastArrival();
-  if (a && !a.seen) settingsStorage.set(LAST_ARRIVAL_KEY, JSON.stringify({ ...a, seen: true }));
+  if (a && !a.seen) {
+    settingsStorage.set(LAST_ARRIVAL_KEY, JSON.stringify({ ...a, seen: true }));
+    // Home's "messages couldn't be read" card goes once they've been seen.
+    bumpDataVersion();
+  }
 }
 
 /** Last message and this month's count, for the setup screen's status. */

@@ -59,6 +59,7 @@ import {
   type Advisory,
   type TensionData,
 } from "@/utils/financial-cockpit";
+import { cachedByVersion } from "@/services/version-cache";
 
 // ── Exported Types ──
 
@@ -156,7 +157,7 @@ async function computeMonthsElapsed(
 
 // ── Main Orchestrator ──
 
-export async function getFinancialCockpit(
+async function getFinancialCockpitUncached(
   userId: string,
   financialYear?: string,
 ): Promise<FinancialCockpitData | null> {
@@ -607,3 +608,5 @@ async function tryV2YearEnd(
   }
 }
 
+/** getFinancialCockpit, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getFinancialCockpit = cachedByVersion("getFinancialCockpit", getFinancialCockpitUncached);

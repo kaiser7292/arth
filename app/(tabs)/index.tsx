@@ -99,6 +99,8 @@ import { logger } from "@/utils/logger";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { DataRefreshScope } from "@/hooks/use-data-refresh";
+import { useScopeKey } from "@/hooks/use-scope-key";
 
 const HOME_TABS: SwipePagerPage[] = [
   { key: "overview", label: "Overview" },
@@ -157,6 +159,8 @@ function renderHomeCards({ cards, present }: { cards: Partial<Record<HomeCardId,
 const HOME_FIRST_LOAD_MAX_WAIT_MS = 6000;
 
 export default function HomeScreen() {
+  // Cards and pages here skip reloading when nothing changed (docs/SPEED_AND_VOICE_PROPOSAL.md, fix 3).
+  const scopeKey = useScopeKey("home");
   const alert = useAlert();
   const router = useRouter();
   const { colors } = useColorScheme();
@@ -475,6 +479,7 @@ export default function HomeScreen() {
   }
 
   return (
+    <DataRefreshScope skipKey={scopeKey}>
     <ScreenContainer>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ContextualHeader
@@ -925,5 +930,6 @@ export default function HomeScreen() {
       )}
       <VoiceEntrySheet visible={showVoiceSheet} onClose={() => setShowVoiceSheet(false)} />
     </ScreenContainer>
+    </DataRefreshScope>
   );
 }

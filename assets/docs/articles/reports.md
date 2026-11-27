@@ -23,7 +23,7 @@ Arth can build in-depth reports from your own data. Each one runs on your phone 
 
 Each report lives where it belongs:
 
-- **Financial health** - the **Financial health** card at the top of the Goals tab.
+- **Financial health** - tap the **grade** on the Financial health card at the top of the Goals tab.
 - **Retirement readiness** - the **Retirement readiness** tile under Plan on the Goals tab. You can switch it off in **Settings → Customise Arth**.
 - **Loan payoff** - **Goals → Loans & debt → Payoff plan**.
 - **Spending personality** - a slide in **Year in review** (Home → Insights → Explore → Year in review).
@@ -32,7 +32,7 @@ Each report lives where it belongs:
 
 ### Financial health
 
-Needs no input. Covers your net worth, savings rate, debt-to-income, emergency buffer (fixed deposits count towards it) and monthly EMI, with its own grade card across savings rate, emergency fund, debt management, spending discipline and diversification. (This is separate from the plan-based grade on the Goals tab - see [Financial Health grade explained](financial-health-grade).)
+Needs no input. Covers your net worth, savings rate, debt-to-income, emergency buffer (fixed deposits count towards it) and monthly EMI, led by the same grade as the Goals tab: your yearly plan's grade, with its factors (savings, investments, spending, goals, headroom). Tap the grade for how it's worked out - see [Financial Health grade explained](financial-health-grade). Before you have a yearly plan, the report grades savings rate, emergency fund, debt, spending discipline and diversification instead.
 
 ### Retirement readiness
 

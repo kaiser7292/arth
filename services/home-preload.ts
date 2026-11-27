@@ -46,7 +46,7 @@ import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import type { BalanceSheetColumn } from "@/services/balance-sheet";
 import { getBalanceSourceInfo } from "@/services/balance-source";
 import { getMonthDateRange } from "@/utils/budget-helpers";
-import { getCurrentFY, getFYRange, formatLocalDate } from "@/utils/fiscal-year";
+import { getCurrentFY, formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";

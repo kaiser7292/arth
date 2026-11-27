@@ -288,7 +288,8 @@ async function work(opts: AiQueueRunOptions): Promise<AiQueueState> {
           });
           // New accounts can come from what was just added.
           map = await loadMoneyMap();
-          if (state.added % 10 === 0) bumpDataVersion();
+          // No change marked mid-run: every mark reloads open screens and clears remembered reports.
+          // The run marks one change at the end (below); its own screen follows the queue state.
         } else {
           set({ leftOut: state.leftOut + 1 });
         }

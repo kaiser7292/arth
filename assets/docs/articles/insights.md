@@ -51,11 +51,10 @@ Insights is **not** a bottom tab - Arth has five tabs (Home / Transactions / Bud
 Top to bottom:
 
 - **Your month** - a badge for the month, one headline, your spending so far against last month by the same day (with a dotted line to where the month is likely to end - tap it for the forecast), and three small facts. Tap the card to play the month as a story.
-- **Ask about your money** - type plain words like "food last 3 months" or "Swiggy over 500" and Transactions opens with that list.
 - **Worth a look** - the top three findings for the current month. Tap one for its breakdown. **Not now** hides it for this month; **Don't show these** switches that kind off.
-- **Explore** - **Money in and out** (what came in, what went out and the share you kept), **Compare**, **Year over year**, **Where it goes** (merchants, regulars and bills), **Year in review** and **Ask your AI assistant**.
+- **Explore** - **Money in and out** (what came in, what went out and the share you kept), **Compare**, **Where it goes** (merchants, regulars and bills), **Year in review** and **Ask your AI assistant**. Year over year is on the Yearly plan (the swap icon at the top).
 
-Budget vs actual for 3 or 6 months or the year is on the **Budget tab** (the Month · 3M · 6M · FY switch at the top). The reports moved too - see [Reports](reports).
+Budget vs actual for 3 or 6 months or the year is on the **Budget tab**: switch Month · 3M · 6M · FY at the top and the page changes in place. Tap a month's row for its exact figures. The reports moved too - see [Reports](reports).
 
 ## The five insight types
 
@@ -89,7 +88,7 @@ If a drill shows **"Insight not available"**, the underlying trigger has gone st
 
 ## Compare
 
-**Insights screen → Compare.** Pick any two date ranges (presets: this month against last month by the same day - the default, with the month as a day-by-day calendar - This Week vs Last Week, This Month vs Last Month, Quarter vs Quarter, or Custom; for years, use **Year over year**), see breakdowns by category, merchant, and payment method.
+**Insights screen → Compare.** Pick any two date ranges (presets: this month against last month by the same day - the default - This Week vs Last Week, This Month vs Last Month, Quarter vs Quarter, or Custom; for years, use **Year over year**), see breakdowns by category, merchant, and payment method. A calendar shows the period day by day (month by month for long ones), darker where more was spent: tap a day or month for its total, the biggest payment and its transactions.
 
 Column headers show the date range with year (e.g., "May '26" / "Apr '26") so you always know which period each column represents.
 

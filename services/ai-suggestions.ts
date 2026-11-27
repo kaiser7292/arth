@@ -37,7 +37,7 @@ import {
 import { createLifeMilestone, getLifeMilestones } from "@/services/life-milestone";
 import { createSalaryProfile, getSalaryProfileByFY, updateSalaryProfile } from "@/services/salary-profile";
 import { deriveDirectBaseMonthly } from "@/services/income-calculation";
-import { getFYStartMonth } from "@/services/settings";
+import { bumpDataVersion, getFYStartMonth } from "@/services/settings";
 import { createRule, listRules, type ConditionOperator, type RuleCondition } from "@/services/smart-rules";
 import { applyTemplateToBacklog, findBacklogMatches, newBacklogScan, type BacklogScan } from "@/services/sms/template-backlog";
 import {
@@ -819,35 +819,6 @@ export interface AiProgressEvent {
 }
 export type AiProgress = (e: AiProgressEvent) => void;
 
-/** What a pasted reply holds, worked out without touching the database: shown before reading. */
-export interface AiReplyPreview {
-  recognised: boolean;
-  cutOff: boolean;
-  /** Suggestions by kind, in display order. */
-  byType: { type: SuggestionType; label: string; count: number }[];
-  total: number;
-  /** Things that look like suggestions but aren't a kind Arth takes, or don't parse. */
-  unreadable: number;
-}
-
-export function previewAiReply(pasted: string): AiReplyPreview {
-  const { objects, recognised, cutOff } = findSuggestionObjects(pasted);
-  const counts = new Map<SuggestionType, number>();
-  let unreadable = 0;
-  for (const text of objects.slice(0, MAX_SUGGESTIONS)) {
-    try {
-      const raw = parseLoose(text) as Raw;
-      const type = TYPE_ALIASES[String(raw?.type ?? "").toLowerCase().trim()];
-      if (type) counts.set(type, (counts.get(type) ?? 0) + 1);
-      else unreadable++;
-    } catch {
-      unreadable++;
-    }
-  }
-  const byType = SUGGESTION_GROUPS.filter((g) => counts.has(g.type)).map((g) => ({ type: g.type, label: g.label, count: counts.get(g.type)! }));
-  return { recognised, cutOff, byType, total: byType.reduce((n, b) => n + b.count, 0), unreadable };
-}
-
 /** Let the screen draw between steps, so a progress bar actually moves. */
 const breathe = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
@@ -1130,6 +1101,8 @@ export async function applySuggestions(
             "UPDATE expenses SET status = 'pending_review', updated_at = datetime('now') WHERE id = ?;",
             id,
           );
+          // Remembered reports (services/version-cache.ts) may have counted it as approved in between.
+          bumpDataVersion();
         }
         result.applied[s.type] = (result.applied[s.type] ?? 0) + 1;
         onProgress?.({

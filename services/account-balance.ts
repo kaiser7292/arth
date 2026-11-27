@@ -1256,32 +1256,31 @@ export async function computeUnseededBalance(
     return { opening: 0, expenses: 0, credits: 0, closing: 0 };
   }
 
-  // Chain forward from first month (opening = 0) to target month
-  let runningBalance = 0;
-  let currentMonth = firstMonth;
+  // Chain forward from the first month (opening = 0) to the target month. Each part is a plain sum
+  // over dates, so every month before the target adds up in one pass: the opening is the same
+  // running balance the month-by-month walk reached, in 5 queries instead of 5 per month
+  // (docs/SPEED_AND_VOICE_PROPOSAL.md, fix 6).
+  const net = async (start: string, end: string) => {
+    const [expenses, credits, tOut, tIn, adjNet] = await Promise.all([
+      getAccountExpensesTotal(accountId, start, end),
+      getAccountCreditsTotal(accountId, start, end),
+      getTransfersOutTotal(accountId, start, end),
+      getTransfersInTotal(accountId, start, end),
+      getAccountAdjustmentNet(accountId, start, end),
+    ]);
+    return { expenses, credits, change: -expenses + credits - tOut + tIn + adjNet };
+  };
 
-  while (currentMonth <= targetMonth) {
-    const range = getMonthDateRange(currentMonth);
-    const expenses = await getAccountExpensesTotal(accountId, range.startDate, range.endDate);
-    const credits = await getAccountCreditsTotal(accountId, range.startDate, range.endDate);
-    const tOut = await getTransfersOutTotal(accountId, range.startDate, range.endDate);
-    const tIn = await getTransfersInTotal(accountId, range.startDate, range.endDate);
-    const adjNet = await getAccountAdjustmentNet(accountId, range.startDate, range.endDate);
-
-    if (currentMonth === targetMonth) {
-      return {
-        opening: runningBalance,
-        expenses,
-        credits,
-        closing: runningBalance - expenses + credits - tOut + tIn + adjNet,
-      };
-    }
-
-    runningBalance = runningBalance - expenses + credits - tOut + tIn + adjNet;
-    currentMonth = getNextMonth(currentMonth);
-  }
-
-  return { opening: 0, expenses: 0, credits: 0, closing: 0 };
+  const target = getMonthDateRange(targetMonth);
+  const before = targetMonth > firstMonth ? await net(getMonthDateRange(firstMonth).startDate, getMonthDateRange(getPreviousMonth(targetMonth)).endDate) : null;
+  const opening = before?.change ?? 0;
+  const month = await net(target.startDate, target.endDate);
+  return {
+    opening,
+    expenses: month.expenses,
+    credits: month.credits,
+    closing: opening + month.change,
+  };
 }
 
 // ── Helpers ──
@@ -1305,8 +1304,3 @@ function getMonthDateRange(month: string): { startDate: string; endDate: string 
   return { startDate, endDate };
 }
 
-function getNextMonth(month: string): string {
-  const [year, m] = month.split("-").map(Number);
-  const d = new Date(year, m, 1); // m is 1-based, so this gives next month
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-}

@@ -9,6 +9,7 @@ import { getDatabase } from "@/database";
 import { round2 } from "@/utils/math";
 import { getLastDayOfMonth } from "@/utils/date";
 import { effectiveAmountSql } from "./expense-effective-amount";
+import { cachedByVersion } from "@/services/version-cache";
 
 const NOT_BUDGET_EXCLUDED = `
   AND (reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)
@@ -383,7 +384,7 @@ export async function getThisVsLastMonthTotals(
 /**
  * Compare spending between two arbitrary date ranges.
  */
-export async function getDateRangeComparison(
+async function getDateRangeComparisonUncached(
   userId: string,
   range1Start: string,
   range1End: string,
@@ -499,3 +500,6 @@ export function getComparisonPresets(): ComparisonPreset[] {
     },
   ];
 }
+
+/** getDateRangeComparison, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getDateRangeComparison = cachedByVersion("getDateRangeComparison", getDateRangeComparisonUncached);

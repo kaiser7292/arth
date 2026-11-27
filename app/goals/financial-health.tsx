@@ -25,6 +25,11 @@ import { useTheme, type Theme } from "@/hooks/use-theme";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
 import { useAlert } from "@/hooks/use-alert";
 import { isPartOn } from "@/services/customise";
+import { getFinancialCockpit, type FinancialCockpitData } from "@/services/financial-cockpit";
+import { scoreToGrade } from "@/utils/financial-cockpit";
+
+/** What the plan's grade measures, said once (the yearly plan: savings, investing, spending, goals, headroom). */
+const PLAN_GRADE_SUMMARY = "From your yearly plan: savings, investments, spending, goals and headroom, so far this year";
 
 /** Takes the theme as an argument: this is a plain helper, not a component, so it must not
  *  call a hook. It is invoked from inside map callbacks, where a conditional hook call would
@@ -57,6 +62,12 @@ const DIMENSION_ICONS: Record<string, string> = {
   "Diversification": "pie-chart-outline",
   "Emergency Fund": "shield-checkmark-outline",
   "Spending Discipline": "pulse-outline",
+  // The yearly plan's factors (services/financial-cockpit.ts)
+  Savings: "trending-up-outline",
+  Investments: "pie-chart-outline",
+  Spending: "pulse-outline",
+  Goals: "flag-outline",
+  Surplus: "wallet-outline",
 };
 
 export default function FinancialHealthReportScreen() {
@@ -66,14 +77,24 @@ export default function FinancialHealthReportScreen() {
   const theme = useTheme();
   const tint = theme.primary;
   const [report, setReport] = useState<FinancialHealthReport | null>(null);
+  /**
+   * The grade on the Goals card comes from the yearly plan (services/financial-cockpit.ts), so the
+   * report leads with that same grade and its factors. Without a plan, the report's own grade shows.
+   */
+  const [plan, setPlan] = useState<FinancialCockpitData | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
 
   const [loadFailed, setLoadFailed] = useState(false);
   const loadData = useCallback(async () => {
     try {
-      const data = await generateFinancialHealthReport(DEFAULT_USER_ID);
+      const fy = String(getCurrentFY(getFYStartMonth()));
+      const [data, cockpit] = await Promise.all([
+        generateFinancialHealthReport(DEFAULT_USER_ID),
+        getFinancialCockpit(DEFAULT_USER_ID, fy).catch(() => null),
+      ]);
       setReport(data);
+      setPlan(cockpit);
       setLoadFailed(false);
     } catch {
       setLoadFailed(true);
@@ -87,7 +108,20 @@ export default function FinancialHealthReportScreen() {
     if (!report || exporting) return;
     setExporting(true);
     try {
-      const uri = await exportFinancialHealthPDF(report);
+      const uri = await exportFinancialHealthPDF(
+        plan
+          ? {
+              ...report,
+              overallGrade: plan.healthGrade,
+              overallScore: Math.round(plan.healthScore),
+              gradeSummary: plan.healthProvisional
+                ? `${PLAN_GRADE_SUMMARY}. Early days: under two months of this year so far, so read this grade as a first look.`
+                : PLAN_GRADE_SUMMARY,
+              // The table under the grade is the plan's factors too, as on screen.
+              dimensions: plan.healthFactors.map((f) => ({ name: f.name, score: Math.round(f.score), grade: scoreToGrade(f.score), description: f.detail })),
+            }
+          : report,
+      );
       await sharePDF(uri);
     } catch (e: any) {
       alert("Export failed", e?.message || "Could not generate PDF");
@@ -202,7 +236,22 @@ export default function FinancialHealthReportScreen() {
     );
   }
 
-  const gc = gradeColor(report.overallGrade, theme);
+  // One grade everywhere: the plan's (as on the Goals card), else the report's own.
+  const shownGrade = plan ? plan.healthGrade : report.overallGrade;
+  const shownScore = plan ? Math.round(plan.healthScore) : report.overallScore;
+  // "Early days" reads neutral, as on the Goals card: too little of the year to grade on.
+  const gc = plan?.healthProvisional ? theme.mutedForeground : gradeColor(shownGrade, theme);
+  const openBreakdown = () =>
+    plan &&
+    router.push({
+      pathname: "/goals/health-grade",
+      params: {
+        grade: plan.healthGrade,
+        score: String(Math.round(plan.healthScore)),
+        factorsJson: JSON.stringify(plan.healthFactors),
+        provisional: plan.healthProvisional ? "1" : "0",
+      },
+    });
 
   return (
     <ScreenContainer padTop={false}>
@@ -219,8 +268,9 @@ export default function FinancialHealthReportScreen() {
           </Text>
         </View>
 
-        {/* Overall Grade — hero card */}
+        {/* Overall Grade — hero card: the yearly plan's grade, as on the Goals card. Tap for how it's worked out. */}
         <View className="px-4 mb-3">
+          <Pressable onPress={openBreakdown} disabled={!plan} accessibilityRole={plan ? "button" : undefined} accessibilityLabel={`Grade ${shownGrade}, score ${shownScore} out of 100`}>
           <Card>
             <View className="items-center py-2">
               {/* Grade ring */}
@@ -233,24 +283,34 @@ export default function FinancialHealthReportScreen() {
                 }}
               >
                 <Text className="text-display font-bold" style={{ color: gc }}>
-                  {report.overallGrade}
+                  {shownGrade}
                 </Text>
               </View>
               <Text className="text-body font-semibold text-foreground">
-                Score: {report.overallScore}/100
+                Score: {shownScore}/100
               </Text>
               <Text className="text-label text-muted-foreground text-center mt-1 px-4">
-                {report.gradeSummary}
+                {plan ? PLAN_GRADE_SUMMARY : report.gradeSummary}
               </Text>
+              {plan?.healthProvisional && (
+                <Text className="text-label text-muted-foreground text-center mt-1 px-4">Early days: under two months of this year so far.</Text>
+              )}
+              {plan && (
+                <Text className="text-label font-semibold mt-2" style={{ color: theme.primary }}>How it's worked out ›</Text>
+              )}
             </View>
           </Card>
+          </Pressable>
         </View>
 
         {/* Dimension grades — compact horizontal cards */}
         <View className="px-4 mb-1">
           <View className="flex-row flex-wrap gap-2">
-            {report.dimensions.map((d) => {
-              const dc = gradeColor(d.grade, theme);
+            {(plan
+              ? plan.healthFactors.map((f) => ({ name: f.name, grade: `${Math.round(f.score)}/100`, description: f.detail }))
+              : report.dimensions
+            ).map((d) => {
+              const dc = plan ? gradeColor(scoreToGrade(parseInt(d.grade, 10)), theme) : gradeColor(d.grade, theme);
               const iconName = DIMENSION_ICONS[d.name] || "ellipse-outline";
               return (
                 <View

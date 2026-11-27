@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 
-import { View, ScrollView, Pressable, RefreshControl, TextInput } from "react-native";
+import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
@@ -23,8 +23,6 @@ import { kindsOff, setKindOff, showAllKinds, snoozeInsight, visibleInsights } fr
 const preloaded = consumeInsightsPreload();
 
 const SHOWN_INSIGHTS = 3;
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const shortMonth = (yyyyMM: string) => MONTH_NAMES[parseInt(yyyyMM.split("-")[1], 10) - 1] ?? yyyyMM;
 
 /** The month five months before this one, so the card shows six in all. */
 function sixMonthsBack(month: string): string {
@@ -48,7 +46,6 @@ export function InsightsPage() {
   const [loading, setLoading] = useState(preloaded == null);
   const [refreshing, setRefreshing] = useState(false);
   const [allInsights, setAllInsights] = useState(false);
-  const [question, setQuestion] = useState("");
   const toast = useToast();
 
   const month = getCurrentMonth();
@@ -85,13 +82,7 @@ export function InsightsPage() {
   // "Not now" and "Don't show these" answers apply here (services/insight-dismiss.ts).
   const visible = visibleInsights(insights);
   const shownInsights = allInsights ? visible : visible.slice(0, SHOWN_INSIGHTS);
-  const ask = () => {
-    const q = question.trim();
-    if (!q) return;
-    setQuestion("");
-    // The Transactions search reads it, with on-device AI where there is one.
-    router.push({ pathname: "/(tabs)/expenses", params: { ask: q, request: String(Date.now()) } });
-  };
+
 
   return (
     <ScrollView
@@ -110,26 +101,6 @@ export function InsightsPage() {
       }
     >
       <MonthStoryCard />
-
-      {/* Ask about your money: plain words become a filtered list in Transactions */}
-      <View className="flex-row items-center rounded-card bg-card border border-border px-3 mb-1" style={{ gap: 8, minHeight: 48 }}>
-        <Ionicons name="search-outline" size={18} color={theme.mutedForeground} />
-        <TextInput
-          value={question}
-          onChangeText={setQuestion}
-          onSubmitEditing={ask}
-          returnKeyType="search"
-          placeholder="Ask about your money, like food last 3 months"
-          placeholderTextColor={theme.mutedForeground}
-          className="flex-1 text-body text-foreground"
-          accessibilityLabel="Ask about your money"
-        />
-        {question.trim().length > 0 && (
-          <Pressable onPress={ask} hitSlop={8} accessibilityRole="button" accessibilityLabel="Ask">
-            <Ionicons name="arrow-forward-circle" size={24} color={theme.primary} />
-          </Pressable>
-        )}
-      </View>
 
       {visible.length > 0 && (
         <>
@@ -187,7 +158,6 @@ export function InsightsPage() {
           detail={lastMonthTotal > 0 ? `${formatAmount(thisMonthTotal)} so far, ${formatAmount(lastMonthTotal)} all of last month` : "Any two periods, side by side"}
           onPress={() => router.push("/insights/compare")}
         />
-        <ExploreRow icon="swap-horizontal-outline" title="Year over year" detail="This year against last" onPress={() => router.push("/goals/yoy-comparison")} />
         <ExploreRow icon="storefront-outline" title="Where it goes" detail="Merchants, regulars and bills" onPress={() => router.push("/insights/where-it-goes")} />
         <ExploreRow icon="star-outline" title="Year in review" detail="Your financial year as a story" onPress={() => router.push("/insights/year-review")} />
         <ExploreRow icon="sparkles-outline" title="Ask your AI assistant" detail="A file to ask ChatGPT, Gemini or Claude about your money" onPress={() => router.push("/insights/export-for-ai")} last />

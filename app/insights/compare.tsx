@@ -11,7 +11,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Button, Card, DateInput, ScreenContainer, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDateRangeComparison, getComparisonPresets, getComparisonExpenseIds } from "@/services/comparison-insights";
 import type { ComparisonResult, ComparisonPreset, ComparisonDrillFilter } from "@/services/comparison-insights";
 import { formatAmount } from "@/utils/expense-validation";
@@ -38,7 +37,6 @@ function shortRangeLabel(start: string, end: string): string {
 
 export default function PeriodComparisonScreen() {
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [presets] = useState<ComparisonPreset[]>(() => getComparisonPresets());
   const [selectedPreset, setSelectedPreset] = useState<string>("This Month vs Last Month, same day");
@@ -292,10 +290,8 @@ export default function PeriodComparisonScreen() {
               </View>
             </Card>
 
-            {/* This month, day by day (the same-day comparison only) */}
-            {selectedPreset === "This Month vs Last Month, same day" && (
-              <SpendCalendar month={data.range2.start.slice(0, 7)} upTo={data.range2.end} />
-            )}
+            {/* The period being compared, day by day (or month by month for long ones) */}
+            <SpendCalendar start={data.range2.start} end={data.range2.end} />
 
             {/* Category Comparison */}
             {data.byCategory.length > 0 && (

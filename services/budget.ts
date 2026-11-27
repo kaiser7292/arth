@@ -3,6 +3,7 @@ import { rolledUpCategorySql } from "@/services/category-rollup";
 import { generateUUID } from "@/utils/uuid";
 import { bumpDataVersion } from "@/services/settings";
 import { logger } from "@/utils/logger";
+import { cachedByVersion } from "@/services/version-cache";
 
 export interface Budget {
   id: string;
@@ -269,7 +270,7 @@ export interface BudgetVsActualResult {
  * startDate  / endDate   — YYYY-MM-DD range for expense actuals (can be
  *   capped at today so mid-month queries only count spend to date).
  */
-export async function getBudgetVsActual(
+async function getBudgetVsActualUncached(
   userId: string,
   startMonth: string,
   endMonth: string,
@@ -418,3 +419,6 @@ export async function getBudgetVsActual(
 
   return { rows, unbudgetedRows, totalBudget, totalActual, monthly };
 }
+
+/** getBudgetVsActual, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getBudgetVsActual = cachedByVersion("getBudgetVsActual", getBudgetVsActualUncached);

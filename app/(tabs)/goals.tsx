@@ -266,9 +266,9 @@ export default function GoalsScreen() {
           {hasCockpit && cockpitData && savings && (
             <Appear index={0}>
               <PressableScale
-                onPress={() => router.push("/goals/financial-health")}
+                onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
                 accessibilityRole="button"
-                accessibilityLabel="Financial health, open the full report"
+                accessibilityLabel="Financial health, open the yearly plan"
               >
                 <Card>
                   <SectionTitle
@@ -281,18 +281,8 @@ export default function GoalsScreen() {
                         tone={gradeTone}
                         icon="information-circle-outline"
                         label={cockpitData.healthProvisional ? "Early days" : `Grade ${cockpitData.healthGrade}`}
-                        accessibilityLabel="Health grade, how it's worked out"
-                        onPress={() =>
-                          router.push({
-                            pathname: "/goals/health-grade",
-                            params: {
-                              grade: cockpitData.healthGrade,
-                              score: String(Math.round(cockpitData.healthScore)),
-                              factorsJson: JSON.stringify(cockpitData.healthFactors),
-                              provisional: cockpitData.healthProvisional ? "1" : "0",
-                            },
-                          })
-                        }
+                        accessibilityLabel="Health grade, open the financial health report"
+                        onPress={() => router.push("/goals/financial-health")}
                       />
                     }
                   />
@@ -466,28 +456,32 @@ export default function GoalsScreen() {
             )}
           </Appear>
 
-          {/* ── TRACK: yearly plan, loans, risk coverage, net worth, income ── */}
+          {/* ── TRACK: loans, risk coverage, net worth, income ── */}
           <Appear index={2}>
             <GroupLabel>Track</GroupLabel>
             <View className="rounded-card bg-card border border-border overflow-hidden">
-              <LinkRow
-                divider={false}
-                icon="document-text-outline"
-                title="Yearly plan"
-                sub={`${fyLabel}: plan against what really happened`}
-                onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
-              />
-              {/* The card above opens the report; without plan data there's no card, so a row does. */}
+              {/* The Financial health card opens the yearly plan and its grade the report. Without
+                  plan data there's no card, so these two rows stand in for it. */}
               {!(hasCockpit && cockpitData && savings) && (
-                <LinkRow
-                  icon="pulse-outline"
-                  title="Financial health report"
-                  sub="Net worth, savings rate, debt and emergency fund"
-                  onPress={() => router.push("/goals/financial-health")}
-                />
+                <>
+                  <LinkRow
+                    divider={false}
+                    icon="document-text-outline"
+                    title="Yearly plan"
+                    sub={`${fyLabel}: plan against what really happened`}
+                    onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
+                  />
+                  <LinkRow
+                    icon="pulse-outline"
+                    title="Financial health report"
+                    sub="Net worth, savings rate, debt and emergency fund"
+                    onPress={() => router.push("/goals/financial-health")}
+                  />
+                </>
               )}
               {isPartOn("loans") && (
                 <LinkRow
+                  divider={!(hasCockpit && cockpitData && savings)}
                   icon="business-outline"
                   color={theme.data.series[1]}
                   title="Loans & debt"
@@ -500,6 +494,7 @@ export default function GoalsScreen() {
                 />
               )}
               <LinkRow
+                divider={isPartOn("loans") || !(hasCockpit && cockpitData && savings)}
                 icon="shield-checkmark-outline"
                 color={theme.data.transfer}
                 title="Risk coverage"

@@ -11,6 +11,7 @@ import { round2 } from "@/utils/math";
 import { effectiveAmountSql } from "./expense-effective-amount";
 import { rolledUpCategorySql } from "./category-rollup";
 import { getComputedBalanceComponents } from "./account-balance";
+import { cachedByVersion } from "@/services/version-cache";
 
 /**
  * v17.0.0: Exclude expenses linked to investment buckets from spending insights
@@ -107,7 +108,7 @@ export interface InsightDetail {
 // Main Entry Point
 // ═══════════════════════════════════════════════
 
-export async function getInsights(
+async function getInsightsUncached(
   userId: string,
   month?: string,
   limit: number = 5,
@@ -403,7 +404,7 @@ async function detectIdleCash(userId: string, yearMonth: string): Promise<Insigh
 // Drill-Down Detail
 // ═══════════════════════════════════════════════
 
-export async function getInsightDrill(
+async function getInsightDrillUncached(
   userId: string,
   insightId: string,
   month?: string,
@@ -719,3 +720,9 @@ async function getMicroLeaksDrill(
 function formatCurrency(amount: number): string {
   return `\u20B9${Math.round(amount).toLocaleString("en-IN")}`;
 }
+
+/** getInsights, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getInsights = cachedByVersion("getInsights", getInsightsUncached);
+
+/** getInsightDrill, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getInsightDrill = cachedByVersion("getInsightDrill", getInsightDrillUncached);

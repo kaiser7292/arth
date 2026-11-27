@@ -21,7 +21,7 @@ phrasings:
   - Why does Reality Check say I'm behind?
 ---
 
-The **Yearly Plan** screen (Goals tab → Track → Yearly plan) shows your entire fiscal year in one place: income, planned outflows, and how your actual numbers compare to the plan so far.
+The **Yearly Plan** screen (Goals tab → tap the Financial Health card; before your plan has figures, Track → Yearly plan) shows your entire fiscal year in one place: income, planned outflows, and how your actual numbers compare to the plan so far.
 
 The screen respects your fiscal year setting (default: April–March). Use the period navigator at the top to switch to a previous FY.
 

@@ -321,6 +321,12 @@ Every write operation calls `bumpDataVersion()` (an MMKV counter). `useDataRefre
 ### Period Navigator Bounds
 `PeriodNavigator` accepts `minMonth` and `maxMonth`. They DON'T clamp the value — they only disable the chevron and grey out invalid picker cells. The user can still call `setMonth` directly to any value. Most reconciliation list screens (bank-accounts, wallets, pension-accounts) are intentionally UNBOUNDED so users can navigate freely; the individual account-ledger and account-detail screens are also unbounded to match.
 
+### Speed: remember until something changes
+- **Heavy reads are cached by data version** (`services/version-cache.ts`: `cachedByVersion(name, fn)`). The answer is reused until `bumpDataVersion`, a new day, or a new FY start month. Wrap new heavy report reads the same way. Callers must not mutate what they get back. The cache is off under Jest, unless a test calls `__useCacheInTests(true)`.
+- **Tabs skip unchanged reloads** with `DataRefreshScope` (`hooks/use-data-refresh.ts`) and `useScopeKey` (`hooks/use-scope-key.ts`) around Home and the Budget tab. Every `useDataRefresh` inside inherits the key, which covers the day, app resume, Customise changes and the viewed month. A card that depends on something outside the database and outside those must pass its own `skipKey`.
+- **Every load is timed** inside `useDataRefresh` → Settings → Speed diagnostics (search "speed"). Measure release builds only.
+- **Background jobs mark one change per run,** not one per item.
+
 ### Preload Pattern
 `services/home-preload.ts` runs expensive queries once on app start, caches results. Individual screens consume via `consumeXxxPreload()`. Each consume clears its slot — single-use, no stale data on re-entry.
 

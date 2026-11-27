@@ -16,7 +16,6 @@ import {
   getDateRangeComparison,
   getWeeklyComparison,
 } from "../../services/comparison-insights";
-import type { ComparisonPreset, ComparisonResult } from "../../services/comparison-insights";
 
 // ══════════════════════════════════════════
 // Mock the database module

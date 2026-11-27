@@ -7,6 +7,7 @@ import { getActiveAccounts } from "@/services/financial-account";
 import { invested, moneyIn, repaymentsIn } from "@/services/reports/year-review";
 import { getMonthSalaryState, getSalaryForMonth } from "@/services/salary-periods";
 import { getMonthDateRange } from "@/utils/budget-helpers";
+import { cachedByVersion } from "@/services/version-cache";
 
 /**
  * The month in one place: what came in, what was spent, what was put away and what's left. Uses the
@@ -81,7 +82,7 @@ export const NOT_PUT_AWAY = `${REAL_DEBIT}
 /** What's left of a debit after the part linked to goals, which counts as saved instead. */
 export const LINKED_PART = `COALESCE((SELECT SUM(l.contribution_amount) FROM expense_investment_links l WHERE l.expense_id = expenses.id), 0)`;
 
-export async function getMyMonth(userId: string, month: string): Promise<MyMonth> {
+async function getMyMonthUncached(userId: string, month: string): Promise<MyMonth> {
   const db = getDatabase();
   const { startDate, endDate } = getMonthDateRange(month);
   const amount = effectiveAmountSql("expenses");
@@ -215,3 +216,6 @@ export async function getMonthAccounts(userId: string, month: string): Promise<M
   );
   return rows.filter((r): r is MonthAccount => r !== null);
 }
+
+/** getMyMonth, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getMyMonth = cachedByVersion("getMyMonth", getMyMonthUncached);

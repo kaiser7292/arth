@@ -5,6 +5,7 @@ import { useState, useCallback, useMemo, useRef } from "react";
 import { View, ScrollView, Pressable, Switch, RefreshControl, Modal, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { BudgetPeriodView } from "@/components/budget/BudgetPeriodView";
 import { Card, Chip, ChipWrap, ContextualHeader, FieldRow, PeriodNavigator, ProgressBar, ScreenContainer, Segmented, SwipePager, Text } from "@/components/ui";
 import { tint } from "@/constants/brand";
 import { AnimatedNumber, Nudge, PressableScale } from "@/components/motion";
@@ -45,6 +46,8 @@ import { useTheme } from "@/hooks/use-theme";
 import { peekHomeTotals } from "@/services/home-preload";
 import { Rows } from "@/components/ui/Rows";
 import { LoadFailedBanner } from "@/components/ui/ListToolbar";
+import { DataRefreshScope } from "@/hooks/use-data-refresh";
+import { useScopeKey } from "@/hooks/use-scope-key";
 
 interface BudgetDashboardRow {
   category: Category;
@@ -84,6 +87,10 @@ export default function BudgetScreen() {
   const [quickBudgetAmount, setQuickBudgetAmount] = useState("");
   const quickBudgetInputRef = useRef<TextInput>(null);
   const [activePageIndex, setActivePageIndex] = useState(0);
+  /** Month, or a longer span shown in place on the Overview page (3M, 6M, FY). */
+  const [span, setSpan] = useState<"month" | "last_3m" | "last_6m" | "this_fy">("month");
+  // Cards and pages here skip reloading when nothing changed (docs/SPEED_AND_VOICE_PROPOSAL.md, fix 3).
+  const scopeKey = useScopeKey(`budget|${month}|${span}`);
   useCustomisation();
   const budgetPages = [
     { key: "overview", label: "Overview" },
@@ -311,12 +318,13 @@ export default function BudgetScreen() {
   const signedAmt = (n: number) => (n >= 0 ? rs(n) : `−${rs(Math.abs(n))}`);
 
   return (
+    <DataRefreshScope skipKey={scopeKey}>
     <ScreenContainer>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <ContextualHeader
         title="Budget"
         rightActions={
-          activePageIndex === 0
+          activePageIndex === 0 && span === "month"
             ? [
                 {
                   icon: "apps-outline",
@@ -327,28 +335,25 @@ export default function BudgetScreen() {
             : []
         }
       />
-      <PeriodNavigator mode="month" value={month} onChange={setMonth} />
-
-      {/* Longer than a month: Budget vs actual for 3 or 6 months or the FY (moved here from Insights,
-          docs/INSIGHTS_STREAMLINE_PROPOSAL.md §2.1). The month stays this page; the others open it. */}
+      {/* Longer than a month: Budget vs actual for 3 or 6 months or the FY, in place on this page
+          (docs/INSIGHTS_STREAMLINE_PROPOSAL.md §2.1). The month picker is for Month only. */}
+      {(activePageIndex !== 0 || span === "month") && <PeriodNavigator mode="month" value={month} onChange={setMonth} />}
       {activePageIndex === 0 && (
         <Segmented
           className="mx-4 mt-2"
-          value="month"
+          value={span}
           options={[
             { value: "month", label: "Month" },
             { value: "last_3m", label: "3M" },
             { value: "last_6m", label: "6M" },
             { value: "this_fy", label: "FY" },
           ]}
-          onChange={(v) => {
-            if (v !== "month") router.push({ pathname: "/budget/vs-actual", params: { period: v } });
-          }}
+          onChange={setSpan}
         />
       )}
 
       {/* What shows on Overview, and how categories sort (only on Overview) */}
-      {activePageIndex === 0 && showWidgetManager && (
+      {activePageIndex === 0 && span === "month" && showWidgetManager && (
         <View className="mx-4 mt-2 mb-1 p-3 rounded-card bg-card border border-border">
           <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-1">Show on Overview</Text>
           {WIDGET_CONFIG.map((w) => (
@@ -403,7 +408,10 @@ export default function BudgetScreen() {
           if (budgetPages[i]?.key === "monthly") setVisitedMonthly(true);
         }}
       >
-        {/* Page 0 — Overview */}
+        {/* Page 0 — Overview (or, for 3M / 6M / FY, budget against spending for that span) */}
+        {span !== "month" ? (
+          <BudgetPeriodView key={span} embedded period={span} />
+        ) : (
         <ScrollView
           style={{ flex: 1 }}
           showsVerticalScrollIndicator={false}
@@ -791,6 +799,7 @@ export default function BudgetScreen() {
             </Pressable>
           </Modal>
         </ScrollView>
+        )}
 
         {/* Page 1 — Spending Split (lazy: only mount after first visit) */}
         {!isPartOn("budget_split") ? null : visitedSplit
@@ -803,5 +812,6 @@ export default function BudgetScreen() {
           : <View style={{ flex: 1 }} />}
       </SwipePager>
     </ScreenContainer>
+    </DataRefreshScope>
   );
 }
