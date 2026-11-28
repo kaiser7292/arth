@@ -643,6 +643,8 @@ export default function RootLayout(): React.JSX.Element {
         {/* Was unregistered, so it fell through to expo-router's default chrome. */}
         <Stack.Screen name="transfer" options={{ headerShown: false }} />
         <Stack.Screen name="search" options={{ headerShown: false }} />
+        {/* Ask Arth, from the ✦ in every header (app/ask.tsx sets its own header). */}
+        <Stack.Screen name="ask" />
         <Stack.Screen
           name="settings"
           options={{ headerShown: false }}

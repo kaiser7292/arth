@@ -187,7 +187,10 @@ export function readQuestionRules(text: string, ctx: AskContext, previous: AskPl
   }
 
   let measure: AskMeasure | undefined;
+  // "What did I spend", "how many times did I…" are amounts and counts, not yes-or-no.
+  const wh = /^\s*(?:what|how|where|which|when|kitna|kitni)\b/.test(t);
   for (const [re, m] of MEASURE_RULES) {
+    if (m === "exists" && wh) continue;
     const hit = t.match(re);
     if (hit) {
       measure = m;
@@ -199,7 +202,12 @@ export function readQuestionRules(text: string, ctx: AskContext, previous: AskPl
   // Subject: one of your merchants; then a category by its own name; then a brand or a name you
   // said ("pay to Zomato") that isn't in Arth; then everyday words for a category ("lunch").
   let subject: AskSubject | undefined;
-  const merchant = matchMerchant(t, ctx.merchants);
+  const words = t.match(/\b(?:mentioning|with the word|containing|that say|tagged|notes? (?:say|with))\s+["“']?([a-z][a-z0-9-]{2,})/);
+  if (words) {
+    subject = { kind: "text", words: words[1].trim() };
+    used.push(words[0]);
+  }
+  const merchant = subject ? undefined : matchMerchant(t, ctx.merchants);
   if (merchant) {
     subject = { kind: "merchant", name: merchant, known: true };
     used.push(merchant.toLowerCase());
