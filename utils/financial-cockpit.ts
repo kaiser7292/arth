@@ -213,7 +213,7 @@ export function calculateHealthScore(input: HealthScoreInput): {
   return { score: clampedScore, grade: scoreToGrade(clampedScore), factors };
 }
 
-function scoreToGrade(score: number): HealthGrade {
+export function scoreToGrade(score: number): HealthGrade {
   if (score >= 90) return "A+";
   if (score >= 80) return "A";
   if (score >= 70) return "B";

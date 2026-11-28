@@ -5,7 +5,7 @@ import { settingsStorage } from "./storage";
  * deleted, and switching it back on restores everything. Backed up with the other settings.
  */
 
-export type FeatureId = "vault" | "simulator" | "insights" | "hisaab" | "investments" | "loans" | "together";
+export type FeatureId = "vault" | "simulator" | "insights" | "hisaab" | "investments" | "loans" | "retirement" | "together";
 export type TabId = "budget" | "goals";
 export type InnerTabId = "budget_split" | "budget_monthly" | "tx_committed" | "tx_transfers";
 export type PartId = FeatureId | TabId | InnerTabId;
@@ -13,16 +13,17 @@ export type PartId = FeatureId | TabId | InnerTabId;
 export const FEATURES: { id: FeatureId; label: string; description: string }[] = [
   { id: "vault", label: "Vault", description: "Passwords and PINs. Your saved entries stay on this phone while it's off." },
   { id: "simulator", label: "Simulator", description: "What-if cash-flow plans" },
-  { id: "insights", label: "Insights", description: "Budget vs actual, money in and out, forecast and reports" },
+  { id: "insights", label: "Insights", description: "Your month, money in and out, compare and where it goes" },
   { id: "hisaab", label: "Hisaab", description: "Money owed with family and friends. Splitting an expense goes with it." },
   { id: "investments", label: "Investments", description: "Holdings, sync, projections and broker connections" },
   { id: "loans", label: "Loans", description: "Loan schedules, prepayments and the loans summary" },
+  { id: "retirement", label: "Retirement readiness", description: "The Goals tile and its plan: corpus, monthly SIP and scenarios" },
   { id: "together", label: "Together", description: "Your household. It stops syncing while off, so others won't see new spends." },
 ];
 
 export const TABS: { id: TabId; label: string; description: string }[] = [
   { id: "budget", label: "Budget", description: "The tab, and the budget part of My Month" },
-  { id: "goals", label: "Goals", description: "The tab, with your plan, net worth and year-over-year" },
+  { id: "goals", label: "Goals", description: "The tab, with your plan, loans, net worth and financial health" },
 ];
 
 export const INNER_TABS: { id: InnerTabId; label: string; description: string }[] = [
@@ -79,6 +80,8 @@ const PATH_PARTS: [string, PartId][] = [
   ["/settings/zebpay-connect", "investments"],
   ["/loans", "loans"],
   ["/goals/loans", "loans"],
+  ["/goals/loan-payoff", "loans"],
+  ["/goals/retirement", "retirement"],
   ["/together", "together"],
   ["/settings/household", "together"],
   ["/budget", "budget"],

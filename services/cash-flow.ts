@@ -1,6 +1,7 @@
 import { getCurrentMonth } from "@/services/budget";
 import { getMyMonth } from "@/services/my-month";
 import { investmentReturns } from "@/services/reports/year-review";
+import { cachedByVersion } from "@/services/version-cache";
 
 /**
  * Money in and out over any run of months: My Month's sum, month by month and added up, so a month
@@ -60,7 +61,7 @@ export function monthsBetween(startMonth: string, endMonth: string): string[] {
   return out;
 }
 
-export async function getCashFlow(
+async function getCashFlowUncached(
   userId: string,
   startMonth: string,
   endMonth: string,
@@ -124,3 +125,6 @@ export async function getCashFlow(
   flow.categories = [...categories.values()].sort((a, b) => b.total - a.total);
   return flow;
 }
+
+/** getCashFlow, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getCashFlow = cachedByVersion("getCashFlow", getCashFlowUncached);

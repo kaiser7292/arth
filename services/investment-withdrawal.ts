@@ -318,5 +318,7 @@ export async function repairWithdrawalBucketAmounts(userId: string): Promise<num
     await updateInvestmentContribution(r.contribution_id, r.bucket_id, { amount: -cost, date: r.c_date, notes: r.c_notes ?? undefined });
     fixed++;
   }
+  // Runs a few seconds after start-up now: screens and remembered reports pick the fix up.
+  if (fixed > 0) bumpDataVersion();
   return fixed;
 }

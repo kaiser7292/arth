@@ -1,6 +1,7 @@
 import { isPathOn } from "@/services/customise";
 import { Platform } from "react-native";
 import { getFlag } from "@/services/feature-flags";
+import { aiReadingBuilt } from "@/services/ai/ai-reading";
 
 /**
  * Everything "Search or do" can do or open that isn't the person's own data. Each entry says where it
@@ -21,7 +22,7 @@ export interface CatalogEntry {
   target?: SearchTarget;
   /** Not a screen: the search screen carries this out itself. */
   action?: "toggleAmounts";
-  only?: "household" | "ios" | "android";
+  only?: "household" | "ios" | "android" | "on-device-ai";
 }
 
 const add = (id: string, title: string, icon: string, pathname: string, words?: string, params?: Record<string, string>, only?: CatalogEntry["only"]): CatalogEntry => ({
@@ -131,8 +132,8 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   add("cash-flow-see", "See my money in and out", "swap-vertical-outline", "/insights/cash-flow", "cash flow income spending saved left trend"),
   add("cash-flow-year", "Money in and out this year", "swap-vertical-outline", "/insights/cash-flow", "cash flow fy annual", { period: "this_fy" }),
   add("cash-flow-custom", "Money in and out for any period", "swap-vertical-outline", "/insights/cash-flow", "cash flow custom range dates months", { period: "custom" }),
-  add("budget-actual-year", "Budget vs actual this year", "bar-chart-outline", "/insights/budget-vs-actual", "fy annual overspend", { period: "this_fy" }),
-  add("budget-actual-custom", "Budget vs actual for any period", "bar-chart-outline", "/insights/budget-vs-actual", "custom range dates months overspend", { period: "custom" }),
+  add("budget-actual-year", "Budget vs actual this year", "bar-chart-outline", "/budget/vs-actual", "fy annual overspend", { period: "this_fy" }),
+  add("budget-actual-custom", "Budget vs actual for any period", "bar-chart-outline", "/budget/vs-actual", "custom range dates months overspend", { period: "custom" }),
   add("forecast-do", "Will I stay within budget?", "trending-up-outline", "/insights/forecast", "month end likely spend forecast"),
   add("connect-kite", "Connect Zerodha", "link-outline", "/settings/kite-connect", "kite broker log in"),
   add("connect-angel", "Connect Angel One", "link-outline", "/settings/angel-connect", "broker"),
@@ -190,9 +191,9 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   add("import", "Import from Excel", "document-outline", "/settings/import-excel", "csv sheet"),
   add("reconcile", "Reconcile a statement", "git-compare-outline", "/settings/reconciliation/new", "pdf match tally"),
   add("export-ai", "Export for AI", "sparkles-outline", "/insights/export-for-ai", "chatgpt claude"),
-  add("ai-setup", "Use AI to set up", "sparkles-outline", "/settings/ai-assisted-setup", "chatgpt claude"),
+  add("ai-setup", "Ask your AI assistant", "sparkles-outline", "/settings/ai-request", "use ai to set up ai-assisted setup chatgpt claude gemini suggestions paste reply"),
   add("update-balances", "Update balances", "scale-outline", "/settings/update-balances", "adjust balance correct card due utilisation outstanding bank wallet"),
-  add("fix-my-data", "Fix my data", "medkit-outline", "/settings/fix-my-data", "data health clean correct duplicates transfers balance chatgpt claude ai"),
+  add("fix-my-data", "Data health", "medkit-outline", "/settings/fix-my-data", "fix my data clean correct duplicates transfers balance chatgpt claude ai"),
   add("recycle", "Restore something deleted", "trash-outline", "/settings/recycle-bin", "undo empty recycle bin"),
   add("clean-up", "Clean up data", "brush-outline", "/settings/clean-up", "reset old"),
   // ── Settings ──
@@ -218,7 +219,7 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   go("summary", "Monthly summary", "stats-chart-outline", "/(tabs)/budget", "spent"),
   go("budget", "Budget", "wallet-outline", "/(tabs)/budget", "categories"),
   go("split", "Spending split", "pie-chart-outline", "/budget/spending-split", "where did my money go unavoidable discretionary"),
-  go("budget-actual", "Budget vs actual", "bar-chart-outline", "/insights/budget-vs-actual", "compare"),
+  go("budget-actual", "Budget vs actual", "bar-chart-outline", "/budget/vs-actual", "compare"),
   // ── Transactions ──
   go("tx", "All transactions", "receipt-outline", TX, "ledger history"),
   go("tx-credits", "Credits", "arrow-down-outline", TX, "money in received", { preset: "credits" }),
@@ -243,7 +244,7 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   go("buckets", "Investment buckets", "file-tray-stacked-outline", "/goals/investment-buckets", "goals"),
   go("milestones", "Milestones", "flag-outline", "/goals/milestones", "life goals"),
   go("calculator", "Income Calculator", "calculator-outline", "/goals/salary-calculator", "tax ctc in hand salary"),
-  go("health", "Financial health", "fitness-outline", "/goals/health-grade", "grade score"),
+  go("health", "Financial health", "fitness-outline", "/goals/financial-health", "grade score report"),
   go("risk", "Risk coverage", "shield-outline", "/goals/risk-coverage", "insurance"),
   go("simulator", "Simulator", "git-branch-outline", "/simulator", "cash flow what if"),
   go("yoy", "Year-over-year", "swap-horizontal-outline", "/goals/yoy-comparison", "compare last year"),
@@ -253,14 +254,13 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   go("cash-flow", "Money in and out", "swap-vertical-outline", "/insights/cash-flow", "cash flow income spending"),
   go("compare", "Compare", "git-compare-outline", "/insights/compare", "months"),
   go("forecast", "Forecast", "trending-up-outline", "/insights/forecast", "month end projection"),
-  go("patterns", "Patterns", "repeat-outline", "/insights/patterns", "habits recurring"),
-  go("merchant-insights", "Merchants insights", "storefront-outline", "/insights/merchants", "top where"),
-  go("reports", "Reports", "document-text-outline", "/insights/reports"),
+  go("patterns", "Regulars, bills and subscriptions", "repeat-outline", "/insights/where-it-goes", "patterns habits recurring", { tab: "regulars" }),
+  go("merchant-insights", "Where it goes", "storefront-outline", "/insights/where-it-goes", "merchants top where", { tab: "merchants" }),
   go("year-review", "Year in Review", "ribbon-outline", "/insights/year-review", "wrapped annual"),
-  go("r-retire", "Retirement report", "umbrella-outline", "/insights/report-retirement", "pension corpus"),
-  go("r-loan", "Loan payoff report", "trending-down-outline", "/insights/report-loan-payoff", "emi prepay"),
-  go("r-persona", "Spending personality", "happy-outline", "/insights/report-spending-personality"),
-  go("r-health", "Financial health report", "fitness-outline", "/insights/report-financial-health", "grade"),
+  go("r-retire", "Retirement readiness", "umbrella-outline", "/goals/retirement", "pension corpus"),
+  go("r-loan", "Loan payoff plan", "trending-down-outline", "/goals/loan-payoff", "emi prepay"),
+  go("r-persona", "Spending personality", "happy-outline", "/insights/year-review", "year in review"),
+  go("r-health", "Financial health report", "fitness-outline", "/goals/financial-health", "grade"),
   // ── People ──
   go("hisaab", "Hisaab", "people-outline", "/hisaab/persons", "who owes me family ledger"),
   go("together", "Together", "home-outline", "/together", "household partner", undefined, "household"),
@@ -280,10 +280,14 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   go("image-templates", "Picture templates", "images-outline", "/settings/image-templates"),
   go("scan-history", "Scan history", "time-outline", "/settings/sms-scan-runs", "messages runs"),
   go("messages", "Transaction messages", "chatbubbles-outline", "/settings/transaction-messages", "sms"),
+  go("ai", "AI", "sparkles-outline", "/settings/ai", "on-device ai lab gemini nano chatgpt claude assistant ai-assisted setup suggestions"),
+  go("ai-history", "What AI changed", "time-outline", "/settings/ai-history", "ai fixes history undo corrections"),
+  go("on-device-ai", "On this phone (AI)", "sparkles-outline", "/settings/on-device-ai", "on-device ai gemini nano unrecognised unread messages jobs", undefined, "on-device-ai"),
   go("iphone", "iPhone bank messages", "phone-portrait-outline", "/settings/iphone-bank-messages", "shortcut", undefined, "ios"),
   go("voice", "Voice input", "mic-outline", "/settings/voice-input"),
   go("cards-setting", "Customise Arth", "options-outline", "/settings/customise", "home cards tabs features"),
   go("region-go", "Region", "globe-outline", "/settings/region"),
+  go("speed", "Speed diagnostics", "speedometer-outline", "/settings/speed", "slow loading performance diagnostics"),
   go("start-date", "Start date", "calendar-clear-outline", "/settings/start-date", "ignore before counting from"),
   go("notif-go", "Notifications", "notifications-outline", "/settings/notifications"),
   go("calendar-go", "Calendar sync", "calendar-outline", "/settings/calendar-sync"),
@@ -293,8 +297,7 @@ export const SEARCH_CATALOG: CatalogEntry[] = [
   go("reconcile-go", "Reconciliation", "git-compare-outline", "/settings/reconciliation", "statement"),
   go("dup-accounts", "Duplicate accounts", "copy-outline", "/settings/duplicate-accounts", "merge"),
   go("dup-dismissed", "Dismissed duplicates", "copy-outline", "/settings/dismissed-duplicates", "kept"),
-  go("ai-go", "AI setup", "sparkles-outline", "/settings/ai-assisted-setup", "chatgpt"),
-  go("ai-sug", "AI suggestions", "sparkles-outline", "/settings/ai-suggestions"),
+  go("ai-go", "Ask your AI assistant", "sparkles-outline", "/settings/ai-request", "ai setup chatgpt"),
   // ── Brokers ──
   go("kite", "Zerodha", "trending-up-outline", "/settings/kite-connect", "kite"),
   go("angel", "Angel One", "bar-chart-outline", "/settings/angel-connect"),
@@ -315,6 +318,7 @@ export function availableCatalog(): CatalogEntry[] {
     if (e.only === "household") return getFlag("household");
     if (e.only === "ios") return Platform.OS === "ios";
     if (e.only === "android") return Platform.OS === "android";
+    if (e.only === "on-device-ai") return aiReadingBuilt();
     return true;
   });
 }

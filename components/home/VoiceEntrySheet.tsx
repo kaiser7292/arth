@@ -9,7 +9,7 @@ import { useRouter } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { parseVoiceInput } from "@/utils/voice-parser";
+import { looksLikeTransfer, parseVoiceInput, wholeReply } from "@/utils/voice-parser";
 import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -19,12 +19,16 @@ import { getPaymentModes } from "@/services/payment-mode";
 import type { HisaabPersonWithBalance } from "@/services/hisaab";
 import { getPersonsWithBalances } from "@/services/hisaab";
 import { createTransfer } from "@/services/account-transfer";
+import { getDistinctMerchantNames } from "@/services/merchant-alias";
 import { bumpDataVersion } from "@/services/settings";
 import { getVoiceSettings } from "@/services/voice-settings";
 import type { VoiceSettings } from "@/services/voice-settings";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
 import { isoDate } from "@/utils/local-date";
+import { isAiJobOn } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
+import { readVoiceWithNano } from "@/services/ai/tasks/read-voice";
 
 type VoiceState = "idle" | "listening" | "speaking";
 type SessionType = "expense" | "transfer";
@@ -140,7 +144,7 @@ function enrichFromTranscript(
   const patch: Partial<VoiceSession> = {};
 
   // Transfer intent — flip session type and try to resolve from/to inline
-  if (/\btransfer\b/i.test(transcript)) {
+  if (looksLikeTransfer(transcript)) {
     patch.sessionType = "transfer";
     const fromMatch = transcript.match(/\bfrom\s+(\w+)/i);
     const toMatch = transcript.match(/\bto\s+(\w+)/i);
@@ -243,8 +247,12 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     }
   }, [voiceState, pulseAnim]);
 
+  /** Your merchants, so "D Mart" finds DMart in your spelling (utils/voice-parser.ts). */
+  const merchantNamesRef = useRef<string[]>([]);
+
   // Load reference data once
   useEffect(() => {
+    getDistinctMerchantNames(DEFAULT_USER_ID).then((names) => { merchantNamesRef.current = names; }).catch(() => {});
     setVoiceSettings(getVoiceSettings());
     Promise.all([
       getActiveAccounts(DEFAULT_USER_ID),
@@ -257,6 +265,8 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     }).catch(() => {});
   }, []);
 
+  /** Counts sentences sent to on-device AI, so only the latest answer is used. */
+  const aiAskRef = useRef(0);
   const navigateRef = useRef((_s: VoiceSession) => {});
   navigateRef.current = (s: VoiceSession) => {
     onClose();
@@ -396,6 +406,8 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
   // Open/close handling
   useEffect(() => {
+    // Opened or closed: an AI answer still coming is about the old sentence.
+    aiAskRef.current++;
     if (visible) {
       setVoiceSettings(getVoiceSettings());
       const blank = makeBlank();
@@ -435,7 +447,10 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     const pending = pendingFieldRef.current;
 
     // ── "Open form" command ───────────────────────────────────────────────────
-    if (!prev.confirming && /\b(done|finish|that'?s? all|go ahead|open form)\b/i.test(transcript)) {
+    // Commands only when they're the whole reply: "done at the salon" is an entry.
+    const command = wholeReply(transcript);
+    if (!prev.confirming && command === "done") {
+      aiAskRef.current++;
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       navigateRef.current(prev);
       return;
@@ -443,9 +458,9 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
 
     // ── Transfer confirmation state ───────────────────────────────────────────
     if (prev.confirming) {
-      if (/\b(yes|confirm|yep|sure|ok|save|proceed|yeah)\b/i.test(transcript)) {
+      if (command === "yes") {
         doCreateTransfer(prev);
-      } else if (/\b(no|cancel|stop|abort|back|nope)\b/i.test(transcript)) {
+      } else if (command === "no") {
         // Go back — reset accounts, keep amount, restart from "from" question
         const reset = { ...prev, confirming: false, transferFromAccountId: undefined, transferToAccountId: undefined };
         sessionRef.current = reset;
@@ -462,7 +477,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     }
 
     // ── "Skip" — skip current pending field, don't enrich ────────────────────
-    if (/\b(skip|next|pass|move on)\b/i.test(transcript) && pending) {
+    if (command === "skip" && pending) {
       skippedRef.current.add(pending);
       pendingFieldRef.current = null;
       setCurrentQuestion("");
@@ -472,13 +487,16 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     }
 
     // ── Parse and enrich ──────────────────────────────────────────────────────
-    const parsed = parseVoiceInput(transcript);
+    // Your own category and payment mode names (utils/voice-parser.ts): "lunch" finds Food, "GPay" your UPI.
+    const parsed = parseVoiceInput(transcript, { merchants: merchantNamesRef.current, categories: cats.map((c) => c.name), modes: pms.map((m) => m.name) });
     const updated: VoiceSession = {
       ...prev,
       amount: prev.amount ?? parsed.amount,
       merchant: prev.merchant ?? parsed.merchant,
       description: prev.description ?? parsed.description,
       dateIso: prev.dateIso ?? parsed.dateIso,
+      categoryId: prev.categoryId ?? (parsed.category ? cats.find((c) => c.name === parsed.category)?.id : undefined),
+      paymentModeId: prev.paymentModeId ?? (parsed.paymentMode ? pms.find((m) => m.name === parsed.paymentMode)?.id : undefined),
     };
 
     const enriched = enrichFromTranscript(transcript, updated, pms, accts, cats, ppl);
@@ -544,13 +562,38 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
       updated.merchant = transcript.trim();
     }
 
-    sessionRef.current = updated;
-    setSession({ ...updated });
-    setCurrentQuestion("");
-    currentQuestionRef.current = "";
-    pendingFieldRef.current = null;
+    const finish = (u: VoiceSession) => {
+      sessionRef.current = u;
+      setSession({ ...u });
+      setCurrentQuestion("");
+      currentQuestionRef.current = "";
+      pendingFieldRef.current = null;
+      determineNext(u);
+    };
 
-    determineNext(updated);
+    // The first sentence, with the merchant, category or mode still empty: on-device AI reads it
+    // with your own category and mode names (services/ai/tasks/read-voice.ts), 3 s at most.
+    const needs = !updated.merchant || !updated.categoryId || !updated.paymentModeId;
+    if (!pending && needs && !updated.transferFromAccountId && !updated.transferToAccountId && isAiJobOn("voice")) {
+      const asked = ++aiAskRef.current;
+      const catNames = cats.map((c) => c.name);
+      const modeNames = pms.map((m) => m.name);
+      void (async () => {
+        const ready = (await getNanoStatus().catch(() => "unavailable")) === "available";
+        const r = ready ? await readVoiceWithNano(transcript, catNames, modeNames) : null;
+        // Spoken again, closed, cancelled or finished meanwhile: this answer is about an old sentence.
+        if (asked !== aiAskRef.current || sessionRef.current !== prev) return;
+        if (r) {
+          if (updated.amount == null && r.amount != null) updated.amount = r.amount;
+          if (!updated.merchant && r.merchant) updated.merchant = r.merchant;
+          if (!updated.categoryId && r.category) updated.categoryId = cats.find((c) => c.name === r.category)?.id;
+          if (!updated.paymentModeId && r.mode) updated.paymentModeId = pms.find((m) => m.name === r.mode)?.id;
+        }
+        finish(updated);
+      })();
+      return;
+    }
+    finish(updated);
   });
 
   useSpeechRecognitionEvent("error", () => { if (!visible) return; setVoiceState("idle"); });
@@ -560,6 +603,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   });
 
   const handleCancel = () => {
+    aiAskRef.current++;
     Speech.stop();
     SpeechRecognition.abort();
     setVoiceState("idle");
@@ -569,6 +613,7 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   };
 
   const handleDoneSoFar = () => {
+    aiAskRef.current++;
     Speech.stop();
     SpeechRecognition.abort();
     setCurrentQuestion("");

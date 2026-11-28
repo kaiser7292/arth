@@ -7,15 +7,25 @@ import { AI_EXPORT_MIME_TYPE } from "@/services/ai-export-file";
 import { shortRef } from "@/services/ai-reply-format";
 import { shareFile } from "@/services/share-file";
 import { toIsoDate } from "@/utils/date";
-import { buildCorrectionInstructions, CORRECTIONS_FORMAT, FIX_REQUEST } from "./format";
+import {
+  buildCorrectionInstructions,
+  CORRECTIONS_FORMAT,
+  focusIsFullSetup,
+  focusNeedsMessages,
+  focusRequest,
+  type AiFocus,
+} from "./format";
+import { isAiReadingOn } from "@/services/ai/ai-reading";
 import { getHealthReport } from "./health";
 import { accountFixRef } from "./read";
 
 /**
- * The Fix my data file: the user's whole history for their AI assistant, with what it needs to
- * make Arth consistent and correct (docs/AI_CORRECTIONS_DESIGN.md). Built on Export for AI
- * Insights, so it keeps that export's rules: an allow-list of fields, the app's own figures, no SMS
- * text, vault or credentials. On top of it:
+ * The one file for your AI assistant (docs/AI_HUB_PROPOSAL.md §4): your history, with what it
+ * needs to set Arth up and make it consistent and correct (docs/AI_CORRECTIONS_DESIGN.md). What you
+ * ask for (the focus) changes only the request at the top and whether unread messages go in. Built on Export for AI
+ * Insights, so it keeps that export's rules: an allow-list of fields, the app's own figures, no
+ * vault or credentials, and SMS text only for messages Arth couldn't read, when the focus asks for
+ * their formats. On top of it:
  *   - the request and the correction format, in place of the setup reply format,
  *   - the health findings (what Arth already sees is wrong),
  *   - consistency tables: merchant spellings, merchants in several categories,
@@ -33,14 +43,36 @@ export interface FixExport {
 
 type Json = string | number | boolean | null | Json[] | { [k: string]: Json | undefined };
 
-export async function buildFixExport(userId: string, options: { includePeople: boolean; includeNotes: boolean }): Promise<FixExport> {
-  const period = await resolveAiExportPeriod("all_time", userId);
+export interface FixExportOptions {
+  includePeople: boolean;
+  includeNotes: boolean;
+  /** What you're asking for. Default: fix the whole history. */
+  focus?: AiFocus;
+  /** Default: all of it for a fix, the last 12 months otherwise (smaller for a chat app). */
+  period?: "last_12_months" | "all_time";
+}
+
+export function defaultPeriod(focus: AiFocus): "last_12_months" | "all_time" {
+  // A fix needs everything; a first setup (onboarding) has little history, so all of it is small.
+  return focus === "fix" || focus === "setup" ? "all_time" : "last_12_months";
+}
+
+export async function buildFixExport(userId: string, options: FixExportOptions): Promise<FixExport> {
+  const focus = options.focus ?? "fix";
+  const period = await resolveAiExportPeriod(options.period ?? defaultPeriod(focus), userId);
   const base = await buildAiExport(userId, {
     ...period,
-    sections: { ...DEFAULT_AI_EXPORT_SECTIONS, notes: options.includeNotes, hisaab: true },
+    // Net worth only when fixing: setting up doesn't need it, so it isn't sent (as the setup file did).
+    sections: { ...DEFAULT_AI_EXPORT_SECTIONS, notes: options.includeNotes, hisaab: true, netWorth: focus === "fix" },
     hidePeopleNames: !options.includePeople,
     hideMerchantNames: false,
-    suggest: { request: "tidy", includeUnreviewed: true },
+    // Unread message text goes only when asked for: a full setup leaves it out while on-device AI
+    // reads those messages on the phone, so they stay private.
+    suggest: {
+      request: focus === "fix" ? "tidy" : focus,
+      includeUnreviewed: true,
+      includeUnreadMessages: focus === "messages" || (focusNeedsMessages(focus) && !isAiReadingOn()),
+    },
   });
   const data = base.data as Record<string, Json | undefined>;
   const db = getDatabase();
@@ -98,8 +130,12 @@ export async function buildFixExport(userId: string, options: { includePeople: b
   const out: Record<string, Json | undefined> = {
     guide: data.guide,
     format: CORRECTIONS_FORMAT,
-    request: FIX_REQUEST,
-    reply_instructions: buildCorrectionInstructions(),
+    request: focusRequest(focus),
+    reply_instructions: buildCorrectionInstructions({
+      unreadMessages: Array.isArray(data.unread_messages) && data.unread_messages.length > 0,
+      fullSetup: focusIsFullSetup(focus),
+      unreviewed: true,
+    }),
     health: {
       score: health.score,
       findings: findings.map((c) => ({ check: c.label, count: c.count, meaning: c.hint })),
@@ -139,7 +175,7 @@ export async function buildFixExport(userId: string, options: { includePeople: b
     if (!(k in out) && k !== "reply_instructions") out[k] = v;
   }
 
-  const fileName = `arth-fix-my-data_${toIsoDate(new Date())}.json`;
+  const fileName = `${focus === "fix" ? "arth-fix-my-data" : "arth-for-ai"}_${toIsoDate(new Date())}.json`;
   const file = new File(Paths.cache, fileName);
   try {
     if (file.exists) file.delete();
@@ -158,9 +194,9 @@ export async function buildFixExport(userId: string, options: { includePeople: b
 }
 
 /** Share sheet on the file, with the request on the clipboard to paste alongside it. */
-export async function shareFixExport(file: FixExport): Promise<void> {
+export async function shareFixExport(file: FixExport, focus: AiFocus = "fix"): Promise<void> {
   try {
-    await Clipboard.setStringAsync(`${FIX_REQUEST} The attached Arth file explains its contents and the exact reply format - follow it.`);
+    await Clipboard.setStringAsync(`${focusRequest(focus)} The attached Arth file explains its contents and the exact reply format - follow it.`);
   } catch {
     // The request is in the file too.
   }

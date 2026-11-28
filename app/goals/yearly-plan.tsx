@@ -31,6 +31,7 @@ import {
 import type { LoanAccount } from "@/services/loan-accounts";
 import { getFYRange } from "@/utils/fiscal-year";
 import { useTheme } from "@/hooks/use-theme";
+import { HeaderGlobalActions } from "@/components/ui/HeaderGlobalActions";
 
 interface LoanForecastRow {
   loanId: string;
@@ -199,6 +200,22 @@ export default function YearlyPlanScreen() {
     <Stack.Screen
       options={{
         title: "Yearly plan",
+        // Year over year sits with Search and Hide amounts: the same screen Insights opens.
+        headerRight: () => (
+          <HeaderGlobalActions
+            leading={
+              <Pressable
+                onPress={() => router.push("/goals/yoy-comparison")}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Year over year"
+                style={{ padding: 4 }}
+              >
+                <Ionicons name="swap-horizontal-outline" size={20} color={theme.primary} />
+              </Pressable>
+            }
+          />
+        ),
       }}
     />
   );

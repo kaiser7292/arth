@@ -131,14 +131,15 @@ export async function createExpense(input: CreateExpenseInput): Promise<string> 
 
   const now = new Date().toISOString(); // Local time in ISO format
   await db.runAsync(
-    `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, applied_rule_ids, credit_kind, source, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
+    `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, nature, is_right_spend, refund_of_expense_id, purchase_group_id, due_date, applied_rule_id, applied_rule_ids, credit_kind, source, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', ?);`,
     id,
     input.user_id,
     round2(input.amount),
     input.currency ?? "INR",
     description,
     input.merchant_name ?? null,
+    input.raw_merchant_name ?? null,
     categoryId,
     paymentModeId,
     input.account_id ?? null,
@@ -620,6 +621,8 @@ export async function permanentlyDeleteExpense(id: string): Promise<void> {
     await db.runAsync("UPDATE expenses SET refund_of_expense_id = NULL WHERE refund_of_expense_id = ?;", id);
     await db.runAsync("UPDATE expenses SET matched_forecast_id = NULL WHERE matched_forecast_id = ?;", id);
     await db.runAsync("DELETE FROM pending_sms WHERE expense_id = ?;", id);
+    // On-device AI's questions about this transaction (category, what it was).
+    await db.runAsync("DELETE FROM ai_jobs WHERE ref_id = ? AND kind IN ('category', 'context');", id);
     // v15.12.0: drop any "linked settlement" hisaab rows tied to this expense —
     // their only reason for existing was the bond to this credit.
     await db.runAsync(
@@ -822,6 +825,7 @@ export async function purgeOldDeletedExpenses(userId: string, daysOld = 30): Pro
       ...params,
     );
 
+    await db.runAsync(`DELETE FROM ai_jobs WHERE kind IN ('category', 'context') AND ref_id IN (SELECT id FROM expenses WHERE ${condition});`, ...params);
     const result = await db.runAsync(`DELETE FROM expenses WHERE ${condition};`, ...params);
     changes = result.changes;
   });
@@ -1030,6 +1034,11 @@ export async function approveExpense(id: string): Promise<void> {
   // Smart-rule loan/bucket links for SMS expenses are deferred to approval.
   await applyDeferredRuleLinks([id]);
 
+  // An approved AI reading may complete a format on-device AI can hand over to a template.
+  import("@/services/ai/tasks/graduate-template")
+    .then((m) => m.considerGraduating([id]))
+    .catch((e) => logger.warn("Template from AI reads failed (non-fatal):", e));
+
   if (row && row.nature === "credit") {
     try {
       const { finaliseFDMaturityForExpenses } = await import("./investment-accounts");
@@ -1151,6 +1160,11 @@ export async function approveExpenses(ids: string[]): Promise<void> {
 
   // Smart-rule loan/bucket links for SMS expenses are deferred to approval.
   await applyDeferredRuleLinks(ids);
+
+  // An approved AI reading may complete a format on-device AI can hand over to a template.
+  import("@/services/ai/tasks/graduate-template")
+    .then((m) => m.considerGraduating(ids))
+    .catch((e) => logger.warn("Template from AI reads failed (non-fatal):", e));
 
   try {
     const { finaliseFDMaturityForExpenses } = await import("./investment-accounts");

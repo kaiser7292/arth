@@ -1,14 +1,14 @@
-import { useState, useCallback, useMemo } from "react";
-import { View, ScrollView, Pressable, Modal } from "react-native";
+import { useState, useCallback, useMemo, useRef } from "react";
+import { View, ScrollView, Pressable } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { PeriodBar } from "@/components/insights/PeriodBar";
-import { Card, EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
+import { Amount, Card, EmptyState, LoadingState, ScreenContainer, Text } from "@/components/ui";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 
-import { formatAmount } from "@/utils/format";
+import { formatAmount, formatReportShort } from "@/utils/format";
 import { insightPeriodLabel, insightPeriodRange, isInsightPeriod, type InsightPeriod } from "@/utils/insight-periods";
 import { getFYStartMonth } from "@/services/settings";
 import {
@@ -50,13 +50,21 @@ function shortMonth(yyyyMM: string): string {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export default function BudgetVsActualScreen() {
+/**
+ * Budget against spending for any period. Two homes:
+ *  - the Budget tab, in place, when Month · 3M · 6M · FY isn't Month (`embedded`, period from the tab);
+ *  - its own screen (app/budget/vs-actual.tsx), with every period including a custom one, for Search.
+ */
+export function BudgetPeriodView({ period: fixedPeriod, embedded = false }: { period?: Period; embedded?: boolean } = {}) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
 
   const params = useLocalSearchParams<{ period?: string }>();
-  const [period, setPeriod] = useState<Period>(isInsightPeriod(params.period) ? params.period : "this_month");
+  const [ownPeriod, setPeriod] = useState<Period>(isInsightPeriod(params.period) ? params.period : "this_month");
+  const period = fixedPeriod ?? ownPeriod;
+  /** Months opened to their exact figures (a tap on the row). */
+  const [openMonths, setOpenMonths] = useState<Set<string>>(new Set());
   const [sortOrder, setSortOrder] = useState<SortOrder>("overspend");
   const [result, setResult] = useState<BudgetVsActualResult | null>(null);
   const [fyStartMonth, setFyStartMonth] = useState(4);
@@ -69,7 +77,6 @@ export default function BudgetVsActualScreen() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [showMonthPicker, setShowMonthPicker] = useState<"start" | "end" | null>(null);
 
   const getPeriodLabel = useCallback((p: Period): string => insightPeriodLabel(p, fyStartMonth), [fyStartMonth]);
 
@@ -84,7 +91,9 @@ export default function BudgetVsActualScreen() {
     })();
 
   const [loadFailed, setLoadFailed] = useState(false);
+  const loadSeq = useRef(0);
   const loadData = useCallback(async () => {
+    const seq = ++loadSeq.current;
     try {
       const fySM = getFYStartMonth();
       setFyStartMonth(fySM);
@@ -96,13 +105,15 @@ export default function BudgetVsActualScreen() {
         r.startDate,
         r.endDate,
       );
+      if (seq !== loadSeq.current) return; // a newer period is loading
       setResult(data);
       setLoadFailed(false);
     } catch {
+      if (seq !== loadSeq.current) return;
       setLoadFailed(true);
       // DB not ready
     } finally {
-      setLoading(false);
+      if (seq === loadSeq.current) setLoading(false);
     }
   }, [period, customStartMonth, customEndMonth]);
 
@@ -158,17 +169,17 @@ export default function BudgetVsActualScreen() {
   const isOver = variance > 0;
 
   if (loading) {
-    return <ScreenContainer padTop={false}><LoadingState message="Loading budget..." /></ScreenContainer>;
+    return embedded ? <LoadingState message="Loading budget..." /> : <ScreenContainer padTop={false}><LoadingState message="Loading budget..." /></ScreenContainer>;
   }
 
   const hasAnyData = result && (result.rows.length > 0 || result.unbudgetedRows.length > 0);
 
   return (
-    <ScreenContainer padTop={false}>
+    <Wrap embedded={embedded}>
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 80, paddingTop: embedded ? 12 : 0 }}>
 
-        <PeriodBar
+        {!embedded && <PeriodBar
           period={period}
           fyStartMonth={fyStartMonth}
           customStart={customStartMonth}
@@ -176,7 +187,7 @@ export default function BudgetVsActualScreen() {
           onPeriod={(p) => { setPeriod(p); setLoading(true); }}
           onCustomStart={(m) => { setCustomStartMonth(m); setLoading(true); }}
           onCustomEnd={(m) => { setCustomEndMonth(m); setLoading(true); }}
-        />
+        />}
 
         {!hasAnyData ? (
           <EmptyState
@@ -187,69 +198,45 @@ export default function BudgetVsActualScreen() {
           />
         ) : (
           <>
-            {/* ── Summary card ─────────────────────────── */}
+            {/* ── Summary: one hero figure, the rest on a line below (numbers never wrap) ── */}
             <View className="px-4 mb-3">
               <Card>
-                {isCurrentMonth && result && result.totalBudget > 0 && (
-                  <Text className="text-label text-muted-foreground mb-2">
-                    {`Day ${new Date().getDate()} of ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} — prorated budget`}
-                  </Text>
-                )}
-                <View className="flex-row justify-between mb-3">
-                  <View className="flex-1">
-                    <Text className="text-label text-muted-foreground mb-0.5">
-                      {isCurrentMonth ? "Expected to date" : "Total Budget"}
+                <Text className="text-label text-muted-foreground mb-0.5">
+                  {isCurrentMonth ? "Spent so far" : `Spent · ${getPeriodLabel(period)}`}
+                </Text>
+                <View className="flex-row items-baseline" style={{ gap: 10 }}>
+                  <Amount value={result?.totalActual ?? 0} className="text-hero font-bold text-foreground flex-shrink" />
+                  {budgetForSummary > 0 && (
+                    <Text className="text-meta font-bold ml-auto" style={{ color: isOver ? theme.danger : theme.success }}>
+                      {Math.round(((result?.totalActual ?? 0) / budgetForSummary) * 100)}%
                     </Text>
-                    <Text className="text-heading font-bold text-foreground">
-                      {formatAmount(budgetForSummary)}
-                    </Text>
-                    {isCurrentMonth && result && result.totalBudget > 0 && (
-                      <Text className="text-label text-muted-foreground">
-                        Full month: {formatAmount(result.totalBudget)}
-                      </Text>
-                    )}
-                  </View>
-                  <View className="flex-1 items-center">
-                    <Text className="text-label text-muted-foreground mb-0.5">
-                      Spent
-                    </Text>
-                    <Text className="text-heading font-bold text-foreground">
-                      {formatAmount(result?.totalActual ?? 0)}
-                    </Text>
-                  </View>
-                  <View className="flex-1 items-end">
-                    <Text className="text-label text-muted-foreground mb-0.5">
-                      {isOver ? "Over by" : "Under by"}
-                    </Text>
-                    <Text
-                      className="text-heading font-bold"
-                      style={{ color: isOver ? theme.danger : theme.success }}
-                    >
+                  )}
+                </View>
+                {budgetForSummary > 0 && (
+                  <Text className="text-meta text-muted-foreground mt-1">
+                    {isCurrentMonth ? "Expected by today " : "Budget "}
+                    {formatAmount(budgetForSummary)}
+                    {" · "}
+                    <Text className="text-meta" style={{ color: isOver ? theme.danger : theme.success }}>
+                      {isOver ? "over by " : "under by "}
                       {formatAmount(Math.abs(variance))}
                     </Text>
-                  </View>
-                </View>
-
-                {/* Aggregate progress bar */}
+                  </Text>
+                )}
+                {isCurrentMonth && result && result.totalBudget > 0 && (
+                  <Text className="text-label text-muted-foreground mt-0.5">
+                    {`Day ${new Date().getDate()} of ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} · full month ${formatAmount(result.totalBudget)}`}
+                  </Text>
+                )}
                 {result && result.totalBudget > 0 && (
-                  <View className="mt-1">
+                  <View className="h-2 rounded-full overflow-hidden mt-3" style={{ backgroundColor: theme.border }}>
                     <View
-                      className="h-2 rounded-full overflow-hidden"
-                      style={{ backgroundColor: theme.border }}
-                    >
-                      <View
-                        className="h-full rounded-full"
-                        style={{
-                          width: `${Math.min(100, Math.round(((result.totalActual) / budgetForSummary) * 100))}%`,
-                          backgroundColor: isOver ? theme.danger : theme.primary,
-                        }}
-                      />
-                    </View>
-                    <Text className="text-label text-muted-foreground mt-1 text-right">
-                      {result.totalBudget > 0
-                        ? `${Math.round((result.totalActual / budgetForSummary) * 100)}% of ${isCurrentMonth ? "prorated " : ""}budget`
-                        : ""}
-                    </Text>
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.min(100, Math.round((result.totalActual / budgetForSummary) * 100))}%`,
+                        backgroundColor: isOver ? theme.danger : theme.primary,
+                      }}
+                    />
                   </View>
                 )}
               </Card>
@@ -264,68 +251,74 @@ export default function BudgetVsActualScreen() {
                   </Text>
                   {result.monthly.map((mo) => {
                     const moOver = mo.actual > mo.budget && mo.budget > 0;
-                    const barMax = Math.max(mo.budget, mo.actual, 1);
+                    // The bar is the share of that month's budget spent (full when over, or with no budget).
+                    const barPct = mo.budget > 0 ? Math.min(100, Math.round((mo.actual / mo.budget) * 100)) : mo.actual > 0 ? 100 : 0;
+                    const open = openMonths.has(mo.month);
                     return (
                       <Pressable
                         key={mo.month}
-                        onPress={() => router.push({ pathname: "/summary/my-month", params: { month: mo.month } })}
+                        onPress={() =>
+                          setOpenMonths((now) => {
+                            const next = new Set(now);
+                            if (next.has(mo.month)) next.delete(mo.month);
+                            else next.add(mo.month);
+                            return next;
+                          })
+                        }
                         className="mb-3"
                         accessibilityRole="button"
-                        accessibilityLabel={`${shortMonth(mo.month)}, ${formatAmount(mo.actual)} of ${formatAmount(mo.budget)}. Open My Month`}
+                        accessibilityState={{ expanded: open }}
+                        accessibilityLabel={`${shortMonth(mo.month)}, ${formatAmount(mo.actual)} of ${formatAmount(mo.budget)}`}
                       >
-                        <View className="flex-row items-center justify-between mb-1">
-                          <Text className="text-label font-medium text-muted-foreground w-8">
-                            {shortMonth(mo.month)}
+                        <View className="flex-row items-baseline mb-1.5" style={{ gap: 8 }}>
+                          <Text className="text-meta font-medium text-muted-foreground w-9">{shortMonth(mo.month)}</Text>
+                          <Text className="text-meta flex-1" numberOfLines={1}>
+                            <Text className="text-meta font-bold" style={{ color: moOver ? theme.danger : theme.foreground }}>
+                              {formatReportShort(mo.actual)}
+                            </Text>
+                            <Text className="text-meta text-muted-foreground">{mo.budget > 0 ? ` of ${formatReportShort(mo.budget)}` : ""}</Text>
                           </Text>
-                          <View className="flex-1 mx-2">
-                            {/* Budget bar */}
-                            <View className="flex-row items-center mb-0.5">
-                              <View
-                                className="h-1.5 rounded-full"
-                                style={{
-                                  width: `${Math.round((mo.budget / barMax) * 100)}%`,
-                                  backgroundColor: theme.border,
-                                  minWidth: mo.budget > 0 ? 4 : 0,
-                                }}
-                              />
-                            </View>
-                            {/* Actual bar */}
-                            <View className="flex-row items-center">
-                              <View
-                                className="h-2 rounded-full"
-                                style={{
-                                  width: `${Math.round((mo.actual / barMax) * 100)}%`,
-                                  backgroundColor: moOver ? theme.danger : theme.primary,
-                                  minWidth: mo.actual > 0 ? 4 : 0,
-                                }}
-                              />
-                            </View>
-                          </View>
-                          <View className="items-end" style={{ width: 72 }}>
-                            <Text
-                              className="text-label font-semibold"
-                              style={{ color: moOver ? theme.danger : theme.foreground }}
-                            >
-                              {formatAmount(mo.actual)}
+                          {mo.budget > 0 && (
+                            <Text className="text-label font-bold" style={{ color: moOver ? theme.danger : theme.primary }}>
+                              {Math.round((mo.actual / mo.budget) * 100)}%
                             </Text>
-                            <Text className="text-label text-muted-foreground">
-                              / {formatAmount(mo.budget)}
-                            </Text>
-                          </View>
+                          )}
                         </View>
+                        <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: theme.border }}>
+                          <View
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${barPct}%`,
+                              backgroundColor: moOver ? theme.danger : theme.primary,
+                              minWidth: mo.actual > 0 ? 4 : 0,
+                            }}
+                          />
+                        </View>
+                        {open && (
+                          <View className="mt-2 rounded-control px-3 py-2" style={{ backgroundColor: theme.alpha("foreground", 0.05), gap: 2 }}>
+                            <Text className="text-meta text-foreground">
+                              Spent {formatAmount(mo.actual)}
+                              {mo.budget > 0 ? ` of ${formatAmount(mo.budget)}` : ", no budget set"}
+                            </Text>
+                            {mo.budget > 0 && (
+                              <Text className="text-meta" style={{ color: moOver ? theme.danger : theme.success }}>
+                                {moOver ? "Over by " : "Under by "}
+                                {formatAmount(Math.abs(mo.actual - mo.budget))}
+                              </Text>
+                            )}
+                            <Pressable
+                              onPress={() => router.push({ pathname: "/budget/transactions", params: { filterMonth: mo.month, title: `Spending · ${shortMonth(mo.month)}` } })}
+                              hitSlop={6}
+                              accessibilityRole="button"
+                            >
+                              <Text className="text-meta font-semibold mt-1" style={{ color: theme.primary }}>See its transactions</Text>
+                            </Pressable>
+                          </View>
+                        )}
                       </Pressable>
                     );
                   })}
-                  <View className="flex-row items-center gap-3 mt-1">
-                    <View className="flex-row items-center gap-1.5">
-                      <View className="w-4 h-1.5 rounded-full" style={{ backgroundColor: theme.border }} />
-                      <Text className="text-label text-muted-foreground">Budget</Text>
-                    </View>
-                    <View className="flex-row items-center gap-1.5">
-                      <View className="w-4 h-2 rounded-full" style={{ backgroundColor: theme.primary }} />
-                      <Text className="text-label text-muted-foreground">Actual</Text>
-                    </View>
-                  </View>
+                  <Text className="text-label text-muted-foreground">Tap a month for its exact figures</Text>
                 </Card>
               </View>
             )}
@@ -387,7 +380,7 @@ export default function BudgetVsActualScreen() {
                 <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                   No Budget Set
                 </Text>
-                {result.unbudgetedRows
+                {[...result.unbudgetedRows]
                   .sort((a, b) => b.totalActual - a.totalActual)
                   .map((row) => (
                     <Pressable key={row.categoryId} onPress={() => drillDown(row)}>
@@ -419,8 +412,12 @@ export default function BudgetVsActualScreen() {
           </>
         )}
       </ScrollView>
-    </ScreenContainer>
+    </Wrap>
   );
+}
+
+function Wrap({ embedded, children }: { embedded: boolean; children: React.ReactNode }) {
+  return embedded ? <View style={{ flex: 1 }}>{children}</View> : <ScreenContainer padTop={false}>{children}</ScreenContainer>;
 }
 
 // ─── Category Row ─────────────────────────────────────────────────────────────

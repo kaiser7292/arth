@@ -97,6 +97,10 @@ export default function AddExpenseScreen() {
     prefillPaymentModeId?: string;
     prefillAccountId?: string;
     prefillCategoryId?: string;
+    /** A payment picture's own merchant name, when prefillMerchant is your chosen name for it. */
+    prefillRawMerchant?: string;
+    /** "1" unavoidable, "0" discretionary: from a picture's category or Smart Rule. */
+    prefillRightSpend?: string;
     prefillDate?: string;
     prefillSplitPersonId?: string;
     prefillCreditKind?: string;
@@ -371,6 +375,7 @@ export default function AddExpenseScreen() {
       setCategoryId(prefillCategoryId);
       categoryTouched.current = true;
     }
+    if (params.prefillRightSpend === "1" || params.prefillRightSpend === "0") setIsRightSpend(params.prefillRightSpend === "1");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -644,12 +649,19 @@ export default function AddExpenseScreen() {
         }
       }
 
+      // From a picture: keep the name it had, so a merge can be undone (Separate) as for messages.
+      // Typed over: it's your merchant now, not the picture's.
+      const rawMerchant =
+        params.prefillRawMerchant && params.prefillMerchant && merchantName.trim() === params.prefillMerchant.trim()
+          ? params.prefillRawMerchant
+          : null;
       // Split-tender path: create 2-3 linked expenses sharing a purchase_group_id.
       if (!isCredit && extraLegs.length > 0) {
         const shared = {
           user_id: DEFAULT_USER_ID,
           description: description.trim() || undefined,
           merchant_name: merchantName.trim() || undefined,
+          raw_merchant_name: rawMerchant,
           category_id: categoryId ?? undefined,
           date,
           is_right_spend: isRightSpend ? 1 : 0,
@@ -685,6 +697,7 @@ export default function AddExpenseScreen() {
             amount: parsedAmount,
             description: description.trim() || undefined,
             merchant_name: merchantName.trim() || undefined,
+            raw_merchant_name: rawMerchant,
             account_id: accountId,
             date,
             nature: "credit" as const,
@@ -696,6 +709,7 @@ export default function AddExpenseScreen() {
             amount: parsedAmount,
             description: description.trim() || undefined,
             merchant_name: merchantName.trim() || undefined,
+            raw_merchant_name: rawMerchant,
             category_id: categoryId ?? undefined,
             payment_mode_id: resolvedPaymentModeId ?? undefined,
             account_id: accountId,

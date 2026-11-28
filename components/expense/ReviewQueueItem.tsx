@@ -8,6 +8,7 @@ import { formatAmount, formatDateForDisplay } from "@/utils/expense-validation";
 import type { Expense } from "@/services/expense";
 import { useTheme } from "@/hooks/use-theme";
 import { todayIso } from "@/utils/local-date";
+import { isReadByAi, ReadByAiChip } from "@/components/ai/ReadByAiChip";
 
 interface ReviewQueueItemProps {
   expense: Expense;
@@ -86,6 +87,7 @@ export function ReviewQueueItem({
             {expense.description || expense.merchant_name || "Bank transaction"}
           </Text>
           <View className="flex-row items-center mt-0.5">
+            {isReadByAi(expense) && <ReadByAiChip compact />}
             {isCredit && (
               <View
                 className="px-1.5 py-0.5 rounded mr-1.5"

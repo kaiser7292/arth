@@ -23,6 +23,7 @@ import { isBankSender, looksLikeTransaction } from "./bank-senders";
 import { hasSenderScopedUserTemplate } from "./user-sms-templates";
 import { resolveBankFromSender } from "@/services/public-data/lookup";
 import { logger } from "@/utils/logger";
+import { isAiReadingOn } from "@/services/ai/ai-reading";
 
 export interface UnmatchedSms {
   address: string;
@@ -203,15 +204,18 @@ export async function parseSmsBatch(
         if (looksTransactional) {
           try {
             const id = generateUUID();
+            // Queued for on-device AI (services/ai/reading-queue.ts), which reads it while Arth
+            // is open. Off, or a phone without the AI: it stays Unrecognised, as before.
             await db.runAsync(
-              `INSERT INTO pending_sms (id, user_id, sms_id, address, body, sms_date, status, error_message)
-               VALUES (?, ?, ?, ?, ?, ?, 'failed', 'unrecognised');`,
+              `INSERT INTO pending_sms (id, user_id, sms_id, address, body, sms_date, status, error_message, ai_status)
+               VALUES (?, ?, ?, ?, ?, ?, 'failed', 'unrecognised', ?);`,
               id,
               userId,
               sms._id,
               sms.address,
               sms.body,
               sms.date,
+              isAiReadingOn() ? "queued" : null,
             );
           } catch (e) {
             // If the insert itself fails, nothing to show the user — just log.
@@ -421,6 +425,7 @@ export async function deleteSmsRecord(id: string): Promise<void> {
   }
   await db.runAsync("DELETE FROM pending_sms WHERE id = ?;", id);
   if (linkedExpenseId) {
+    await db.runAsync("DELETE FROM ai_jobs WHERE kind IN ('category', 'context') AND ref_id = ?;", linkedExpenseId);
     await db.runAsync("DELETE FROM expenses WHERE id = ?;", linkedExpenseId);
   }
   await bumpDataVersion();
@@ -488,6 +493,7 @@ export async function deleteAllSmsRecords(userId: string): Promise<number> {
   }
   const result = await db.runAsync("DELETE FROM pending_sms WHERE user_id = ?;", userId);
   for (const { expense_id } of linkedRows) {
+    await db.runAsync("DELETE FROM ai_jobs WHERE kind IN ('category', 'context') AND ref_id = ?;", expense_id);
     await db.runAsync("DELETE FROM expenses WHERE id = ?;", expense_id);
   }
   if (result.changes > 0) await bumpDataVersion();

@@ -278,6 +278,19 @@ Each phase ships behind the `ai_nano` flag and is tested on a release build on t
 
 ---
 
+### Phase 1 build status (Nov 2026, branch `claude/nano-onboarding`)
+
+Built, behind the `ai_nano` flag and the person's switch (`ai_nano_enabled`, Settings → On-device AI):
+
+- **Queue, step (a) without the context-only prompt.** Migration 097 (`expenses.parse_source`, `expenses.ai_fields`, `pending_sms.ai_status`). The scan queues what it can't read; `services/ai/reading-queue.ts` reads it while Arth is open (after each scan and on app open, 40 at a time). Each reading goes through `add-ai-read.ts` → `processParseResults`, so it gets the same checks as a pattern's reading. It lands in Catch Up marked "Read by AI", and each run is saved to Scan history.
+- **Onboarding.**
+  - First scan: a switch, and the model download starts with the scan. An AI pass runs after the history is approved; AI finds are never bulk-approved.
+  - Balances: AI suggests a type for accounts Arth can't place (`tasks/account-type.ts`).
+  - Setup choice: an "On this phone" route. AI files merchants into categories (`tasks/merchant-category.ts`, `local-setup.ts`), reviewed on the AI suggestions screen.
+  - Budget step: pre-filled from real spending (`services/budget-suggest.ts`, all routes).
+
+Not built yet: the context-only prompt for rule-read messages (6.7), examples from your own history (b), formats graduating to templates (c), the second look (d), and suggestion chips for the AI's judgement calls. **Before release:** test a release build on the Pixel (R8, AICore), and check what ML Kit's `datatransport` logging sends (Play data safety).
+
 ### Phase 1 build plan (Nov 2026): every scan is rules → templates → AI → Catch Up
 
 **The flow.** In `parseSmsBatch`, a message that neither the built-in patterns nor a user template reads today becomes "unrecognised". In Phase 1 it gets one more try:

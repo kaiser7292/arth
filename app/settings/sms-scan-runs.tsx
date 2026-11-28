@@ -64,7 +64,7 @@ function countsOf(run: ScanRunRow): Record<ScanDetailCategory, number> {
   };
 }
 
-/** A saved AI reading, in the shape the AI lab's result row draws. */
+/** A saved AI reading, in the shape its result row (components/ai/LabResultRow.tsx) draws. */
 function aiRowOf(d: ScanDetailRow): RunRow {
   let outcome: RunRow["outcome"];
   try {
@@ -193,7 +193,7 @@ export default function SmsScanRunsScreen() {
     setViewMode("category");
   }
 
-  // "Add to Catch Up" on an AI reading, from the history: the same path the AI lab takes.
+  // "Add to Catch Up" on an AI reading, from the history.
   async function addAiDetail(d: ScanDetailRow) {
     const row = aiRowOf(d);
     if (row.outcome?.kind !== "transaction" || row.date == null || !selectedRun) return;
@@ -680,7 +680,7 @@ export default function SmsScanRunsScreen() {
     );
   }
 
-  // An AI reading: the AI lab's own result row, so the two screens read the same.
+  // An AI reading, drawn by its own result row.
   function AiDetailCard({ detail }: { detail: ScanDetailRow }) {
     const row = aiRowOf(detail);
     const open = openAiId === detail.id;
@@ -832,7 +832,7 @@ export default function SmsScanRunsScreen() {
                 No scan history
               </Text>
               <Text className="text-meta text-muted-foreground text-center mt-1 px-8">
-                Run an SMS scan, or test the on-device AI in the AI lab, to see results here.
+                Run an SMS scan, or let on-device AI read waiting messages, to see results here.
               </Text>
             </View>
           ) : (

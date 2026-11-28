@@ -79,6 +79,9 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
     // Enable WAL mode for better concurrent read/write performance
     logger.info("Enabling WAL mode...");
     await withTimeout(conn.execAsync("PRAGMA journal_mode = WAL;"), timeoutMs, "WAL mode setup");
+    // With WAL, NORMAL is SQLite's own advice: saves get faster, and the file can't be corrupted;
+    // at worst a sudden power cut loses the very last save (docs/SPEED_AND_VOICE_PROPOSAL.md, fix 7).
+    await withTimeout(conn.execAsync("PRAGMA synchronous = NORMAL;"), timeoutMs, "Synchronous setup");
 
     // Enforce foreign key constraints
     logger.info("Enabling foreign keys...");
@@ -95,6 +98,10 @@ async function open(): Promise<SQLite.SQLiteDatabase> {
     // Seed merchant keyword mappings for smart categorization
     logger.info("Seeding merchant mappings...");
     await withTimeout(seedMerchantMappings(), timeoutMs, "Merchant mappings seed");
+
+    // Let SQLite refresh what it knows about the tables, so complex reports pick good plans. Cheap
+    // (it only does work when needed) and never fatal.
+    conn.execAsync("PRAGMA optimize;").catch((e) => logger.warn("PRAGMA optimize failed (non-fatal):", e));
 
     logger.info("Database initialization complete");
     return conn;

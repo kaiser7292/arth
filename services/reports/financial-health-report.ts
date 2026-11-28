@@ -8,6 +8,7 @@ import { getFYStartMonth } from "@/services/settings";
 import { getRightSpendTrend } from "@/services/spending-insights";
 import { toIsoDate } from "@/utils/date";
 import { getCurrentFY, getFYRange } from "@/utils/fiscal-year";
+import { cachedByVersion } from "@/services/version-cache";
 
 export interface FinancialHealthReport {
   generatedAt: string;
@@ -142,7 +143,7 @@ function getMonthStartEnd(monthStr: string): { start: string; end: string } {
   return { start, end };
 }
 
-export async function generateFinancialHealthReport(
+async function generateFinancialHealthReportUncached(
   userId: string,
 ): Promise<FinancialHealthReport> {
   try {
@@ -470,3 +471,6 @@ function emptyReport(): FinancialHealthReport {
     spikingCategories: [],
   };
 }
+
+/** generateFinancialHealthReport, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const generateFinancialHealthReport = cachedByVersion("generateFinancialHealthReport", generateFinancialHealthReportUncached);

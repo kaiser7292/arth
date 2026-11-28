@@ -248,6 +248,25 @@ export default function LoansListScreen() {
           );
         })()}
 
+        {/* Payoff plan: avalanche against snowball and the interest an extra payment saves
+            (moved here from Insights → Reports). */}
+        {activeLoans.length > 0 && (
+          <Pressable
+            onPress={() => router.push("/goals/loan-payoff")}
+            className="flex-row items-center rounded-card bg-card border border-border px-4 py-3 mt-3"
+            style={{ gap: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Payoff plan: which loan to clear first and what extra payments save"
+          >
+            <Ionicons name="trending-down-outline" size={20} color={theme.primary} />
+            <View className="flex-1">
+              <Text className="text-body font-semibold text-foreground">Payoff plan</Text>
+              <Text className="text-meta text-muted-foreground">Which loan to clear first, and what extra payments save</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} />
+          </Pressable>
+        )}
+
         {activeLoans.length > 0 && (
           <>
             <Text className="text-label font-semibold text-muted-foreground uppercase tracking-wider mt-3 mb-2 px-1">

@@ -8,7 +8,6 @@ import { getCurrencyDef } from "@/constants/currencies";
 import type { FinancialHealthReport } from "./financial-health-report";
 import type { RetirementReport } from "./retirement-report";
 import type { LoanPayoffReport } from "./loan-payoff-report";
-import type { SpendingPersonalityReport } from "./spending-personality-report";
 import { buildShareLines, monthName, type YearReview } from "./year-review";
 import { shareFile } from "@/services/share-file";
 
@@ -150,23 +149,6 @@ function baseStyles(): string {
     .action-desc { font-size: 10px; color: #64748B; }
 
     .disclaimer { margin-top: 20px; padding: 10px 14px; background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 6px; font-size: 9px; color: #92400E; }
-  `;
-}
-
-function pageHeader(reportTitle: string, logoBase64: string): string {
-  return `
-    <div class="phf">
-      <div class="phf-brand">
-        ${logoBase64 ? `<img class="phf-logo" src="data:image/png;base64,${logoBase64}" />` : ""}
-        <div>
-          <div class="phf-name">Arth &middot; &#2309;&#2352;&#2381;&#2341;</div>
-          <div class="phf-label">${htmlEscape(reportTitle)}</div>
-        </div>
-      </div>
-      <div class="phf-right">
-        <div style="font-size: 9px; opacity: 0.7;">Personal Finance</div>
-      </div>
-    </div>
   `;
 }
 
@@ -853,171 +835,6 @@ export async function exportLoanPayoffPDF(
 
   const html = wrapPage(body, "Loan Payoff Strategy", logoBase64, today);
   return generatePDF(html, `Loan_Payoff_${timestamp()}.pdf`);
-}
-
-// ─── Spending Personality PDF ───
-
-export async function exportSpendingPersonalityPDF(
-  report: SpendingPersonalityReport,
-): Promise<string> {
-  const logoBase64 = await getLogoBase64();
-  const today = todayFormatted();
-
-  const categoryRows = report.topCategories
-    .slice(0, 10)
-    .map(
-      (c) => `
-      <tr>
-        <td>${htmlEscape(c.categoryName)}</td>
-        <td class="amount">${fmtAmt(c.totalSpent)}</td>
-        <td class="amount">${fmtPct(c.percentage)}</td>
-        <td style="width: 30%;">
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: ${Math.min(c.percentage, 100)}%; background: #0F766E;"></div>
-          </div>
-        </td>
-      </tr>`,
-    )
-    .join("");
-
-  const merchantRows = report.topMerchants
-    .slice(0, 10)
-    .map(
-      (m) => `
-      <tr>
-        <td>${htmlEscape(m.merchant)}</td>
-        <td class="amount">${fmtAmt(m.totalSpent)}</td>
-        <td class="amount">${m.transactionCount}</td>
-      </tr>`,
-    )
-    .join("");
-
-  const dayRows = report.dayOfWeekPattern
-    .map(
-      (d) => `
-      <tr>
-        <td>${htmlEscape(d.day)}</td>
-        <td class="amount">${fmtAmt(d.avgSpend)}</td>
-        <td class="amount">${d.transactionCount}</td>
-      </tr>`,
-    )
-    .join("");
-
-  const trendRows = report.monthlyPattern
-    .map(
-      (m) => `
-      <tr>
-        <td>${htmlEscape(m.month)}</td>
-        <td class="amount">${fmtAmt(m.total)}</td>
-      </tr>`,
-    )
-    .join("");
-
-  const iconToEmoji: Record<string, string> = {
-    "calendar-outline": "📅",
-    "trending-up-outline": "📈",
-    "trending-down-outline": "📉",
-    "receipt-outline": "🧾",
-    "shield-checkmark-outline": "🛡️",
-    "flash-outline": "⚡",
-    "restaurant-outline": "🍽️",
-    "pie-chart-outline": "📊",
-    "hourglass-outline": "⏳",
-  };
-
-  const insightRows = report.insights
-    .map(
-      (ins) => {
-        const emoji = iconToEmoji[ins.icon] || "💡";
-        const sentimentColor = ins.sentiment === "positive" ? "#22C55E" : ins.sentiment === "warning" ? "#F59E0B" : "#6B7280";
-        return `
-      <div class="action-item" style="align-items: flex-start;">
-        <div style="width: 28px; height: 28px; border-radius: 14px; background: ${sentimentColor}18; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 14px;">${emoji}</div>
-        <div style="flex: 1;">
-          <div class="action-title">${htmlEscape(ins.title)}</div>
-          <div class="action-desc">${htmlEscape(ins.detail)}</div>
-        </div>
-      </div>`;
-      },
-    )
-    .join("");
-
-  const traitTags = report.archetype.traits
-    .map(
-      (t) =>
-        `<span style="display: inline-block; background: #0F766E20; color: #0F766E; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin: 2px 4px 2px 0;">${htmlEscape(t)}</span>`,
-    )
-    .join("");
-
-  const body = `
-    <div style="padding: 16px 0;">
-      ${reportHeaderHtml("Spending Personality Report", "Understand your financial behavior", logoBase64, [
-        { label: "Data As Of", value: fmtDate(report.dataAsOf) },
-        { label: "Months Analyzed", value: String(report.monthsAnalyzed) },
-        { label: "Generated", value: today },
-      ])}
-
-      <div class="card" style="text-align: center; margin-bottom: 16px;">
-        <div style="font-size: 32px; margin-bottom: 4px;">${htmlEscape(report.archetype.emoji)}</div>
-        <div style="font-size: 16px; font-weight: 800; color: #0F766E; margin-bottom: 4px;">${htmlEscape(report.archetype.name)}</div>
-        <div style="font-size: 11px; color: #64748B; margin-bottom: 8px;">${htmlEscape(report.archetype.description)}</div>
-        <div>${traitTags}</div>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-box">
-          <div class="stat-label">Monthly Avg Spend</div>
-          <div class="stat-value">${fmtAmt(Math.round(report.monthlyAvg))}</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-label">Consistency Score</div>
-          <div class="stat-value ${report.consistencyScore >= 70 ? "green" : report.consistencyScore >= 40 ? "amber" : "red"}">${Math.round(report.consistencyScore)}%</div>
-        </div>
-      </div>
-
-      ${categoryRows ? `
-        <div class="section-title">Top Categories</div>
-        <table class="data-table">
-          <thead><tr><th>Category</th><th style="text-align: right;">Amount</th><th style="text-align: right;">Share</th><th></th></tr></thead>
-          <tbody>${categoryRows}</tbody>
-        </table>
-      ` : ""}
-
-      ${merchantRows ? `
-        <div class="section-title">Top Merchants</div>
-        <table class="data-table">
-          <thead><tr><th>Merchant</th><th style="text-align: right;">Amount</th><th style="text-align: right;">Transactions</th></tr></thead>
-          <tbody>${merchantRows}</tbody>
-        </table>
-      ` : ""}
-
-      ${dayRows ? `
-        <div class="section-title">Day-of-Week Pattern</div>
-        <table class="data-table">
-          <thead><tr><th>Day</th><th style="text-align: right;">Avg Spend</th><th style="text-align: right;">Transactions</th></tr></thead>
-          <tbody>${dayRows}</tbody>
-        </table>
-      ` : ""}
-
-      ${trendRows ? `
-        <div class="section-title">Monthly Trend</div>
-        <table class="data-table">
-          <thead><tr><th>Month</th><th style="text-align: right;">Spend</th></tr></thead>
-          <tbody>${trendRows}</tbody>
-        </table>
-      ` : ""}
-
-      ${report.insights.length > 0 ? `
-        <div class="section-title">Behavioral Insights</div>
-        ${insightRows}
-      ` : ""}
-
-      ${disclaimerHtml()}
-    </div>
-  `;
-
-  const html = wrapPage(body, "Spending Personality Report", logoBase64, today);
-  return generatePDF(html, `Spending_Personality_${timestamp()}.pdf`);
 }
 
 // ─── Year in Review PDF ───

@@ -235,12 +235,12 @@ export default function ExportForAiScreen() {
           )}
 
           <Pressable
-            onPress={() => router.push("/settings/ai-assisted-setup")}
+            onPress={() => router.push("/settings/ai-request")}
             className="flex-row items-center justify-center gap-1 mt-5 py-2"
             accessibilityRole="button"
           >
             <Text className="text-label font-medium" style={{ color: theme.primary }}>
-              Want the AI to set things up for you? AI Assisted Setup
+              Want your AI to set things up or fix them? Ask your AI assistant
             </Text>
             <Ionicons name="chevron-forward" size={12} color={theme.primary} />
           </Pressable>

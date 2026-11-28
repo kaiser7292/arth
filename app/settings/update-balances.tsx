@@ -9,7 +9,7 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { getBalanceLines, saveBalanceUpdates, type BalanceLine } from "@/services/balance-update";
 import { parseAmount } from "@/utils/expense-validation";
-import { formatAmount } from "@/utils/format";
+import { formatExactAmount } from "@/utils/format";
 import { formatDisplayDate } from "@/utils/date";
 
 /**
@@ -100,9 +100,9 @@ export default function UpdateBalancesScreen() {
             <Card key={l.accountId} className="mb-2">
               <Text className="text-body font-semibold text-foreground">{l.name}</Text>
               <Text className="text-label text-muted-foreground mt-0.5">
-                Arth: {formatAmount(l.current)}
+                Arth: {formatExactAmount(l.current)}
                 {kind === "card_due" ? " owed" : ""}
-                {kind === "card_due" && l.limit ? ` of ${formatAmount(l.limit)} limit` : ""}
+                {kind === "card_due" && l.limit ? ` of ${formatExactAmount(l.limit)} limit` : ""}
               </Text>
               <Text className="text-label mt-0.5" style={{ color: l.sms ? theme.primary : theme.mutedForeground }}>
                 {l.sms
@@ -121,8 +121,8 @@ export default function UpdateBalancesScreen() {
                 <>
                   <Text className="text-label mt-1" style={{ color: theme.warning }}>
                     {(kind === "balance" ? diff < 0 : diff > 0)
-                      ? `${formatAmount(Math.abs(diff))} counted as money out`
-                      : `${formatAmount(Math.abs(diff))} counted as money in`}
+                      ? `${formatExactAmount(Math.abs(diff))} counted as money out`
+                      : `${formatExactAmount(Math.abs(diff))} counted as money in`}
                   </Text>
                   {(kind === "balance" ? diff < 0 : diff > 0) && (
                     <View className="flex-row items-center mt-2">

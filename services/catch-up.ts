@@ -1,6 +1,9 @@
 import type { DuplicateGroup } from "@/services/duplicate-detection";
 import type { Expense, ForecastMatchPair } from "@/services/expense";
 import type { ReviewQueueSnapshot } from "@/services/review-queue-snapshot";
+import type { CatchUpAiItems } from "@/services/catch-up-ai";
+import type { MergeOffer } from "@/services/ai/tasks/merchant-merge";
+import type { TemplateOffer } from "@/services/ai/tasks/graduate-template";
 
 /**
  * Catch Up: the review queue as a one-card-at-a-time deck.
@@ -13,7 +16,29 @@ export type CatchUpCard =
   | { kind: "duplicate"; key: string; group: DuplicateGroup }
   | { kind: "match"; key: string; pair: ForecastMatchPair }
   | { kind: "pending"; key: string; expense: Expense }
-  | { kind: "uncategorized"; key: string; expense: Expense };
+  | { kind: "uncategorized"; key: string; expense: Expense }
+  /** Your AI assistant's reply is waiting to be pasted (a file was shared). */
+  | { kind: "ai_reply"; key: string }
+  /** On-device AI read two messages of one format the same way: hand it to a template? */
+  | { kind: "ai_template"; key: string; offerKey: string; offer: TemplateOffer }
+  /** On-device AI thinks two merchant names are one place. */
+  | { kind: "ai_merge"; key: string; offer: MergeOffer };
+
+/**
+ * Other "Same place?" cards that name either merchant of this one. Once this pair merges one of
+ * those names is gone, so they are set aside until Catch Up next reads the offers.
+ */
+export function mergeSiblingKeys(deck: readonly CatchUpCard[], card: Extract<CatchUpCard, { kind: "ai_merge" }>): string[] {
+  const names = new Set([card.offer.keep.name, card.offer.other.name]);
+  return deck
+    .filter((c) => c.kind === "ai_merge" && c.key !== card.key && (names.has(c.offer.keep.name) || names.has(c.offer.other.name)))
+    .map((c) => c.key);
+}
+
+/** Cards that are a decision about the AI, not a transaction. Resolved by their own key. */
+export function isAiCard(card: CatchUpCard): card is Extract<CatchUpCard, { kind: "ai_reply" | "ai_template" | "ai_merge" }> {
+  return card.kind === "ai_reply" || card.kind === "ai_template" || card.kind === "ai_merge";
+}
 
 function oldestFirst(a: Expense, b: Expense): number {
   if (a.date !== b.date) return a.date < b.date ? -1 : 1;
@@ -27,8 +52,10 @@ function oldestFirst(a: Expense, b: Expense): number {
  * Forecasts (overdue / upcoming dues) are left out: acting on them doesn't clear them the way
  * reviewing a transaction does, so they aren't "unread" in the Catch Up sense.
  */
-export function buildCatchUpDeck(snapshot: ReviewQueueSnapshot): CatchUpCard[] {
+export function buildCatchUpDeck(snapshot: ReviewQueueSnapshot, ai?: CatchUpAiItems): CatchUpCard[] {
   const deck: CatchUpCard[] = [];
+  // Just back from the chat app with the reply: that comes first (docs/AI_HUB_PROPOSAL.md §3).
+  if (ai?.replyWaiting) deck.push({ kind: "ai_reply", key: "ai-reply" });
   snapshot.duplicateGroups.forEach((group, i) => {
     deck.push({ kind: "duplicate", key: `dup-${i}-${group.expenses.map((e) => e.id).join(",")}`, group });
   });
@@ -42,12 +69,15 @@ export function buildCatchUpDeck(snapshot: ReviewQueueSnapshot): CatchUpCard[] {
   [...snapshot.uncategorized]
     .sort(oldestFirst)
     .forEach((expense) => deck.push({ kind: "uncategorized", key: `uncat-${expense.id}`, expense }));
+  // AI offers last: they never hold up money being counted.
+  ai?.templates.forEach((t) => deck.push({ kind: "ai_template", key: `ai-template-${t.key}`, offerKey: t.key, offer: t.offer }));
+  ai?.merges.forEach((offer) => deck.push({ kind: "ai_merge", key: `ai-merge-${offer.key}`, offer }));
   return deck;
 }
 
 /** How many cards Catch Up would show, from a snapshot. Cheap enough for an entry-point badge. */
-export function countCatchUpItems(snapshot: ReviewQueueSnapshot): number {
-  return buildCatchUpDeck(snapshot).length;
+export function countCatchUpItems(snapshot: ReviewQueueSnapshot, ai?: CatchUpAiItems): number {
+  return buildCatchUpDeck(snapshot, ai).length;
 }
 
 /**
@@ -65,6 +95,10 @@ export function isCardStale(card: CatchUpCard, resolvedIds: ReadonlySet<string>)
     case "duplicate":
       // Nothing left to compare once fewer than two of the group remain.
       return card.group.expenses.filter((e) => !resolvedIds.has(e.id)).length < 2;
+    case "ai_reply":
+    case "ai_template":
+    case "ai_merge":
+      return resolvedIds.has(card.key);
   }
 }
 

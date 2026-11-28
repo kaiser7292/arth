@@ -2,13 +2,13 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Pressable, View } from "react-native";
 import { Button, Chip, MoneyChip, Text, type MoneyToneName } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
-import type { RunRow } from "@/services/ai/lab-runner";
+import type { RunRow } from "@/services/ai/ai-read-row";
 import type { AccountLink, AiReadSms, Channel, SmsEvent } from "@/services/ai/tasks/read-sms";
 import { formatDisplayDate } from "@/utils/date";
 
 export type { RunRow };
 
-/** Pieces of the On-device AI lab (app/settings/ai-lab.tsx), shared with its preview page. */
+/** How a message read by on-device AI is drawn in Scan history (app/settings/sms-scan-runs.tsx). */
 
 export const EVENT_TEXT: Record<SmsEvent, string> = {
   spend: "Spend",

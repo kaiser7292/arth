@@ -11,7 +11,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Button, Card, DateInput, ScreenContainer, Text } from "@/components/ui";
-import { useColorScheme } from "@/hooks/use-color-scheme";
 import { getDateRangeComparison, getComparisonPresets, getComparisonExpenseIds } from "@/services/comparison-insights";
 import type { ComparisonResult, ComparisonPreset, ComparisonDrillFilter } from "@/services/comparison-insights";
 import { formatAmount } from "@/utils/expense-validation";
@@ -20,6 +19,7 @@ import { changePctColor } from "@/constants/semantic-colors";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadingState } from "@/components/ui";
+import { SpendCalendar } from "@/components/insights/SpendCalendar";
 
 
 function changeArrow(pct: number): keyof typeof Ionicons.glyphMap {
@@ -37,10 +37,9 @@ function shortRangeLabel(start: string, end: string): string {
 
 export default function PeriodComparisonScreen() {
   const router = useRouter();
-  const { colors } = useColorScheme();
   const theme = useTheme();
   const [presets] = useState<ComparisonPreset[]>(() => getComparisonPresets());
-  const [selectedPreset, setSelectedPreset] = useState<string>("This Month vs Last Month");
+  const [selectedPreset, setSelectedPreset] = useState<string>("This Month vs Last Month, same day");
 
   // Date range inputs
   const [r1Start, setR1Start] = useState("");
@@ -106,7 +105,8 @@ export default function PeriodComparisonScreen() {
       if (r1Start && r1End && r2Start && r2End) {
         runComparison(r1Start, r1End, r2Start, r2End);
       } else if (presets.length > 0) {
-        const defaultPreset = presets.find((p) => p.label === "This Month vs Last Month") ?? presets[0];
+        // By the same day, like the Your month card (Year over year has its own screen).
+        const defaultPreset = presets.find((p) => p.label === "This Month vs Last Month, same day") ?? presets[0];
         handlePresetSelect(defaultPreset);
       }
     }, [r1Start, r1End, r2Start, r2End]),
@@ -289,6 +289,9 @@ export default function PeriodComparisonScreen() {
                 </Text>
               </View>
             </Card>
+
+            {/* The period being compared, day by day (or month by month for long ones) */}
+            <SpendCalendar start={data.range2.start} end={data.range2.end} />
 
             {/* Category Comparison */}
             {data.byCategory.length > 0 && (

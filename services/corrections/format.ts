@@ -4,7 +4,14 @@
  * person pastes it from a chat app.
  */
 
-export const CORRECTIONS_FORMAT = "arth-corrections/1";
+import { AI_REQUESTS, isFullSetup, type AiRequestId } from "@/services/ai-reply-format";
+
+/**
+ * One reply format for every request to your AI assistant (docs/AI_HUB_PROPOSAL.md §4): Fix my
+ * data's corrections plus the setup-only kinds. Version 2 added those; replies to version 1 files,
+ * and setup replies written as {"suggestions": [...]}, are still read.
+ */
+export const CORRECTIONS_FORMAT = "arth-corrections/2";
 export const MAX_CORRECTIONS = 2000;
 
 /** Corrections only Fix my data applies. */
@@ -23,8 +30,11 @@ export type FixType =
   | "adjust_balance"
   | "update_goal";
 
-/** Corrections the setup suggestions code already reads and applies (services/ai-suggestions.ts). */
+/** Kinds the setup suggestions code reads and applies (services/ai-suggestions.ts). */
 export const SHARED_TYPES = [
+  "set_income",
+  "add_transaction",
+  "sms_template",
   "add_category",
   "fix_merchant",
   "merchant_category",
@@ -67,12 +77,16 @@ export const FIX_TYPE_ALIASES: Record<string, FixType> = {
  * belongs (categories before the single entries that use them, rules last).
  */
 export const APPLY_ORDER: (FixType | SharedType)[] = [
+  // Income first: budgets and the plan read it.
+  "set_income",
   "set_account_type",
   "mark_duplicate",
   "mark_transfer",
   "link_refund",
   "move_account",
   "add_category",
+  // New transactions after the categories they use, before the merchant-wide fixes that file them.
+  "add_transaction",
   "fix_merchant",
   "merchant_category",
   "recategorise",
@@ -89,9 +103,14 @@ export const APPLY_ORDER: (FixType | SharedType)[] = [
   "add_milestone",
   "update_goal",
   "add_rule",
+  // Last: a new format reads waiting messages, which then go through the rules above.
+  "sms_template",
 ];
 
 export const GROUP_LABELS: Record<FixType | SharedType, string> = {
+  set_income: "Income",
+  add_transaction: "Missing transactions",
+  sms_template: "Message formats",
   set_account_type: "Account types",
   mark_duplicate: "Duplicates to remove",
   mark_transfer: "Transfers between your accounts",
@@ -117,14 +136,20 @@ export const GROUP_LABELS: Record<FixType | SharedType, string> = {
 };
 
 /** Ticked off by default: they reshape the plan, so applying one is a deliberate yes. */
-export const DELIBERATE: ReadonlySet<string> = new Set(["set_savings_target", "add_milestone", "update_goal", "add_investment_bucket"]);
+export const DELIBERATE: ReadonlySet<string> = new Set(["set_income", "set_savings_target", "add_milestone", "update_goal", "add_investment_bucket"]);
 
 export const FIX_REQUEST =
   "Go through my whole Arth history and fix it. Make it consistent: one spelling per merchant, the same category, payment mode and spend type for the same kind of transaction, and the right income types. Fix mistakes: duplicates, transfers between my own accounts counted as spending or income, refunds not linked to their purchase, transactions on the wrong account, account types that are wrong, and balances that don't match what my bank says. Then tidy my budgets and goals to fit what I really spend. Start from the health findings in the file. Reply only with the corrections file, straight away.";
 
-/** The "how to reply" section of the export, one instruction per line. */
-export function buildCorrectionInstructions(): string[] {
-  return [
+/**
+ * The "how to reply" section of the file, one instruction per line. Every request uses it
+ * (docs/AI_HUB_PROPOSAL.md §4); what's asked for only changes `request` at the top of the file.
+ * `unreadMessages`: the file holds `unread_messages`, so message formats can be suggested.
+ * `fullSetup`: income, savings target, buckets and goals are asked for too.
+ * `unreviewed`: the transactions include ones still waiting to be checked.
+ */
+export function buildCorrectionInstructions(has: { unreadMessages?: boolean; fullSetup?: boolean; unreviewed?: boolean } = {}): string[] {
+  const lines = [
     `Reply with ONE JSON object and nothing else: {"format": "${CORRECTIONS_FORMAT}", "corrections": [ ... ]}. Put every correction in the list; at most ${MAX_CORRECTIONS}.`,
     `Every correction has "type", the fields below, and "why": one short sentence a person can check (under 160 characters).`,
     `Name a transaction by its "ref" from the transactions list AND repeat its "date" and "amount" exactly. A correction whose ref, date and amount don't match one row is thrown away.`,
@@ -153,6 +178,63 @@ export function buildCorrectionInstructions(): string[] {
     `- set_savings_target: percent.`,
     `- add_investment_bucket: name, annual_target.`,
     `- add_milestone: name, target_amount, target_date.`,
-    `Order doesn't matter: Arth applies them in the right order. Prefer one fix_merchant or merchant_category over many single-entry changes.`,
+    `- add_transaction: date, amount, kind ("spend" or "income"), category, merchant, account (its fix_ref from accounts_for_fixes, or null). Only for a regular payment that is clearly missing in one month. Example: {"type":"add_transaction","date":"2026-09-05","amount":15000,"kind":"spend","category":"Rent","merchant":"Landlord","account":"k1a2b3c4d","why":"Paid every month, missing in September"}`,
   ];
+  if (has.unreadMessages) {
+    lines.push(
+      `- sms_template: sms (the id of one message in unread_messages), bank, kind ("debit", "credit" or "refund"), fields. In fields give each part you can find, copied character for character from the message text: amount (required), account (the digits shown), merchant, date, balance, ref, counterparty, other_account. Skip offers, OTPs and reminders. Example: {"type":"sms_template","sms":"s9f8e7d6","bank":"Kotak","kind":"debit","fields":{"amount":"482.00","account":"4521","merchant":"SWIGGY"},"why":"Kotak UPI debit alert"}`,
+    );
+  }
+  if (has.fullSetup) {
+    lines.push(
+      `- set_income: monthly (usual take-home pay), pay_day (1 to 31), bonus (expected this financial year, 0 if none), months (only when pay varies: {"YYYY-MM": amount} inside the current financial year). Example: {"type":"set_income","monthly":142500,"pay_day":1,"bonus":0,"months":{},"why":"Salary credit on the 1st each month"}`,
+      `set_income, set_savings_target, add_investment_bucket and add_milestone must come from current_setup or clear evidence in the file (a regular salary credit, monthly SIP debits). Never choose a savings target, an investment or a goal for the user. If the file doesn't show it, leave it out.`,
+      `DO NOT ASK QUESTIONS. The user is setting up and wants it done in one go: reply with everything in this one message.`,
+    );
+  }
+  if (has.unreviewed) {
+    lines.push(
+      `Transactions with "reviewed": false were read from bank messages and still wait for the user to check them. Treat them as real. monthly_summary and budgets count reviewed entries only, so work out budgets from merchants and transactions instead.`,
+    );
+  }
+  lines.push(
+    `Category names must match the file exactly, or be added by an add_category in the same reply. Don't suggest what is already true.`,
+    `Order doesn't matter: Arth applies them in the right order. Prefer one fix_merchant or merchant_category over many single-entry changes.`,
+  );
+  return lines;
+}
+
+// ─── What you ask your assistant for (docs/AI_HUB_PROPOSAL.md §4) ─────────────
+
+/** One request, with a focus. "setup" is onboarding's wording of "everything". */
+export type AiFocus = AiRequestId | "fix";
+
+export const AI_FOCUSES: { id: AiFocus; label: string; hint: string }[] = [
+  { id: "everything", label: "Set up everything", hint: "Categories, budgets, rules, income and goals" },
+  { id: "fix", label: "Fix my whole history", hint: "Duplicates, transfers, refunds, accounts and merchant names" },
+  { id: "tidy", label: "Tidy categories", hint: "Every merchant in its right category, one spelling each" },
+  { id: "budget", label: "Suggest a budget", hint: "A monthly budget per category, from what you really spend" },
+  { id: "missing", label: "Find what's missing", hint: "Regular payments missing from a month" },
+  { id: "messages", label: "Read my unread messages", hint: "Formats for bank messages Arth can't read yet" },
+];
+
+export function isAiFocus(value: unknown): value is AiFocus {
+  return typeof value === "string" && (value === "setup" || AI_FOCUSES.some((f) => f.id === value));
+}
+
+/** The request written at the top of the file and put on the clipboard. */
+export function focusRequest(focus: AiFocus): string {
+  if (focus === "fix") return FIX_REQUEST;
+  const prompt = AI_REQUESTS.find((r) => r.id === focus)?.prompt ?? AI_REQUESTS[0].prompt;
+  return `${prompt} Reply only with the corrections file described in reply_instructions, straight away.`;
+}
+
+/** Asks for message formats, so the file carries the messages Arth couldn't read. */
+export function focusNeedsMessages(focus: AiFocus): boolean {
+  return focus === "everything" || focus === "setup" || focus === "messages";
+}
+
+/** Asks for income, savings target, buckets and goals too. */
+export function focusIsFullSetup(focus: AiFocus): boolean {
+  return focus !== "fix" && isFullSetup(focus);
 }

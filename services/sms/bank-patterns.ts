@@ -86,6 +86,8 @@ export interface ParsedSMS {
   _matchSource?: "hardcoded" | "template";
   /** Internal: ID of the sms_template_patterns row that matched (template only). */
   _matchedTemplateId?: string | null;
+  /** "ai": on-device AI read the message (services/ai/add-ai-read.ts). Never auto-approved. */
+  parseSource?: "ai";
 }
 
 export interface BankPattern {

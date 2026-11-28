@@ -50,6 +50,8 @@ export { SwipeableRow } from "./SwipeableRow";
 export { WidgetCard } from "./WidgetCard";
 export { Text, Money } from "./Text";
 export { ReportAmount } from "./ReportAmount";
+export { Amount } from "./Amount";
+export type { AmountProps } from "./Amount";
 export type { TextProps, MoneyProps } from "./Text";
 export { Sheet, BottomSheet } from "./Sheet";
 export type { SheetProps } from "./Sheet";

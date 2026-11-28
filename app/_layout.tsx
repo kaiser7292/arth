@@ -6,7 +6,6 @@ import { initDatabase } from "@/database";
 import { useHouseholdSync } from "@/hooks/use-household-sync";
 import { AlertProvider } from "@/hooks/use-alert";
 import { ToastProvider } from "@/components/ui";
-import { LabRunToaster } from "@/components/ai/LabRunToaster";
 import { setPendingDeepLink, shouldShowLock } from "@/services/biometric-lock";
 import { seedDefaultCategories } from "@/services/category";
 import { getFlag } from "@/services/feature-flags";
@@ -287,44 +286,48 @@ export default function RootLayout(): React.JSX.Element {
         // silently drops every notification call. Fire-and-forget idempotent
         // request — returns immediately if permission was already granted.
         requestNotificationPermissions().catch((e) => logger.warn("Notif permission request failed:", e));
-        // Fire-and-forget: run immediate check + ensure background task is registered
-        runDailyNotificationCheck(DEFAULT_USER_ID).catch((e) => logger.warn("Daily notification check failed:", e));
-        // Phase 2 conversion catch-up (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4)
-        // — idempotent, self-heals any 'demat'/'pension' rows a restored backup
-        // reintroduces. Runs before the maturity pass, though nothing here
-        // depends on ordering.
-        migrateLegacyDematPensionAccounts(DEFAULT_USER_ID)
-          .catch((e) => logger.warn("Legacy investment account conversion failed:", e))
-          // Withdrawals recorded before 4.10.1: move a cash shortfall to holdings sold, then set
-          // bucket entries to the cost withdrawn rather than the whole amount. Both idempotent.
-          .then(() => repairWithdrawalSplits(DEFAULT_USER_ID))
-          .then(() => repairWithdrawalBucketAmounts(DEFAULT_USER_ID))
-          .catch((e) => logger.warn("Withdrawal repair failed (non-fatal):", e));
-        // Item 10 Phase 3 — one-time carry-forward of the old separate demat/
-        // pension Home-card hidden preferences onto the new merged card.
-        migrateInvestmentsHomeCardPreference();
-        // Arth AI was removed in 4.11.0: free the downloaded model file (up to 1.9 GB) and its settings.
-        removeArthAILeftovers();
         applyStartDate(DEFAULT_USER_ID).catch((e) => logger.warn("Start date check failed:", e));
-        // Idempotent FD-maturity catch-up pass (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
-        // section 8) — must be correct on its own since there is no reliable
-        // background trigger (Doze makes BackgroundFetch unreliable).
-        materialiseMaturedInvestments(DEFAULT_USER_ID).catch((e) => logger.warn("Investment maturity check failed:", e));
-        syncNotifBackgroundTask().catch((e) => logger.warn("Notif background task sync failed:", e));
-        syncBackupBackgroundTask().catch((e) => logger.warn("Backup background task sync failed:", e));
-        syncBrokerCaptureTask().catch((e) => logger.warn("Broker capture task sync failed:", e));
-        // Keep today's trades while they can still be fetched, a few seconds after launch so it
-        // never competes with first paint. Each broker's trouble stays its own.
+        // Item 10 Phase 3 — one-time carry-forward of the old separate demat/pension Home-card hidden
+        // preferences onto the new merged card. Home reads it on first paint, so it doesn't wait.
+        migrateInvestmentsHomeCardPreference();
+        // Upkeep that Home doesn't need waits a few seconds, so the first screen has the database to
+        // itself (docs/SPEED_AND_VOICE_PROPOSAL.md, fix 4). Every job here is idempotent and catches its own errors.
         setTimeout(() => {
-          captureAllBrokers()
-            .then(() => runAutoSyncDue())
-            .then(() => syncBrokerReminders())
-            .catch((e) => logger.warn("Broker capture failed:", e));
-        }, 5000);
-        setupTransactionAlertCategory()
-          .then(() => syncTransactionAlertTasks())
-          .catch((e) => logger.warn("Transaction alert setup failed:", e));
-        syncCalendarIfDue(DEFAULT_USER_ID).catch((e) => logger.warn("Calendar sync failed:", e));
+          // Fire-and-forget: run immediate check + ensure background task is registered
+          runDailyNotificationCheck(DEFAULT_USER_ID).catch((e) => logger.warn("Daily notification check failed:", e));
+          // Phase 2 conversion catch-up (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md section 4)
+          // — idempotent, self-heals any 'demat'/'pension' rows a restored backup
+          // reintroduces. Runs before the maturity pass, though nothing here
+          // depends on ordering.
+          migrateLegacyDematPensionAccounts(DEFAULT_USER_ID)
+            .catch((e) => logger.warn("Legacy investment account conversion failed:", e))
+            // Withdrawals recorded before 4.10.1: move a cash shortfall to holdings sold, then set
+            // bucket entries to the cost withdrawn rather than the whole amount. Both idempotent.
+            .then(() => repairWithdrawalSplits(DEFAULT_USER_ID))
+            .then(() => repairWithdrawalBucketAmounts(DEFAULT_USER_ID))
+            .catch((e) => logger.warn("Withdrawal repair failed (non-fatal):", e));
+          // Arth AI was removed in 4.11.0: free the downloaded model file (up to 1.9 GB) and its settings.
+          removeArthAILeftovers();
+          // Idempotent FD-maturity catch-up pass (docs/INVESTMENT_ACCOUNTS_PROPOSAL.md
+          // section 8) — must be correct on its own since there is no reliable
+          // background trigger (Doze makes BackgroundFetch unreliable).
+          materialiseMaturedInvestments(DEFAULT_USER_ID).catch((e) => logger.warn("Investment maturity check failed:", e));
+          syncNotifBackgroundTask().catch((e) => logger.warn("Notif background task sync failed:", e));
+          syncBackupBackgroundTask().catch((e) => logger.warn("Backup background task sync failed:", e));
+          syncBrokerCaptureTask().catch((e) => logger.warn("Broker capture task sync failed:", e));
+          // Keep today's trades while they can still be fetched, a few seconds after launch so it
+          // never competes with first paint. Each broker's trouble stays its own.
+          setTimeout(() => {
+            captureAllBrokers()
+              .then(() => runAutoSyncDue())
+              .then(() => syncBrokerReminders())
+              .catch((e) => logger.warn("Broker capture failed:", e));
+          }, 5000);
+          setupTransactionAlertCategory()
+            .then(() => syncTransactionAlertTasks())
+            .catch((e) => logger.warn("Transaction alert setup failed:", e));
+          syncCalendarIfDue(DEFAULT_USER_ID).catch((e) => logger.warn("Calendar sync failed:", e));
+        }, 4000);
         // Learned bill patterns (month-end projection, "Is this a monthly bill?"): once a day,
         // a few seconds after launch so it never competes with first paint.
         setTimeout(() => {
@@ -371,6 +374,11 @@ export default function RootLayout(): React.JSX.Element {
       if (outcome.reason === "error") {
         logger.warn("App-open SMS scan failed:", outcome.error);
       }
+      // Messages a background scan couldn't read waited for on-device AI, which only runs while
+      // Arth is open: read some now.
+      import("@/services/ai/reading-queue")
+        .then((q) => q.scheduleAiQueue())
+        .catch(() => {});
       // iPhone: bank messages the Shortcuts automation handed over while Arth was closed.
       await importHandedMessages();
       // The Shortcuts action's copy of the notification switch (missing on a fresh install).
@@ -628,7 +636,6 @@ export default function RootLayout(): React.JSX.Element {
     <ToastProvider>
     <ThemeProvider value={navigationTheme}>
       <StatusBar style="auto" />
-      <LabRunToaster />
       {/* Every screen slides in from the right (see useStackScreenOptions); task screens that
           open on top - add/edit expense, the AI assistant - rise from the bottom instead. */}
       <Stack screenOptions={{ animation: "ios_from_right" }}>

@@ -30,18 +30,23 @@ interface InsightCardProps {
   /** Kept for callers; the redesigned card leaves the trend to the insight's own screen. */
   trendData?: number[];
   onPress?: () => void;
+  /** "Not now": hide this card for the rest of the month (services/insight-dismiss.ts). */
+  onNotNow?: () => void;
+  /** "Don't show these": switch this kind of insight off. */
+  onHideKind?: () => void;
 }
 
 /** One "Worth a look" insight: a tinted icon tile, what happened and why it matters (Nov 2026 redesign). */
-export function InsightCard({ severity, type, title, detail, onPress }: InsightCardProps) {
+export function InsightCard({ severity, type, title, detail, onPress, onNotNow, onHideKind }: InsightCardProps) {
   const theme = useTheme();
   const role = severity === "celebrate" ? "success" : severity === "critical" ? "danger" : severity === "warning" ? "warning" : "primary";
   const color = theme[role];
   const icon = (type && TYPE_ICONS[type]) || SEVERITY_ICONS[severity];
   return (
+    <View className="rounded-card bg-card border border-border mb-2">
     <Pressable
       onPress={onPress}
-      className="rounded-card bg-card border border-border p-4 mb-2 flex-row items-start"
+      className="p-4 flex-row items-start"
       style={{ gap: 12 }}
       accessibilityLabel={`${title}. ${detail}. Tap for details`}
       accessibilityRole="button"
@@ -55,5 +60,20 @@ export function InsightCard({ severity, type, title, detail, onPress }: InsightC
       </View>
       <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} style={{ marginTop: 4 }} />
     </Pressable>
+    {(onNotNow || onHideKind) && (
+      <View className="flex-row px-4 pb-3" style={{ gap: 18, paddingLeft: 68, marginTop: -6 }}>
+        {onNotNow && (
+          <Pressable onPress={onNotNow} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Not now: hide ${title} this month`}>
+            <Text className="text-meta font-semibold" style={{ color: theme.primary }}>Not now</Text>
+          </Pressable>
+        )}
+        {onHideKind && (
+          <Pressable onPress={onHideKind} hitSlop={8} accessibilityRole="button" accessibilityLabel="Don't show insights like this">
+            <Text className="text-meta font-semibold text-muted-foreground">Don't show these</Text>
+          </Pressable>
+        )}
+      </View>
+    )}
+    </View>
   );
 }

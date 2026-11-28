@@ -21,6 +21,9 @@ import {
     getReportAmountStyle,
     setReportAmountStyle,
     type ReportAmountStyle,
+    getDecimalsStyle,
+    setDecimalsStyle,
+    type DecimalsStyle,
     setShortAmountStyle,
     type ShortAmountStyle,
     setTimezone,
@@ -76,6 +79,7 @@ export default function RegionSettingsScreen() {
   const [grouping, setGroupingState] = useState<NumberGrouping>(getNumberGrouping());
   const [shortStyle, setShortStyleState] = useState<ShortAmountStyle>(getShortAmountStyle());
   const [reportStyle, setReportStyleState] = useState<ReportAmountStyle>(getReportAmountStyle());
+  const [decimals, setDecimalsState] = useState<DecimalsStyle>(getDecimalsStyle());
   const [dateFormat, setDateFormatState] = useState<DateFormat>(getDateFormat());
   const [timezoneState, setTimezoneState] = useState<string>(getTimezone());
 
@@ -147,6 +151,29 @@ export default function RegionSettingsScreen() {
               <RegionPill key={g} label={NUMBER_GROUPING_LABELS[g]} on={grouping === g} onPress={() => handleGroupingChange(g)} />
             ))}
           </RegionRow>
+          <RegionRow
+            label="Decimals"
+            sample={formatAmountPreview(decimals === "round" ? 159017 : 159017.45, currency, grouping)}
+            note="Round off shows whole amounts in lists, cards and reports. Typing an amount, a transaction's details, card dues, account ledgers and Update balances stay exact."
+          >
+            {(
+              [
+                { value: "show", label: "Show" },
+                { value: "round", label: "Round off" },
+              ] as { value: DecimalsStyle; label: string }[]
+            ).map((o) => (
+              <RegionPill
+                key={o.value}
+                label={o.label}
+                on={decimals === o.value}
+                onPress={() => {
+                  setDecimalsStyle(o.value);
+                  setDecimalsState(o.value);
+                  bumpDataVersion();
+                }}
+              />
+            ))}
+          </RegionRow>
           <RegionRow label="Short amounts" sample={shortStyle === "lakh" ? "₹14.9K · ₹2.3L · ₹1.2Cr" : "₹14.9K · ₹2.3M · ₹1.2B"}>
             {(
               [
@@ -167,8 +194,9 @@ export default function RegionSettingsScreen() {
             ))}
           </RegionRow>
           <RegionRow
-            label="Report numbers"
+            label="Tight spaces"
             sample={reportStyle === "short" ? formatReportShort(2492209.1) : formatAmount(2492209.1)}
+            note="Reports, and any amount that won't fit: shrinks a little first, then shortens. Tap a short one for the full figure."
           >
             {(
               [
@@ -342,7 +370,7 @@ export default function RegionSettingsScreen() {
 }
 
 /** One setting in the Region card: its name and a live sample, then its choices. */
-function RegionRow({ label, sample, first, children }: { label: string; sample: string; first?: boolean; children: React.ReactNode }) {
+function RegionRow({ label, sample, first, note, children }: { label: string; sample: string; first?: boolean; note?: string; children: React.ReactNode }) {
   return (
     <View className={`px-4 py-3 ${first ? "" : "border-t border-border"}`} style={{ gap: 8 }}>
       <View className="flex-row items-baseline justify-between" style={{ gap: 8 }}>
@@ -354,6 +382,7 @@ function RegionRow({ label, sample, first, children }: { label: string; sample: 
       <View className="flex-row flex-wrap" style={{ gap: 8 }}>
         {children}
       </View>
+      {note ? <Text className="text-label text-muted-foreground leading-4">{note}</Text> : null}
     </View>
   );
 }

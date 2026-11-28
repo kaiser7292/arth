@@ -1,6 +1,41 @@
-import { useEffect, useRef, useCallback } from "react";
-import { useFocusEffect } from "expo-router";
+import { createContext, createElement, useContext, useEffect, useRef, useCallback, type ReactNode } from "react";
+import { useFocusEffect, usePathname } from "expo-router";
 import { getDataVersion, subscribeDataVersion } from "@/services/settings";
+import { recordLoad } from "@/services/load-timings";
+
+/**
+ * A skip key for a whole part of the app (docs/SPEED_AND_VOICE_PROPOSAL.md, fix 3): Home and the
+ * tab pages put one around everything they show, and every card and page inside that doesn't
+ * pass its own skipKey uses it. Coming back to Home with nothing saved then reloads nothing.
+ */
+const SkipKeyContext = createContext<string | undefined>(undefined);
+
+/** The route, for naming a load; "" where the router isn't there (some tests mock it out). */
+const useScreenName: () => string = typeof usePathname === "function" ? usePathname : () => "";
+
+export function DataRefreshScope({ skipKey, children }: { skipKey: string; children: ReactNode }) {
+  return createElement(SkipKeyContext.Provider, { value: skipKey }, children);
+}
+
+/** Time one load and record it (services/load-timings.ts). Never throws on the timing's account. */
+function timed(screen: string, why: string, run: () => void | Promise<void>): void {
+  const t0 = Date.now();
+  let result: void | Promise<void>;
+  try {
+    result = run();
+  } catch (e) {
+    recordLoad(screen, why, Date.now() - t0);
+    throw e;
+  }
+  if (result && typeof (result as Promise<void>).then === "function") {
+    (result as Promise<void>).then(
+      () => recordLoad(screen, why, Date.now() - t0),
+      () => recordLoad(screen, why, Date.now() - t0),
+    );
+  } else {
+    recordLoad(screen, why, Date.now() - t0);
+  }
+}
 
 export type RefreshSource = "focus" | "data-version";
 
@@ -50,21 +85,29 @@ export function useDataRefresh(
 
   const isFocused = useRef(false);
   const lastRef = useRef<string | null>(null);
-  const skipKey = options?.skipKey;
+  /** The load function last run: a new one means the screen's own inputs changed, so it reloads. */
+  const lastFnRef = useRef<typeof loadFn | null>(null);
+  // Its own key, else the one the part of the app around it sets (DataRefreshScope).
+  const scopeKey = useContext(SkipKeyContext);
+  const skipKey = options?.skipKey ?? scopeKey;
   const skipKeyRef = useRef(skipKey);
   skipKeyRef.current = skipKey;
+  const screen = useScreenName();
+  const screenRef = useRef(screen);
+  screenRef.current = screen;
 
   useFocusEffect(
     useCallback(() => {
       isFocused.current = true;
       if (skipKey === undefined) {
         // No signature given: reload on every focus, which is the long-standing default.
-        loadFn("focus");
+        timed(screenRef.current, "focus", () => loadFn("focus"));
       } else {
         const stamp = `${getDataVersion()}|${skipKey}`;
-        if (lastRef.current !== stamp) {
+        if (lastRef.current !== stamp || lastFnRef.current !== loadFn) {
           lastRef.current = stamp;
-          loadFn("focus");
+          lastFnRef.current = loadFn;
+          timed(screenRef.current, "focus", () => loadFn("focus"));
         }
       }
       return () => {
@@ -82,7 +125,7 @@ export function useDataRefresh(
         if (skipKeyRef.current !== undefined) {
           lastRef.current = `${getDataVersion()}|${skipKeyRef.current}`;
         }
-        loadFnRef.current("data-version");
+        timed(screenRef.current, "data-version", () => loadFnRef.current("data-version"));
       }
     });
     return () => sub.remove();

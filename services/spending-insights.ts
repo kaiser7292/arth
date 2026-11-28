@@ -22,6 +22,7 @@ import {
 } from "@/utils/spending-insights";
 import { getLastDayOfMonth } from "@/utils/date";
 import { effectiveAmountSql } from "./expense-effective-amount";
+import { cachedByVersion } from "@/services/version-cache";
 
 /**
  * Generate a complete spending insights summary for a user.
@@ -210,7 +211,7 @@ export async function getSpendingInsights(
 /**
  * Get merchant-level analytics for a longer time range (e.g., 6 months).
  */
-export async function getMerchantAnalytics(
+async function getMerchantAnalyticsUncached(
   userId: string,
   startDate: string,
   endDate: string,
@@ -594,3 +595,5 @@ function getLast3Months(now: Date): [string, string, string] {
   return months as [string, string, string];
 }
 
+/** getMerchantAnalytics, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getMerchantAnalytics = cachedByVersion("getMerchantAnalytics", getMerchantAnalyticsUncached);

@@ -21,6 +21,7 @@ import {
   getOnboardingCompletedVersion,
   setOnboardingCompletedVersion,
 } from "@/services/settings";
+import { startRoundOff } from "./locale-preferences";
 
 /**
  * Returns the current app version string from expo-constants, or "15.x" as a
@@ -57,4 +58,6 @@ export async function migrateExistingUser(): Promise<void> {
 
   // No user data found — this looks like a genuine fresh install. Leave the
   // stamp null so the wizard redirects.
+  // A fresh install starts on whole amounts (Settings → Region → Decimals).
+  startRoundOff();
 }

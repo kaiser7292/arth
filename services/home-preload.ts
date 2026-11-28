@@ -46,7 +46,7 @@ import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import type { BalanceSheetColumn } from "@/services/balance-sheet";
 import { getBalanceSourceInfo } from "@/services/balance-source";
 import { getMonthDateRange } from "@/utils/budget-helpers";
-import { getCurrentFY, getFYRange, formatLocalDate } from "@/utils/fiscal-year";
+import { getCurrentFY, formatLocalDate } from "@/utils/fiscal-year";
 import { logger } from "@/utils/logger";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
@@ -73,7 +73,6 @@ import { getDueReminders } from "@/services/recurring-rules";
 import type { ReminderWithSource } from "@/services/recurring-rules";
 import { findAutoMatches } from "@/services/reminder-matching";
 import type { ReminderAutoMatch } from "@/services/reminder-matching";
-import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
 import { getInsights, type Insight } from "@/services/insight-engine";
 import { getThisVsLastMonthTotals } from "@/services/comparison-insights";
 import { getCategories } from "@/services/category";
@@ -229,7 +228,6 @@ export interface InvestmentsPreloadData {
 // ---------------------------------------------------------------------------
 
 export interface InsightsPreloadData {
-  forecast: AnalyticsForecast | null;
   insights: Insight[];
   thisMonthTotal: number;
   lastMonthTotal: number;
@@ -616,13 +614,11 @@ async function loadInvestmentsSection(): Promise<InvestmentsPreloadData | null> 
 
 async function loadInsightsSection(): Promise<InsightsPreloadData | null> {
   try {
-    const [totals, forecast, insights] = await Promise.all([
+    const [totals, insights] = await Promise.all([
       getThisVsLastMonthTotals(DEFAULT_USER_ID).catch(() => ({ currentMonth: 0, previousMonth: 0 })),
-      getAnalyticsForecast(DEFAULT_USER_ID).catch(() => null),
       getInsights(DEFAULT_USER_ID).catch(() => [] as Insight[]),
     ]);
     return {
-      forecast,
       insights,
       thisMonthTotal: totals.currentMonth,
       lastMonthTotal: totals.previousMonth,

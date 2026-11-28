@@ -1,5 +1,5 @@
 ---
-title: AI Assisted Setup and Export for AI Insights
+title: Ask your AI assistant and Export for AI Insights
 slug: export-for-ai
 summary: Make a clean copy of your finances to upload to an AI assistant like Claude, with no passwords, SMS text or full account numbers in it.
 tags: [AI, export, Claude, ChatGPT, Gemini, insights, analysis, privacy, JSON, share]
@@ -21,6 +21,9 @@ phrasings:
   - Let AI set up my income and goals
   - Paste AI reply
   - Where is AI Assisted Setup?
+  - Ask your AI assistant
+  - Fix my whole history with ChatGPT
+  - Choose a file reply
 ---
 
 Export for AI Insights makes one small file with your finances in it, written so an AI assistant can read it properly. You upload the file to the assistant (Claude, ChatGPT, Gemini or another) and ask your questions there.
@@ -30,7 +33,7 @@ Arth itself never contacts an AI service. It only makes the file; you decide whe
 ## Where to find it
 
 - **Ask questions about your money:** Home tab → Insights page → Explore → Export for AI Insights.
-- **Have the assistant set things up:** Settings → AI Assisted Setup.
+- **Have the assistant set things up or fix them:** Settings → AI → Ask your AI assistant.
 
 ## How to use it
 
@@ -41,19 +44,21 @@ Arth itself never contacts an AI service. It only makes the file; you decide whe
 
 Change any option and Arth throws the old file away, so the file you share always matches what's on screen.
 
-## AI Assisted Setup
+## Ask your AI assistant
 
-**Settings → AI Assisted Setup.** Here the assistant doesn't only answer: it suggests changes to your setup, and you approve them.
+**Settings → AI → Ask your AI assistant.** Here the assistant doesn't only answer: it suggests changes, and you approve them. Pick what to ask for:
 
-- **Set up everything** - categories, a category for every merchant, budgets, templates for bank messages Arth couldn't read, and your income, savings target, investment buckets and goals. The assistant asks you a few questions first (is that credit your salary, do you expect a bonus, what are you saving for). Goals and targets come from your answers; the assistant is told not to choose them for you.
-- **Or do one thing** - tidy categories, suggest a budget, find missing payments, or read unread bank messages.
+- **Set up everything** - categories, a category for every merchant, budgets, templates for bank messages Arth couldn't read, and your income, savings target, investment buckets and goals. Goals and targets come only from what the file clearly shows; the assistant is told not to choose them for you.
+- **Fix my whole history** - duplicates, transfers between your own accounts, refunds, transactions on the wrong account, account types, payment modes, income types and balances that don't match your bank. Data health's findings go in the file too.
+- **Or one thing** - tidy categories, suggest a budget, find missing payments, or read unread bank messages. (Read unread messages isn't offered while on-device AI reads them for you.)
 
-1. Tap **Share with AI** and pick your assistant's app. The file carries your request and tells the assistant exactly how to reply, so there is nothing to type. (Your request is also copied, in case the assistant's message box opens empty: long-press and paste.)
-2. Send it. The assistant replies with a grey code block. Tap **copy** on it.
-3. Back in Arth, tap **Paste AI reply**.
-4. Arth lists what the assistant suggested, ticked. Untick anything you don't want, then tap **Apply**.
+1. Pick a **period** (the last 12 months, or all of it), and whether to include people's names and your notes.
+2. Tap **Make the file and share** and pick your assistant's app. The file carries your request and tells the assistant exactly how to reply, so there is nothing to type. (Your request is also copied, in case the assistant's message box opens empty: long-press and paste.)
+3. Send it. The assistant replies with a code block. Tap **copy** on it. A **Your assistant's reply is waiting** card waits in Catch Up meanwhile.
+4. Back in Arth, tap **Paste from clipboard**, or **Choose a file** if the assistant gave you a file to download.
+5. Arth lists every change, checked against your data. Untick anything you don't want, then tap **Apply**.
 
-Nothing changes until you tap Apply. What Arth accepts is limited on purpose:
+Nothing changes until you tap Apply. Arth keeps a copy of your data first, so **Undo all** puts everything back, from the done screen or later from **Settings → AI → What AI changed**, until you apply the next AI changes. What Arth accepts is limited on purpose:
 
 | Suggestion | What happens when you apply it |
 |---|---|
@@ -69,6 +74,7 @@ Nothing changes until you tap Apply. What Arth accepts is limited on purpose:
 | Goal | A life milestone with an amount and a date |
 | SMS template | Built on your phone from the parts the assistant pointed out, and tested on your unread messages first. Arth shows how many it reads; one that reads none isn't offered |
 | Missing transaction | Sent to your review queue, never straight into your books |
+| Fixes | Duplicates go to the Recycle Bin; transfers, refunds, accounts, payment modes, income types and goals are changed the same way you'd change them by hand; a balance match adds an adjustment |
 
 Income, savings target, investment buckets and goals start **unticked**: they shape your whole plan, so each one is a deliberate yes. If one is already set, the row shows what it is now.
 
@@ -78,7 +84,7 @@ The assistant cannot delete anything, or change the amount or date of a transact
 
 ## Setting up with AI
 
-When you first set up Arth, the "Your accounts" step offers **AI Assisted Setup**. It shares everything found so far, including entries still waiting for review. An **AI Assisted Setup** card then waits on Home for the reply.
+When you first set up Arth, choose **With your AI assistant**. It shares everything found so far, including entries still waiting for review. If you finish later, a **Your assistant's reply is waiting** card waits in Catch Up.
 
 ## What goes in
 

@@ -9,15 +9,19 @@ export default function SettingsStackLayout() {
       screenOptions={screenOptions}
     >
       <Stack.Screen name="categories" options={{ title: "Categories" }} />
+      <Stack.Screen name="speed" options={{ title: "Speed diagnostics" }} />
       <Stack.Screen name="category-edit" options={{ title: "Category" }} />
       <Stack.Screen name="category-organise" options={{ title: "Organise categories" }} />
       <Stack.Screen name="payment-modes" options={{ title: "Payment Modes" }} />
       <Stack.Screen name="payment-mode-edit" options={{ title: "Payment Mode" }} />
       <Stack.Screen name="budget-config" options={{ title: "Monthly Budgets" }} />
       <Stack.Screen name="tags" options={{ title: "Tags" }} />
-      <Stack.Screen name="ai-assisted-setup" options={{ title: "AI Assisted Setup" }} />
-      <Stack.Screen name="ai-suggestions" options={{ title: "Review suggestions" }} />
-      <Stack.Screen name="ai-lab" options={{ title: "On-device AI lab" }} />
+      <Stack.Screen name="ai-request" options={{ title: "Ask your AI assistant" }} />
+      <Stack.Screen name="ai-assisted-setup" options={{ title: "Ask your AI assistant" }} />
+      <Stack.Screen name="ai-suggestions" options={{ title: "Ask your AI assistant" }} />
+      <Stack.Screen name="ai" options={{ title: "AI" }} />
+      <Stack.Screen name="ai-history" options={{ title: "What AI changed" }} />
+      <Stack.Screen name="on-device-ai" options={{ title: "On this phone" }} />
       <Stack.Screen name="import-excel" options={{ title: "Import from Excel" }} />
       <Stack.Screen name="backup-restore" options={{ title: "Back up and restore" }} />
       <Stack.Screen name="notifications" options={{ title: "Notifications" }} />
@@ -37,8 +41,8 @@ export default function SettingsStackLayout() {
       <Stack.Screen name="transfer-review" options={{ title: "Payments Between Accounts" }} />
       <Stack.Screen name="recycle-bin" options={{ title: "Recycle Bin" }} />
       <Stack.Screen name="dismissed-duplicates" options={{ title: "Duplicates You Kept" }} />
-      <Stack.Screen name="fix-my-data" options={{ title: "Fix My Data" }} />
-      <Stack.Screen name="data-health-issue" options={{ title: "Data Health" }} />
+      <Stack.Screen name="fix-my-data" options={{ title: "Data health" }} />
+      <Stack.Screen name="data-health-issue" options={{ title: "Data health" }} />
       <Stack.Screen name="update-balances" options={{ title: "Update Balances" }} />
       <Stack.Screen name="recurring-rules" options={{ title: "Reminders" }} />
       <Stack.Screen name="recurring-rule-detail" options={{ title: "Reminder" }} />

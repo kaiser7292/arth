@@ -1,5 +1,5 @@
 /**
- * Adding a message the AI read to Arth, from the AI lab: the user saw the reading, judged it
+ * Adding a message the AI read to Arth, from Scan history: the user saw the reading, judged it
  * right, and taps "Add to Catch Up".
  *
  * It goes through exactly the path a built-in bank pattern's reading takes (enrichParsedSms, then
@@ -71,6 +71,7 @@ export function aiReadToParsed(r: AiReadSms, sender: string, smsDate: number): P
     fdEvent: r.event === "fd_open" ? "open" : r.event === "fd_close" ? "closure" : null,
     declaredTransfer: moved && other != null ? true : undefined,
     counterpartyAcctLast4: moved ? (other?.digits ?? null) : null,
+    parseSource: "ai",
   };
 }
 

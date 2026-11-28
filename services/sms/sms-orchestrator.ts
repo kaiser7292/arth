@@ -100,6 +100,8 @@ export async function runSmsScan(
      * They skip the inbox, its permission and the cooldown, and go through everything else.
      */
     messages?: RawSMS[];
+    /** false: don't start on-device AI on what this scan couldn't read (onboarding runs it itself). */
+    aiQueue?: boolean;
   } = {},
 ): Promise<ScanOutcome> {
   const onProgress = options.onProgress;
@@ -354,6 +356,14 @@ export async function runSmsScan(
     });
 
     setLastAutoScanRun(Date.now());
+    // Messages this scan couldn't read wait for on-device AI; read them shortly, while Arth is
+    // open. Onboarding runs the queue itself (after approving the history), so it opts out.
+    // New transactions can leave questions for it too (a category for a merchant no mapping knows).
+    if (options.aiQueue !== false && (parseResult.unrecognized > 0 || processResult.created > 0)) {
+      import("@/services/ai/reading-queue")
+        .then((q) => q.scheduleAiQueue())
+        .catch((e) => logger.warn("Scheduling the AI queue failed (non-fatal):", e));
+    }
     return {
       ran: true,
       created: processResult.created,

@@ -8,7 +8,7 @@
  * sublabels, not primary values.
  */
 
-import { getCurrency, getNumberGrouping, getReportAmountStyle, getShortAmountStyle, type ShortAmountStyle } from "@/services/locale-preferences";
+import { getCurrency, getDecimalsStyle, getNumberGrouping, getReportAmountStyle, getShortAmountStyle, type ShortAmountStyle } from "@/services/locale-preferences";
 import { isAmountsHidden } from "@/services/privacy-mode";
 import { getCurrencyDef, type CurrencyCode, type NumberGrouping } from "@/constants/currencies";
 
@@ -47,6 +47,18 @@ function formatPositiveAmount(abs: number, decimals: number, grouping: NumberGro
  * for ad-hoc cases where the user's preference should NOT apply.
  */
 export function formatAmount(amount: number, currencyOverride?: CurrencyCode): string {
+  return amountText(amount, currencyOverride, getDecimalsStyle() === "round");
+}
+
+/**
+ * Always to the last paisa or cent, whatever Settings → Region → Decimals says: for figures that
+ * must match a bank (ledger balances, Update balances).
+ */
+export function formatExactAmount(amount: number, currencyOverride?: CurrencyCode): string {
+  return amountText(amount, currencyOverride, false);
+}
+
+function amountText(amount: number, currencyOverride: CurrencyCode | undefined, round: boolean): string {
   const code = currencyOverride ?? getCurrency();
   if (isAmountsHidden()) {
     const def = getCurrencyDef(code);
@@ -55,7 +67,7 @@ export function formatAmount(amount: number, currencyOverride?: CurrencyCode): s
   const grouping = getNumberGrouping();
   const def = getCurrencyDef(code);
   const abs = Math.abs(amount);
-  const body = formatPositiveAmount(abs, def.decimals, grouping);
+  const body = formatPositiveAmount(abs, round ? 0 : def.decimals, grouping);
   // Suppress the minus sign when the formatted body rounds to zero (e.g. -0,
   // or a tiny floating-point residual like -0.0001 that toFixed(0) renders as "0").
   const isZeroDisplay = !body.replace(/[0,.]/g, "");

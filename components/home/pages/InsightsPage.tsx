@@ -4,11 +4,10 @@ import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-import { Card, EmptyState, LoadingState, SectionHeader, Text } from "@/components/ui";
+import { Card, EmptyState, LoadingState, SectionHeader, Text, useToast } from "@/components/ui";
 import { InsightCard } from "@/components/analytics/InsightCard";
 
 import { useDataRefresh } from "@/hooks/use-data-refresh";
-import { getAnalyticsForecast, type AnalyticsForecast } from "@/services/analytics-forecast";
 import { getCurrentMonth } from "@/services/budget";
 import { getCashFlow, type CashFlow } from "@/services/cash-flow";
 import { getInsights, type Insight } from "@/services/insight-engine";
@@ -18,12 +17,12 @@ import { formatAmount } from "@/utils/format";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeInsightsPreload } from "@/services/home-preload";
 import { LoadFailed } from "@/components/ui/ListToolbar";
+import { MonthStoryCard } from "@/components/insights/MonthStoryCard";
+import { kindsOff, setKindOff, showAllKinds, snoozeInsight, visibleInsights } from "@/services/insight-dismiss";
 
 const preloaded = consumeInsightsPreload();
 
-const SHOWN_INSIGHTS = 4;
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const shortMonth = (yyyyMM: string) => MONTH_NAMES[parseInt(yyyyMM.split("-")[1], 10) - 1] ?? yyyyMM;
+const SHOWN_INSIGHTS = 3;
 
 /** The month five months before this one, so the card shows six in all. */
 function sixMonthsBack(month: string): string {
@@ -40,7 +39,6 @@ function sixMonthsBack(month: string): string {
 export function InsightsPage() {
   const router = useRouter();
   const theme = useTheme();
-  const [forecast, setForecast] = useState<AnalyticsForecast | null>(preloaded?.forecast ?? null);
   const [insights, setInsights] = useState<Insight[]>(preloaded?.insights ?? []);
   const [thisMonthTotal, setThisMonthTotal] = useState(preloaded?.thisMonthTotal ?? 0);
   const [lastMonthTotal, setLastMonthTotal] = useState(preloaded?.lastMonthTotal ?? 0);
@@ -48,6 +46,7 @@ export function InsightsPage() {
   const [loading, setLoading] = useState(preloaded == null);
   const [refreshing, setRefreshing] = useState(false);
   const [allInsights, setAllInsights] = useState(false);
+  const toast = useToast();
 
   const month = getCurrentMonth();
 
@@ -64,12 +63,7 @@ export function InsightsPage() {
     }
 
     try {
-      const [forecastData, insightData] = await Promise.all([
-        getAnalyticsForecast(DEFAULT_USER_ID),
-        getInsights(DEFAULT_USER_ID),
-      ]);
-      setForecast(forecastData);
-      setInsights(insightData);
+      setInsights(await getInsights(DEFAULT_USER_ID));
     } catch { /* non-fatal */ }
     setLoading(false);
 
@@ -85,7 +79,10 @@ export function InsightsPage() {
 
   const now = flow?.months[flow.months.length - 1] ?? null;
   const hasFlow = !!flow && flow.months.some((m) => m.cameIn > 0 || m.wentOut > 0);
-  const shownInsights = allInsights ? insights : insights.slice(0, SHOWN_INSIGHTS);
+  // "Not now" and "Don't show these" answers apply here (services/insight-dismiss.ts).
+  const visible = visibleInsights(insights);
+  const shownInsights = allInsights ? visible : visible.slice(0, SHOWN_INSIGHTS);
+
 
   return (
     <ScrollView
@@ -103,11 +100,13 @@ export function InsightsPage() {
         />
       }
     >
-      {insights.length > 0 && (
+      <MonthStoryCard />
+
+      {visible.length > 0 && (
         <>
           <SectionHeader
-            title={`Worth a look · ${insights.length}`}
-            action={insights.length > SHOWN_INSIGHTS ? { label: allInsights ? "Show less" : "See all", onPress: () => setAllInsights((v) => !v) } : undefined}
+            title={`Worth a look · ${visible.length}`}
+            action={visible.length > SHOWN_INSIGHTS ? { label: allInsights ? "Show less" : "See all", onPress: () => setAllInsights((v) => !v) } : undefined}
           />
           {shownInsights.map((insight) => (
             <InsightCard
@@ -116,6 +115,14 @@ export function InsightsPage() {
               type={insight.type}
               title={insight.title}
               detail={insight.detail}
+              onNotNow={() => {
+                snoozeInsight(insight.id);
+                toast("Hidden for this month");
+              }}
+              onHideKind={() => {
+                setKindOff(insight.type, true);
+                toast("You won't see these again", { actionLabel: "Undo", onAction: () => setKindOff(insight.type, false) });
+              }}
               onPress={() =>
                 insight.href
                   ? router.push(insight.href as never)
@@ -129,35 +136,34 @@ export function InsightsPage() {
         </>
       )}
 
+      {kindsOff().length > 0 && (
+        <Pressable onPress={() => showAllKinds()} hitSlop={6} className="self-start mb-1" accessibilityRole="button">
+          <Text className="text-label text-muted-foreground">
+            {kindsOff().length} kind{kindsOff().length === 1 ? "" : "s"} of finding hidden · <Text className="text-label font-semibold" style={{ color: theme.primary }}>Show again</Text>
+          </Text>
+        </Pressable>
+      )}
+
       <View className="mt-3"><SectionHeader title="Explore" /></View>
       <Card>
         <ExploreRow
-          icon="trending-up-outline"
-          title="Forecast"
-          detail={forecast ? `Likely ${formatAmount(forecast.projectedTotal)} by month end` : "Where this month is heading"}
-          onPress={() => router.push("/insights/forecast")}
-        />
-        <ExploreRow
           icon="swap-vertical-outline"
           title="Money in and out"
-          detail={now ? `${formatAmount(now.cameIn)} in, ${formatAmount(now.wentOut)} out this month` : "Any month, 6 months or the year"}
+          detail={now ? `${formatAmount(now.cameIn)} in, ${formatAmount(now.wentOut)} out this month` : "Income, spending and what you kept"}
           onPress={() => router.push("/insights/cash-flow")}
         />
-        <ExploreRow icon="bar-chart-outline" title="Budget vs actual" detail="Any period against your budget" onPress={() => router.push("/insights/budget-vs-actual")} />
         <ExploreRow
           icon="git-compare-outline"
           title="Compare"
-          detail={lastMonthTotal > 0 ? `${formatAmount(thisMonthTotal)} this month, ${formatAmount(lastMonthTotal)} last month` : "Any two periods, side by side"}
+          detail={lastMonthTotal > 0 ? `${formatAmount(thisMonthTotal)} so far, ${formatAmount(lastMonthTotal)} all of last month` : "Any two periods, side by side"}
           onPress={() => router.push("/insights/compare")}
         />
-        <ExploreRow icon="repeat-outline" title="Patterns" detail="What you spend on again and again" onPress={() => router.push("/insights/patterns")} />
-        <ExploreRow icon="storefront-outline" title="Merchants" detail="Where your money goes most" onPress={() => router.push("/insights/merchants")} />
+        <ExploreRow icon="storefront-outline" title="Where it goes" detail="Merchants, regulars and bills" onPress={() => router.push("/insights/where-it-goes")} />
         <ExploreRow icon="star-outline" title="Year in review" detail="Your financial year as a story" onPress={() => router.push("/insights/year-review")} />
-        <ExploreRow icon="document-text-outline" title="Reports" detail="Year in review, financial health and more" onPress={() => router.push("/insights/reports")} />
-        <ExploreRow icon="sparkles-outline" title="Export for AI" detail="A file to ask an AI assistant about your money" onPress={() => router.push("/insights/export-for-ai")} last />
+        <ExploreRow icon="sparkles-outline" title="Ask your AI assistant" detail="A file to ask ChatGPT, Gemini or Claude about your money" onPress={() => router.push("/insights/export-for-ai")} last />
       </Card>
 
-      {!forecast && insights.length === 0 && !hasFlow && (
+      {insights.length === 0 && !hasFlow && (
         <EmptyState
           icon="analytics-outline"
           title="No insights yet"

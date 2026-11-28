@@ -52,6 +52,7 @@ describe("UI Guard Rails", () => {
       "app/(onboarding)/first-scan.tsx",
       "app/(onboarding)/setup-choice.tsx",
       "app/(onboarding)/ai-setup.tsx",
+      "app/(onboarding)/ai-local-setup.tsx",
       "app/(onboarding)/done.tsx",
     ]);
 

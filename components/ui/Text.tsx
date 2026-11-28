@@ -1,5 +1,5 @@
 import { Text as RNText, type TextProps as RNTextProps, type StyleProp, type TextStyle } from "react-native";
-import { formatAmount } from "@/utils/format";
+import { formatAmount, formatExactAmount } from "@/utils/format";
 import { isAmountsHidden } from "@/services/privacy-mode";
 
 export interface TextProps extends RNTextProps {
@@ -49,6 +49,8 @@ export interface MoneyProps extends Omit<TextProps, "children"> {
   value: number;
   /** Colour by sign: positive renders success, negative renders danger. */
   signed?: boolean;
+  /** To the last paisa even with Settings → Region → Decimals on Round off (balances to match a bank). */
+  exact?: boolean;
   /**
    * Render a leading + for positive values. Independent of `signed`, so a caller that supplies its
    * own colour (ledger rows tint by entry kind, not by sign) can still get the sign prefix.
@@ -64,7 +66,7 @@ export interface MoneyProps extends Omit<TextProps, "children"> {
  * does not knock the column out of alignment, and the positive/negative colour pair comes from the
  * theme instead of being re-decided at each call site.
  */
-export function Money({ value, signed, showPlus, className = "", ...rest }: MoneyProps) {
+export function Money({ value, signed, showPlus, exact, className = "", ...rest }: MoneyProps) {
   // When amounts are hidden, formatAmount masks the magnitude — but the sign
   // colour and +/− prefix below are derived from the raw `value`, not from
   // formatAmount's output, so without this guard they'd still leak whether
@@ -84,7 +86,7 @@ export function Money({ value, signed, showPlus, className = "", ...rest }: Mone
   return (
     <Text className={`${tone} ${className}`} {...rest}>
       {prefix}
-      {formatAmount(Math.abs(value))}
+      {exact ? formatExactAmount(Math.abs(value)) : formatAmount(Math.abs(value))}
     </Text>
   );
 }

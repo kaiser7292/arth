@@ -4,6 +4,7 @@
  */
 let mockReportStyle: "full" | "short" = "full";
 let mockShortStyle: "lakh" | "million" = "lakh";
+let mockDecimals: "show" | "round" = "show";
 jest.mock("../../services/privacy-mode", () => ({
   isAmountsHidden: jest.fn(() => false),
 }));
@@ -12,14 +13,16 @@ jest.mock("../../services/locale-preferences", () => ({
   getNumberGrouping: () => "indian",
   getShortAmountStyle: () => mockShortStyle,
   getReportAmountStyle: () => mockReportStyle,
+  getDecimalsStyle: () => mockDecimals,
 }));
 
-import { formatReportAmount, formatReportShort } from "../../utils/format";
+import { formatAmount, formatExactAmount, formatReportAmount, formatReportShort } from "../../utils/format";
 import { isAmountsHidden } from "../../services/privacy-mode";
 
 afterEach(() => {
   mockReportStyle = "full";
   mockShortStyle = "lakh";
+  mockDecimals = "show";
   (isAmountsHidden as jest.Mock).mockReturnValue(false);
 });
 
@@ -45,4 +48,17 @@ it("short follows million and billion when chosen", () => {
 it("short still hides amounts in privacy mode", () => {
   (isAmountsHidden as jest.Mock).mockReturnValue(true);
   expect(formatReportShort(2492209.1)).not.toMatch(/\d/);
+});
+
+describe("Decimals (Settings → Region)", () => {
+  it("Round off shows whole amounts; Show keeps the paise", () => {
+    expect(formatAmount(159017.45)).toBe("₹1,59,017.45");
+    mockDecimals = "round";
+    expect(formatAmount(159017.45)).toBe("₹1,59,017");
+    expect(formatAmount(-0.4)).toBe("₹0");
+  });
+  it("exact amounts ignore it (ledger balances, Update balances)", () => {
+    mockDecimals = "round";
+    expect(formatExactAmount(159017.45)).toBe("₹1,59,017.45");
+  });
 });

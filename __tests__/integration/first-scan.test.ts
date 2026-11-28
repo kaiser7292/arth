@@ -76,6 +76,16 @@ it("summary counts money in/out without transfers, FDs or SIPs", async () => {
   expect(s.toReview).toBe(1);
 });
 
+it("summary keeps what on-device AI read out of the money figures, and counts it apart", async () => {
+  add("swiggy", "realized", 500, "2026-09-02", { merchant_name: "SWIGGY" });
+  add("ai", "realized", 99999, "2026-09-03", { merchant_name: "BIG", status: "pending_review", parse_source: "ai" });
+  const s = await buildFirstScanSummary(U, "2026-07-03");
+  expect(s.moneyOut).toBe(500);
+  expect(s.topMerchant).toEqual({ name: "SWIGGY", amount: 500 });
+  expect(s.toReview).toBe(1);
+  expect(s.readByAi).toBe(1);
+});
+
 it("a scan that outlives the wait finishes in the background and queues the Home summary", async () => {
   let finish: () => void = () => {};
   const scan = () => new Promise<void>((r) => (finish = r));

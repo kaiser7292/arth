@@ -30,6 +30,7 @@ const KEYS = {
   TIMEZONE: "locale_timezone",
   SHORT_AMOUNTS: "locale_short_amounts",
   REPORT_AMOUNTS: "locale_report_amounts",
+  DECIMALS: "locale_decimals",
 } as const;
 
 export const LOCALE_PREFERENCES_KEYS = [
@@ -39,6 +40,7 @@ export const LOCALE_PREFERENCES_KEYS = [
   KEYS.TIMEZONE,
   KEYS.SHORT_AMOUNTS,
   KEYS.REPORT_AMOUNTS,
+  KEYS.DECIMALS,
 ] as const;
 
 /**
@@ -122,6 +124,27 @@ export function getReportAmountStyle(): ReportAmountStyle {
 
 export function setReportAmountStyle(style: ReportAmountStyle): void {
   settingsStorage.set(KEYS.REPORT_AMOUNTS, style);
+}
+
+/**
+ * Decimals in shown amounts (Settings → Region): "show" keeps them ("₹1,59,017.45"), "round" shows
+ * whole amounts ("₹1,59,017"). Display only: nothing stored changes, and the places that must
+ * match a bank (ledger balances, Update balances) stay exact via formatExactAmount. Owner, Nov 2026:
+ * existing users keep "show" until they choose; new installs start on "round" (startRoundOff).
+ */
+export type DecimalsStyle = "show" | "round";
+
+export function getDecimalsStyle(): DecimalsStyle {
+  return settingsStorage.getString(KEYS.DECIMALS) === "round" ? "round" : "show";
+}
+
+export function setDecimalsStyle(style: DecimalsStyle): void {
+  settingsStorage.set(KEYS.DECIMALS, style);
+}
+
+/** A fresh install starts on whole amounts; anyone who already chose keeps their choice. */
+export function startRoundOff(): void {
+  if (settingsStorage.getString(KEYS.DECIMALS) == null) settingsStorage.set(KEYS.DECIMALS, "round");
 }
 
 export function getDateFormat(): DateFormat {

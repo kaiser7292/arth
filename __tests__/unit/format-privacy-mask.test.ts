@@ -10,6 +10,7 @@ jest.mock("../../services/privacy-mode", () => ({
 jest.mock("../../services/locale-preferences", () => ({
   getCurrency: () => "INR",
   getNumberGrouping: () => "indian",
+  getDecimalsStyle: () => "show",
 }));
 
 import { formatAmount, formatCompact, formatNumber } from "../../utils/format";

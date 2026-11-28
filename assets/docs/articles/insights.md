@@ -50,10 +50,11 @@ Insights is **not** a bottom tab - Arth has five tabs (Home / Transactions / Bud
 
 Top to bottom:
 
-- **Budget vs actual** - shows once you've set a budget: what you've spent of your whole budget, how far through the month you are, and any categories that are over. Tap a category to see its transactions, or **See more** for any period, including one you pick.
-- **Money in and out** - what came in, what went out and what's left this month, with six months of bars. It works with or without a budget. Tap a figure to see its transactions, a month's bars to open My Month, or **See more** for any period, including one you pick.
-- **Worth a look** - the top findings for the current month. Each is tappable and opens a drill-down breakdown.
-- **Explore** - **Forecast** (where the month is heading), **Compare**, **Patterns**, **Merchants**, **Reports** (in-depth reports you can save as PDF - see [Reports](reports)) and **Export for AI**.
+- **Your month** - a badge for the month, one headline, your spending so far against last month by the same day (with a dotted line to where the month is likely to end - tap it for the forecast), and three small facts. Tap the card to play the month as a story.
+- **Worth a look** - the top three findings for the current month. Tap one for its breakdown. **Not now** hides it for this month; **Don't show these** switches that kind off.
+- **Explore** - **Money in and out** (what came in, what went out and the share you kept), **Compare**, **Where it goes** (merchants, regulars and bills), **Year in review** and **Ask your AI assistant**. Year over year is on the Yearly plan (the swap icon at the top).
+
+Budget vs actual for 3 or 6 months or the year is on the **Budget tab**: switch Month · 3M · 6M · FY at the top and the page changes in place. Tap a month's row for its exact figures. The reports moved too - see [Reports](reports).
 
 ## The five insight types
 
@@ -87,7 +88,7 @@ If a drill shows **"Insight not available"**, the underlying trigger has gone st
 
 ## Compare
 
-**Insights screen → Compare.** Pick any two date ranges (presets: This Week vs Last Week, This Month vs Last Month, Quarter vs Quarter, Year-over-Year, or Custom), see breakdowns by category, merchant, and payment method.
+**Insights screen → Compare.** Pick any two date ranges (presets: this month against last month by the same day - the default - This Week vs Last Week, This Month vs Last Month, Quarter vs Quarter, or Custom; for years, use **Year over year**), see breakdowns by category, merchant, and payment method. A calendar shows the period day by day (month by month for long ones), darker where more was spent: tap a day or month for its total, the biggest payment and its transactions.
 
 Column headers show the date range with year (e.g., "May '26" / "Apr '26") so you always know which period each column represents.
 
@@ -97,13 +98,12 @@ The merchant list shows the top 10 by default. Tap **"+N more merchants"** to ex
 
 The comparison **refreshes automatically** every time you return to the screen, so new expenses are always reflected.
 
-## Patterns
+## Where it goes
 
-**Insights screen → Patterns.** Shows **recurring merchants** Arth has detected automatically (same merchant, similar amount, similar cadence). These are subscription-shaped patterns. Not the same as user-set **Reminders** - Reminders are explicit bills you asked Arth to track.
+**Insights screen → Where it goes.** Two tabs:
 
-## Merchants
-
-**Insights screen → Merchants.** Top 20 merchants by spend this month, with transaction count and last-transaction date.
+- **Merchants** - where your money goes by place, with what's new and what's gone quiet.
+- **Regulars** - the regular payments Arth has learned (same merchant, similar amount, similar cadence), with **bills and subscriptions** on top: what they usually cost a month, which **went up** (the latest payment is above its usual amount) and which **stopped?** (a monthly one that hasn't come this month, a few days past its usual day). Not the same as **Reminders**, which are bills you asked Arth to track.
 
 ## Common situations
 

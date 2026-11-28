@@ -45,6 +45,8 @@ export const V15_FLAGS = {
   household: true,
   /** v4.42: broker records (services/broker-history). Off = withdrawn for everyone, daily saves included. On = trades are saved, and each user opts in to uploads and gains in Customise Arth. */
   broker_history: true,
+  /** On-device AI (docs/GEMINI_NANO_PROPOSAL.md, Phase 1): Gemini Nano reads the messages patterns and templates can't, and helps onboarding. Off = no Settings row, nothing queued, onboarding as before. Phones without Gemini Nano never see it either way. */
+  ai_nano: true,
 } as const;
 
 // Type name kept generic (not "V15FlagName") since V15_FLAGS now also holds v17+ flags.

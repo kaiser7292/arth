@@ -16,7 +16,6 @@ import {
   getDateRangeComparison,
   getWeeklyComparison,
 } from "../../services/comparison-insights";
-import type { ComparisonPreset, ComparisonResult } from "../../services/comparison-insights";
 
 // ══════════════════════════════════════════
 // Mock the database module
@@ -53,7 +52,8 @@ describe("getComparisonPresets", () => {
     expect(labels).toContain("This Week vs Last Week");
     expect(labels).toContain("This Month vs Last Month");
     expect(labels).toContain("This Quarter vs Last Quarter");
-    expect(labels).toContain("Year-over-Year (This Month)");
+    expect(labels).toContain("This Month vs Last Month, same day");
+    expect(labels).not.toContain("Year-over-Year (This Month)");
   });
 
   it("all presets have valid date strings (YYYY-MM-DD)", () => {
@@ -92,19 +92,15 @@ describe("getComparisonPresets", () => {
     expect(monthPreset.range1Start).toBe(expectedR1Start);
   });
 
-  it("Year-over-Year compares same month in different years", () => {
+  it("this month against last month by the same day", () => {
     const presets = getComparisonPresets();
-    const yoyPreset = presets.find((p) => p.label === "Year-over-Year (This Month)")!;
-
+    const p = presets.find((x) => x.label === "This Month vs Last Month, same day")!;
     const now = new Date();
-    const thisYear = now.getFullYear();
-    const lastYear = thisYear - 1;
-    const monthStr = String(now.getMonth() + 1).padStart(2, "0");
-
-    // range1 should be last year's same month
-    expect(yoyPreset.range1Start).toBe(`${lastYear}-${monthStr}-01`);
-    // range2 should be this year's same month
-    expect(yoyPreset.range2Start).toBe(`${thisYear}-${monthStr}-01`);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+    expect(p.range2End).toBe(`${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`);
+    expect(p.range1End).toBe(`${prev.getFullYear()}-${pad(prev.getMonth() + 1)}-${pad(Math.min(now.getDate(), prevDays))}`);
   });
 
   it("This Week vs Last Week spans exactly 7 days each", () => {

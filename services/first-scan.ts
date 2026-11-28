@@ -37,15 +37,18 @@ export interface FirstScanSummary {
   nextDue: { label: string; dueDate: string; amount: number } | null;
   fdsAndTransfers: number;
   toReview: number;
+  /** Of toReview: read by on-device AI from messages no pattern knew (always left for review). */
+  readByAi: number;
 }
 
 export async function buildFirstScanSummary(userId: string, since: string): Promise<FirstScanSummary> {
   const db = getDatabase();
   const today = formatLocalDate(new Date());
-  const live = `user_id = ? AND deleted_at IS NULL AND status != 'rejected' AND date >= ?`;
+  // What on-device AI read isn't checked yet: counted on its own (readByAi), not in the money figures.
+  const live = `user_id = ? AND deleted_at IS NULL AND status != 'rejected' AND date >= ? AND (parse_source IS NULL OR parse_source != 'ai')`;
   const notTransfer = `(reclassified_as_transfer IS NULL OR reclassified_as_transfer = 0)`;
 
-  const [accounts, inRow, outRow, top, due, events, review] = await Promise.all([
+  const [accounts, inRow, outRow, top, due, events, review, ai] = await Promise.all([
     db.getFirstAsync<{ n: number }>(
       `SELECT COUNT(*) AS n FROM financial_accounts WHERE user_id = ? AND is_active = 1 AND closed_at IS NULL;`,
       userId,
@@ -88,6 +91,10 @@ export async function buildFirstScanSummary(userId: string, since: string): Prom
       `SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND deleted_at IS NULL AND status = 'pending_review';`,
       userId,
     ),
+    db.getFirstAsync<{ n: number }>(
+      `SELECT COUNT(*) AS n FROM expenses WHERE user_id = ? AND deleted_at IS NULL AND status = 'pending_review' AND parse_source = 'ai';`,
+      userId,
+    ),
   ]);
 
   return {
@@ -99,6 +106,7 @@ export async function buildFirstScanSummary(userId: string, since: string): Prom
     nextDue: due ? { label: due.label ?? "Payment due", dueDate: due.due_date, amount: due.amount } : null,
     fdsAndTransfers: events?.n ?? 0,
     toReview: review?.n ?? 0,
+    readByAi: ai?.n ?? 0,
   };
 }
 
@@ -171,10 +179,11 @@ export function clearPendingFirstScanSummary(): void {
  */
 export async function approveFirstScan(userId: string): Promise<{ approved: number; keptOpen: number }> {
   const db = getDatabase();
+  // What on-device AI read is never approved in bulk: those wait for a look in Catch Up.
   const pending = await db.getAllAsync<{ id: string }>(
     `SELECT id FROM expenses
      WHERE user_id = ? AND deleted_at IS NULL AND status = 'pending_review'
-       AND nature IN ('realized', 'credit');`,
+       AND nature IN ('realized', 'credit') AND (parse_source IS NULL OR parse_source != 'ai');`,
     userId,
   );
   if (pending.length === 0) return { approved: 0, keptOpen: 0 };

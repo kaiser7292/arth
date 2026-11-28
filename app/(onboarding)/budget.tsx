@@ -7,6 +7,7 @@ import { Input, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useAlert } from "@/hooks/use-alert";
 import { upsertBudget } from "@/services/budget";
+import { budgetsFromHistory } from "@/services/budget-suggest";
 import { getCategories, type Category } from "@/services/category";
 import { getSalaryProfileByFY } from "@/services/salary-profile";
 import { getFYStartMonth } from "@/services/settings";
@@ -17,7 +18,10 @@ import { getCurrentFY, monthsToFYEnd } from "@/utils/fiscal-year";
 /** The everyday categories worth a budget on day one, if the user kept them. */
 const SUGGESTED = ["Food", "Grocery & Supplies", "Travel & Going Out", "Shopping & Gifts", "Rent & Utilities", "Subscriptions"];
 
-/** Onboarding: quick monthly budgets for the main categories. Optional. */
+/**
+ * Onboarding: quick monthly budgets for the main categories. Optional. With whole months of
+ * history read, each box starts at that category's average month (services/budget-suggest.ts).
+ */
 export default function OnboardingBudget() {
   const router = useRouter();
   const { rest } = useLocalSearchParams<{ rest?: string }>();
@@ -26,11 +30,25 @@ export default function OnboardingBudget() {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [income, setIncome] = useState(0);
   const [saving, setSaving] = useState(false);
+  /** Whole months the filled-in figures average; 0 when nothing was filled in. */
+  const [fromMonths, setFromMonths] = useState(0);
 
   useEffect(() => {
     (async () => {
       const cats = await getCategories(DEFAULT_USER_ID);
-      setCategories(SUGGESTED.map((n) => cats.find((c) => c.name === n)).filter((c): c is Category => c != null));
+      const shown = SUGGESTED.map((n) => cats.find((c) => c.name === n)).filter((c): c is Category => c != null);
+      setCategories(shown);
+      // Figures from real spending, where there is some. A box already typed in is left alone.
+      const history = await budgetsFromHistory(DEFAULT_USER_ID).catch(() => null);
+      if (history && history.months > 0) {
+        const filled = Object.fromEntries(
+          shown.filter((c) => history.amounts.has(c.id)).map((c) => [c.id, String(history.amounts.get(c.id))]),
+        );
+        if (Object.keys(filled).length > 0) {
+          setAmounts((prev) => ({ ...filled, ...prev }));
+          setFromMonths(history.months);
+        }
+      }
       const profile = await getSalaryProfileByFY(DEFAULT_USER_ID, String(getCurrentFY(getFYStartMonth())));
       setIncome(profile?.computed_monthly_in_hand ?? 0);
     })().catch(() => {});
@@ -83,6 +101,11 @@ export default function OnboardingBudget() {
           </View>
         </View>
       ))}
+      {fromMonths > 0 ? (
+        <Text className="text-xs text-muted-foreground mb-3 leading-5">
+          {`Filled in from what you spent in an average month (last ${fromMonths === 1 ? "month" : `${fromMonths} months`}), rounded up. Change any.`}
+        </Text>
+      ) : null}
       {total > 0 ? (
         <Text className="text-sm text-muted-foreground mt-2">
           Total {formatAmount(total)} a month

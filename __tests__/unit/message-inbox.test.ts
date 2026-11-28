@@ -1,4 +1,6 @@
 jest.mock("@/services/sms/sms-orchestrator", () => ({ runSmsScan: jest.fn() }));
+// Seeing arrivals marks a change (bumpDataVersion): stubbed, this test's storage has no counters.
+jest.mock("@/services/settings", () => ({ ...jest.requireActual("@/services/settings"), bumpDataVersion: jest.fn() }));
 jest.mock("react-native", () => ({ Platform: { OS: "ios" } }));
 // An in-memory Documents folder: file name -> contents.
 const mockFiles = new Map<string, string>();

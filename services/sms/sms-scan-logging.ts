@@ -9,7 +9,7 @@
  * - Stores a 120-char body preview for display purposes (avoids JOIN overhead in list)
  * - Retention: 30 most recent runs kept per source (SMS scans and AI scans each keep their own 30,
  *   so a few AI test runs never push the SMS history out); older are purged on each new save
- * - source "ai": an on-device AI (Gemini Nano) scan from the AI lab. Its details use the ai_*
+ * - source "ai": an on-device AI (Gemini Nano) reading run. Its details use the ai_*
  *   categories and keep the AI's reading as JSON in ai_result (migration 096)
  */
 

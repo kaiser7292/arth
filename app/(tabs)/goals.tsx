@@ -1,4 +1,5 @@
 import { isPartOn } from "@/services/customise";
+import { settingsStorage } from "@/services/storage";
 import { useCustomisation } from "@/hooks/use-customisation";
 import { Card, Chip, ContextualHeader, LoadingState, ProgressBar, ScreenContainer, SectionTitle, Text } from "@/components/ui";
 import { GroupLabel, LinkRow } from "@/components/ui/LinkRow";
@@ -8,8 +9,6 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { getBalanceSheetColumn } from "@/services/balance-sheet";
 import { getNetWorthHistory } from "@/services/net-worth-history";
-import { getReadyReviewFY } from "@/services/reports/year-review";
-import { getYoY } from "@/services/reports/yoy";
 import { getFinancialCockpit } from "@/services/financial-cockpit";
 import type { FinancialCockpitData } from "@/services/financial-cockpit";
 import { consumeGoalsPreload } from "@/services/home-preload";
@@ -52,8 +51,9 @@ export default function GoalsScreen() {
   const [totalMonthlyEMI, setTotalMonthlyEMI] = useState(preloaded?.totalMonthlyEMI ?? 0);
   const [netWorth, setNetWorth] = useState<number | null>(null);
   const [netWorthFYChange, setNetWorthFYChange] = useState<number | null>(null);
-  /** Analyse tiles: this year vs the same months last year, and monthly take-home. */
-  const [yoyTile, setYoyTile] = useState<{ spentPct: number | null; savedPts: number | null } | null>(null);
+  /** Whether the Retirement readiness questions were answered (app/goals/retirement.tsx keeps them). */
+  const hasRetirementPlan = settingsStorage.getString("report_retirement_inputs") != null;
+  /** Monthly take-home, for the Income calculator row. */
   const [takeHome, setTakeHome] = useState(0);
   const [insuranceCount, setInsuranceCount] = useState(0);
   const [insuranceAdequacy, setInsuranceAdequacy] = useState<InsuranceAdequacy | null>(null);
@@ -124,23 +124,6 @@ export default function GoalsScreen() {
       }
     } catch {
       // History is a nice-to-have on this row
-    }
-
-    // Analyse: Year over Year headline (cached by data version, so cheap on a repeat visit).
-    try {
-      const y = await getYoY(DEFAULT_USER_ID, currentFY, currentFY - 1, "same-period");
-      const c = y.current;
-      const b = y.base;
-      setYoyTile(
-        c.spent === 0 && b.spent === 0
-          ? null
-          : {
-              spentPct: b.spent > 0 ? Math.round(((c.spent - b.spent) / b.spent) * 100) : null,
-              savedPts: c.savedPct != null && b.savedPct != null ? Math.round(c.savedPct - b.savedPct) : null,
-            },
-      );
-    } catch {
-      setYoyTile(null);
     }
   }, [currentFY, startMonth]);
 
@@ -223,19 +206,6 @@ export default function GoalsScreen() {
   const headroom = cockpitData?.waterfall.breathingRoomMonthly ?? 0;
   const advisory = cockpitData && cockpitData.advisories.length > 0 ? cockpitData.advisories[0] : null;
 
-  const yoySub =
-    yoyTile && (yoyTile.spentPct != null || yoyTile.savedPts != null)
-      ? [
-          yoyTile.spentPct != null ? `Spending ${yoyTile.spentPct <= 0 ? "down" : "up"} ${Math.abs(yoyTile.spentPct)}%` : null,
-          yoyTile.savedPts != null && yoyTile.savedPts !== 0
-            ? `saving ${yoyTile.savedPts > 0 ? "up" : "down"} ${Math.abs(yoyTile.savedPts)} pts`
-            : null,
-        ]
-          .filter(Boolean)
-          .join(" · ") + " vs this time last year"
-      : "Two financial years, side by side";
-
-  const readyFY = getReadyReviewFY();
 
   return (
     <ScreenContainer>
@@ -298,7 +268,7 @@ export default function GoalsScreen() {
               <PressableScale
                 onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
                 accessibilityRole="button"
-                accessibilityLabel="Financial health, open yearly plan"
+                accessibilityLabel="Financial health, open the yearly plan"
               >
                 <Card>
                   <SectionTitle
@@ -311,18 +281,8 @@ export default function GoalsScreen() {
                         tone={gradeTone}
                         icon="information-circle-outline"
                         label={cockpitData.healthProvisional ? "Early days" : `Grade ${cockpitData.healthGrade}`}
-                        accessibilityLabel="Health grade, how it's worked out"
-                        onPress={() =>
-                          router.push({
-                            pathname: "/goals/health-grade",
-                            params: {
-                              grade: cockpitData.healthGrade,
-                              score: String(Math.round(cockpitData.healthScore)),
-                              factorsJson: JSON.stringify(cockpitData.healthFactors),
-                              provisional: cockpitData.healthProvisional ? "1" : "0",
-                            },
-                          })
-                        }
+                        accessibilityLabel="Health grade, open the financial health report"
+                        onPress={() => router.push("/goals/financial-health")}
                       />
                     }
                   />
@@ -479,15 +439,49 @@ export default function GoalsScreen() {
                 onPress={() => router.push("/goals/milestones")}
               />
             </View>
+            {/* Moved from Insights → Reports; switch it off in Settings → Customise Arth. */}
+            {isPartOn("retirement") && (
+              <View className="flex-row mt-2.5">
+                <PlanTile
+                  icon="umbrella-outline"
+                  color={theme.primary}
+                  title="Retirement readiness"
+                  sub={hasRetirementPlan ? "Your corpus, monthly SIP and scenarios" : "Answer 5 questions to see your corpus"}
+                  done={null}
+                  target={null}
+                  pct={null}
+                  onPress={() => router.push("/goals/retirement")}
+                />
+              </View>
+            )}
           </Appear>
 
-          {/* ── TRACK: Loans, risk coverage, balance sheet ── */}
+          {/* ── TRACK: loans, risk coverage, net worth, income ── */}
           <Appear index={2}>
             <GroupLabel>Track</GroupLabel>
             <View className="rounded-card bg-card border border-border overflow-hidden">
+              {/* The Financial health card opens the yearly plan and its grade the report. Without
+                  plan data there's no card, so these two rows stand in for it. */}
+              {!(hasCockpit && cockpitData && savings) && (
+                <>
+                  <LinkRow
+                    divider={false}
+                    icon="document-text-outline"
+                    title="Yearly plan"
+                    sub={`${fyLabel}: plan against what really happened`}
+                    onPress={() => router.push({ pathname: "/goals/yearly-plan", params: { fy: String(currentFY) } })}
+                  />
+                  <LinkRow
+                    icon="pulse-outline"
+                    title="Financial health report"
+                    sub="Net worth, savings rate, debt and emergency fund"
+                    onPress={() => router.push("/goals/financial-health")}
+                  />
+                </>
+              )}
               {isPartOn("loans") && (
                 <LinkRow
-                  divider={false}
+                  divider={!(hasCockpit && cockpitData && savings)}
                   icon="business-outline"
                   color={theme.data.series[1]}
                   title="Loans & debt"
@@ -500,7 +494,7 @@ export default function GoalsScreen() {
                 />
               )}
               <LinkRow
-                divider={isPartOn("loans")}
+                divider={isPartOn("loans") || !(hasCockpit && cockpitData && savings)}
                 icon="shield-checkmark-outline"
                 color={theme.data.transfer}
                 title="Risk coverage"
@@ -531,30 +525,6 @@ export default function GoalsScreen() {
                 value={netWorth != null ? formatCompact(netWorth) : null}
                 onPress={() => router.push("/goals/balance-sheet")}
               />
-            </View>
-          </Appear>
-
-          {/* ── ANALYSE ── */}
-          <Appear index={3}>
-            <GroupLabel>Analyse</GroupLabel>
-            <View className="rounded-card bg-card border border-border overflow-hidden">
-              <LinkRow
-                divider={false}
-                icon="bar-chart-outline"
-                title="Year over year"
-                sub={yoySub}
-                onPress={() => router.push("/goals/yoy-comparison")}
-              />
-              {isPartOn("insights") && (
-                <LinkRow
-                  icon="sparkles-outline"
-                  title="Year in review"
-                  sub={readyFY != null ? `${getFYLabel(readyFY, startMonth)} is ready to swipe through` : `${fyLabel} so far, as a story`}
-                  onPress={() =>
-                    router.push({ pathname: "/insights/year-review", params: { fy: String(readyFY ?? currentFY) } })
-                  }
-                />
-              )}
               <LinkRow
                 icon="calculator-outline"
                 title="Income calculator"
@@ -563,6 +533,7 @@ export default function GoalsScreen() {
               />
             </View>
           </Appear>
+
         </View>
       </ScrollView>
     </ScreenContainer>

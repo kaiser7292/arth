@@ -9,7 +9,9 @@ import { getDatabase } from "@/database";
 import { getMonthDateRange } from "@/utils/budget-helpers";
 import { round2 } from "@/utils/math";
 import { effectiveAmountSql } from "./expense-effective-amount";
+import { rolledUpCategorySql } from "./category-rollup";
 import { getComputedBalanceComponents } from "./account-balance";
+import { cachedByVersion } from "@/services/version-cache";
 
 /**
  * v17.0.0: Exclude expenses linked to investment buckets from spending insights
@@ -106,7 +108,7 @@ export interface InsightDetail {
 // Main Entry Point
 // ═══════════════════════════════════════════════
 
-export async function getInsights(
+async function getInsightsUncached(
   userId: string,
   month?: string,
   limit: number = 5,
@@ -147,17 +149,19 @@ async function detectBudgetBreaches(userId: string, yearMonth: string): Promise<
     spent: number;
     budget: number;
   }>(
-    `SELECT e.category_id, c.name as category_name,
+    // Sub-categories count toward their parent, where the budget is set (as on the Budget tab).
+    `SELECT ${rolledUpCategorySql("e.category_id")} AS category_id, c.name as category_name,
             SUM(${effectiveAmountSql("e")}) as spent, b.amount as budget
      FROM expenses e
-     JOIN categories c ON c.id = e.category_id
-     JOIN budgets b ON b.category_id = e.category_id AND b.month = ?
+     JOIN categories c ON c.id = ${rolledUpCategorySql("e.category_id")}
+     JOIN budgets b ON b.category_id = ${rolledUpCategorySql("e.category_id")} AND b.month = ? AND b.user_id = e.user_id
      WHERE e.user_id = ? AND e.status = 'approved' AND e.nature = 'realized' AND (e.reclassified_as_transfer IS NULL OR e.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = e.id) AND COALESCE(e.money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer')
        AND e.deleted_at IS NULL AND ${NOT_RECLASSIFIED_E} AND e.date >= ? AND e.date <= ?
        AND e.category_id IS NOT NULL
        ${NOT_LINKED_E}
-     GROUP BY e.category_id
-     HAVING spent > budget;`,
+       AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = e.id)
+     GROUP BY ${rolledUpCategorySql("e.category_id")}
+     HAVING spent > budget AND budget > 0;`,
     yearMonth,
     userId,
     startDate,
@@ -400,7 +404,7 @@ async function detectIdleCash(userId: string, yearMonth: string): Promise<Insigh
 // Drill-Down Detail
 // ═══════════════════════════════════════════════
 
-export async function getInsightDrill(
+async function getInsightDrillUncached(
   userId: string,
   insightId: string,
   month?: string,
@@ -557,8 +561,9 @@ async function getBudgetBreachDrill(
             SUM(${effectiveAmountSql("expenses")}) as total, COUNT(*) as count,
             GROUP_CONCAT(id) as expense_ids
      FROM expenses
-     WHERE user_id = ? AND category_id = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer')
+     WHERE user_id = ? AND ${rolledUpCategorySql("expenses.category_id")} = ? AND status = 'approved' AND nature = 'realized' AND (expenses.reclassified_as_transfer IS NULL OR expenses.reclassified_as_transfer = 0) AND NOT EXISTS (SELECT 1 FROM expense_investment_links il WHERE il.expense_id = expenses.id) AND COALESCE(expenses.money_event, '') NOT IN ('fd_open', 'sip', 'investment', 'self_transfer')
        AND deleted_at IS NULL AND ${NOT_RECLASSIFIED_BARE} AND date >= ? AND date <= ?
+       AND NOT EXISTS (SELECT 1 FROM expense_loan_links ll WHERE ll.expense_id = expenses.id)
      GROUP BY merchant_name
      ORDER BY total DESC;`,
     userId, categoryId, startDate, endDate,
@@ -715,3 +720,9 @@ async function getMicroLeaksDrill(
 function formatCurrency(amount: number): string {
   return `\u20B9${Math.round(amount).toLocaleString("en-IN")}`;
 }
+
+/** getInsights, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getInsights = cachedByVersion("getInsights", getInsightsUncached);
+
+/** getInsightDrill, remembered until anything is saved or the day changes (services/version-cache.ts). */
+export const getInsightDrill = cachedByVersion("getInsightDrill", getInsightDrillUncached);

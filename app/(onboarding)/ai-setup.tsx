@@ -5,13 +5,14 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
-import { buildSetupOptions, createAiFile, setAiSetupPending, shareAiFile } from "@/services/ai-share";
+import { setAiSetupPending } from "@/services/ai-share";
+import { buildFixExport, shareFixExport } from "@/services/corrections/export";
 
 /**
  * Onboarding, AI route: share the setup file with an assistant, then paste its reply back. The
- * reply is checked, reviewed and applied on the AI suggestions screen, which carries on to the
- * steps the reply left out and then Protect (services/onboarding-flow.ts). "Finish later" moves on;
- * a Home card waits for the reply.
+ * reply is checked, reviewed and applied on Ask your AI assistant (app/settings/ai-request.tsx),
+ * with a copy kept for Undo, which carries on to the steps the reply left out and then Protect
+ * (services/onboarding-flow.ts). "Finish later" moves on; a Catch Up card waits for the reply.
  */
 export default function OnboardingAiSetup() {
   const router = useRouter();
@@ -21,10 +22,10 @@ export default function OnboardingAiSetup() {
   const share = useCallback(async () => {
     setState("working");
     try {
-      const options = await buildSetupOptions(DEFAULT_USER_ID);
-      const { file } = await createAiFile(DEFAULT_USER_ID, options);
-      await shareAiFile(file, options);
-      setAiSetupPending(true);
+      // The one file every request uses (docs/AI_HUB_PROPOSAL.md §4), asking for a full setup.
+      const file = await buildFixExport(DEFAULT_USER_ID, { includePeople: false, includeNotes: false, focus: "setup", period: "all_time" });
+      setAiSetupPending(true, "setup");
+      await shareFixExport(file, "setup");
       setState("shared");
     } catch {
       setState("failed");
@@ -88,7 +89,7 @@ export default function OnboardingAiSetup() {
           <Button
             title="Paste AI reply"
             variant={state === "shared" ? "primary" : "outline"}
-            onPress={() => router.push({ pathname: "/settings/ai-suggestions", params: { paste: "1", onboarding: "1" } })}
+            onPress={() => router.push({ pathname: "/settings/ai-request", params: { paste: "1", onboarding: "1", focus: "setup" } })}
             className="mt-3"
           />
         </Step>

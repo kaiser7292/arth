@@ -84,6 +84,8 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "credit_kind", // migration 080 — salary / interest / refund / cashback / reimbursement / gift / other
     "salary_for_month", // migration 090 — the month one salary credit counts for
     "household_ref", // migration 087 - written by Together (households)
+    "parse_source", // migration 097 - "ai" when on-device AI read the message
+    "ai_fields", // migration 097 - JSON list of fields the AI filled
   ] as const,
 
   budgets: [
@@ -268,6 +270,9 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "business_receipt_account_ids", // 077
   ] as const,
 
+  // Migration 098 - on-device AI jobs (docs/ON_DEVICE_AI_PHASE2_PROPOSAL.md).
+  ai_jobs: ["id", "user_id", "kind", "ref_id", "status", "result", "created_at", "done_at"] as const,
+
   pending_sms: [
     "id",
     "user_id",
@@ -280,6 +285,7 @@ export const TABLE_SCHEMAS: Record<string, readonly string[]> = {
     "expense_id",
     "created_at",
     "processed_at",
+    "ai_status", // migration 097 - queued / retry / added / not_txn / ignored / rejected / duplicate / error
   ] as const,
 
   merchant_mappings: [

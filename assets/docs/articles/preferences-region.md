@@ -55,6 +55,14 @@ Picking a currency also seeds its default number format (INR → Indian grouping
 
 Each row shows a live sample so you see exactly what the app will look like.
 
+### Decimals
+
+**Show** or **Round off**. Round off shows whole amounts in lists, cards and reports ("₹1,59,017" instead of "₹1,59,017.45"). Nothing stored changes, and these always stay exact: typing an amount, a transaction's details, account ledger balances and Update balances. New installs start on Round off.
+
+### Tight spaces
+
+**Full** or **Short, tap for full** (this was "Report numbers"). With Short, an amount that won't fit its spot - in reports and on screens with several amounts in a row - shows short ("₹1.31L"); tap it for the full figure. Amounts never wrap onto two lines: they shrink a little first.
+
 ### Date format
 
 - **DD/MM/YYYY** - 15/01/2026

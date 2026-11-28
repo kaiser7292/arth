@@ -93,6 +93,9 @@ import { settingsStorage } from "@/services/storage";
 import { Modal } from "react-native";
 import { useTheme } from "@/hooks/use-theme";
 import { consumeTransactionsPreload } from "@/services/home-preload";
+import { isAiJobOn } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
+import { anyFilter, readSearchWithNano, worthAskingSearch } from "@/services/ai/tasks/read-search";
 
 const SORT_KEY = "expenses.sortBy";
 
@@ -937,7 +940,14 @@ export default function ExpensesScreen() {
     }
   }, [applyFilterView]);
 
+  /** Counts plain-words searches sent to on-device AI, so only the latest answer applies. */
+  const aiSearchSeq = useRef(0);
+  /** The search box now, for checking an answer is still about it. */
+  const searchNow = useRef(search);
+  searchNow.current = search;
   const handleSearchChange = useCallback((text: string) => {
+    // Typing again: a plain-words answer still coming is about the old search.
+    aiSearchSeq.current++;
     setSearch(text);
   }, []);
 
@@ -946,11 +956,32 @@ export default function ExpensesScreen() {
     const { textSearch, datePreset: parsedPreset } = parseNLQuery(text);
     setSearch(textSearch);
     if (parsedPreset) setDatePreset(parsedPreset);
-  }, [setDatePreset]);
+    // The rest in plain words ("Swiggy over 500"): on-device AI maps it onto the filters
+    // (services/ai/tasks/read-search.ts). The text search stands if it can't.
+    if (!isAiJobOn("voice") || !worthAskingSearch(textSearch)) return;
+    const seq = ++aiSearchSeq.current;
+    void (async () => {
+      if ((await getNanoStatus().catch(() => "unavailable")) !== "available") return;
+      const f = await readSearchWithNano(textSearch, allMerchantNames, categories.map((c) => c.name));
+      if (seq !== aiSearchSeq.current || searchNow.current !== textSearch || !f || !anyFilter(f)) return;
+      if (f.merchant) setFilterMerchantNames([f.merchant]);
+      const cat = f.category ? categories.find((c) => c.name === f.category) : undefined;
+      if (cat) setFilterCategoryIds([cat.id]);
+      if (f.min != null) setMinAmount(String(f.min));
+      if (f.max != null) setMaxAmount(String(f.max));
+      if (f.type === "credits") setFilterNature("credit");
+      else if (f.type === "debits") setFilterNature("realized");
+      // The words became filters (shown as chips): don't also search for them as text, or the
+      // list would need both and usually show nothing.
+      setSearch("");
+      toast("Search turned into filters by on-device AI");
+    })();
+  }, [setDatePreset, allMerchantNames, categories, toast]);
 
   const applyNLSearch = useCallback(() => {
     applyNLSearchWith(search);
   }, [applyNLSearchWith, search]);
+
 
   // Voice search
   const [isVoiceSearching, setIsVoiceSearching] = useState(false);

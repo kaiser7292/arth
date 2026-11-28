@@ -117,14 +117,15 @@ export async function splitNewExpense(
     // 1. Insert expense first (without hisaab link) so the FK from hisaab_entries.linked_expense_id is valid
     const now = new Date().toISOString(); // Local time in ISO format
     await db.runAsync(
-      `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, is_right_spend, source, status, nature, split_original_amount, split_person_id, split_pct, split_hisaab_entry_id, split_mode, split_exact_amount, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', 'realized', ?, ?, ?, NULL, ?, ?, ?);`,
+      `INSERT INTO expenses (id, user_id, amount, currency, description, merchant_name, raw_merchant_name, category_id, payment_mode_id, account_id, date, transaction_time, is_right_spend, source, status, nature, split_original_amount, split_person_id, split_pct, split_hisaab_entry_id, split_mode, split_exact_amount, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'manual', 'approved', 'realized', ?, ?, ?, NULL, ?, ?, ?);`,
       expenseId,
       input.user_id,
       myBudgetAmount,
       input.currency ?? "INR",
       input.description ?? null,
       input.merchant_name ?? null,
+      input.raw_merchant_name ?? null,
       input.category_id ?? null,
       input.payment_mode_id ?? null,
       input.account_id ?? null,

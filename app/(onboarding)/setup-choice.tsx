@@ -6,12 +6,15 @@ import { Button, ScreenContainer, Text } from "@/components/ui";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import { getDatabase } from "@/database";
+import { aiReadingBuilt } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
 
-type Route = "ai" | "manual";
+type Route = "local" | "ai" | "manual";
 
 /**
- * Onboarding: how to set Arth up. AI assisted (the user's assistant suggests categories, budgets,
- * merchants and goals from the transactions found) or by hand (categories, income, budgets).
+ * Onboarding: how to set Arth up. On this phone (on-device AI files merchants into categories;
+ * shown only where Gemini Nano is ready), With your AI assistant (the user's assistant suggests categories,
+ * budgets, merchants and goals from the transactions found) or by hand (categories, income, budgets).
  * Only the chosen route's steps follow. See services/onboarding-flow.ts.
  */
 export default function SetupChoice() {
@@ -19,6 +22,24 @@ export default function SetupChoice() {
   const theme = useTheme();
   const [found, setFound] = useState<{ tx: number; accounts: number } | null>(null);
   const [route, setRoute] = useState<Route>("ai");
+  /** Gemini Nano is ready on this phone: offer setting up without sharing anything. */
+  const [localReady, setLocalReady] = useState(false);
+
+  useEffect(() => {
+    if (!aiReadingBuilt()) return;
+    let live = true;
+    getNanoStatus()
+      .then((st) => {
+        if (!live || st !== "available") return;
+        setLocalReady(true);
+        // Nothing leaves the phone: the better first choice when there's history to work from.
+        setRoute((r) => (r === "ai" ? "local" : r));
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useEffect(() => {
     const db = getDatabase();
@@ -39,7 +60,8 @@ export default function SetupChoice() {
   }, []);
 
   const go = () => {
-    if (route === "ai") router.push("/(onboarding)/ai-setup");
+    if (route === "local") router.push("/(onboarding)/ai-local-setup");
+    else if (route === "ai") router.push("/(onboarding)/ai-setup");
     else router.push("/(onboarding)/categories");
   };
 
@@ -88,7 +110,8 @@ export default function SetupChoice() {
     );
   };
 
-  const recommendAi = (found?.tx ?? 0) >= 20;
+  const recommendAi = (found?.tx ?? 0) >= 20 && !localReady;
+  const recommendLocal = (found?.tx ?? 0) >= 20 && localReady;
   return (
     <ScreenContainer safe padTop>
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}>
@@ -99,24 +122,33 @@ export default function SetupChoice() {
             : ""}
           Either way, you approve everything.
         </Text>
+        {localReady && (
+          <Option
+            value="local"
+            title="On this phone"
+            recommended={recommendLocal}
+            body="The AI built into your phone (Gemini Nano) files your merchants into categories. Nothing is shared. About 2 minutes."
+            steps={["Merchants", "Review", "Income", "Budgets"]}
+          />
+        )}
         <Option
           value="ai"
-          title="AI assisted"
+          title="With your AI assistant"
           recommended={recommendAi}
-          body="Your AI assistant (Claude, ChatGPT, Gemini) sets up categories, budgets, merchants and goals from your transactions. About 5 minutes."
+          body="ChatGPT, Gemini or Claude. Arth makes a file, you paste the reply back. It sets up categories, budgets, merchants and goals, and you check each one. About 5 minutes."
           steps={["Share a file", "Paste the reply", "Review"]}
         />
         <Option
           value="manual"
           title="I'll set it up myself"
-          recommended={!recommendAi}
+          recommended={!recommendAi && !recommendLocal}
           body="Pick your categories, add your income and set budgets yourself."
           steps={["Categories", "Income", "Budgets"]}
         />
-        <Text className="text-xs text-muted-foreground text-center mt-2">You can use AI Assisted Setup any time later from Settings.</Text>
+        <Text className="text-xs text-muted-foreground text-center mt-2">You can ask your AI assistant any time later from Settings → AI.</Text>
       </ScrollView>
       <View className="px-6 pb-6 pt-2">
-        <Button title={route === "ai" ? "Continue with AI" : "Continue"} onPress={go} />
+        <Button title={route === "ai" ? "Continue with AI" : route === "local" ? "Continue on this phone" : "Continue"} onPress={go} />
       </View>
     </ScreenContainer>
   );

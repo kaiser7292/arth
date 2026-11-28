@@ -22,6 +22,7 @@ import {
   buildCatchUpDeck,
   deckProgress,
   findSameMerchantCards,
+  mergeSiblingKeys,
   needsSourceAccount,
   nextLiveIndex,
   splitDuplicateGroup,
@@ -58,6 +59,13 @@ import type { PaymentMode } from "@/services/payment-mode";
 import { getPaymentModes } from "@/services/payment-mode";
 import { getReviewQueueSnapshot } from "@/services/review-queue-snapshot";
 import { categorizeByMerchant } from "@/services/smart-categorizer";
+import { aiSuggestions, answerAiJob } from "@/services/ai/jobs";
+import { setAiSetupPending } from "@/services/ai-share";
+import { acceptMergeOffer, dismissMergeOffer } from "@/services/ai/tasks/merchant-merge";
+import { acceptTemplateOffer, dismissTemplateOffer } from "@/services/ai/tasks/graduate-template";
+import { loadCatchUpAiItems, NO_AI_ITEMS } from "@/services/catch-up-ai";
+import { bumpDataVersion } from "@/services/settings";
+import { contextAction, type PaymentContext } from "@/services/ai/tasks/payment-context";
 import { reconcilePresentedAlerts } from "@/services/transaction-alerts";
 import { formatError } from "@/utils/error-message";
 import { formatAmount } from "@/utils/format";
@@ -146,15 +154,17 @@ export default function CatchUpScreen() {
   useEffect(() => {
     (async () => {
       try {
-        const [snapshot, cats, accts, modes, merchants, people] = await Promise.all([
+        const [snapshot, cats, accts, modes, merchants, people, aiItems] = await Promise.all([
           getReviewQueueSnapshot(DEFAULT_USER_ID),
           getCategories(DEFAULT_USER_ID),
           getActiveAccounts(DEFAULT_USER_ID),
           getPaymentModes(DEFAULT_USER_ID),
           getDistinctMerchantNames(DEFAULT_USER_ID).catch(() => [] as string[]),
           getPersonsWithBalances(DEFAULT_USER_ID).catch(() => [] as HisaabPersonWithBalance[]),
+          // What the AI has waiting for a decision (docs/AI_HUB_PROPOSAL.md §3).
+          loadCatchUpAiItems().catch(() => NO_AI_ITEMS),
         ]);
-        setDeck(buildCatchUpDeck(snapshot));
+        setDeck(buildCatchUpDeck(snapshot, aiItems));
         setCategories(cats);
         setAccounts(accts);
         setPaymentModes(modes);
@@ -197,6 +207,17 @@ export default function CatchUpScreen() {
   }, [cardKey]);
 
   // Fetch a suggestion for the card on screen (the SMS pipeline may already have set one).
+  /** Cards whose suggested category came from on-device AI. */
+  const [aiCategoryIds, setAiCategoryIds] = useState<Set<string>>(new Set());
+  /** On-device AI's idea of what each card's payment was (null: none, or dismissed). */
+  const [aiContext, setAiContext] = useState<Record<string, PaymentContext | null>>({});
+  useEffect(() => {
+    if (!cardExpense || cardExpense.id in aiContext) return;
+    const id = cardExpense.id;
+    aiSuggestions<PaymentContext>("context", [id])
+      .then((m) => setAiContext((c) => ({ ...c, [id]: m.get(id) ?? null })))
+      .catch(() => setAiContext((c) => ({ ...c, [id]: null })));
+  }, [cardExpense, aiContext]);
   useEffect(() => {
     if (!cardExpense || cardExpense.id in suggestions) return;
     const id = cardExpense.id;
@@ -205,9 +226,18 @@ export default function CatchUpScreen() {
       return;
     }
     categorizeByMerchant(DEFAULT_USER_ID, cardExpense.merchant_name)
-      .then((r) => setSuggestions((s) => ({ ...s, [id]: r.categoryId })))
+      .then(async (r) => {
+        if (r.categoryId) return setSuggestions((s) => ({ ...s, [id]: r.categoryId }));
+        // No mapping or rule knows this merchant: on-device AI's pick, if it made one.
+        const ai = await aiSuggestions<{ categoryId: string }>("category", [id]).catch(() => new Map<string, { categoryId: string }>());
+        // Only a category that still exists (it may have been deleted since the AI answered).
+        const aiPick = ai.get(id)?.categoryId ?? null;
+        const pick = aiPick && categoryMap.has(aiPick) ? aiPick : null;
+        if (pick) setAiCategoryIds((s) => new Set(s).add(id));
+        setSuggestions((s) => ({ ...s, [id]: pick }));
+      })
       .catch(() => setSuggestions((s) => ({ ...s, [id]: null })));
-  }, [cardExpense, suggestions]);
+  }, [cardExpense, suggestions, categoryMap]);
 
   const categoryFor = useCallback(
     // Credits: your pick or their own category — merchant suggestions are tuned for spending.
@@ -217,6 +247,27 @@ export default function CatchUpScreen() {
   );
 
   // Back from the edit screen: the row may have been approved, deleted or re-categorized there.
+  // Back from pasting the assistant's reply: it may have added categories and filed or approved
+  // rows the deck still holds. Read both again, and set aside cards the reply already dealt with.
+  const replyOpened = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!replyOpened.current) return;
+      replyOpened.current = false;
+      Promise.all([getCategories(DEFAULT_USER_ID), getReviewQueueSnapshot(DEFAULT_USER_ID)])
+        .then(([cats, snapshot]) => {
+          setCategories(cats);
+          const pending = new Set(snapshot.pending.map((e) => e.id));
+          const uncategorized = new Set(snapshot.uncategorized.map((e) => e.id));
+          const done = deckRef.current
+            .filter((c) => (c.kind === "pending" && !pending.has(c.expense.id)) || (c.kind === "uncategorized" && !uncategorized.has(c.expense.id)))
+            .map((c) => (c.kind === "pending" || c.kind === "uncategorized" ? c.expense.id : ""));
+          if (done.length > 0) setResolved((r) => new Set([...r, ...done]));
+        })
+        .catch((e) => logger.warn("Catch up: reload after the AI reply failed", e));
+    }, []),
+  );
+
   useFocusEffect(
     useCallback(() => {
       const id = editingId.current;
@@ -492,7 +543,7 @@ export default function CatchUpScreen() {
   // ── Card actions ──
 
   const openCard = useCallback(
-    async (id: string, act?: "money" | "withdraw") => {
+    async (id: string, act?: "money" | "withdraw" | "recurring" | "loan" | "invest" | "transfer") => {
       // The edit screen must see the committed state, not what's held for Undo.
       await deferred.flush();
       undoPoint.current = null;
@@ -513,7 +564,9 @@ export default function CatchUpScreen() {
           }
           setDescriptionOpen(false);
         }
-        const categoryId = target ? categoryFor(target) : null;
+        // An on-device AI guess you haven't accepted isn't saved just because you opened the card.
+        const aiGuessOnly = !!target && aiCategoryIds.has(id) && !(id in picked);
+        const categoryId = target && !aiGuessOnly ? categoryFor(target) : null;
         if (target && categoryId && categoryId !== target.category_id) {
           await queueWrite(async () => {
             await bulkAssignCategory([id], categoryId);
@@ -526,7 +579,7 @@ export default function CatchUpScreen() {
       editingId.current = id;
       router.push(act ? { pathname: "/expense/[id]", params: { id, act } } : `/expense/${id}`);
     },
-    [deferred, router, queueWrite, patchCardExpense, categoryFor],
+    [deferred, router, queueWrite, patchCardExpense, categoryFor, aiCategoryIds, picked],
   );
 
   // "It's not an FD" / "It's not mine" / "It's not a SIP": drop the hint and approve as usual.
@@ -620,9 +673,51 @@ export default function CatchUpScreen() {
           });
           return;
         }
+        case "ai_reply": {
+          // Paste opens the review screen; the card is done here either way. Until the reply is
+          // applied or dismissed it comes back the next time Catch Up opens.
+          const key = card.key;
+          setResolved((r) => new Set(r).add(key));
+          setIndex(currentIdx + 1);
+          undoPoint.current = null;
+          replyOpened.current = true;
+          void deferred.flush().finally(() => router.push("/settings/ai-request?paste=1"));
+          return;
+        }
+        case "ai_template": {
+          const { offerKey, offer } = card;
+          act({
+            run: async () => {
+              const { read } = await acceptTemplateOffer(offerKey, offer);
+              bumpDataVersion();
+              if (read > 0) toast(`Read ${read} waiting message${read === 1 ? "" : "s"} in this format. They're in Catch Up next time.`);
+            },
+            outcome: "resolved",
+            count: 1,
+            resolvedIds: [card.key],
+            message: `Arth reads ${offer.label} by itself now`,
+          });
+          return;
+        }
+        case "ai_merge": {
+          const offer = card.offer;
+          // Other "Same place?" cards naming either of these two go out of date with this merge.
+          const siblings = mergeSiblingKeys(deckRef.current, card);
+          act({
+            run: async () => {
+              await acceptMergeOffer(offer);
+              bumpDataVersion();
+            },
+            outcome: "resolved",
+            count: 1,
+            resolvedIds: [card.key, ...siblings],
+            message: `${offer.other.name} now shows as ${offer.keep.name}`,
+          });
+          return;
+        }
       }
     },
-    [card, act, categoryFor, picked, categoryMap, offerSameAgain, openCard],
+    [card, act, categoryFor, picked, categoryMap, offerSameAgain, openCard, currentIdx, deferred, router, toast],
   );
 
   const skip = useCallback(() => {
@@ -680,6 +775,21 @@ export default function CatchUpScreen() {
       resolvedIds: [],
       message: "Marked as not duplicates",
     });
+  }, [card, act]);
+
+  /** The AI cards' second answer: "Not now", "Not the same", or a reply you won't paste. */
+  const declineAi = useCallback(() => {
+    if (!card) return;
+    const key = card.key;
+    if (card.kind === "ai_template") {
+      const offerKey = card.offerKey;
+      act({ run: () => dismissTemplateOffer(offerKey), outcome: "resolved", count: 1, resolvedIds: [key], message: "Arth won't ask about this format again" });
+    } else if (card.kind === "ai_merge") {
+      const offerKey = card.offer.key;
+      act({ run: () => dismissMergeOffer(offerKey), outcome: "resolved", count: 1, resolvedIds: [key], message: "Kept as two places" });
+    } else if (card.kind === "ai_reply") {
+      act({ run: async () => setAiSetupPending(false), outcome: "resolved", count: 1, resolvedIds: [key], message: "Stopped waiting for the reply" });
+    }
   }, [card, act]);
 
   const acceptBatch = useCallback(() => {
@@ -794,7 +904,13 @@ export default function CatchUpScreen() {
         ? needsInput ? "Pick category" : "Save"
         : card.kind === "match"
           ? "Same payment"
-          : "Keep newest";
+          : card.kind === "duplicate"
+            ? "Keep newest"
+            : card.kind === "ai_reply"
+              ? "Paste reply"
+              : card.kind === "ai_template"
+                ? "Learn it"
+                : "Merge";
 
   const cardActions: FooterAction[] = [];
   if (card.kind === "pending" || card.kind === "uncategorized") {
@@ -832,6 +948,18 @@ export default function CatchUpScreen() {
   }
   if (card.kind === "duplicate") {
     cardActions.push({ label: "Not duplicates", icon: "checkmark-done-outline", onPress: notDuplicates });
+  }
+  if (card.kind === "ai_reply") {
+    cardActions.push(
+      { label: "Share the file again", icon: "share-outline", onPress: () => void deferred.flush().finally(() => router.push("/settings/ai-request")) },
+      { label: "Stop waiting for it", icon: "close-circle-outline", role: "mutedForeground", onPress: declineAi },
+    );
+  }
+  if (card.kind === "ai_template") {
+    cardActions.push({ label: "Not now", icon: "close-circle-outline", role: "mutedForeground", onPress: declineAi });
+  }
+  if (card.kind === "ai_merge") {
+    cardActions.push({ label: "Not the same place", icon: "git-branch-outline", role: "mutedForeground", onPress: declineAi });
   }
 
   return (
@@ -884,6 +1012,25 @@ export default function CatchUpScreen() {
             accountMap={accountMap}
             paymentModeMap={paymentModeMap}
             categoryId={cardExpense ? categoryFor(cardExpense) : null}
+            aiHint={(() => {
+              const ctx = cardExpense ? aiContext[cardExpense.id] : null;
+              // Settled another way since (a money event, paired as a transfer): nothing to suggest.
+              if (!cardExpense || !ctx || cardExpense.money_event || cardExpense.reclassified_as_transfer === 1) return null;
+              const id = cardExpense.id;
+              const { label, act } = contextAction(ctx);
+              return {
+                label,
+                // Not marked answered: backing out of the action leaves the hint for later.
+                onPress: () => void openCard(id, act),
+                onDismiss: () => {
+                  answerAiJob("context", id, "dismissed").catch(() => {});
+                  setAiContext((c) => ({ ...c, [id]: null }));
+                },
+              };
+            })()}
+            categoryByAi={
+              !!cardExpense && aiCategoryIds.has(cardExpense.id) && !(cardExpense.id in picked) && !cardExpense.category_id
+            }
             onPickCategory={() => setPicker({ commit: false })}
             onPickMerchant={() => setMerchantOpen(true)}
             editingMerchant={merchantOpen}

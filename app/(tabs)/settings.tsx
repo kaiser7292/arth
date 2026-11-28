@@ -4,7 +4,8 @@ import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
 import { ContextualHeader, ScreenContainer, Segmented, Text, useToast } from "@/components/ui";
 import { GroupLabel, LinkRow } from "@/components/ui/LinkRow";
-import { isAiLabUnlocked, setAiLabUnlocked, TAPS_TO_UNLOCK } from "@/services/ai/ai-lab";
+import { aiReadingBuilt } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
 
 import { DEFAULT_USER_ID } from "@/constants/app";
 
@@ -19,7 +20,7 @@ import { countUnrecognisedSms } from "@/services/sms/user-sms-templates";
 
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Linking, Platform, Pressable, ScrollView, View } from "react-native";
 import { PRIVACY_POLICY_URL, TERMS_URL } from "@/components/sms/SmsDisclosure";
 import { isDemoBuild, seedDemoData } from "@/services/demo-data";
@@ -65,34 +66,21 @@ export default function SettingsScreen() {
   const toast = useToast();
   // Bumped by Ignore so the list is read again.
   const [, setIgnoreTick] = useState(0);
-  // Tap Version 7 times to show the On-device AI lab, like Android's developer options.
-  const [aiLab, setAiLab] = useState(isAiLabUnlocked);
-  const versionTaps = useRef({ count: 0, at: 0 });
-  const tapVersion = () => {
-    if (Platform.OS !== "android") return;
-    if (aiLab) {
-      toast("The On-device AI lab is already showing");
-      return;
-    }
-    const now = Date.now();
-    const t = versionTaps.current;
-    t.count = now - t.at > 2000 ? 1 : t.count + 1;
-    t.at = now;
-    const left = TAPS_TO_UNLOCK - t.count;
-    if (left <= 0) {
-      t.count = 0;
-      setAiLabUnlocked(true);
-      setAiLab(true);
-      toast("On-device AI lab is now showing in About");
-    } else if (left <= 3) {
-      toast(`${left} more tap${left === 1 ? "" : "s"} to show the AI lab`);
-    }
-  };
-
+  // The AI row is on every phone; its line says whether Gemini Nano is here too.
+  const [onDeviceAi, setOnDeviceAi] = useState(false);
+  useEffect(() => {
+    if (!aiReadingBuilt()) return;
+    let live = true;
+    getNanoStatus()
+      .then((s) => live && setOnDeviceAi(s !== "unavailable"))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, []);
   useFocusEffect(
     useCallback(() => {
       setStartDateLine(getStartDate());
-      setAiLab(isAiLabUnlocked());
       const manual = getLastBackupAt();
       const auto = getLastScheduledBackupAt();
       const last = !manual ? auto : !auto ? manual : manual > auto ? manual : auto;
@@ -165,8 +153,15 @@ export default function SettingsScreen() {
       color: uiTheme.data.transfer,
       items: [
         { key: "balances", icon: "scale-outline", label: "Update balances", subtitle: "Type what's really in each account and owed on each card", onPress: go("/settings/update-balances") },
-        { key: "fix", icon: "medkit-outline", label: "Fix my data", subtitle: "Data health, and your AI fixes your whole history in one go", onPress: go("/settings/fix-my-data") },
-        { key: "aisetup", icon: "sparkles-outline", label: "AI-assisted setup", subtitle: "Let your AI assistant set up categories, budgets, income and goals", onPress: go("/settings/ai-assisted-setup") },
+        { key: "fix", icon: "medkit-outline", label: "Data health", subtitle: "What looks wrong, and the way to fix each one", keywords: "fix my data duplicates transfers balance", onPress: go("/settings/fix-my-data") },
+        {
+          key: "ai",
+          icon: "sparkles-outline",
+          label: "AI",
+          subtitle: onDeviceAi ? "On this phone, and with your AI assistant" : "With your AI assistant: ChatGPT, Gemini or Claude",
+          keywords: "on-device ai gemini nano ai-assisted setup chatgpt claude suggestions unrecognised",
+          onPress: go("/settings/ai"),
+        },
         { key: "rules", icon: "flash-outline", label: "Smart rules", subtitle: "Auto-categorise by merchant, amount, account", onPress: go("/settings/smart-rules") },
         { key: "reminders", icon: "repeat-outline", label: "Reminders", subtitle: "Rent, subscriptions, anything that repeats", keywords: "recurring", onPress: go("/settings/recurring-rules") },
         { key: "voice", icon: "mic-outline", label: "Voice input", subtitle: "Voice sound, speak-back questions on or off", onPress: go("/settings/voice-input") },
@@ -247,9 +242,6 @@ export default function SettingsScreen() {
         { key: "privacy", icon: "shield-checkmark-outline", label: "Privacy policy", subtitle: "What Arth reads, stores and never sends", onPress: () => Linking.openURL(PRIVACY_POLICY_URL).catch(() => {}) },
         { key: "terms", icon: "reader-outline", label: "Terms of use", onPress: () => Linking.openURL(TERMS_URL).catch(() => {}) },
         { key: "licences", icon: "document-text-outline", label: "Open-source licences", subtitle: "Libraries and models Arth is built with", onPress: go("/settings/licenses") },
-        ...(aiLab && Platform.OS === "android"
-          ? [{ key: "ailab", icon: "flask-outline" as const, label: "On-device AI lab", subtitle: "Test Gemini Nano on your bank messages", onPress: go("/settings/ai-lab") }]
-          : []),
       ],
     },
   ];
@@ -266,7 +258,7 @@ export default function SettingsScreen() {
       onPress: go("/settings/backup-data"),
     });
   if (needs.dupes > 0 && !isNeedIgnored("n-dupes", needs.dupes))
-    needItems.push({ key: "n-dupes", icon: "copy-outline", label: `${needs.dupes} possible duplicate${needs.dupes === 1 ? "" : "s"}`, subtitle: "Check them in Fix my data", onPress: go("/settings/fix-my-data") });
+    needItems.push({ key: "n-dupes", icon: "copy-outline", label: `${needs.dupes} possible duplicate${needs.dupes === 1 ? "" : "s"}`, subtitle: "Check them in Data health", onPress: go("/settings/fix-my-data") });
   if (needs.unread > 0 && !isNeedIgnored("n-unread", needs.unread))
     needItems.push({ key: "n-unread", icon: "chatbubbles-outline", label: `${needs.unread} unread bank message${needs.unread === 1 ? "" : "s"}`, subtitle: "Teach Arth to read them", onPress: go("/settings/transaction-messages") });
 
@@ -336,7 +328,7 @@ export default function SettingsScreen() {
                         </Text>
                       </View>
                       <AppUpdateRow />
-                      <Pressable onPress={tapVersion} accessibilityLabel="Version" className="flex-row items-center justify-between py-3">
+                      <View className="flex-row items-center justify-between py-3">
                         <Text className="text-meta text-muted-foreground">Version</Text>
                         <Text className="text-body font-semibold text-foreground">
                           {(() => {
@@ -345,7 +337,7 @@ export default function SettingsScreen() {
                             return sha ? `${v} - ${sha}` : v;
                           })()}
                         </Text>
-                      </Pressable>
+                      </View>
                     </View>
                   )}
                 </View>
