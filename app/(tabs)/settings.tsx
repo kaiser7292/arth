@@ -1,5 +1,3 @@
-import { formatDisplayDate } from "@/utils/date";
-import { getStartDate } from "@/services/start-date";
 import { isPartOn } from "@/services/customise";
 import { useCustomisation } from "@/hooks/use-customisation";
 import { ContextualHeader, ScreenContainer, Segmented, Text, useToast } from "@/components/ui";
@@ -60,7 +58,6 @@ export default function SettingsScreen() {
   // Status lines for the combined screens.
   const [messagesLine, setMessagesLine] = useState("Scan, templates, your name, duplicates");
   const [backupLine, setBackupLine] = useState("Backups, recycle bin, import, clean up");
-  const [startDate, setStartDateLine] = useState<string | null>(getStartDate);
   /** What "Needs a look" shows: only when something does. */
   const [needs, setNeeds] = useState<{ backupDays: number | null; unread: number; dupes: number }>({ backupDays: null, unread: 0, dupes: 0 });
   const toast = useToast();
@@ -80,7 +77,6 @@ export default function SettingsScreen() {
   }, []);
   useFocusEffect(
     useCallback(() => {
-      setStartDateLine(getStartDate());
       const manual = getLastBackupAt();
       const auto = getLastScheduledBackupAt();
       const last = !manual ? auto : !auto ? manual : manual > auto ? manual : auto;
@@ -139,20 +135,12 @@ export default function SettingsScreen() {
       items: [
         { key: "messages", icon: "chatbubbles-outline", label: "Transaction messages", subtitle: messagesLine, keywords: "sms scan templates duplicates", onPress: go("/settings/transaction-messages") },
         { key: "merchants", icon: "storefront-outline", label: "Merchants", subtitle: "Names, merged names and the category each one goes to", onPress: go("/settings/merchants") },
-        {
-          key: "start",
-          icon: "calendar-clear-outline",
-          label: "Start date",
-          subtitle: startDate ? `Ignoring before ${formatDisplayDate(startDate)}` : "Counting everything",
-          onPress: go("/settings/start-date"),
-        },
       ],
     },
     {
       title: "Automation",
       color: uiTheme.data.transfer,
       items: [
-        { key: "balances", icon: "scale-outline", label: "Update balances", subtitle: "Type what's really in each account and owed on each card", onPress: go("/settings/update-balances") },
         { key: "fix", icon: "medkit-outline", label: "Data health", subtitle: "What looks wrong, and the way to fix each one", keywords: "fix my data duplicates transfers balance", onPress: go("/settings/fix-my-data") },
         {
           key: "ai",

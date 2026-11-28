@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Sheet, Text } from "@/components/ui";
-import { Animated, Pressable, View } from "react-native";
+import { Button, Chip, ChipWrap, Sheet, Text } from "@/components/ui";
+import { Animated, Pressable, ScrollView, View } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Speech from "expo-speech";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
+import { useVoiceCapture } from "@/hooks/use-voice-capture";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { looksLikeTransfer, parseVoiceInput, wholeReply } from "@/utils/voice-parser";
+import { looksLikeTransfer, matchMerchant, parseVoiceInput, wholeReply } from "@/utils/voice-parser";
+import { readSpokenAmount } from "@/utils/spoken-number";
 import type { Category } from "@/services/category";
 import { getCategories } from "@/services/category";
 import type { FinancialAccount } from "@/services/financial-account";
@@ -22,23 +23,29 @@ import { createTransfer } from "@/services/account-transfer";
 import { getDistinctMerchantNames } from "@/services/merchant-alias";
 import { bumpDataVersion } from "@/services/settings";
 import { getVoiceSettings } from "@/services/voice-settings";
-import type { VoiceSettings } from "@/services/voice-settings";
 import { useTheme } from "@/hooks/use-theme";
-import { todayIso } from "@/utils/local-date";
-import { isoDate } from "@/utils/local-date";
+import { isoDate, todayIso } from "@/utils/local-date";
+import { formatExactAmount } from "@/utils/format";
 import { isAiJobOn } from "@/services/ai/ai-reading";
 import { getNanoStatus } from "@/services/ai/nano";
 import { readVoiceWithNano } from "@/services/ai/tasks/read-voice";
 
-type VoiceState = "idle" | "listening" | "speaking";
-type SessionType = "expense" | "transfer";
-type PendingField =
-  | "amount" | "merchant" | "category" | "paymentMode" | "account" | "split"
-  | "transferAmount" | "transferFrom" | "transferTo" | "transferConfirm";
+/**
+ * Voice entry (docs/SPEED_AND_VOICE_PROPOSAL.md §2.2 C): say it once, watch the words appear,
+ * check one card, done. Replaces the question-by-question interview.
+ *
+ *   1. Listen: your words show large as you speak (hooks/use-voice-capture.ts).
+ *   2. Read: plain rules first (utils/voice-parser.ts); of the engine's guesses, the one that makes
+ *      most sense wins. On-device AI only fills what the rules left empty, never holding up the card.
+ *   3. One spoken follow-up at most, only when no amount was heard.
+ *   4. The card: every field tappable to change. Looks right opens the Add screen filled in.
+ *      A transfer saves from the card.
+ */
+
+type Phase = "listen" | "amount" | "merchant" | "card" | "saved";
 
 interface VoiceSession {
-  sessionType: SessionType;
-  confirming: boolean;
+  sessionType: "expense" | "transfer";
   amount?: number;
   merchant?: string;
   description?: string;
@@ -50,6 +57,8 @@ interface VoiceSession {
   transferFromAccountId?: string;
   transferToAccountId?: string;
 }
+
+type Editing = "category" | "mode" | "account" | "date" | "from" | "to" | null;
 
 interface Props {
   visible: boolean;
@@ -67,49 +76,19 @@ function wordMatchesName(word: string, name: string): boolean {
   return n.length > 2 && (n.includes(word) || word.includes(n));
 }
 
-function matchPaymentMode(text: string, modes: PaymentMode[]): PaymentMode | undefined {
-  const t = text.toLowerCase().trim();
-  return modes.find((m) => {
-    const n = m.name.toLowerCase();
-    return n.length > 1 && (n === t || n.includes(t) || t.includes(n));
-  });
-}
-
-// Returns all accounts whose bank/label matches the text (for disambiguation)
+/** Accounts whose bank, label or last digits are in the words. */
 function findAllMatchingAccounts(text: string, accounts: FinancialAccount[]): FinancialAccount[] {
   const t = text.toLowerCase().trim();
   const wds = words3(t);
-
-  // Digit match is specific — return only those
   const byDigits = accounts.filter((a) => {
     if (!a.account_identifier || a.account_identifier.length < 3) return false;
     return t.includes(a.account_identifier.slice(-4)) || t.includes(a.account_identifier.slice(-3));
   });
   if (byDigits.length > 0) return byDigits;
-
   return accounts.filter((a) => {
     const bank = (a.bank_name ?? "").toLowerCase();
     const label = (a.account_label ?? "").toLowerCase();
     return wds.some((w) => wordMatchesName(w, bank) || wordMatchesName(w, label));
-  });
-}
-
-// Digit-only match within a known candidate set (disambiguation step)
-function matchByDigits(text: string, candidates: FinancialAccount[]): FinancialAccount | undefined {
-  const t = text.toLowerCase().replace(/\s+/g, "");
-  return candidates.find((a) => {
-    const id = a.account_identifier ?? "";
-    return id.length >= 3 && (t.includes(id.slice(-4)) || t.includes(id.slice(-3)));
-  });
-}
-
-function matchCategory(text: string, cats: Category[]): Category | undefined {
-  const t = text.toLowerCase().trim();
-  const exact = cats.find((c) => c.name.toLowerCase() === t);
-  if (exact) return exact;
-  return cats.find((c) => {
-    const n = c.name.toLowerCase();
-    return n.length > 2 && (n.includes(t) || t.includes(n));
   });
 }
 
@@ -130,68 +109,76 @@ function accountDisplayLabel(a: FinancialAccount | undefined): string {
   return last4 && /\d/.test(last4) ? `${base} (${last4})` : base;
 }
 
-// Enrich session from a general utterance — only resolves what it can
-function enrichFromTranscript(
-  transcript: string,
-  session: VoiceSession,
-  modes: PaymentMode[],
-  accounts: FinancialAccount[],
-  cats: Category[],
-  persons: HisaabPersonWithBalance[],
-): Partial<VoiceSession> {
-  const t = transcript.toLowerCase();
-  const wds = words3(t);
-  const patch: Partial<VoiceSession> = {};
-
-  // Transfer intent — flip session type and try to resolve from/to inline
-  if (looksLikeTransfer(transcript)) {
-    patch.sessionType = "transfer";
-    const fromMatch = transcript.match(/\bfrom\s+(\w+)/i);
-    const toMatch = transcript.match(/\bto\s+(\w+)/i);
-    if (fromMatch && !session.transferFromAccountId) {
-      const m = findAllMatchingAccounts(fromMatch[1], accounts);
-      if (m.length === 1) patch.transferFromAccountId = m[0].id;
-    }
-    if (toMatch && !session.transferToAccountId) {
-      const m = findAllMatchingAccounts(toMatch[1], accounts);
-      if (m.length === 1) patch.transferToAccountId = m[0].id;
-    }
-    return patch; // don't process expense fields
-  }
-
-  if (!session.paymentModeId) {
-    const pm = modes.find((m) => { const n = m.name.toLowerCase(); return n.length > 1 && t.includes(n); });
-    if (pm) patch.paymentModeId = pm.id;
-  }
-
-  // Account — only resolve if unambiguous
-  if (!session.accountId) {
-    const matches = findAllMatchingAccounts(transcript, accounts);
-    if (matches.length === 1) patch.accountId = matches[0].id;
-  }
-
-  if (!session.categoryId) {
-    const cat = cats.find((c) => c.name.length > 2 && t.includes(c.name.toLowerCase()));
-    if (cat) patch.categoryId = cat.id;
-  }
-
-  // Split person detection
-  if (!session.splitPersonId && /\bsplit\b/i.test(transcript)) {
-    const afterSplit = transcript.match(/\bsplit\s+(?:with\s+)?(\w+)/i);
-    if (afterSplit) {
-      const p = matchPerson(afterSplit[1], persons);
-      if (p) patch.splitPersonId = p.id;
-    }
-    if (!patch.splitPersonId) {
-      for (const w of wds) {
-        const p = matchPerson(w, persons);
-        if (p) { patch.splitPersonId = p.id; break; }
-      }
-    }
-  }
-
-  return patch;
+interface RefData {
+  accounts: FinancialAccount[];
+  paymentModes: PaymentMode[];
+  categories: Category[];
+  persons: HisaabPersonWithBalance[];
+  merchants: string[];
 }
+
+/** Read one sentence into a session. */
+function readSentence(said: string, d: RefData): VoiceSession {
+  if (looksLikeTransfer(said)) {
+    const s: VoiceSession = { sessionType: "transfer", amount: readSpokenAmount(said) };
+    const from = said.match(/\bfrom\s+(.+?)(?=\s+to\b|$)/i);
+    const to = said.match(/\bto\s+(.+?)(?=\s+from\b|$)/i);
+    if (from) {
+      const m = findAllMatchingAccounts(from[1], d.accounts);
+      if (m.length === 1) s.transferFromAccountId = m[0].id;
+    }
+    if (to) {
+      const m = findAllMatchingAccounts(to[1], d.accounts);
+      if (m.length === 1 && m[0].id !== s.transferFromAccountId) s.transferToAccountId = m[0].id;
+    }
+    return s;
+  }
+  const parsed = parseVoiceInput(said, {
+    merchants: d.merchants,
+    categories: d.categories.map((c) => c.name),
+    modes: d.paymentModes.map((m) => m.name),
+  });
+  const s: VoiceSession = {
+    sessionType: "expense",
+    amount: parsed.amount,
+    merchant: parsed.merchant,
+    description: parsed.description,
+    dateIso: parsed.dateIso,
+    categoryId: parsed.category ? d.categories.find((c) => c.name === parsed.category)?.id : undefined,
+    paymentModeId: parsed.paymentMode ? d.paymentModes.find((m) => m.name === parsed.paymentMode)?.id : undefined,
+  };
+  const accts = findAllMatchingAccounts(said, d.accounts);
+  if (accts.length === 1) s.accountId = accts[0].id;
+  if (/\bsplit\b/i.test(said)) {
+    const after = said.match(/\bsplit\s+(?:with\s+)?(\w+)/i);
+    const p = (after && matchPerson(after[1], d.persons)) || words3(said).map((w) => matchPerson(w, d.persons)).find(Boolean);
+    if (p) s.splitPersonId = p.id;
+  }
+  return s;
+}
+
+/** How much sense a reading makes, for picking among the engine's guesses. */
+function sense(s: VoiceSession, d: RefData): number {
+  let n = 0;
+  if (s.amount != null) n += 4;
+  if (s.merchant && d.merchants.includes(s.merchant)) n += 2;
+  else if (s.merchant) n += 1;
+  if (s.categoryId) n += 1;
+  if (s.paymentModeId) n += 1;
+  if (s.transferFromAccountId) n += 1;
+  if (s.transferToAccountId) n += 1;
+  return n;
+}
+
+const dayOffset = (n: number) => isoDate(new Date(Date.now() - n * 864e5));
+function dateLabel(dateIso: string | undefined): string {
+  if (!dateIso || dateIso === todayIso()) return "Today";
+  if (dateIso === dayOffset(1)) return "Yesterday";
+  const [y, m, d] = dateIso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+const AMOUNT_HINTS = ["rupees", "hundred", "thousand", "lakh"];
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -201,74 +188,103 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
   const theme = useTheme();
   const accentColor = theme.primary;
 
-  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
-  const makeBlank = (): VoiceSession => ({ sessionType: "expense", confirming: false });
-  const [session, setSession] = useState<VoiceSession>(makeBlank());
-  const sessionRef = useRef<VoiceSession>(makeBlank());
-  const [currentQuestion, setCurrentQuestion] = useState("");
-  const [lastHeard, setLastHeard] = useState("");
-  const [transferDone, setTransferDone] = useState(false);
+  const [phase, setPhase] = useState<Phase>("listen");
+  const phaseRef = useRef<Phase>("listen");
+  const go = (p: Phase) => {
+    phaseRef.current = p;
+    setPhase(p);
+  };
+  const [session, setSession] = useState<VoiceSession>({ sessionType: "expense" });
+  const sessionRef = useRef<VoiceSession>({ sessionType: "expense" });
+  const update = (s: VoiceSession) => {
+    sessionRef.current = s;
+    setSession(s);
+  };
+  const [heard, setHeard] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [editing, setEditing] = useState<Editing>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  /** The one follow-up for a missing amount has been asked. */
+  const askedAmountRef = useRef(false);
 
-  // State tracking refs
-  const pendingFieldRef = useRef<PendingField | null>(null);
-  const skippedRef = useRef<Set<string>>(new Set());
-  const ambiguousAccountRef = useRef<FinancialAccount[]>([]);
-  const ambiguousFromRef = useRef<FinancialAccount[]>([]);
-  const ambiguousToRef = useRef<FinancialAccount[]>([]);
-  const currentQuestionRef = useRef("");
+  const [data, setData] = useState<RefData>({ accounts: [], paymentModes: [], categories: [], persons: [], merchants: [] });
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
-  // Reference data
-  const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
-  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [persons, setPersons] = useState<HisaabPersonWithBalance[]>([]);
-  const dataRef = useRef({
-    accounts: [] as FinancialAccount[],
-    paymentModes: [] as PaymentMode[],
-    categories: [] as Category[],
-    persons: [] as HisaabPersonWithBalance[],
-  });
-
-  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>({ voiceIdentifier: null, speakBack: true });
-
-  // Pulse animation
+  /** Counts sentences sent to on-device AI, so only the latest answer is used. */
+  const aiAskRef = useRef(0);
+  /** The sheet is showing: a spoken question finishing after close mustn't start the mic. */
+  const openRef = useRef(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pulseAnim = useRef(new Animated.Value(0)).current;
-  const pulseLoop = useRef<Animated.CompositeAnimation | null>(null);
-  useEffect(() => {
-    if (voiceState !== "idle") {
-      pulseLoop.current = Animated.loop(Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-      ]));
-      pulseLoop.current.start();
-    } else {
-      pulseLoop.current?.stop();
-      pulseAnim.setValue(0);
-    }
-  }, [voiceState, pulseAnim]);
 
-  /** Your merchants, so "D Mart" finds DMart in your spelling (utils/voice-parser.ts). */
-  const merchantNamesRef = useRef<string[]>([]);
-
-  // Load reference data once
   useEffect(() => {
-    getDistinctMerchantNames(DEFAULT_USER_ID).then((names) => { merchantNamesRef.current = names; }).catch(() => {});
-    setVoiceSettings(getVoiceSettings());
+    if (!visible) return;
     Promise.all([
       getActiveAccounts(DEFAULT_USER_ID),
       getPaymentModes(DEFAULT_USER_ID),
       getCategories(DEFAULT_USER_ID),
       getPersonsWithBalances(DEFAULT_USER_ID),
-    ]).then(([accts, pms, cats, ppl]) => {
-      setAccounts(accts); setPaymentModes(pms); setCategories(cats); setPersons(ppl);
-      dataRef.current = { accounts: accts, paymentModes: pms, categories: cats, persons: ppl };
-    }).catch(() => {});
-  }, []);
+      getDistinctMerchantNames(DEFAULT_USER_ID).catch(() => [] as string[]),
+    ])
+      .then(([accounts, paymentModes, categories, persons, merchants]) => {
+        const d = { accounts, paymentModes, categories, persons, merchants };
+        dataRef.current = d;
+        setData(d);
+      })
+      .catch(() => {});
+  }, [visible]);
 
-  /** Counts sentences sent to on-device AI, so only the latest answer is used. */
-  const aiAskRef = useRef(0);
-  const navigateRef = useRef((_s: VoiceSession) => {});
-  navigateRef.current = (s: VoiceSession) => {
+  /** Your own words, so the engine expects them (Android 13+). */
+  const hints = (): string[] => {
+    const d = dataRef.current;
+    return [
+      ...d.merchants.slice(0, 50),
+      ...d.categories.map((c) => c.name),
+      ...d.paymentModes.map((m) => m.name),
+      ...d.accounts.map((a) => a.bank_name ?? "").filter(Boolean),
+      ...d.persons.map((p) => p.name),
+    ];
+  };
+
+  const speak = (text: string, then: () => void) => {
+    const settings = getVoiceSettings();
+    if (!settings.speakBack) {
+      then();
+      return;
+    }
+    Speech.speak(text, { voice: settings.voiceIdentifier ?? undefined, language: "en-IN", onDone: then, onError: then });
+  };
+
+  /** On-device AI for what the rules left empty: fills the card when it answers, 3 s at most. */
+  const fillWithAi = (said: string, s: VoiceSession) => {
+    const needs = !s.merchant || !s.categoryId || !s.paymentModeId;
+    if (s.sessionType !== "expense" || !needs || !isAiJobOn("voice")) return;
+    const asked = ++aiAskRef.current;
+    const d = dataRef.current;
+    setThinking(true);
+    void (async () => {
+      const ready = (await getNanoStatus().catch(() => "unavailable")) === "available";
+      const r = ready ? await readVoiceWithNano(said, d.categories.map((c) => c.name), d.paymentModes.map((m) => m.name)) : null;
+      if (asked !== aiAskRef.current) return;
+      setThinking(false);
+      if (!r) return;
+      const cur = sessionRef.current;
+      // Only what's still empty: anything changed on the card stays.
+      update({
+        ...cur,
+        amount: cur.amount ?? r.amount ?? undefined,
+        merchant: cur.merchant ?? r.merchant ?? undefined,
+        categoryId: cur.categoryId ?? (r.category ? d.categories.find((c) => c.name === r.category)?.id : undefined),
+        paymentModeId: cur.paymentModeId ?? (r.mode ? d.paymentModes.find((m) => m.name === r.mode)?.id : undefined),
+      });
+    })();
+  };
+
+  const openForm = (s: VoiceSession) => {
+    aiAskRef.current++;
+    capture.abort();
+    Speech.stop();
     onClose();
     const p: Record<string, string> = {};
     if (s.amount != null) p.prefillAmount = String(s.amount);
@@ -282,381 +298,156 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     setTimeout(() => router.push({ pathname: "/expense/add", params: p }), 300);
   };
 
-  const doStartListening = () => {
-    setVoiceState("listening");
-    SpeechRecognition.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
-  };
+  const capture = useVoiceCapture({
+    onFinal: (guesses) => {
+      const d = dataRef.current;
+      const p = phaseRef.current;
+      setHeard(guesses[0]);
+      if (p === "amount") {
+        const amount = guesses.map((g) => readSpokenAmount(g)).find((a) => a != null);
+        update({ ...sessionRef.current, amount: amount ?? sessionRef.current.amount });
+        go("card");
+        return;
+      }
+      if (p === "merchant") {
+        const g = guesses[0].trim();
+        const merchant = guesses.map((x) => matchMerchant(x, d.merchants)).find(Boolean) ?? (wholeReply(g) ? undefined : g.replace(/^(at|from)\s+/i, ""));
+        update({ ...sessionRef.current, merchant: merchant || sessionRef.current.merchant });
+        go("card");
+        return;
+      }
+      if (p !== "listen") return;
+      // "Done" alone: open the form with what there is.
+      if (wholeReply(guesses[0]) === "done") {
+        openForm(sessionRef.current);
+        return;
+      }
+      const readings = guesses.map((g) => ({ g, s: readSentence(g, d) }));
+      let best = readings[0];
+      for (const r of readings) if (sense(r.s, d) > sense(best.s, d)) best = r;
+      update(best.s);
+      setHeard(best.g);
+      fillWithAi(best.g, best.s);
+      if (best.s.amount == null && !askedAmountRef.current) {
+        askedAmountRef.current = true;
+        go("amount");
+        speak("How much?", () => {
+          if (openRef.current && phaseRef.current === "amount") void capture.start(AMOUNT_HINTS);
+        });
+        return;
+      }
+      go("card");
+    },
+  });
 
-  const doAsk = (question: string, field: PendingField) => {
-    pendingFieldRef.current = field;
-    currentQuestionRef.current = question;
-    setCurrentQuestion(question);
-    const settings = getVoiceSettings();
-    if (settings.speakBack) {
-      setVoiceState("speaking");
-      Speech.speak(question, {
-        voice: settings.voiceIdentifier ?? undefined,
-        language: "en-IN",
-        onDone: () => { setCurrentQuestion(""); doStartListening(); },
-        onError: () => { setCurrentQuestion(""); doStartListening(); },
-      });
-    } else {
-      doStartListening();
+  // Open/close handling
+  useEffect(() => {
+    aiAskRef.current++;
+    openRef.current = visible;
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = null;
+    if (visible) {
+      update({ sessionType: "expense" });
+      go("listen");
+      setHeard("");
+      setThinking(false);
+      setEditing(null);
+      setSaveError(null);
+      askedAmountRef.current = false;
+      const timer = setTimeout(() => void capture.start(hints()), 350);
+      return () => clearTimeout(timer);
     }
-  };
+    Speech.stop();
+    capture.abort();
+    phaseRef.current = "listen";
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
 
-  const doCreateTransfer = async (s: VoiceSession) => {
+  const listening = capture.state === "listening";
+  useEffect(() => {
+    if (!listening) {
+      pulseAnim.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [listening, pulseAnim]);
+
+  const saveTransfer = async () => {
+    const s = sessionRef.current;
     if (s.amount == null || !s.transferFromAccountId || !s.transferToAccountId) return;
-    setVoiceState("idle");
-    setCurrentQuestion("");
-    currentQuestionRef.current = "";
+    setSaveError(null);
     try {
-      const today = todayIso();
       await createTransfer({
         userId: DEFAULT_USER_ID,
         fromAccountId: s.transferFromAccountId,
         toAccountId: s.transferToAccountId,
         amount: s.amount,
-        date: s.dateIso ?? today,
+        date: s.dateIso ?? todayIso(),
         source: "manual",
       });
       bumpDataVersion();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setTransferDone(true);
-      setTimeout(() => { onClose(); }, 1600);
+      go("saved");
+      closeTimerRef.current = setTimeout(onClose, 1600);
     } catch {
-      setCurrentQuestion("Couldn't save the transfer — please try again.");
-      setTimeout(() => setCurrentQuestion(""), 2500);
+      setSaveError("Couldn't save the transfer. Please try again.");
     }
   };
-
-  // Determine what to ask next given the current session state
-  const determineNext = (s: VoiceSession) => {
-    const { accounts: accts, categories: cats } = dataRef.current;
-    const skipped = skippedRef.current;
-    const catHint = cats.slice(0, 3).map((c) => c.name).join(", ");
-
-    if (s.sessionType === "transfer") {
-      if (s.amount == null) {
-        doAsk("How much are you transferring?", "transferAmount");
-      } else if (!s.transferFromAccountId) {
-        const cands = ambiguousFromRef.current;
-        if (cands.length > 1) {
-          const opts = cands.map((a) => accountDisplayLabel(a)).join(", or ");
-          doAsk(`You have ${cands.length} matching accounts: ${opts}. Say the last 4 digits to pick one.`, "transferFrom");
-        } else {
-          doAsk("Which account to transfer FROM? Say the bank name or last 4 digits.", "transferFrom");
-        }
-      } else if (!s.transferToAccountId) {
-        const cands = ambiguousToRef.current;
-        if (cands.length > 1) {
-          const opts = cands.map((a) => accountDisplayLabel(a)).join(", or ");
-          doAsk(`Multiple destination accounts found: ${opts}. Say the last 4 digits.`, "transferTo");
-        } else {
-          doAsk("Which account to transfer TO? Say the bank name or last 4 digits.", "transferTo");
-        }
-      } else {
-        // All collected — ask for confirmation
-        const fromAcc = accts.find((a) => a.id === s.transferFromAccountId);
-        const toAcc = accts.find((a) => a.id === s.transferToAccountId);
-        const amt = s.amount.toLocaleString("en-IN");
-        const updated = { ...s, confirming: true };
-        sessionRef.current = updated;
-        setSession(updated);
-        doAsk(
-          `Transfer ₹${amt} from ${accountDisplayLabel(fromAcc)} to ${accountDisplayLabel(toAcc)}. Say yes to confirm or no to cancel.`,
-          "transferConfirm"
-        );
-      }
-    } else {
-      if (s.amount == null) {
-        doAsk("How much did you spend?", "amount");
-      } else if (!s.merchant) {
-        doAsk("Where did you spend it?", "merchant");
-      } else if (!s.categoryId && !skipped.has("category")) {
-        doAsk(
-          catHint ? `What category? For example: ${catHint}. Say skip to continue.` : "What category? Say skip to continue.",
-          "category"
-        );
-      } else if (!s.paymentModeId && !skipped.has("paymentMode")) {
-        doAsk("How did you pay? UPI, cash, or card. Say skip to continue.", "paymentMode");
-      } else if (!s.accountId && !skipped.has("account")) {
-        const cands = ambiguousAccountRef.current;
-        if (cands.length > 1) {
-          const opts = cands.map((a) => accountDisplayLabel(a)).join(", or ");
-          doAsk(`Multiple accounts found: ${opts}. Say the last 4 digits. Say skip to finish.`, "account");
-        } else {
-          doAsk("Which account? Say the bank name or last 4 digits. Say skip to finish.", "account");
-        }
-      } else {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        navigateRef.current(s);
-      }
-    }
-  };
-
-  const resetRefs = () => {
-    pendingFieldRef.current = null;
-    skippedRef.current = new Set();
-    ambiguousAccountRef.current = [];
-    ambiguousFromRef.current = [];
-    ambiguousToRef.current = [];
-    currentQuestionRef.current = "";
-  };
-
-  // Open/close handling
-  useEffect(() => {
-    // Opened or closed: an AI answer still coming is about the old sentence.
-    aiAskRef.current++;
-    if (visible) {
-      setVoiceSettings(getVoiceSettings());
-      const blank = makeBlank();
-      sessionRef.current = blank;
-      setSession(blank);
-      setCurrentQuestion("");
-      setLastHeard("");
-      setTransferDone(false);
-      resetRefs();
-      setVoiceState("idle");
-      const timer = setTimeout(async () => {
-        const { granted } = await SpeechRecognition.requestPermissionsAsync();
-        if (!granted) { onClose(); return; }
-        doStartListening();
-      }, 400);
-      return () => clearTimeout(timer);
-    } else {
-      Speech.stop();
-      SpeechRecognition.abort();
-      setVoiceState("idle");
-      setCurrentQuestion("");
-      currentQuestionRef.current = "";
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
-
-  useSpeechRecognitionEvent("result", (event) => {
-    if (!visible || !event.isFinal) return;
-    const transcript = event.results[0]?.transcript ?? "";
-
-    // Always show what was heard
-    if (transcript) setLastHeard(transcript);
-    if (!transcript) { setVoiceState("idle"); return; }
-
-    const { accounts: accts, paymentModes: pms, categories: cats, persons: ppl } = dataRef.current;
-    const prev = sessionRef.current;
-    const pending = pendingFieldRef.current;
-
-    // ── "Open form" command ───────────────────────────────────────────────────
-    // Commands only when they're the whole reply: "done at the salon" is an entry.
-    const command = wholeReply(transcript);
-    if (!prev.confirming && command === "done") {
-      aiAskRef.current++;
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      navigateRef.current(prev);
-      return;
-    }
-
-    // ── Transfer confirmation state ───────────────────────────────────────────
-    if (prev.confirming) {
-      if (command === "yes") {
-        doCreateTransfer(prev);
-      } else if (command === "no") {
-        // Go back — reset accounts, keep amount, restart from "from" question
-        const reset = { ...prev, confirming: false, transferFromAccountId: undefined, transferToAccountId: undefined };
-        sessionRef.current = reset;
-        setSession(reset);
-        ambiguousFromRef.current = [];
-        ambiguousToRef.current = [];
-        pendingFieldRef.current = null;
-        determineNext(reset);
-      } else {
-        // Unrecognised — re-ask confirm
-        doAsk(currentQuestionRef.current, "transferConfirm");
-      }
-      return;
-    }
-
-    // ── "Skip" — skip current pending field, don't enrich ────────────────────
-    if (command === "skip" && pending) {
-      skippedRef.current.add(pending);
-      pendingFieldRef.current = null;
-      setCurrentQuestion("");
-      currentQuestionRef.current = "";
-      determineNext(prev);
-      return;
-    }
-
-    // ── Parse and enrich ──────────────────────────────────────────────────────
-    // Your own category and payment mode names (utils/voice-parser.ts): "lunch" finds Food, "GPay" your UPI.
-    const parsed = parseVoiceInput(transcript, { merchants: merchantNamesRef.current, categories: cats.map((c) => c.name), modes: pms.map((m) => m.name) });
-    const updated: VoiceSession = {
-      ...prev,
-      amount: prev.amount ?? parsed.amount,
-      merchant: prev.merchant ?? parsed.merchant,
-      description: prev.description ?? parsed.description,
-      dateIso: prev.dateIso ?? parsed.dateIso,
-      categoryId: prev.categoryId ?? (parsed.category ? cats.find((c) => c.name === parsed.category)?.id : undefined),
-      paymentModeId: prev.paymentModeId ?? (parsed.paymentMode ? pms.find((m) => m.name === parsed.paymentMode)?.id : undefined),
-    };
-
-    const enriched = enrichFromTranscript(transcript, updated, pms, accts, cats, ppl);
-    Object.assign(updated, enriched);
-
-    // ── Account disambiguation (when we specifically asked about an account) ──
-    if (pending === "account" && !updated.accountId) {
-      if (ambiguousAccountRef.current.length > 1) {
-        // Already in disambiguation — try digit match within candidates
-        const hit = matchByDigits(transcript, ambiguousAccountRef.current);
-        if (hit) { updated.accountId = hit.id; ambiguousAccountRef.current = []; }
-        // else: still unresolved — will re-ask via determineNext
-      } else {
-        // First answer to account question — check for ambiguity
-        const cands = findAllMatchingAccounts(transcript, accts);
-        if (cands.length === 1) {
-          updated.accountId = cands[0].id;
-          ambiguousAccountRef.current = [];
-        } else if (cands.length > 1) {
-          ambiguousAccountRef.current = cands;
-          // don't set accountId — re-ask with disambiguation prompt
-        }
-      }
-    }
-
-    if (pending === "transferFrom" && !updated.transferFromAccountId) {
-      if (ambiguousFromRef.current.length > 1) {
-        const hit = matchByDigits(transcript, ambiguousFromRef.current);
-        if (hit) { updated.transferFromAccountId = hit.id; ambiguousFromRef.current = []; }
-      } else {
-        const cands = findAllMatchingAccounts(transcript, accts);
-        if (cands.length === 1) { updated.transferFromAccountId = cands[0].id; ambiguousFromRef.current = []; }
-        else if (cands.length > 1) ambiguousFromRef.current = cands;
-      }
-    }
-
-    if (pending === "transferTo" && !updated.transferToAccountId) {
-      if (ambiguousToRef.current.length > 1) {
-        const hit = matchByDigits(transcript, ambiguousToRef.current);
-        if (hit) { updated.transferToAccountId = hit.id; ambiguousToRef.current = []; }
-      } else {
-        const cands = findAllMatchingAccounts(transcript, accts);
-        if (cands.length === 1) { updated.transferToAccountId = cands[0].id; ambiguousToRef.current = []; }
-        else if (cands.length > 1) ambiguousToRef.current = cands;
-      }
-    }
-
-    // ── Question-context specific fallbacks ───────────────────────────────────
-    if (pending === "paymentMode" && !updated.paymentModeId) {
-      const pm = matchPaymentMode(transcript, pms);
-      if (pm) updated.paymentModeId = pm.id;
-    }
-    if (pending === "category" && !updated.categoryId) {
-      const cat = matchCategory(transcript, cats);
-      if (cat) updated.categoryId = cat.id;
-    }
-    if (pending === "split" && !updated.splitPersonId) {
-      const p = matchPerson(transcript, ppl);
-      if (p) updated.splitPersonId = p.id;
-    }
-    // When specifically asked "where did you spend?", treat the full utterance as merchant
-    if (pending === "merchant" && !updated.merchant && transcript.trim()) {
-      updated.merchant = transcript.trim();
-    }
-
-    const finish = (u: VoiceSession) => {
-      sessionRef.current = u;
-      setSession({ ...u });
-      setCurrentQuestion("");
-      currentQuestionRef.current = "";
-      pendingFieldRef.current = null;
-      determineNext(u);
-    };
-
-    // The first sentence, with the merchant, category or mode still empty: on-device AI reads it
-    // with your own category and mode names (services/ai/tasks/read-voice.ts), 3 s at most.
-    const needs = !updated.merchant || !updated.categoryId || !updated.paymentModeId;
-    if (!pending && needs && !updated.transferFromAccountId && !updated.transferToAccountId && isAiJobOn("voice")) {
-      const asked = ++aiAskRef.current;
-      const catNames = cats.map((c) => c.name);
-      const modeNames = pms.map((m) => m.name);
-      void (async () => {
-        const ready = (await getNanoStatus().catch(() => "unavailable")) === "available";
-        const r = ready ? await readVoiceWithNano(transcript, catNames, modeNames) : null;
-        // Spoken again, closed, cancelled or finished meanwhile: this answer is about an old sentence.
-        if (asked !== aiAskRef.current || sessionRef.current !== prev) return;
-        if (r) {
-          if (updated.amount == null && r.amount != null) updated.amount = r.amount;
-          if (!updated.merchant && r.merchant) updated.merchant = r.merchant;
-          if (!updated.categoryId && r.category) updated.categoryId = cats.find((c) => c.name === r.category)?.id;
-          if (!updated.paymentModeId && r.mode) updated.paymentModeId = pms.find((m) => m.name === r.mode)?.id;
-        }
-        finish(updated);
-      })();
-      return;
-    }
-    finish(updated);
-  });
-
-  useSpeechRecognitionEvent("error", () => { if (!visible) return; setVoiceState("idle"); });
-  useSpeechRecognitionEvent("end", () => {
-    if (!visible) return;
-    setVoiceState((prev) => (prev === "listening" ? "idle" : prev));
-  });
 
   const handleCancel = () => {
+    openRef.current = false;
+    phaseRef.current = "listen";
     aiAskRef.current++;
     Speech.stop();
-    SpeechRecognition.abort();
-    setVoiceState("idle");
-    setCurrentQuestion("");
-    currentQuestionRef.current = "";
+    capture.abort();
     onClose();
   };
 
-  const handleDoneSoFar = () => {
+  const startOver = () => {
     aiAskRef.current++;
     Speech.stop();
-    SpeechRecognition.abort();
-    setCurrentQuestion("");
-    currentQuestionRef.current = "";
-    if (session.sessionType === "transfer") {
-      onClose();
-    } else {
-      navigateRef.current(sessionRef.current);
-    }
+    update({ sessionType: "expense" });
+    setHeard("");
+    setEditing(null);
+    setThinking(false);
+    askedAmountRef.current = false;
+    go("listen");
+    void capture.start(hints());
   };
 
-  const indicatorColor = voiceState === "listening" ? theme.danger
-    : voiceState === "speaking" ? accentColor
-    : colors.textSecondary;
+  /** Say just this field again. */
+  const reListen = (field: "amount" | "merchant") => {
+    Speech.stop();
+    setEditing(null);
+    go(field);
+    void capture.start(field === "amount" ? AMOUNT_HINTS : dataRef.current.merchants.slice(0, 80));
+  };
 
-  const indicatorIcon: React.ComponentProps<typeof Ionicons>["name"] =
-    voiceState === "listening" ? "radio-button-on"
-    : voiceState === "speaking" ? "volume-high-outline"
-    : "mic-outline";
-
-  // Labels for chips
-  const pmLabel = paymentModes.find((m) => m.id === session.paymentModeId)?.name;
-  const acctLbl = (() => { const a = accounts.find((x) => x.id === session.accountId); return a ? accountDisplayLabel(a) : undefined; })();
-  const catLbl = categories.find((c) => c.id === session.categoryId)?.name;
-  const personLbl = persons.find((p) => p.id === session.splitPersonId)?.name;
-  const fromLbl = (() => { const a = accounts.find((x) => x.id === session.transferFromAccountId); return a ? accountDisplayLabel(a) : undefined; })();
-  const toLbl = (() => { const a = accounts.find((x) => x.id === session.transferToAccountId); return a ? accountDisplayLabel(a) : undefined; })();
-
+  // ── Labels ────────────────────────────────────────────────────────────────
+  const { accounts, paymentModes, categories, persons } = data;
   const isTransfer = session.sessionType === "transfer";
-  const hasAnyData = session.amount != null || session.merchant || session.categoryId ||
-    session.paymentModeId || session.accountId || session.splitPersonId ||
-    session.transferFromAccountId || session.transferToAccountId;
+  const acct = (id?: string) => accounts.find((a) => a.id === id);
+  const catLbl = categories.find((c) => c.id === session.categoryId)?.name;
+  const pmLbl = paymentModes.find((m) => m.id === session.paymentModeId)?.name;
+  const personLbl = persons.find((p) => p.id === session.splitPersonId)?.name;
 
-  // Transfer success screen
-  if (transferDone) {
+  if (phase === "saved") {
     return (
       <Sheet visible={visible} onClose={handleCancel} maxHeightPct={40}>
         <View className="items-center justify-center px-6 py-12">
           <Ionicons name="checkmark-circle" size={56} color={accentColor} />
-          <Text className="text-lg font-bold text-foreground mt-4">Transfer saved</Text>
-          {session.amount != null && fromLbl && toLbl && (
-            <Text className="text-sm text-muted-foreground mt-2 text-center">
-              ₹{session.amount.toLocaleString("en-IN")} from {fromLbl} to {toLbl}
+          <Text className="text-heading font-bold text-foreground mt-4">Transfer saved</Text>
+          {session.amount != null && (
+            <Text className="text-meta text-muted-foreground mt-2 text-center">
+              {formatExactAmount(session.amount)} from {accountDisplayLabel(acct(session.transferFromAccountId))} to{" "}
+              {accountDisplayLabel(acct(session.transferToAccountId))}
             </Text>
           )}
         </View>
@@ -664,146 +455,199 @@ export function VoiceEntrySheet({ visible, onClose }: Props) {
     );
   }
 
-  return (
-    <Sheet visible={visible} onClose={handleCancel} maxHeightPct={70}>
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-5 pt-5 pb-3">
-        <Text className="text-lg font-bold text-foreground">
-          {isTransfer ? "Voice Transfer" : "Voice Expense"}
+  const title = phase === "card" ? (isTransfer ? "Check the transfer" : "Check and save") : "Say it once";
+  const fieldPhase = phase === "amount" || phase === "merchant";
+  const prompt = phase === "amount" ? "How much?" : phase === "merchant" ? "Where?" : listening ? "Listening…" : capture.error ? "" : "Tap the mic to speak";
+  const retry = () => (fieldPhase ? reListen(phase as "amount" | "merchant") : startOver());
+
+  // ── Listening ─────────────────────────────────────────────────────────────
+  const listenView = (
+    <View className="items-center px-6 pt-2 pb-4">
+      <Animated.View
+        style={{
+          opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1] }),
+          transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] }) }],
+        }}
+      >
+        <Pressable
+          onPress={listening ? capture.stop : retry}
+          accessibilityRole="button"
+          accessibilityLabel={listening ? "Done speaking" : "Start speaking"}
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 36,
+            backgroundColor: listening ? `${theme.danger}18` : `${accentColor}14`,
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 2,
+            borderColor: listening ? theme.danger : `${accentColor}40`,
+          }}
+        >
+          <Ionicons name={listening ? "radio-button-on" : "mic-outline"} size={32} color={listening ? theme.danger : accentColor} />
+        </Pressable>
+      </Animated.View>
+      {prompt ? <Text className="mt-3 text-meta font-medium text-muted-foreground">{prompt}</Text> : null}
+      {/* Your words, large, as you speak */}
+      {capture.live ? (
+        <Text className="mt-3 text-heading font-semibold text-foreground text-center" numberOfLines={4}>
+          {capture.live}
         </Text>
-        <Pressable onPress={handleCancel} className="p-1">
+      ) : null}
+      {listening && !capture.live && phase === "listen" && (
+        <Text className="mt-2 text-label text-faint-foreground text-center">Try: “450 at Swiggy for lunch, GPay, yesterday”</Text>
+      )}
+      {capture.error && (
+        <Pressable onPress={retry} accessibilityRole="button" className="mt-3 px-4">
+          <Text className="text-meta text-center" style={{ color: theme.danger }}>
+            {capture.error}
+          </Text>
+        </Pressable>
+      )}
+      {listening && (
+        <View className="w-full mt-4">
+          <Button title="Done" variant="outline" onPress={capture.stop} />
+        </View>
+      )}
+      {!listening && fieldPhase && (
+        <Pressable onPress={() => go("card")} className="mt-3" accessibilityRole="button">
+          <Text className="text-meta font-semibold" style={{ color: accentColor }}>
+            Back to the card
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+
+  // ── The card ──────────────────────────────────────────────────────────────
+  const row = (key: string, icon: keyof typeof Ionicons.glyphMap, label: string, value: string | undefined, onPress: () => void, missing = "Tap to choose") => (
+    <Pressable
+      key={key}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}: ${value ?? missing}. Tap to change`}
+      className="flex-row items-center py-3 border-b border-border"
+    >
+      <Ionicons name={icon} size={18} color={value ? accentColor : colors.textSecondary} />
+      <Text className="text-meta text-muted-foreground ml-3 w-24">{label}</Text>
+      <Text className={`flex-1 text-body ${value ? "font-semibold text-foreground" : "text-faint-foreground"}`} numberOfLines={1}>
+        {value ?? missing}
+      </Text>
+      <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
+    </Pressable>
+  );
+
+  const pick = (field: Editing) => setEditing((e) => (e === field ? null : field));
+  const choose = (patch: Partial<VoiceSession>) => {
+    update({ ...sessionRef.current, ...patch });
+    setEditing(null);
+  };
+  const picker = (field: Exclude<Editing, null>) => {
+    if (editing !== field) return null;
+    if (field === "category")
+      return (
+        <ChipWrap className="py-2">
+          {categories.map((c) => (
+            <Chip key={c.id} label={c.name} on={c.id === session.categoryId} onPress={() => choose({ categoryId: c.id })} />
+          ))}
+        </ChipWrap>
+      );
+    if (field === "mode")
+      return (
+        <ChipWrap className="py-2">
+          {paymentModes.map((m) => (
+            <Chip key={m.id} label={m.name} on={m.id === session.paymentModeId} onPress={() => choose({ paymentModeId: m.id })} />
+          ))}
+        </ChipWrap>
+      );
+    if (field === "date")
+      return (
+        <ChipWrap className="py-2">
+          {[0, 1, 2, 3, 4, 5, 6].map((n) => {
+            const d = dayOffset(n);
+            return <Chip key={d} label={dateLabel(d)} on={(session.dateIso ?? todayIso()) === d} onPress={() => choose({ dateIso: n === 0 ? undefined : d })} />;
+          })}
+        </ChipWrap>
+      );
+    const key = field === "account" ? "accountId" : field === "from" ? "transferFromAccountId" : "transferToAccountId";
+    return (
+      <ChipWrap className="py-2">
+        {accounts.map((a) => (
+          <Chip key={a.id} label={accountDisplayLabel(a)} on={a.id === session[key]} onPress={() => choose({ [key]: a.id })} />
+        ))}
+      </ChipWrap>
+    );
+  };
+
+  const transferReady =
+    isTransfer && session.amount != null && !!session.transferFromAccountId && !!session.transferToAccountId && session.transferFromAccountId !== session.transferToAccountId;
+
+  const cardView = (
+    <View className="px-5">
+      {heard ? (
+        <Text className="text-meta italic text-muted-foreground mb-1" numberOfLines={2}>
+          “{heard}”
+        </Text>
+      ) : null}
+      {thinking && <Text className="text-label text-faint-foreground mb-1">Thinking… on-device AI may fill in the rest</Text>}
+      {row("amount", "cash-outline", "Amount", session.amount != null ? formatExactAmount(session.amount) : undefined, () => reListen("amount"), "Tap and say it")}
+      {isTransfer ? (
+        <>
+          {row("from", "arrow-up-circle-outline", "From", session.transferFromAccountId ? accountDisplayLabel(acct(session.transferFromAccountId)) : undefined, () => pick("from"))}
+          {picker("from")}
+          {row("to", "arrow-down-circle-outline", "To", session.transferToAccountId ? accountDisplayLabel(acct(session.transferToAccountId)) : undefined, () => pick("to"))}
+          {picker("to")}
+        </>
+      ) : (
+        <>
+          {row("merchant", "storefront-outline", "Where", session.merchant, () => reListen("merchant"), "Tap and say it")}
+          {row("category", "pricetag-outline", "Category", catLbl, () => pick("category"))}
+          {picker("category")}
+          {row("mode", "wallet-outline", "Paid with", pmLbl, () => pick("mode"))}
+          {picker("mode")}
+          {row("account", "business-outline", "Account", session.accountId ? accountDisplayLabel(acct(session.accountId)) : undefined, () => pick("account"))}
+          {picker("account")}
+        </>
+      )}
+      {row("date", "calendar-outline", "Date", dateLabel(session.dateIso), () => pick("date"))}
+      {picker("date")}
+      {!isTransfer && session.description
+        ? row("note", "document-text-outline", "Note", session.description, () => update({ ...sessionRef.current, description: undefined }))
+        : null}
+      {!isTransfer && personLbl ? row("split", "people-outline", "Split with", personLbl, () => update({ ...sessionRef.current, splitPersonId: undefined })) : null}
+      {saveError && (
+        <Text className="text-meta mt-2" style={{ color: theme.danger }}>
+          {saveError}
+        </Text>
+      )}
+      <View className="mt-4" style={{ gap: 10 }}>
+        {isTransfer ? (
+          <Button title="Save transfer" onPress={saveTransfer} disabled={!transferReady} />
+        ) : (
+          <Button title="Looks right" onPress={() => openForm(sessionRef.current)} />
+        )}
+        <Button title="Say it again" variant="outline" onPress={startOver} />
+      </View>
+      {!isTransfer && <Text className="text-label text-faint-foreground text-center mt-2">Opens the Add screen filled in; tap Save there.</Text>}
+    </View>
+  );
+
+  return (
+    <Sheet visible={visible} onClose={handleCancel} maxHeightPct={85}>
+      <View className="flex-row items-center justify-between px-5 pt-5 pb-2">
+        <Text className="text-heading font-bold text-foreground">{title}</Text>
+        <Pressable onPress={handleCancel} className="p-1" accessibilityRole="button" accessibilityLabel="Close">
           <Ionicons name="close" size={22} color={colors.textSecondary} />
         </Pressable>
       </View>
-
-      {/* Mic indicator */}
-      <View className="items-center py-4">
-        <Animated.View
-          style={{
-            opacity: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [0.65, 1] }),
-            transform: [{ scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] }) }],
-          }}
-        >
-          <Pressable
-            onPress={voiceState === "idle" ? doStartListening : undefined}
-            style={{
-              width: 72, height: 72, borderRadius: 36,
-              backgroundColor: voiceState !== "idle" ? `${indicatorColor}18` : `${accentColor}14`,
-              alignItems: "center", justifyContent: "center",
-              borderWidth: 2,
-              borderColor: voiceState !== "idle" ? indicatorColor : `${accentColor}40`,
-            }}
-          >
-            <Ionicons name={indicatorIcon} size={32} color={indicatorColor} />
-          </Pressable>
-        </Animated.View>
-
-        {/* Question (silent mode) or state label */}
-        {currentQuestion && !voiceSettings.speakBack ? (
-          <Text className="mt-3 text-base font-semibold text-foreground text-center px-8" numberOfLines={4}>
-            {currentQuestion}
-          </Text>
-        ) : (
-          <Text className="mt-3 text-sm font-medium text-muted-foreground">
-            {voiceState === "listening" ? "Listening…"
-              : voiceState === "speaking" ? "Speaking…"
-              : "Tap mic to retry"}
-          </Text>
+      <ScrollView contentContainerStyle={{ paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
+        {phase === "card" ? cardView : listenView}
+        {phase === "listen" && !listening && (
+          <View className="px-5">
+            <Button title="Open the Add screen" variant="outline" onPress={() => openForm(sessionRef.current)} />
+          </View>
         )}
-
-        {/* Hint on first open */}
-        {voiceState === "listening" && !hasAnyData && !currentQuestion && (
-          <Text className="mt-1.5 text-xs text-faint-foreground text-center px-8">
-            {isTransfer
-              ? 'Try: "transfer 500 from HDFC to SBI"'
-              : 'Try: "450 at Swiggy for lunch, UPI, HDFC"'}
-          </Text>
-        )}
-
-        {/* What was heard — always visible when non-empty */}
-        {lastHeard ? (
-          <Text className="mt-2 text-xs italic text-faint-foreground text-center px-10" numberOfLines={2}>
-            Heard: &ldquo;{lastHeard}&rdquo;
-          </Text>
-        ) : null}
-      </View>
-
-      {/* Collected field chips */}
-      {hasAnyData && (
-        <View className="flex-row flex-wrap gap-2 justify-center px-6 pb-2">
-          {session.amount != null && (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">
-                ₹{session.amount.toLocaleString("en-IN")}
-              </Text>
-            </View>
-          )}
-          {session.merchant ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">{session.merchant}</Text>
-            </View>
-          ) : null}
-          {catLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">{catLbl}</Text>
-            </View>
-          ) : null}
-          {pmLabel ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">{pmLabel}</Text>
-            </View>
-          ) : null}
-          {acctLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">{acctLbl}</Text>
-            </View>
-          ) : null}
-          {personLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">Split · {personLbl}</Text>
-            </View>
-          ) : null}
-          {session.dateIso ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">
-                {session.dateIso === isoDate(new Date(Date.now() - 864e5)) ? "Yesterday" : session.dateIso}
-              </Text>
-            </View>
-          ) : null}
-          {fromLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">From · {fromLbl}</Text>
-            </View>
-          ) : null}
-          {toLbl ? (
-            <View className="flex-row items-center px-3 py-1 rounded-full bg-card">
-              <Ionicons name="checkmark-circle" size={13} color={accentColor} />
-              <Text className="text-sm ml-1.5 font-medium text-foreground">To · {toLbl}</Text>
-            </View>
-          ) : null}
-        </View>
-      )}
-
-      {/* Bottom action */}
-      <View className="px-5 pt-3 pb-6">
-        <Pressable
-          onPress={handleDoneSoFar}
-          className="py-3 rounded-xl items-center"
-          style={{ backgroundColor: `${accentColor}18`, borderWidth: 1, borderColor: `${accentColor}35` }}
-        >
-          <Text className="text-sm font-semibold" style={{ color: accentColor }}>
-            {isTransfer ? "Cancel" : hasAnyData ? "Fill form with what I said" : "Open expense form"}
-          </Text>
-        </Pressable>
-      </View>
+      </ScrollView>
     </Sheet>
   );
 }

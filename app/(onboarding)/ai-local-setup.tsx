@@ -10,6 +10,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { runLocalSetup, setLocalReply, type LocalSetupProgress } from "@/services/ai/local-setup";
 import { continueAfterAi } from "@/services/onboarding-flow";
 import { logger } from "@/utils/logger";
+import { ON_DEVICE_MODEL_NAME } from "@/services/ai/nano";
 
 type Phase = "intro" | "working" | "nothing";
 
@@ -104,7 +105,7 @@ export default function OnboardingAiLocalSetup() {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24 }}>
         <Text className="text-2xl font-bold text-foreground mb-2">Set up on this phone</Text>
         <Text className="text-sm text-muted-foreground mb-6 leading-5">
-          Gemini Nano, the AI built into your phone, puts your biggest merchants into your categories. Nothing is shared or
+          {ON_DEVICE_MODEL_NAME}, the AI built into your phone, puts your biggest merchants into your categories. Nothing is shared or
           sent anywhere, and nothing changes until you approve it.
         </Text>
         <Card className="mb-3">

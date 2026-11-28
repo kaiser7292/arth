@@ -1,12 +1,14 @@
 ---
-title: On-device AI (Gemini Nano)
+title: On-device AI (Gemini Nano, Apple Intelligence)
 slug: on-device-ai
-summary: On phones with Gemini Nano, the AI built into the phone reads the bank messages Arth doesn't know and helps with setup. Nothing leaves the phone.
-tags: [AI, Gemini, Nano, on-device, unrecognised, messages, SMS, setup, privacy]
+summary: With Gemini Nano (Android) or Apple Intelligence (iPhone), the AI built into the phone reads the bank messages Arth doesn't know and helps with setup. Nothing leaves the phone.
+tags: [AI, Gemini, Nano, Apple Intelligence, iPhone, on-device, unrecognised, messages, SMS, setup, privacy]
 contextKeys: [on-device-ai]
 phrasings:
   - What is on-device AI?
   - What does Gemini Nano do in Arth?
+  - Does on-device AI work on iPhone?
+  - Apple Intelligence in Arth
   - Arth didn't read one of my bank messages
   - What does Read by AI mean?
   - Why is a transaction marked AI?
@@ -21,7 +23,7 @@ phrasings:
   - Search in plain words
 ---
 
-Some newer Android phones have Gemini Nano, a small AI model that runs on the phone itself. Arth can use it in two ways. Both run entirely on your phone: no message, amount or account is sent anywhere.
+Some newer phones have a small AI model that runs on the phone itself: Gemini Nano on Android, Apple Intelligence on iPhone (iPhone 15 Pro or later, iOS 26). Arth can use it in two ways. Both run entirely on your phone: no message, amount or account is sent anywhere.
 
 ## Reading messages Arth doesn't know
 
@@ -33,7 +35,7 @@ Arth reads bank messages with its own patterns and your templates. When neither 
 
 An answer that fails these checks is left out. One that passes becomes a transaction waiting in **Catch Up**, marked **Read by on-device AI · check it**. Nothing counts in your reports until you approve it.
 
-Android only lets the AI run while Arth is open. Messages that arrive while Arth is closed wait, and Arth reads a few at a time the next time you open it.
+The phone only lets the AI run while Arth is open. Messages that arrive while Arth is closed wait, and Arth reads a few at a time the next time you open it.
 
 ## Help during setup
 
@@ -60,7 +62,7 @@ Each of these has its own switch in **Settings → AI → On this phone**:
 Go to **Settings → AI → On this phone** to:
 
 - turn reading on or off
-- see whether the model is ready, or download it
+- see whether the model is ready, or download it (on iPhone: turn on Apple Intelligence in the iPhone's Settings → Apple Intelligence & Siri)
 - see how many messages are waiting, and read them now
 - read older unread messages too
 
@@ -68,4 +70,4 @@ Each AI run is saved in **Settings → Transaction messages → Scan history**, 
 
 ## If you don't see it
 
-On this phone works only on phones that have Gemini Nano. On other phones, Settings → AI says so in one grey line, and Arth reads messages exactly as before. Your AI assistant (ChatGPT, Gemini or Claude) still works on every phone: see **AI in Arth**. Messages it can't read wait in **Settings → Transaction messages**, under *messages Arth couldn't read*, where you can teach Arth the format with a template.
+On this phone works only on phones that have Gemini Nano or Apple Intelligence. On other phones, Settings → AI says so in one grey line, and Arth reads messages exactly as before. Your AI assistant (ChatGPT, Gemini or Claude) still works on every phone: see **AI in Arth**. Messages it can't read wait in **Settings → Transaction messages**, under *messages Arth couldn't read*, where you can teach Arth the format with a template.

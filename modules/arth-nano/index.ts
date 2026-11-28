@@ -18,7 +18,7 @@ interface NativeNano {
 
 const Native = requireOptionalNativeModule<NativeNano>("ArthNano");
 
-/** False in a build without the module (iPhone, Expo Go, web, an APK built before it existed). */
+/** False in a build without the module (Expo Go, web, a build made before it existed). Android uses Gemini Nano, iPhone Apple Intelligence. */
 export const isNanoModulePresent = Native != null;
 
 export async function checkNanoStatus(): Promise<NanoStatus> {

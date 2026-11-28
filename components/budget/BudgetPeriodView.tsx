@@ -11,6 +11,7 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { formatAmount, formatReportShort } from "@/utils/format";
 import { insightPeriodLabel, insightPeriodRange, isInsightPeriod, type InsightPeriod } from "@/utils/insight-periods";
 import { getFYStartMonth } from "@/services/settings";
+import { getSpendClassificationTotals } from "@/services/spend-classification";
 import {
   getBudgetVsActual,
   type BudgetVsActualRow,
@@ -91,6 +92,9 @@ export function BudgetPeriodView({ period: fixedPeriod, embedded = false }: { pe
     })();
 
   const [loadFailed, setLoadFailed] = useState(false);
+  /** All spending in the period, categorised or not: the figure Spending Split and Monthly
+   *  Summary show for the same span, so swiping between the pages shows one total. */
+  const [allSpent, setAllSpent] = useState<number | null>(null);
   const loadSeq = useRef(0);
   const loadData = useCallback(async () => {
     const seq = ++loadSeq.current;
@@ -98,15 +102,13 @@ export function BudgetPeriodView({ period: fixedPeriod, embedded = false }: { pe
       const fySM = getFYStartMonth();
       setFyStartMonth(fySM);
       const r = insightPeriodRange(period, fySM, customStartMonth, customEndMonth);
-      const data = await getBudgetVsActual(
-        DEFAULT_USER_ID,
-        r.startMonth,
-        r.endMonth,
-        r.startDate,
-        r.endDate,
-      );
+      const [data, classified] = await Promise.all([
+        getBudgetVsActual(DEFAULT_USER_ID, r.startMonth, r.endMonth, r.startDate, r.endDate),
+        getSpendClassificationTotals(DEFAULT_USER_ID, r.startDate, r.endDate).catch(() => null),
+      ]);
       if (seq !== loadSeq.current) return; // a newer period is loading
       setResult(data);
+      setAllSpent(classified ? classified.total : null);
       setLoadFailed(false);
     } catch {
       if (seq !== loadSeq.current) return;
@@ -165,7 +167,11 @@ export function BudgetPeriodView({ period: fixedPeriod, embedded = false }: { pe
     ? proratedBudget(result.totalBudget)
     : result?.totalBudget ?? 0;
 
-  const variance = (result?.totalActual ?? 0) - budgetForSummary;
+  // The hero total: everything spent, as on the other Budget pages. Categories below add up to
+  // the part that has a category; the note under the total says how much hasn't.
+  const spentTotal = Math.max(allSpent ?? 0, result?.totalActual ?? 0);
+  const notInCategories = spentTotal - (result?.totalActual ?? 0);
+  const variance = spentTotal - budgetForSummary;
   const isOver = variance > 0;
 
   if (loading) {
@@ -205,10 +211,10 @@ export function BudgetPeriodView({ period: fixedPeriod, embedded = false }: { pe
                   {isCurrentMonth ? "Spent so far" : `Spent · ${getPeriodLabel(period)}`}
                 </Text>
                 <View className="flex-row items-baseline" style={{ gap: 10 }}>
-                  <Amount value={result?.totalActual ?? 0} className="text-hero font-bold text-foreground flex-shrink" />
+                  <Amount value={spentTotal} className="text-hero font-bold text-foreground flex-shrink" />
                   {budgetForSummary > 0 && (
                     <Text className="text-meta font-bold ml-auto" style={{ color: isOver ? theme.danger : theme.success }}>
-                      {Math.round(((result?.totalActual ?? 0) / budgetForSummary) * 100)}%
+                      {Math.round((spentTotal / budgetForSummary) * 100)}%
                     </Text>
                   )}
                 </View>
@@ -223,6 +229,11 @@ export function BudgetPeriodView({ period: fixedPeriod, embedded = false }: { pe
                     </Text>
                   </Text>
                 )}
+                {notInCategories >= 1 && (
+                  <Text className="text-label text-muted-foreground mt-0.5">
+                    {`Includes ${formatAmount(notInCategories)} not in a budget category`}
+                  </Text>
+                )}
                 {isCurrentMonth && result && result.totalBudget > 0 && (
                   <Text className="text-label text-muted-foreground mt-0.5">
                     {`Day ${new Date().getDate()} of ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()} · full month ${formatAmount(result.totalBudget)}`}
@@ -233,7 +244,7 @@ export function BudgetPeriodView({ period: fixedPeriod, embedded = false }: { pe
                     <View
                       className="h-full rounded-full"
                       style={{
-                        width: `${Math.min(100, Math.round((result.totalActual / budgetForSummary) * 100))}%`,
+                        width: `${Math.min(100, Math.round((spentTotal / budgetForSummary) * 100))}%`,
                         backgroundColor: isOver ? theme.danger : theme.primary,
                       }}
                     />

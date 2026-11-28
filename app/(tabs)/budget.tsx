@@ -13,6 +13,7 @@ import { FoldGroup } from "@/components/ui/FormParts";
 import { staggerDelay } from "@/components/motion/motion";
 import { SpendingSplitPage } from "@/components/budget/SpendingSplitPage";
 import { MonthlySummaryPage } from "@/components/budget/MonthlySummaryPage";
+import { budgetSpanOf } from "@/utils/budget-span";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 
@@ -91,6 +92,9 @@ export default function BudgetScreen() {
   const [span, setSpan] = useState<"month" | "last_3m" | "last_6m" | "this_fy">("month");
   // Cards and pages here skip reloading when nothing changed (docs/SPEED_AND_VOICE_PROPOSAL.md, fix 3).
   const scopeKey = useScopeKey(`budget|${month}|${span}`);
+  /** The span as dates and words for Spending Split and Monthly Summary; undefined for Month. */
+  const fyStart = getFYStartMonth();
+  const spanRange = useMemo(() => budgetSpanOf(span, fyStart), [span, fyStart, scopeKey]);
   useCustomisation();
   const budgetPages = [
     { key: "overview", label: "Overview" },
@@ -337,8 +341,9 @@ export default function BudgetScreen() {
       />
       {/* Longer than a month: Budget vs actual for 3 or 6 months or the FY, in place on this page
           (docs/INSIGHTS_STREAMLINE_PROPOSAL.md §2.1). The month picker is for Month only. */}
-      {(activePageIndex !== 0 || span === "month") && <PeriodNavigator mode="month" value={month} onChange={setMonth} />}
-      {activePageIndex === 0 && (
+      {/* Month · 3M · 6M · FY applies on every page (owner, Nov 2026); the month picker is for Month. */}
+      {span === "month" && <PeriodNavigator mode="month" value={month} onChange={setMonth} />}
+      {(
         <Segmented
           className="mx-4 mt-2"
           value={span}
@@ -803,12 +808,12 @@ export default function BudgetScreen() {
 
         {/* Page 1 — Spending Split (lazy: only mount after first visit) */}
         {!isPartOn("budget_split") ? null : visitedSplit
-          ? <SpendingSplitPage month={month} />
+          ? <SpendingSplitPage month={month} span={spanRange} />
           : <View style={{ flex: 1 }} />}
 
         {/* Page 2 — Monthly Summary (lazy: only mount after first visit) */}
         {!isPartOn("budget_monthly") ? null : visitedMonthly
-          ? <MonthlySummaryPage month={month} />
+          ? <MonthlySummaryPage month={month} span={spanRange} />
           : <View style={{ flex: 1 }} />}
       </SwipePager>
     </ScreenContainer>
