@@ -85,7 +85,7 @@ const EVERYDAY: [RegExp, string[]][] = [
 ];
 
 /** Shops and apps in the everyday words above: said alone, they're the merchant (and still hint the category). */
-const BRANDS = new Set(
+export const BRANDS = new Set(
   "swiggy zomato dmart blinkit zepto instamart bigbasket uber ola rapido amazon flipkart myntra ajio meesho starbucks apollo medplus 1mg pharmeasy netflix hotstar spotify pvr inox bookmyshow makemytrip irctc jio airtel cult".split(" "),
 );
 
