@@ -18,7 +18,6 @@ import { useTheme } from "@/hooks/use-theme";
 import { consumeInsightsPreload } from "@/services/home-preload";
 import { LoadFailed } from "@/components/ui/ListToolbar";
 import { MonthStoryCard } from "@/components/insights/MonthStoryCard";
-import { AskArthCard } from "@/components/insights/AskArthCard";
 import { kindsOff, setKindOff, showAllKinds, snoozeInsight, visibleInsights } from "@/services/insight-dismiss";
 
 const preloaded = consumeInsightsPreload();
@@ -102,8 +101,6 @@ export function InsightsPage() {
         />
       }
     >
-      {/* Ask Arth: a question answered in a sentence (docs/SPEED_AND_VOICE_PROPOSAL.md §2.3). */}
-      <AskArthCard />
       <MonthStoryCard />
 
       {visible.length > 0 && (

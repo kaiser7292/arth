@@ -1,170 +1,97 @@
 /**
- * Ask Arth (docs/SPEED_AND_VOICE_PROPOSAL.md §2.3): a question in plain words, typed or spoken,
- * answered in a sentence, with the working underneath. Not a jump to a filtered list.
+ * Ask Arth (docs/SPEED_AND_VOICE_PROPOSAL.md §2.3): a question in any words, answered in a
+ * sentence with the working underneath.
  *
- *   1. Understand: rules read the period ("by day 15", "last week", "in October"), the subject
- *      (one of your merchants or categories, or everything) and the measure (spent, how often,
- *      biggest, average, what's left in the budget, what came in, where it went).
- *   2. Work it out in code, from the same sums the screens use: spending = getSpendingRows (the
- *      Budget tab's rule, refunds taken off), budget = getBudgetVsActual, money in = getCashFlow.
- *   3. Say it: a plain sentence, the figures, and the transactions behind it.
- *   4. Follow-ups ("and last month?", "only Swiggy") keep what the last question didn't change.
+ *   1. Understand: rules (services/ask/plan.ts) read it into a plan: period, subject, measure.
+ *      When words are left the rules can't place, on-device AI reads it into the same plan
+ *      (services/ai/tasks/read-question.ts), checked by code. Neither sure: say so, with readings.
+ *   2. Work it out in code from the same sums the screens use (getSpendingRows: approved spending,
+ *      refunds taken off; getBudgetVsActual; getCashFlow). The AI never does arithmetic.
+ *   3. Say it: a sentence, figures, a list or month bars, the transactions behind it, and the
+ *      plan as "Read as" chips the person can change.
  *
- * The AI never does the arithmetic. `readQuestion` and `composeAnswer` are pure and tested;
- * `answerQuestion` reads the database.
+ * `composeAnswer` is pure and tested; `askArth` and `answerPlan` read the database.
  */
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { getSpendingRows } from "@/services/analytics/spending-rows";
 import { getBudgetVsActual } from "@/services/budget";
 import { getCashFlow } from "@/services/cash-flow";
-import { getSpendClassificationTotals } from "@/services/spend-classification";
 import { getCategories, type Category } from "@/services/category";
+import type { Expense } from "@/services/expense-types";
 import { getDistinctMerchantNames } from "@/services/merchant-alias";
 import { getFYStartMonth } from "@/services/settings";
-import type { Expense } from "@/services/expense-types";
+import { getSpendClassificationTotals } from "@/services/spend-classification";
+import { isAiJobOn } from "@/services/ai/ai-reading";
+import { getNanoStatus } from "@/services/ai/nano";
+import { readQuestionWithNano } from "@/services/ai/tasks/read-question";
+import { periodFrom, readingChips, readQuestionRules, subjectLabel, type AskContext, type AskPlan, type AskSubject } from "@/services/ask/plan";
 import { formatAmount } from "@/utils/format";
-import { readSpokenPeriod, shortDay, type SpokenPeriod } from "@/utils/spoken-date";
-import { normaliseSpokenNumbers } from "@/utils/spoken-number";
-import { matchCategory, matchMerchant } from "@/utils/voice-parser";
+import { shortDay } from "@/utils/spoken-date";
+import { matchCategory } from "@/utils/voice-parser";
 
-export type AskMeasure = "spent" | "count" | "biggest" | "average" | "budget_left" | "earned" | "top";
-
-export type AskSubject = { kind: "all" } | { kind: "merchant"; name: string } | { kind: "category"; id: string; name: string };
-
-export interface AskQuestion {
-  period: SpokenPeriod;
-  subject: AskSubject;
-  measure: AskMeasure;
-  /** What was asked, for the thread. */
-  said: string;
-}
-
-export interface AskFigure {
-  label: string;
-  value: string;
-}
+export type { AskPlan } from "@/services/ask/plan";
 
 export interface AskAnswer {
-  /** The reply, in a sentence or two. */
   sentence: string;
-  figures: AskFigure[];
-  /** The transactions behind it, for "See these transactions". */
+  figures: { label: string; value: string }[];
+  /** Merchants or categories with amounts. */
+  list?: { label: string; value: string }[];
+  /** Month bars, oldest first. */
+  bars?: { label: string; value: number }[];
   expenseIds: string[];
   seeTitle: string;
-  /** Arth couldn't answer: questions it can. */
+  /** The plan as chips ("Read as"); none when Arth wasn't sure. */
+  reading?: ReturnType<typeof readingChips>;
+  /** Not sure: questions it can answer, to tap. */
   examples?: string[];
+  /** Follow-ups worth a tap. */
+  suggestions?: string[];
 }
 
 export const EXAMPLE_QUESTIONS = [
   "What did I spend by day 15?",
   "How much on food this month?",
-  "How often did I order from Swiggy last month?",
+  "Did I ever pay Zomato?",
+  "Which merchants in Shopping?",
   "Biggest payments this week",
   "What's left in my budget?",
-  "What came in last month?",
-  "Where did my money go in October?",
+  "Spending by month this year",
 ];
-
-const MEASURES: [RegExp, AskMeasure][] = [
-  [/\b(how (?:often|many times)|kitni baar|number of times|how many (?:orders|times|payments|transactions))\b/, "count"],
-  [/\b(biggest|largest|highest|most expensive|top payments?|big payments?|bade)\b/, "biggest"],
-  [/\b(average|avg|per day|a day|daily)\b/, "average"],
-  [/\b(left|remaining|bacha|budget)\b/, "budget_left"],
-  [/\b(earn(?:ed)?|income|came in|received|salary|money in|kamai|aaya)\b/, "earned"],
-  [/\b(where did|where does|where has|what did i spend (?:it )?on|top categor(?:y|ies)|most on|kahan)\b/, "top"],
-];
-
-/** "and last month?" / "only Swiggy": a follow-up that keeps the rest of the last question. */
-const FOLLOW_UP = /^\s*(and|what about|how about|only|just|same for|aur|now)\b/i;
-
-/** The month this question is about, when it doesn't say: this month so far. */
-function thisMonth(now: Date): SpokenPeriod {
-  return readSpokenPeriod("this month", now)!;
-}
-
-/**
- * Read a question. `previous` is the last question in the thread: a follow-up keeps its period,
- * subject or measure unless it says a new one. Returns null when nothing in it can be answered.
- */
-export function readQuestion(
-  text: string,
-  ctx: { merchants: readonly string[]; categories: readonly Pick<Category, "id" | "name">[] },
-  previous: AskQuestion | null = null,
-  now: Date = new Date(),
-  fyStartMonth = 4,
-): AskQuestion | null {
-  const said = text.trim();
-  if (!said) return null;
-  const t = normaliseSpokenNumbers(said).toLowerCase();
-  const followUp = !!previous && (FOLLOW_UP.test(t) || t.split(/\s+/).length <= 4);
-
-  const period = readSpokenPeriod(t, now, fyStartMonth);
-  let measure: AskMeasure | undefined;
-  for (const [re, m] of MEASURES) {
-    if (re.test(t)) {
-      measure = m;
-      break;
-    }
-  }
-  if (!measure && /\b(spen[dt]|spending|kharcha|kharch|paid|cost|expense)\b/.test(t)) measure = "spent";
-
-  let subject: AskSubject | undefined;
-  const merchant = matchMerchant(t, ctx.merchants);
-  if (merchant) subject = { kind: "merchant", name: merchant };
-  else {
-    const catName = matchCategory(t, ctx.categories.map((c) => c.name));
-    const cat = catName ? ctx.categories.find((c) => c.name === catName) : undefined;
-    if (cat) subject = { kind: "category", id: cat.id, name: cat.name };
-  }
-  if (!subject && /\b(everything|overall|in total|total|all)\b/.test(t)) subject = { kind: "all" };
-
-  if (followUp && previous) {
-    if (!period && !measure && !subject) return null;
-    return {
-      period: period ?? previous.period,
-      subject: subject ?? previous.subject,
-      measure: measure ?? (previous.measure === "budget_left" && subject?.kind === "merchant" ? "spent" : previous.measure),
-      said,
-    };
-  }
-  // A new question needs to be about money somehow: a measure, a subject or a period.
-  if (!measure && !subject && !period) return null;
-  return { period: period ?? thisMonth(now), subject: subject ?? { kind: "all" }, measure: measure ?? "spent", said };
-}
 
 /** The data an answer is worked out from. */
 export interface AskData {
   rows: Expense[];
   previousRows: Expense[];
   categories: Pick<Category, "id" | "name" | "parent_id">[];
-  /** budget_left only. */
   budget?: { budget: number; spent: number } | null;
-  /** earned only. */
   earned?: { income: number; cameIn: number; months: string } | null;
 }
 
 const money = (n: number) => formatAmount(Math.round(n));
-/** This month, YYYY-MM, in local time (never UTC: just after midnight in India that is yesterday). */
+const sum = (rows: Expense[]) => rows.reduce((s, r) => s + (r.amount ?? 0), 0);
 const localMonth = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** Which rows a subject covers. A category includes its subcategories. */
+/** Which rows a subject covers. A category includes its subcategories; a name not in Arth matches loosely. */
 export function rowsFor(rows: Expense[], subject: AskSubject, categories: Pick<Category, "id" | "parent_id">[]): Expense[] {
   if (subject.kind === "all") return rows;
-  if (subject.kind === "merchant") {
+  if (subject.kind === "merchant" && subject.known) {
     const n = subject.name.toLowerCase();
     return rows.filter((r) => (r.merchant_name ?? "").toLowerCase() === n);
+  }
+  if (subject.kind === "merchant" || subject.kind === "text") {
+    const w = (subject.kind === "merchant" ? subject.name : subject.words).toLowerCase().replace(/\s+/g, "");
+    return rows.filter((r) => `${r.merchant_name ?? ""} ${r.description ?? ""}`.toLowerCase().replace(/\s+/g, "").includes(w));
   }
   const ids = new Set([subject.id, ...categories.filter((c) => c.parent_id === subject.id).map((c) => c.id)]);
   return rows.filter((r) => r.category_id != null && ids.has(r.category_id));
 }
 
-const sum = (rows: Expense[]) => rows.reduce((s, r) => s + (r.amount ?? 0), 0);
-
-/** The top groups of rows by total: categories (rolled up to the top level) or merchants. */
-function topGroups(rows: Expense[], by: "category" | "merchant", categories: Pick<Category, "id" | "name" | "parent_id">[], n: number) {
+/** Totals by merchant or by top-level category, biggest first. */
+function groups(rows: Expense[], by: "category" | "merchant", categories: Pick<Category, "id" | "name" | "parent_id">[]) {
   const byId = new Map(categories.map((c) => [c.id, c]));
   const totals = new Map<string, number>();
   for (const r of rows) {
@@ -177,45 +104,142 @@ function topGroups(rows: Expense[], by: "category" | "merchant", categories: Pic
     }
     totals.set(key, (totals.get(key) ?? 0) + (r.amount ?? 0));
   }
-  return [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
+  return [...totals.entries()].sort((a, b) => b[1] - a[1]);
 }
 
 function subjectWords(s: AskSubject): string {
-  return s.kind === "all" ? "" : s.kind === "merchant" ? ` at ${s.name}` : ` on ${s.name}`;
+  return s.kind === "all" ? "" : s.kind === "category" ? ` on ${s.name}` : s.kind === "text" ? ` mentioning “${s.words}”` : ` at ${s.name}`;
 }
 
-/** The period in a sentence: "By 15 Nov", "This month", "In October". */
-function periodLead(p: SpokenPeriod): string {
+/** The period at the start of a sentence: "By 15 Nov", "This month", "In October", "In all". */
+function lead(plan: AskPlan): string {
+  const p = plan.period;
+  if (p.allTime) return "In all";
   if (p.label.startsWith("1–")) return `By ${p.label.slice(2)}`;
   if (/^[A-Z][a-z]+( \d{4})?$/.test(p.label)) return `In ${p.label}`;
   return p.label[0].toUpperCase() + p.label.slice(1);
 }
+const inPeriod = (plan: AskPlan) => (plan.period.allTime ? "" : ` ${/^[A-Z]/.test(plan.period.label) ? `in ${plan.period.label}` : plan.period.label}`);
+
+/** Follow-ups worth offering after this answer. */
+function suggestionsFor(plan: AskPlan): string[] {
+  const out: string[] = [];
+  if (!plan.period.allTime) out.push("All time?");
+  if (plan.period.label === "this month") out.push("And last month?");
+  if (plan.measure !== "by_month") out.push("By month");
+  if (plan.subject.kind === "category" && plan.measure !== "merchants") out.push("Which merchants?");
+  if (plan.subject.kind === "all" && plan.measure === "total") out.push("Where did it go?");
+  return out.slice(0, 3);
+}
 
 /** Work out the reply. Pure. */
-export function composeAnswer(q: AskQuestion, d: AskData): AskAnswer {
-  const rows = rowsFor(d.rows, q.subject, d.categories);
-  const prev = rowsFor(d.previousRows, q.subject, d.categories);
+export function composeAnswer(plan: AskPlan, d: AskData): AskAnswer {
+  const rows = rowsFor(d.rows, plan.subject, d.categories);
+  const prev = plan.period.previous ? rowsFor(d.previousRows, plan.subject, d.categories) : [];
   const total = sum(rows);
   const prevTotal = sum(prev);
-  const lead = periodLead(q.period);
-  const sub = subjectWords(q.subject);
-  const seeTitle = `${q.subject.kind === "all" ? "Spending" : q.subject.name} · ${q.period.label}`;
-  const ids = rows.map((r) => r.id);
-  const base = { expenseIds: ids, seeTitle };
+  const L = lead(plan);
+  const sub = subjectWords(plan.subject);
+  const seeTitle = `${subjectLabel(plan.subject)} · ${plan.period.label}`;
+  const base = { expenseIds: rows.map((r) => r.id), seeTitle, reading: readingChips(plan), suggestions: suggestionsFor(plan) };
+  const nothing = (): AskAnswer => ({
+    ...base,
+    sentence: `${L}, no payments${sub}.`,
+    figures: [],
+  });
 
-  const versus = () => {
-    if (prevTotal <= 0) return "";
-    const diff = total - prevTotal;
-    if (Math.abs(diff) < 1) return `, the same as ${q.period.previous.label}`;
-    return `, ${money(Math.abs(diff))} ${diff > 0 ? "more" : "less"} than ${q.period.previous.label}`;
-  };
-
-  switch (q.measure) {
-    case "count": {
-      if (rows.length === 0) return { ...base, sentence: `${lead}, nothing${sub || " spent"}.`, figures: [] };
+  switch (plan.measure) {
+    case "exists": {
+      if (rows.length === 0) {
+        // Never paid them: say what was used instead, when the name points to a category ("Zomato" → Food).
+        let instead = "";
+        if (plan.subject.kind === "merchant" && !plan.subject.known) {
+          const catName = matchCategory(plan.subject.name, d.categories.map((c) => c.name));
+          const cat = catName ? d.categories.find((c) => c.name === catName) : undefined;
+          if (cat) {
+            const g = groups(rowsFor(d.rows, { kind: "category", id: cat.id, name: cat.name }, d.categories), "merchant", d.categories);
+            if (g.length > 0) instead = ` For ${cat.name} you've paid ${g[0][0]} (${money(g[0][1])}${plan.period.allTime ? " in all" : ""}).`;
+          }
+        }
+        return { ...base, sentence: `No, there's no payment${sub}${plan.period.allTime ? " in Arth" : inPeriod(plan)}.${instead}`, figures: [] };
+      }
+      const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
       return {
         ...base,
-        sentence: `${lead}: ${rows.length} payment${rows.length === 1 ? "" : "s"}${sub}, ${money(total)} in all${prev.length ? ` (${prev.length} ${q.period.previous.label})` : ""}.`,
+        sentence: `Yes: ${rows.length} payment${rows.length === 1 ? "" : "s"}${sub}${inPeriod(plan)}, ${money(total)} in all. The last was ${shortDay(sorted[sorted.length - 1].date)}.`,
+        figures: [
+          { label: "Payments", value: String(rows.length) },
+          { label: "Total", value: money(total) },
+          { label: "First", value: shortDay(sorted[0].date) },
+        ],
+      };
+    }
+    case "merchants":
+    case "categories": {
+      const by = plan.measure === "merchants" ? "merchant" : "category";
+      const g = groups(rows, by, d.categories);
+      if (g.length === 0) return nothing();
+      const noun = by === "merchant" ? "merchant" : "categor";
+      const plural = by === "merchant" ? (g.length === 1 ? "merchant" : "merchants") : g.length === 1 ? "category" : "categories";
+      return {
+        ...base,
+        sentence:
+          by === "merchant"
+            ? `${g.length} ${plural}${sub}${inPeriod(plan)}, ${money(total)} in all. ${g[0][0]} is the biggest at ${money(g[0][1])}.`
+            : `${L}, ${money(total)}${sub}. Most went on ${g.slice(0, 3).map(([k, v]) => `${k} (${money(v)})`).join(", ")}.`,
+        figures: [],
+        list: g.map(([k, v]) => ({ label: k, value: money(v) })),
+        seeTitle: `${noun === "merchant" ? "Merchants" : "Categories"} · ${plan.period.label}`,
+      };
+    }
+    case "by_month": {
+      if (rows.length === 0) return nothing();
+      const byMonth = new Map<string, number>();
+      for (const r of rows) byMonth.set(r.date.slice(0, 7), (byMonth.get(r.date.slice(0, 7)) ?? 0) + (r.amount ?? 0));
+      const months = [...byMonth.keys()].sort();
+      // Every month between the first and the last, so a month with nothing shows as a gap.
+      const all: string[] = [];
+      let [y, m] = months[0].split("-").map(Number);
+      const last = months[months.length - 1];
+      while (all.length < 240) {
+        const key = `${y}-${String(m).padStart(2, "0")}`;
+        all.push(key);
+        if (key >= last) break;
+        m += 1;
+        if (m > 12) {
+          m = 1;
+          y += 1;
+        }
+      }
+      const bars = all.slice(-24).map((k) => ({ label: MONTHS[Number(k.slice(5)) - 1], value: byMonth.get(k) ?? 0 }));
+      const peak = all.reduce((a, b) => ((byMonth.get(b) ?? 0) > (byMonth.get(a) ?? 0) ? b : a));
+      return {
+        ...base,
+        sentence: `${L}, ${money(total)}${sub} across ${all.length} month${all.length === 1 ? "" : "s"}. The biggest was ${MONTHS[Number(peak.slice(5)) - 1]} ${peak.slice(0, 4)}, at ${money(byMonth.get(peak) ?? 0)}.`,
+        figures: [
+          { label: "Payments", value: String(rows.length) },
+          { label: "A month, on average", value: money(total / all.length) },
+        ],
+        bars,
+      };
+    }
+    case "first":
+    case "last": {
+      if (rows.length === 0) return nothing();
+      const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+      const r = plan.measure === "first" ? sorted[0] : sorted[sorted.length - 1];
+      return {
+        ...base,
+        expenseIds: [r.id],
+        sentence: `The ${plan.measure} payment${sub}${inPeriod(plan)} was ${money(r.amount)}${r.merchant_name && plan.subject.kind !== "merchant" ? ` at ${r.merchant_name}` : ""} on ${shortDay(r.date)} ${r.date.slice(0, 4)}.`,
+        figures: [],
+      };
+    }
+    case "count": {
+      if (rows.length === 0) return nothing();
+      return {
+        ...base,
+        sentence: `${L}: ${rows.length} payment${rows.length === 1 ? "" : "s"}${sub}, ${money(total)} in all${prev.length ? ` (${prev.length} ${plan.period.previous!.label})` : ""}.`,
         figures: [
           { label: "Payments", value: String(rows.length) },
           { label: "Total", value: money(total) },
@@ -224,44 +248,43 @@ export function composeAnswer(q: AskQuestion, d: AskData): AskAnswer {
       };
     }
     case "biggest": {
-      const top = [...rows].sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0)).slice(0, 3);
-      if (top.length === 0) return { ...base, sentence: `${lead}, nothing${sub || " spent"}.`, figures: [] };
+      const top = [...rows].sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0)).slice(0, 5);
+      if (top.length === 0) return nothing();
       const name = (r: Expense) => r.merchant_name?.trim() || "a payment";
       return {
+        ...base,
         expenseIds: top.map((r) => r.id),
-        seeTitle: `Biggest · ${q.period.label}`,
-        sentence: `${lead}, the biggest${sub} was ${money(top[0].amount)} at ${name(top[0])} on ${shortDay(top[0].date)}.`,
-        figures: top.map((r) => ({ label: `${name(r)} · ${shortDay(r.date)}`, value: money(r.amount) })),
+        sentence: `${L}, the biggest${sub} was ${money(top[0].amount)} at ${name(top[0])} on ${shortDay(top[0].date)}.`,
+        figures: [],
+        list: top.map((r) => ({ label: `${name(r)} · ${shortDay(r.date)}`, value: money(r.amount) })),
       };
     }
     case "average": {
-      const [sy, sm, sd] = q.period.start.split("-").map(Number);
-      const [ey, em, ed] = q.period.end.split("-").map(Number);
+      if (rows.length === 0) return nothing();
+      const [sy, sm, sd] = (plan.period.allTime && rows.length ? [...rows].sort((a, b) => a.date.localeCompare(b.date))[0].date : plan.period.start).split("-").map(Number);
+      const [ey, em, ed] = plan.period.end.split("-").map(Number);
       const days = Math.max(1, Math.round((Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd)) / 864e5) + 1);
       return {
         ...base,
-        sentence: `${lead}, about ${money(total / days)} a day${sub} (${money(total)} over ${days} day${days === 1 ? "" : "s"}).`,
+        sentence: `${L}, about ${money(total / days)} a day${sub} (${money(total)} over ${days} day${days === 1 ? "" : "s"}).`,
         figures: [
           { label: "A day", value: money(total / days) },
           { label: "Per payment", value: rows.length ? money(total / rows.length) : "—" },
-          { label: "Total", value: money(total) },
         ],
       };
     }
     case "budget_left": {
       const b = d.budget;
-      // "this month", or the month asked about ("in October").
-      const thisOne = q.period.end.slice(0, 7) === localMonth() ? "this month" : `in ${q.period.label.replace(/^1–\d+ /, "")}`;
-      if (!b || b.budget <= 0) {
-        return { ...base, sentence: `There's no budget set${sub} ${thisOne === "this month" ? "for this month" : thisOne}, so there's nothing to compare with. Spent: ${money(total)}.`, figures: [] };
-      }
+      const when = plan.period.end.slice(0, 7) === localMonth() ? "this month" : `in ${plan.period.label.replace(/^1–\d+ /, "")}`;
+      const monthSpent = sum(rows.filter((r) => r.date.startsWith(plan.period.end.slice(0, 7))));
+      if (!b || b.budget <= 0) return { ...base, sentence: `There's no budget set${sub} ${when === "this month" ? "for this month" : when}. Spent: ${money(monthSpent)}.`, figures: [] };
       const left = b.budget - b.spent;
       return {
         ...base,
         sentence:
           left >= 0
-            ? `${money(left)} left${sub} ${thisOne}: ${money(b.spent)} spent of ${money(b.budget)}.`
-            : `${money(-left)} over budget${sub} ${thisOne}: ${money(b.spent)} spent of ${money(b.budget)}.`,
+            ? `${money(left)} left${sub} ${when}: ${money(b.spent)} spent of ${money(b.budget)}.`
+            : `${money(-left)} over budget${sub} ${when}: ${money(b.spent)} spent of ${money(b.budget)}.`,
         figures: [
           { label: "Budget", value: money(b.budget) },
           { label: "Spent", value: money(b.spent) },
@@ -271,37 +294,33 @@ export function composeAnswer(q: AskQuestion, d: AskData): AskAnswer {
     }
     case "earned": {
       const e = d.earned;
-      if (!e || e.cameIn <= 0) return { expenseIds: [], seeTitle, sentence: `Nothing came in ${q.period.label === "this month" ? "this month" : `in ${e?.months ?? q.period.label}`} so far.`, figures: [] };
-      return {
-        expenseIds: [],
-        seeTitle,
-        sentence: `${money(e.cameIn)} came in during ${e.months}${e.income > 0 ? `, ${money(e.income)} of it income` : ""}.`,
-        figures: [
-          { label: "Came in", value: money(e.cameIn) },
-          ...(e.income > 0 ? [{ label: "Income", value: money(e.income) }] : []),
-        ],
-      };
-    }
-    case "top": {
-      const groups = topGroups(rows, q.subject.kind === "category" ? "merchant" : "category", d.categories, 3);
-      if (groups.length === 0) return { ...base, sentence: `${lead}, nothing${sub || " spent"}.`, figures: [] };
-      const words = groups.map(([k, v]) => `${k} (${money(v)})`);
+      if (!e || e.cameIn <= 0) return { ...base, expenseIds: [], sentence: `Nothing came in ${e?.months ?? plan.period.label}.`, figures: [] };
       return {
         ...base,
-        sentence: `${lead}, ${money(total)}${sub}. Most went on ${words.slice(0, -1).join(", ")}${words.length > 1 ? " and " : ""}${words[words.length - 1]}.`,
-        figures: groups.map(([k, v]) => ({ label: k, value: money(v) })),
+        expenseIds: [],
+        sentence: `${money(e.cameIn)} came in during ${e.months}${e.income > 0 ? `, ${money(e.income)} of it income` : ""}.`,
+        figures: [{ label: "Came in", value: money(e.cameIn) }, ...(e.income > 0 ? [{ label: "Income", value: money(e.income) }] : [])],
       };
     }
     default: {
-      if (rows.length === 0) return { ...base, sentence: `${lead}, nothing spent${sub}${prevTotal > 0 ? ` (${money(prevTotal)} ${q.period.previous.label})` : ""}.`, figures: [] };
-      const groups = q.subject.kind === "merchant" ? [] : topGroups(rows, q.subject.kind === "category" ? "merchant" : "category", d.categories, 2);
-      const most = groups.length ? ` Most of it went on ${groups.map(([k, v]) => `${k} (${money(v)})`).join(" and ")}.` : "";
+      if (rows.length === 0) {
+        return {
+          ...base,
+          sentence: `${L}, nothing spent${sub}${prevTotal > 0 ? ` (${money(prevTotal)} ${plan.period.previous!.label})` : ""}.`,
+          figures: [],
+        };
+      }
+      const diff = total - prevTotal;
+      const versus = prevTotal > 0 ? (Math.abs(diff) < 1 ? `, the same as ${plan.period.previous!.label}` : `, ${money(Math.abs(diff))} ${diff > 0 ? "more" : "less"} than ${plan.period.previous!.label}`) : "";
+      const g = plan.subject.kind === "merchant" ? [] : groups(rows, plan.subject.kind === "category" ? "merchant" : "category", d.categories).slice(0, 2);
+      const most = g.length ? ` Most of it went on ${g.map(([k, v]) => `${k} (${money(v)})`).join(" and ")}.` : "";
+      const opener = plan.period.allTime ? `In all, you've spent ${money(total)}${sub} across ${rows.length} payment${rows.length === 1 ? "" : "s"}` : /^(By|In) /.test(L) ? `${L} you'd spent ${money(total)}${sub}` : `${L}, you've spent ${money(total)}${sub}`;
       return {
         ...base,
-        sentence: `${lead} you'd spent ${money(total)}${sub}${versus()}.${most}`.replace(/^(This month|Today|Yesterday|This week|Last week|The last \d+ \w+|This financial year|\d{4}( so far)?|Last financial year) you'd/, (_m, p: string) => `${p}, you've`),
+        sentence: `${opener}${versus}.${most}`,
         figures: [
-          { label: q.period.label, value: money(total) },
-          ...(prevTotal > 0 ? [{ label: q.period.previous.label, value: money(prevTotal) }] : []),
+          { label: plan.period.allTime ? "All time" : plan.period.label, value: money(total) },
+          ...(prevTotal > 0 ? [{ label: plan.period.previous!.label, value: money(prevTotal) }] : []),
           { label: "Payments", value: String(rows.length) },
         ],
       };
@@ -309,54 +328,78 @@ export function composeAnswer(q: AskQuestion, d: AskData): AskAnswer {
   }
 }
 
-/** When nothing in the question could be answered. */
-export function cannotAnswer(): AskAnswer {
+/** When Arth can't work a question out: say so, with questions it can answer. */
+export function notSure(said: string): AskAnswer {
+  const words = said.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 3);
   return {
-    sentence: "I couldn't work that one out. I can answer questions about your spending, budget and money in, for example:",
+    sentence: "I'm not sure what you're asking. Try one of these, or ask it another way:",
     figures: [],
     expenseIds: [],
     seeTitle: "",
-    examples: EXAMPLE_QUESTIONS.slice(0, 4),
+    examples: [...(words[0] ? [`Payments mentioning “${words[words.length - 1]}”`] : []), ...EXAMPLE_QUESTIONS.slice(0, 3)],
   };
 }
 
-/** What Arth knows your names as, for reading questions. */
-export async function loadAskContext(userId: string = DEFAULT_USER_ID) {
+export async function loadAskContext(userId: string = DEFAULT_USER_ID): Promise<AskContext & { categories: Category[] }> {
   const [categories, merchants] = await Promise.all([getCategories(userId), getDistinctMerchantNames(userId).catch(() => [] as string[])]);
   return { categories, merchants };
 }
 
-/** Answer a question: read its data and compose the reply. */
-export async function answerQuestion(q: AskQuestion, categories: Category[], userId: string = DEFAULT_USER_ID): Promise<AskAnswer> {
+/** Work out the answer for a plan: read its data, then compose. */
+export async function answerPlan(plan: AskPlan, categories: Category[], userId: string = DEFAULT_USER_ID): Promise<AskAnswer> {
   const [rows, previousRows] = await Promise.all([
-    getSpendingRows(userId, q.period.start, q.period.end),
-    getSpendingRows(userId, q.period.previous.start, q.period.previous.end),
+    getSpendingRows(userId, plan.period.start, plan.period.end),
+    plan.period.previous ? getSpendingRows(userId, plan.period.previous.start, plan.period.previous.end) : Promise.resolve([] as Expense[]),
   ]);
   const data: AskData = { rows, previousRows, categories };
-  const month = q.period.end.slice(0, 7);
-  if (q.measure === "budget_left") {
-    const today = q.period.end;
-    const bva = await getBudgetVsActual(userId, month, month, `${month}-01`, today);
-    if (q.subject.kind === "category") {
-      const id = q.subject.id;
+  const month = plan.period.end.slice(0, 7);
+  if (plan.measure === "budget_left") {
+    const bva = await getBudgetVsActual(userId, month, month, `${month}-01`, plan.period.end);
+    if (plan.subject.kind === "category") {
+      const id = plan.subject.id;
       const row = bva.rows.find((r) => r.categoryId === id);
       data.budget = row ? { budget: row.totalBudget, spent: row.totalActual } : null;
-    } else if (q.subject.kind === "all") {
-      // Everything spent, categorised or not: the Budget tab's figure (BudgetPeriodView).
-      const all = await getSpendClassificationTotals(userId, `${month}-01`, today).catch(() => null);
+    } else if (plan.subject.kind === "all") {
+      // Everything spent, categorised or not: the Budget tab's figure.
+      const all = await getSpendClassificationTotals(userId, `${month}-01`, plan.period.end).catch(() => null);
       data.budget = { budget: bva.totalBudget, spent: Math.max(all?.total ?? 0, bva.totalActual) };
-    } else {
-      data.budget = null;
-    }
+    } else data.budget = null;
   }
-  if (q.measure === "earned") {
-    const startMonth = q.period.start.slice(0, 7);
+  if (plan.measure === "earned") {
+    const startMonth = plan.period.allTime ? month : plan.period.start.slice(0, 7);
     const flow = await getCashFlow(userId, startMonth, month, month);
-    const months = startMonth === month ? q.period.label.replace(/^1–\d+ /, "") : q.period.label;
-    data.earned = { income: flow.income, cameIn: flow.cameIn, months: months === "this month" ? "this month" : months };
+    // Money in comes by whole months: a period inside one month is named as that month.
+    const monthName = month === localMonth() ? "this month" : `${MONTHS[Number(month.slice(5)) - 1]} ${month.slice(0, 4)}`;
+    data.earned = { income: flow.income, cameIn: flow.cameIn, months: plan.period.allTime || startMonth === month ? monthName : plan.period.label };
   }
-  return composeAnswer(q, data);
+  return composeAnswer(plan, data);
 }
 
-/** The FY start for reading questions. */
-export const askFyStart = () => getFYStartMonth();
+/**
+ * Ask a question: rules first; when they aren't sure, on-device AI; when neither is, say so.
+ * Returns the plan used (for the next follow-up and the "Read as" chips) and the answer.
+ */
+export async function askArth(
+  said: string,
+  ctx: AskContext & { categories: Category[] },
+  previous: AskPlan | null,
+): Promise<{ plan: AskPlan | null; answer: AskAnswer }> {
+  const fy = getFYStartMonth();
+  const rules = readQuestionRules(said, ctx, previous, new Date(), fy);
+  let plan = rules.plan;
+  if (!rules.sure && isAiJobOn("voice") && (await getNanoStatus().catch(() => "unavailable")) === "available") {
+    const ai = await readQuestionWithNano(said, ctx, previous, fy);
+    if (ai) plan = ai;
+  }
+  if (!plan) {
+    // A word Arth can look for in payments ("wedding") is still worth offering.
+    return { plan: null, answer: notSure(said) };
+  }
+  return { plan, answer: await answerPlan(plan, ctx.categories) };
+}
+
+/** Change one part of a plan from the "Read as" chips. */
+export function withPeriod(plan: AskPlan, key: string): AskPlan {
+  const p = periodFrom(key, new Date(), getFYStartMonth());
+  return p ? { ...plan, period: p } : plan;
+}

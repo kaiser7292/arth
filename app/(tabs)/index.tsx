@@ -459,6 +459,7 @@ export default function HomeScreen() {
 
   const smsScanIcon: "sync-outline" | "scan-outline" = smsScanning ? "sync-outline" : "scan-outline";
   const homeHeaderActions = [
+    { icon: "sparkles-outline" as const, onPress: () => router.push("/ask"), accessibilityLabel: "Ask Arth" },
     { icon: "search-outline" as const, onPress: () => router.push("/search"), accessibilityLabel: "Search or do something" },
     ...(isSpeechRecognitionAvailable ? [{ icon: "mic-outline" as const, onPress: () => setShowVoiceSheet(true) }] : []),
     {

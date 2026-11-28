@@ -6,7 +6,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import { isAmountsHidden, toggleAmountsHidden } from "@/services/privacy-mode";
 
 /**
- * Search and Hide amounts, on the right of every inner screen's header, the same two Home has.
+ * Ask Arth, Search and Hide amounts, on the right of every inner screen's header, as on Home.
  * Mic and Scan stay on Home and inside Search ("Search or do something"), so titles keep their room.
  * `leading` puts a screen's own buttons before them (the yearly plan's Year over year).
  */
@@ -22,6 +22,15 @@ export function HeaderGlobalActions({ color, leading }: { color?: string; leadin
   return (
     <View style={{ flexDirection: "row", alignItems: "center", marginRight: 4, gap: 6 }}>
       {leading}
+      <Pressable
+        onPress={() => router.push("/ask")}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Ask Arth"
+        style={{ padding: 4 }}
+      >
+        <Ionicons name="sparkles-outline" size={20} color={tint} />
+      </Pressable>
       <Pressable
         onPress={() => router.push("/search")}
         hitSlop={8}
