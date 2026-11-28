@@ -603,7 +603,8 @@ async function loadInvestmentsSection(): Promise<InvestmentsPreloadData | null> 
     const accounts = withoutFinishedInvestments(investmentLike, products);
     const [values, maturities] = await Promise.all([
       getUnifiedInvestmentValues(DEFAULT_USER_ID, accounts, products),
-      getUpcomingFDMaturities(DEFAULT_USER_ID, 5),
+      // Every scheduled maturity: the Investments FD ladder adds them all up.
+      getUpcomingFDMaturities(DEFAULT_USER_ID, 1000),
     ]);
     return { accounts, products, values, maturities };
   } catch (e) {

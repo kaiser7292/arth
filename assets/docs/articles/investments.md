@@ -1,7 +1,7 @@
 ---
 title: Investments and fixed deposits
 slug: investments
-summary: One place for every investment - demat, pension (EPF / NPS / PPF) and fixed deposits - with an allocation chart, upcoming FD maturities, and automatic FD closing when the payout arrives.
+summary: One place for every investment - demat, pension (EPF / NPS / PPF) and fixed deposits - with an allocation chart, idle cash, an FD ladder of when money comes back, and automatic FD closing when the payout arrives.
 tags: [investments, fixed deposit, FD, deposit, demat, pension, EPF, NPS, PPF, maturity, interest, TDS, portfolio, allocation, net worth]
 contextKeys: [investments, investments-add, add-fd, home-investments]
 phrasings:
@@ -27,6 +27,8 @@ phrasings:
   - Add a demat account
   - Investment allocation chart
   - Upcoming maturities
+  - When do my FDs mature?
+  - Idle cash in demat
   - Link FD to investment bucket
   - Where did the Demat and Pension cards go?
 ---
@@ -41,8 +43,10 @@ The **Investments** screen brings every kind of investment together - demat and 
 ## The Investments screen
 
 - **Allocation chart** - a donut split across **Fixed Deposits**, **Market (Demat)** and **Pension**. Tap a slice to jump to that section.
-- **Upcoming maturities** - the next fixed deposits due to mature, with dates.
-- **Sections with subtotals** - accounts grouped by type. Tap a demat account for its portfolio details, a pension account for its contributions, or an FD for its details and ledger.
+- **At a glance** - Value now, Idle cash, what comes back in the next 90 days, and FD interest still to come. Tap one to see that part.
+- **Idle cash** - cash in each demat account that isn't invested yet, with the date of that figure (the last sync or update).
+- **Fixed deposits** - all your FDs as one card: how many, the total, the average rate and when money next comes back. They're grouped by when they mature (this month, the next 3 months, 3–12 months, later): tap a group to see its FDs. An FD past its date that's still open asks whether you renewed or closed it. Underneath, a bar for each of the next 12 months shows how much comes back.
+- **Accounts** - grouped by type with each group's total and share; groups fold once you have more than 5 accounts. With 8 or more you can search them and group them by institution instead. Tap a demat account for its portfolio details, a pension account for its contributions, or an FD for its details and ledger.
 
 Fixed deposits that have matured or been closed drop off this screen and out of the Investments total, so the payout is never counted twice.
 
