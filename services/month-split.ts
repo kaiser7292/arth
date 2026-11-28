@@ -34,20 +34,38 @@ const NO_EMIS: MonthEmis = { paid: 0, prepaid: 0, due: 0, loans: [] };
  */
 export async function getMonthSplit(month: string, userId: string = DEFAULT_USER_ID): Promise<MonthSplit> {
   const { startDate, endDate } = getMonthDateRange(month);
-  const [categories, budgets, actuals, emis] = await Promise.all([
+  return getRangeSplit([month], startDate, endDate, userId);
+}
+
+/**
+ * The same for several months (the Budget tab's 3M · 6M · FY): spending over startDate..endDate,
+ * each month's budgets added up, and the plan's income for each month added up.
+ */
+export async function getRangeSplit(months: readonly string[], startDate: string, endDate: string, userId: string = DEFAULT_USER_ID): Promise<MonthSplit> {
+  const [categories, budgetLists, actuals, emis] = await Promise.all([
     getCategories(userId),
-    getBudgetsForMonth(userId, month),
+    Promise.all(months.map((m) => getBudgetsForMonth(userId, m))),
     getExpenseTotalsByCategoryAndClassification(userId, startDate, endDate),
-    // EMIs only add to the picture; a failure here mustn't hide the month's spending.
+    // EMIs only add to the picture; a failure here mustn't hide the spending.
     getDebtServicing(userId, startDate, endDate).catch(() => NO_EMIS),
   ]);
+  const budgets = new Map<string, number>();
+  for (const list of budgetLists) for (const b of list) budgets.set(b.category_id, (budgets.get(b.category_id) ?? 0) + b.amount);
 
+  // Income for the stretch: each month's share of its financial year's plan.
   let monthlyIncome: number | null = null;
   try {
-    const [y, m] = month.split("-").map(Number);
-    const fy = getCurrentFY(getFYStartMonth(), new Date(y, m - 1, 1));
-    const plan = await getYearlyPlanByFY(userId, String(fy));
-    if (plan) monthlyIncome = (plan.annual_salary_in_hand + plan.expected_bonus) / 12;
+    const plans = new Map<string, number | null>();
+    for (const month of months) {
+      const [y, m] = month.split("-").map(Number);
+      const fy = String(getCurrentFY(getFYStartMonth(), new Date(y, m - 1, 1)));
+      if (!plans.has(fy)) {
+        const plan = await getYearlyPlanByFY(userId, fy);
+        plans.set(fy, plan ? (plan.annual_salary_in_hand + plan.expected_bonus) / 12 : null);
+      }
+      const share = plans.get(fy);
+      if (share != null) monthlyIncome = (monthlyIncome ?? 0) + share;
+    }
   } catch {
     // No plan
   }
@@ -59,7 +77,7 @@ export async function getMonthSplit(month: string, userId: string = DEFAULT_USER
       bucket: a.is_unavoidable === 1 ? "unavoidable" : a.is_unavoidable === 0 ? "discretionary" : "unclassified",
     })),
     categories: categories.map((c) => ({ id: c.id, name: c.name, isUnavoidable: c.is_unavoidable === 1 })),
-    categoryBudgets: new Map(budgets.map((b) => [b.category_id, b.amount])),
+    categoryBudgets: budgets,
     monthlyIncome,
   });
   // An EMI is paid whatever else happens, so it comes off the most the month could save. The larger

@@ -11,6 +11,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { DeferredAction } from "@/services/catch-up";
 import type { CheckInId } from "@/services/check-ins";
 import { getCheckInCounts, pickNextCheckIn, skippedEverything, snoozeCheckIn } from "@/services/check-ins";
+import { bumpDataVersion } from "@/services/settings";
 import { formatError } from "@/utils/error-message";
 import { logger } from "@/utils/logger";
 
@@ -105,13 +106,19 @@ export function CheckInDeck<T>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /** This run's change was already marked when it finished: leaving doesn't mark it again. */
+  const bumpedRef = useRef(false);
   useEffect(() => {
     const sub = AppState.addEventListener("change", (s) => {
       if (s !== "active") void deferred.flush();
     });
     return () => {
       sub.remove();
-      void deferred.flush();
+      // Left midway: what was done (a nudge sent, a suggestion dismissed) may live only in
+      // settings, so mark one change for Home's Check-ins card. Nothing done, nothing marked.
+      void deferred.flush().then(() => {
+        if (!bumpedRef.current && logRef.current.some((o) => o !== "Skipped")) bumpDataVersion();
+      });
     };
   }, [deferred]);
 
@@ -187,6 +194,10 @@ export function CheckInDeck<T>({
       undoPoint.current = null;
       const snoozed = skippedEverything(logRef.current);
       if (snoozed) snoozeCheckIn(id);
+      // A finished check-in is a change Home shows (its Check-ins card), even when what was done
+      // was only remembered in settings ("not now" on a person, a bill dismissed): one mark per run.
+      else bumpDataVersion();
+      bumpedRef.current = true;
       const doneMsg = snoozed
         ? `Skipped everything, so ${CHECK_IN_ROUTES[id].title} is hidden for a week.`
         : `${CHECK_IN_ROUTES[id].title} done.`;

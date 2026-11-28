@@ -13,10 +13,12 @@ import { restoreExpense } from "@/services/expense-crud";
 import { SelectSheet } from "@/components/ui";
 import { EXPENSE_SORT_OPTIONS, type ExpenseSortBy } from "@/constants/sort-options";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { parseNLQuery } from "@/utils/nl-search";
 import { matchesSearch } from "@/utils/amount-search";
 import { transactionDayLabel } from "@/utils/day-label";
-import { isSpeechRecognitionAvailable, SpeechRecognition, useSpeechRecognitionEvent } from "@/services/speech-recognition";
+import { isSpeechRecognitionAvailable } from "@/services/speech-recognition";
+import { parseNLQuery } from "@/utils/nl-search";
+import { useVoiceCapture } from "@/hooks/use-voice-capture";
+import { hasSearchFilters, parseSpokenSearch } from "@/utils/voice-search";
 import { View, FlatList, Pressable, TextInput, Platform } from "react-native";
 import Animated from "react-native-reanimated";
 import { listLayout } from "@/components/motion/motion";
@@ -951,11 +953,28 @@ export default function ExpensesScreen() {
     setSearch(text);
   }, []);
 
-  const applyNLSearchWith = useCallback((text: string) => {
+  const applyNLSearchWith = useCallback((text: string, fromVoice = false) => {
     if (!text.trim()) { setSearch(text); return; }
-    const { textSearch, datePreset: parsedPreset } = parseNLQuery(text);
+    // Plain words as filters first (utils/voice-search.ts): "Swiggy over 500 last month" is a
+    // merchant, an amount and a date, not a text search for those words. A typed name on its own
+    // ("swiggy") stays a text search, which also finds "Swiggy Instamart" and notes.
+    let spoken = parseSpokenSearch(text, { merchants: allMerchantNames, categories: categories.map((c) => c.name) });
+    const onlyAName = spoken.min == null && spoken.max == null && !spoken.nature && !spoken.datePreset;
+    if (!fromVoice && onlyAName) spoken = { text: parseNLQuery(text).textSearch };
+    const textSearch = spoken.text;
     setSearch(textSearch);
-    if (parsedPreset) setDatePreset(parsedPreset);
+    if (spoken.datePreset) setDatePreset(spoken.datePreset);
+    if (hasSearchFilters(spoken)) {
+      // A new search replaces the filters it sets, so "food over 500" then "Swiggy" isn't both.
+      const natureIndex = spoken.nature ? natureTabs.findIndex((t) => t.key === spoken.nature) : -1;
+      if (natureIndex >= 0) handleNatureChange(natureIndex);
+      setFilterMerchantNames(spoken.merchant ? [spoken.merchant] : []);
+      const spokenCat = spoken.category ? categories.find((c) => c.name === spoken.category) : undefined;
+      setFilterCategoryIds(spokenCat ? [spokenCat.id] : []);
+      setMinAmount(spoken.min != null ? String(spoken.min) : "");
+      setMaxAmount(spoken.max != null ? String(spoken.max) : "");
+      toast("Search turned into filters");
+    }
     // The rest in plain words ("Swiggy over 500"): on-device AI maps it onto the filters
     // (services/ai/tasks/read-search.ts). The text search stands if it can't.
     if (!isAiJobOn("voice") || !worthAskingSearch(textSearch)) return;
@@ -976,45 +995,44 @@ export default function ExpensesScreen() {
       setSearch("");
       toast("Search turned into filters by on-device AI");
     })();
-  }, [setDatePreset, allMerchantNames, categories, toast]);
+  }, [setDatePreset, allMerchantNames, categories, toast, natureTabs, handleNatureChange]);
 
   const applyNLSearch = useCallback(() => {
     applyNLSearchWith(search);
   }, [applyNLSearchWith, search]);
 
 
-  // Voice search
-  const [isVoiceSearching, setIsVoiceSearching] = useState(false);
-
-  useSpeechRecognitionEvent("result", (event) => {
-    if (!isVoiceSearching || !event.isFinal) return;
-    const transcript = event.results[0]?.transcript ?? "";
-    setIsVoiceSearching(false);
-    if (transcript) applyNLSearchWith(transcript);
+  // Voice search (hooks/use-voice-capture.ts): your words show in the box as you speak, your
+  // merchants and categories are hints, and what went wrong is said.
+  const voiceSearch = useVoiceCapture({
+    onFinal: (guesses) => {
+      // The guess that becomes the most filters: "swiggy over 500" beats "swiggy over 5 hundred".
+      const ctx = { merchants: allMerchantNames, categories: categories.map((c) => c.name) };
+      const score = (g: string) => {
+        const r = parseSpokenSearch(g, ctx);
+        return (r.merchant ? 2 : 0) + (r.category ? 1 : 0) + (r.min != null || r.max != null ? 1 : 0) + (r.datePreset ? 1 : 0);
+      };
+      const best = guesses.reduce((a, b) => (score(b) > score(a) ? b : a), guesses[0]);
+      applyNLSearchWith(best, true);
+    },
   });
-
-  useSpeechRecognitionEvent("error", () => {
-    if (isVoiceSearching) setIsVoiceSearching(false);
-  });
-
-  useSpeechRecognitionEvent("end", () => {
-    setIsVoiceSearching((prev) => (prev ? false : prev));
-  });
-
-  const startVoiceSearch = useCallback(async () => {
-    const { granted } = await SpeechRecognition.requestPermissionsAsync();
-    if (!granted) {
-      toast("Voice search needs the microphone. You can allow it in the phone's settings.");
-      return;
+  const isVoiceSearching = voiceSearch.state === "listening";
+  useEffect(() => {
+    if (voiceSearch.error) {
+      toast(voiceSearch.error);
+      voiceSearch.setError(null);
     }
-    setIsVoiceSearching(true);
-    SpeechRecognition.start({ lang: "en-IN", interimResults: false, maxAlternatives: 1 });
-  }, [toast]);
+  }, [voiceSearch.error, toast, voiceSearch]);
+  // Leaving the tab stops listening, so a search never picks up words meant for another screen.
+  useFocusEffect(useCallback(() => () => voiceSearch.abort(), [voiceSearch.abort]));
+
+  const startVoiceSearch = useCallback(() => {
+    void voiceSearch.start([...allMerchantNames.slice(0, 60), ...categories.map((c) => c.name), "over", "under", "between", "last month", "this month"]);
+  }, [voiceSearch, allMerchantNames, categories]);
 
   const cancelVoiceSearch = useCallback(() => {
-    SpeechRecognition.abort();
-    setIsVoiceSearching(false);
-  }, []);
+    voiceSearch.abort();
+  }, [voiceSearch]);
 
   const hasNonDateFilters = !!search || filterCategoryIds.length > 0 || filterCreditKinds.length > 0 || filterPaymentModeIds.length > 0 || filterAccountIds.length > 0 || filterTagIds.length > 0 || filterMerchantNames.length > 0 || !!filterRefundedStatus || !!filterAvoidability || filterRuleIds.length > 0 || !!filterStatus || !!minAmount.trim() || !!maxAmount.trim();
   const activeNatureIndex = Math.max(0, natureTabs.findIndex((t) => t.key === filterNature));
@@ -1597,7 +1615,8 @@ export default function ExpensesScreen() {
           value: search,
           onChangeText: handleSearchChange,
           onClear: () => setSearch(""),
-          placeholder: "Search or try >5000",
+          // While listening, your words show in the box as you speak.
+          placeholder: isVoiceSearching ? voiceSearch.live || "Listening… e.g. Swiggy over 500 last month" : "Search or try >5000",
           input: {
             onSubmitEditing: applyNLSearch,
             returnKeyType: "go",

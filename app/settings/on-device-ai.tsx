@@ -1,12 +1,12 @@
 import { useCallback, useState, useSyncExternalStore } from "react";
-import { ScrollView, Switch, View } from "react-native";
+import { Platform, ScrollView, Switch, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 
 import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { isAiReadingSwitchOn, setAiReadingSwitch } from "@/services/ai/ai-reading";
-import { downloadNano, getNanoStatus, type NanoStatus } from "@/services/ai/nano";
+import { downloadNano, getNanoStatus, ON_DEVICE_MODEL_NAME, type NanoStatus } from "@/services/ai/nano";
 import {
   countOlderUnread,
   countQueued,
@@ -22,15 +22,30 @@ import { AiJobsSettings } from "@/components/ai/AiJobsSettings";
 /** How far back "Read older messages too" looks. */
 const OLDER_DAYS = 90;
 
+const IOS = Platform.OS === "ios";
 const STATUS: Record<NanoStatus, { label: string; note: string; tone: "success" | "warning" | "mutedForeground" }> = {
-  available: { label: "Ready", note: "Gemini Nano is on this phone.", tone: "success" },
-  downloadable: {
-    label: "Needs a download",
-    note: "Android fetches Google's on-device model once. It's shared with other apps that use it.",
-    tone: "warning",
+  available: { label: "Ready", note: `${ON_DEVICE_MODEL_NAME} is on this phone.`, tone: "success" },
+  downloadable: IOS
+    ? {
+        label: "Turned off",
+        note: "Turn on Apple Intelligence in the iPhone's Settings → Apple Intelligence & Siri, then come back here.",
+        tone: "warning",
+      }
+    : {
+        label: "Needs a download",
+        note: "Android fetches Google's on-device model once. It's shared with other apps that use it.",
+        tone: "warning",
+      },
+  downloading: IOS
+    ? { label: "Getting ready", note: "The iPhone is still getting Apple Intelligence ready. Come back later.", tone: "warning" }
+    : { label: "Downloading", note: "Android is fetching the model. Keep Arth open or come back later.", tone: "warning" },
+  unavailable: {
+    label: "Not on this phone",
+    note: IOS
+      ? "This iPhone can't run Apple Intelligence (iPhone 15 Pro or later, iOS 26), so Arth works as before."
+      : "This phone doesn't have Gemini Nano, so Arth reads messages as before.",
+    tone: "mutedForeground",
   },
-  downloading: { label: "Downloading", note: "Android is fetching the model. Keep Arth open or come back later.", tone: "warning" },
-  unavailable: { label: "Not on this phone", note: "This phone doesn't have Gemini Nano, so Arth reads messages as before.", tone: "mutedForeground" },
 };
 
 /**
@@ -124,7 +139,7 @@ export default function OnDeviceAiScreen() {
         <Card className="mb-4">
           <View className="flex-row items-center">
             <Ionicons name="sparkles-outline" size={20} color={theme.primary} />
-            <Text className="text-base font-semibold text-foreground ml-2 flex-1">Gemini Nano</Text>
+            <Text className="text-base font-semibold text-foreground ml-2 flex-1">{ON_DEVICE_MODEL_NAME}</Text>
             {meta && (
               <Text className="text-xs font-semibold" style={{ color: theme[meta.tone] }}>
                 {meta.label}
@@ -135,23 +150,25 @@ export default function OnDeviceAiScreen() {
             {meta ? meta.note : "Checking this phone…"}
             {downloaded != null && downloaded > 0 ? ` ${(downloaded / (1024 * 1024)).toFixed(0)} MB so far.` : ""}
           </Text>
-          {status === "downloadable" && <Button title="Download the model" onPress={() => void download()} className="mt-3" />}
+          {status === "downloadable" && !IOS && <Button title="Download the model" onPress={() => void download()} className="mt-3" />}
         </Card>
 
         <Card className="mb-4">
           <View className="flex-row items-center">
             <View className="flex-1 mr-3">
-              <Text className="text-base font-semibold text-foreground">Read messages Arth doesn't know</Text>
+              <Text className="text-base font-semibold text-foreground">{IOS ? "Use on-device AI" : "Read messages Arth doesn't know"}</Text>
               <Text className="text-sm text-muted-foreground mt-1 leading-5">
-                When no pattern or template reads a bank message, the AI reads it. What it finds waits in Catch Up, marked
-                &quot;Read by AI&quot;, for you to approve.
+                {IOS
+                  ? "Suggests categories, tidies merchant names, words your month and reads plain-words search. What it finds waits in Catch Up for you to approve."
+                  : "When no pattern or template reads a bank message, the AI reads it. What it finds waits in Catch Up, marked \"Read by AI\", for you to approve."}
               </Text>
             </View>
-            <Switch value={on} onValueChange={toggle} accessibilityLabel="Read messages Arth doesn't know with on-device AI" />
+            <Switch value={on} onValueChange={toggle} accessibilityLabel={IOS ? "Use on-device AI" : "Read messages Arth doesn't know with on-device AI"} />
           </View>
         </Card>
 
-        {on && (
+        {/* Bank messages waiting to be read: Android only (an iPhone doesn't let apps read SMS). */}
+        {on && !IOS && (
           <>
             <Text className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-1">Waiting for the AI</Text>
             <Card className="mb-4">
@@ -198,8 +215,9 @@ export default function OnDeviceAiScreen() {
         {on && <AiJobsSettings />}
 
         <Text className="text-xs text-muted-foreground px-1 leading-5">
-          Runs entirely on this phone through Android&apos;s AICore. No message, amount or account leaves the phone. Each run is
-          kept in Settings → Transaction messages → Scan history.
+          {IOS
+            ? "Runs entirely on this iPhone through Apple Intelligence. No amount, merchant or account leaves the phone."
+            : "Runs entirely on this phone through Android's AICore. No message, amount or account leaves the phone. Each run is kept in Settings → Transaction messages → Scan history."}
         </Text>
       </ScrollView>
     </ScreenContainer>

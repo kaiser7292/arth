@@ -50,7 +50,7 @@ const ALL_ROWS = LIST_ROW_LIMIT;
  * originating budget screen (Monthly Summary or Spending Split).
  *
  * Params:
- *   filterMonth       — YYYY-MM, required
+ *   filterMonth       — YYYY-MM (or filterStartDate + filterEndDate, YYYY-MM-DD, for a span)
  *   filterAvoidability — 'unavoidable' | 'avoidable' | 'unclassified' | undefined
  *   categoryId        — optional, one category ("none" = expenses with no category)
  *   title             — optional header label
@@ -60,8 +60,11 @@ const ALL_ROWS = LIST_ROW_LIMIT;
  */
 export default function BudgetTransactionsScreen() {
   const router = useRouter();
-  const { filterMonth, filterAvoidability, categoryId, title } = useLocalSearchParams<{
+  const { filterMonth, filterStartDate, filterEndDate, filterAvoidability, categoryId, title } = useLocalSearchParams<{
     filterMonth?: string;
+    /** Instead of filterMonth: the Budget tab's 3M · 6M · FY span, YYYY-MM-DD both. */
+    filterStartDate?: string;
+    filterEndDate?: string;
     filterAvoidability?: string;
     categoryId?: string;
     title?: string;
@@ -88,6 +91,7 @@ export default function BudgetTransactionsScreen() {
 
   // Compute date range from filterMonth
   const { startDate, endDate } = useMemo(() => {
+    if (filterStartDate && filterEndDate) return { startDate: filterStartDate, endDate: filterEndDate };
     if (!filterMonth) return { startDate: "", endDate: "" };
     const [y, m] = filterMonth.split("-").map(Number);
     const lastDay = new Date(y, m, 0).getDate();
@@ -95,7 +99,7 @@ export default function BudgetTransactionsScreen() {
       startDate: `${filterMonth}-01`,
       endDate: `${filterMonth}-${String(lastDay).padStart(2, "0")}`,
     };
-  }, [filterMonth]);
+  }, [filterMonth, filterStartDate, filterEndDate]);
 
   const categoryMap = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),

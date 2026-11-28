@@ -33,8 +33,14 @@ export class NanoUnavailableError extends Error {
   }
 }
 
+/** Phones with an on-device model Arth can ask: Gemini Nano on Android, Apple Intelligence on iPhone. */
+const ON_DEVICE_OS = Platform.OS === "android" || Platform.OS === "ios";
+
+/** What the on-device model is called on this phone, for anything shown to the person. */
+export const ON_DEVICE_MODEL_NAME = Platform.OS === "ios" ? "Apple Intelligence" : "Gemini Nano";
+
 export async function getNanoStatus(): Promise<NanoStatus> {
-  if (Platform.OS !== "android" || !isNanoModulePresent) return "unavailable";
+  if (!ON_DEVICE_OS || !isNanoModulePresent) return "unavailable";
   try {
     return await checkNanoStatus();
   } catch {
@@ -68,11 +74,11 @@ export async function askNano(
   prompt: string,
   opts: { maxOutputTokens?: number; temperature?: number; timeoutMs?: number } = {},
 ): Promise<NanoAnswer> {
-  if (Platform.OS !== "android" || !isNanoModulePresent) {
+  if (!ON_DEVICE_OS || !isNanoModulePresent) {
     throw new NanoUnavailableError("On-device AI isn't in this build.");
   }
   if (AppState.currentState !== "active") {
-    throw new NanoUnavailableError("Android only runs on-device AI while Arth is open.");
+    throw new NanoUnavailableError("The phone only runs on-device AI while Arth is open.");
   }
   // One call at a time: the queue, onboarding's account and merchant questions and the lab can
   // all ask at once, and AICore refuses overlapping calls. The next call waits for the native call

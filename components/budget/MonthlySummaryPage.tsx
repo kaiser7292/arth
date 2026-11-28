@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 
 import { View, ScrollView, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
@@ -26,6 +26,8 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { LoadFailed } from "@/components/ui/ListToolbar";
 import { tint } from "@/constants/brand";
+import { daysInclusive, type BudgetSpan } from "@/utils/budget-span";
+import { todayIso } from "@/utils/local-date";
 
 interface TopCategory {
   category: Category | null;
@@ -55,6 +57,8 @@ interface SummaryData {
 
 interface MonthlySummaryPageProps {
   month: string;
+  /** The Budget tab's 3M · 6M · FY: the summary for that stretch, against the same length before it. */
+  span?: BudgetSpan;
 }
 
 /**
@@ -67,26 +71,33 @@ interface MonthlySummaryPageProps {
  * The month is a prop because the callers source it differently - the pager inherits the Budget
  * tab's month, the route reads a URL param and owns a PeriodNavigator.
  */
-export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
+export function MonthlySummaryPage({ month, span }: MonthlySummaryPageProps) {
   const router = useRouter();
   
   const theme = useTheme();
   const [data, setData] = useState<SummaryData | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  /** The transactions behind a number: the span's dates, or the month. */
+  const when = span ? { filterStartDate: span.startDate, filterEndDate: span.endDate } : { filterMonth: month };
+  const prevWords = span ? span.previous.phrase : "last month";
 
   const [loadFailed, setLoadFailed] = useState(false);
+  /** Counts loads, so a slower one for an earlier month or span can't overwrite a newer one. */
+  const loadSeq = useRef(0);
   const loadData = useCallback(async () => {
     if (!month) return;
+    const seq = ++loadSeq.current;
     try {
-      const { startDate, endDate } = getMonthDateRange(month);
       const [year, m] = month.split("-").map(Number);
       const prevDate = new Date(year, m - 2, 1);
       const prevMonth = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, "0")}`;
-      const prevRange = getMonthDateRange(prevMonth);
+      // A span (3M · 6M · FY) against the same length just before it; a month against the month before.
+      const { startDate, endDate } = span ?? getMonthDateRange(month);
+      const prevRange = span ? span.previous : getMonthDateRange(prevMonth);
 
-      const [categories, budgets, classification, topCats, txCount, prevSpent, prevClassification, summary] = await Promise.all([
+      const [categories, budgetLists, classification, topCats, txCount, prevSpent, prevClassification, summary] = await Promise.all([
         getCategories(DEFAULT_USER_ID),
-        getBudgetsForMonth(DEFAULT_USER_ID, month),
+        Promise.all((span?.months ?? [month]).map((mo) => getBudgetsForMonth(DEFAULT_USER_ID, mo))),
         getSpendClassificationTotals(DEFAULT_USER_ID, startDate, endDate),
         getTopCategoriesBySpending(DEFAULT_USER_ID, startDate, endDate, 5),
         getExpenseCount(DEFAULT_USER_ID, startDate, endDate),
@@ -98,10 +109,19 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
 
       const totalSpent = classification.total;
       const catMap = new Map(categories.map((c) => [c.id, c]));
-      const totalBudget = budgets.reduce((sum, b) => sum + b.amount, 0);
-      const daysTotal = getTotalDaysInMonth(month);
-      const daysLeft = getDaysRemaining(month);
-      const daysElapsed = getDaysElapsed(month);
+      if (seq !== loadSeq.current) return;
+      const totalBudget = budgetLists.flat().reduce((sum, b) => sum + b.amount, 0);
+      let daysTotal = getTotalDaysInMonth(month);
+      let daysLeft = getDaysRemaining(month);
+      let daysElapsed = getDaysElapsed(month);
+      if (span) {
+        // From the first day to the end of the last month; it runs up to today.
+        const [ly, lm] = span.endMonth.split("-").map(Number);
+        const lastDay = `${span.endMonth}-${String(new Date(ly, lm, 0).getDate()).padStart(2, "0")}`;
+        daysTotal = daysInclusive(span.startDate, lastDay);
+        daysElapsed = daysInclusive(span.startDate, todayIso());
+        daysLeft = Math.max(0, daysTotal - daysElapsed);
+      }
 
       setData({
         totalSpent,
@@ -125,10 +145,11 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
       });
       setLoadFailed(false);
     } catch {
+      if (seq !== loadSeq.current) return;
       setLoadFailed(true);
       // DB not ready
     }
-  }, [month]);
+  }, [month, span]);
 
   useDataRefresh(loadData);
 
@@ -169,7 +190,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
         onPress={() =>
           router.push({
             pathname: "/budget/transactions",
-            params: { filterMonth: month, title: "Expenses" },
+            params: { ...when, title: "Expenses" },
           })
         }
       >
@@ -238,14 +259,14 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
           </>
         ) : (
           <Text className="text-meta text-muted-foreground">
-            No budget set for this month
+            {span ? "No budget set for these months" : "No budget set for this month"}
           </Text>
         )}
       </Card>
 
       {/* vs Last Month */}
       <Card className="mx-4 mt-3">
-        <Text className="text-label text-faint-foreground mb-2">vs Last Month</Text>
+        <Text className="text-label text-faint-foreground mb-2">{span ? span.previous.title : "vs Last Month"}</Text>
         {data.prevMonthSpent > 0 ? (
           <View className="flex-row items-center">
             <Ionicons
@@ -264,13 +285,13 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
                 {Math.round(spendChange)}%
               </Text>
               <Text className="text-label text-faint-foreground">
-                Last month: {formatAmount(data.prevMonthSpent)}
+                {span ? "Before" : "Last month"}: {formatAmount(data.prevMonthSpent)}
               </Text>
             </View>
           </View>
         ) : (
           <Text className="text-meta text-muted-foreground">
-            No data for previous month
+            {span ? `No data for ${span.previous.phrase}` : "No data for previous month"}
           </Text>
         )}
       </Card>
@@ -282,7 +303,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
         onPress={() =>
           router.push({
             pathname: "/budget/transactions",
-            params: { filterMonth: month, filterAvoidability: "avoidable", title: "Discretionary Expenses" },
+            params: { ...when, filterAvoidability: "avoidable", title: "Discretionary Expenses" },
           })
         }
         accessibilityRole="button"
@@ -295,7 +316,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
           <AnimatedNumber value={data.flexibleSpent} className="text-title font-bold text-foreground" />
           <Text className="text-label text-muted-foreground mt-0.5">
             {data.totalSpent > 0
-              ? `${data.flexiblePct}% of this month's spending was discretionary: the part you could cut back on.`
+              ? `${data.flexiblePct}% of ${span ? `the spending in ${span.phrase}` : "this month's spending"} was discretionary: the part you could cut back on.`
               : "Spending you mark discretionary shows here."}
           </Text>
           {data.totalSpent > 0 && (
@@ -309,10 +330,10 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
           {data.prevFlexibleSpent > 0 && (
             <Text className="text-label text-faint-foreground mt-2">
               {data.flexibleSpent > data.prevFlexibleSpent
-                ? `${formatAmount(data.flexibleSpent - data.prevFlexibleSpent)} more than last month (${formatAmount(data.prevFlexibleSpent)})`
+                ? `${formatAmount(data.flexibleSpent - data.prevFlexibleSpent)} more than ${prevWords} (${formatAmount(data.prevFlexibleSpent)})`
                 : data.flexibleSpent < data.prevFlexibleSpent
-                  ? `${formatAmount(data.prevFlexibleSpent - data.flexibleSpent)} less than last month (${formatAmount(data.prevFlexibleSpent)})`
-                  : "Same as last month"}
+                  ? `${formatAmount(data.prevFlexibleSpent - data.flexibleSpent)} less than ${prevWords} (${formatAmount(data.prevFlexibleSpent)})`
+                  : `Same as ${prevWords}`}
             </Text>
           )}
           {data.unclassifiedSpent > 0 && (
@@ -320,7 +341,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
               onPress={() =>
                 router.push({
                   pathname: "/budget/transactions",
-                  params: { filterMonth: month, filterAvoidability: "unclassified", title: "Not Classified Yet" },
+                  params: { ...when, filterAvoidability: "unclassified", title: "Not Classified Yet" },
                 })
               }
               className="flex-row items-center mt-3 pt-3 border-t border-border"
@@ -377,7 +398,7 @@ export function MonthlySummaryPage({ month }: MonthlySummaryPageProps) {
           ))
         ) : (
           <Text className="text-meta text-muted-foreground">
-            No expenses this month
+            {span ? `No expenses ${span.phrase === "this financial year" ? "this financial year" : "in these months"}` : "No expenses this month"}
           </Text>
         )}
       </Card>

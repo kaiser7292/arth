@@ -1,5 +1,5 @@
 import { markDrawerOpened } from "@/components/motion/drawer-motion";
-import { Button, Chip, DateInput, EmptyState, ListToolbar, RadioRow, ScreenContainer, Sheet, Text, moneyTone } from "@/components/ui";
+import { Chip, EmptyState, ListToolbar, ScreenContainer, Text, moneyTone } from "@/components/ui";
 import { DrawerBody, DrawerEnd, DrawerHeader } from "@/components/expense/MonthDrawer";
 import { tint } from "@/constants/brand";
 
@@ -80,53 +80,6 @@ function computeDateRange(scope: QuickScope): { from?: string; to?: string } {
   const d = new Date(today);
   d.setDate(d.getDate() - SCOPE_DAYS[scope]);
   return { from: isoDate(d), to: toDate };
-}
-
-function AuditDatesSheet({ visible, scope, from, to, onChoose, onClose }: {
-  visible: boolean;
-  scope: DateScope;
-  from: string;
-  to: string;
-  onChoose: (scope: DateScope, from: string, to: string) => void;
-  onClose: () => void;
-}) {
-  const theme = useTheme();
-  const [customOpen, setCustomOpen] = useState(scope === "custom");
-  const [fromDate, setFromDate] = useState(from);
-  const [toDate, setToDate] = useState(to);
-  useEffect(() => {
-    if (!visible) return;
-    setCustomOpen(scope === "custom");
-    setFromDate(from);
-    setToDate(to);
-  }, [visible, scope, from, to]);
-  const wrongWay = !!fromDate && !!toDate && fromDate > toDate;
-
-  const option = (label: string, selected: boolean, onPress: () => void) => (
-    <RadioRow key={label} label={label} on={selected} onPress={onPress} />
-  );
-
-  return (
-    <Sheet visible={visible} onClose={onClose}>
-      <View className="px-4 pb-4">
-        <Text className="text-heading font-bold text-foreground mb-2">Dates</Text>
-        {DATE_SCOPES.map((o) => option(`Last ${o.label}`, scope === o.key && !customOpen, () => onChoose(o.key, from, to)))}
-        {option("Custom range", customOpen, () => setCustomOpen(true))}
-        {customOpen && (
-          <View className="mt-2">
-            <DateInput label="From" value={fromDate} onChange={setFromDate} />
-            <DateInput label="To" value={toDate} onChange={setToDate} />
-            {wrongWay && <Text className="text-meta text-danger mb-2">&apos;From&apos; must be before &apos;To&apos;</Text>}
-            <Button
-              title="Apply"
-              disabled={!fromDate || !toDate || wrongWay}
-              onPress={() => onChoose("custom", fromDate, toDate)}
-            />
-          </View>
-        )}
-      </View>
-    </Sheet>
-  );
 }
 
 function actionLabel(a: AuditActionType): string {
@@ -229,6 +182,35 @@ const TODAY_SECTION_TITLE = "Today";
 
 type EntrySection = { title: string; data: AuditLogEntry[] };
 
+type AuditGroup = "day" | "action" | "type" | "source";
+
+const GROUP_OPTIONS: { value: AuditGroup; label: string }[] = [
+  { value: "day", label: "Day" },
+  { value: "action", label: "Action" },
+  { value: "type", label: "Type" },
+  { value: "source", label: "Source" },
+];
+
+/** Entries in drawers by the chosen grouping, biggest group first (day keeps date order). */
+function groupEntries(entries: AuditLogEntry[], group: AuditGroup): EntrySection[] {
+  if (group === "day") return groupEntriesByDate(entries);
+  const keyOf = (e: AuditLogEntry): string =>
+    group === "action"
+      ? actionLabel(e.actionType)
+      : group === "type"
+        ? OBJECT_OPTIONS.find((o) => o.key === e.objectType)?.label ?? e.objectType
+        : SOURCE_OPTIONS.find((o) => o.key === e.sourceType)?.label ?? e.sourceType;
+  const buckets = new Map<string, AuditLogEntry[]>();
+  for (const e of entries) {
+    const k = keyOf(e);
+    if (!buckets.has(k)) buckets.set(k, []);
+    buckets.get(k)!.push(e);
+  }
+  return Array.from(buckets.entries())
+    .map(([title, data]) => ({ title, data }))
+    .sort((a, b) => b.data.length - a.data.length);
+}
+
 function groupEntriesByDate(entries: AuditLogEntry[]): EntrySection[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -268,7 +250,7 @@ export default function AuditLogScreen() {
   const [scope, setScope] = useState<DateScope>("7d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [datesOpen, setDatesOpen] = useState(false);
+  const [group, setGroup] = useState<AuditGroup>("day");
   const [sources, setSources] = useState<Set<AuditSourceType>>(new Set());
   const [objects, setObjects] = useState<Set<AuditObjectType>>(new Set());
   const [actions, setActions] = useState<Set<AuditActionType>>(new Set());
@@ -279,7 +261,7 @@ export default function AuditLogScreen() {
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [order, setOrder] = useState<"newest" | "oldest">("newest");
-  const allSections = groupEntriesByDate(order === "oldest" ? [...entries].reverse() : entries);
+  const allSections = groupEntries(order === "oldest" ? [...entries].reverse() : entries, group);
   // Only today's drawer is open to begin with; every older day starts closed.
   // Tracking which sections the user TOGGLED (rather than which are collapsed)
   // means a tap flips that day away from its default and stays flipped across
@@ -288,10 +270,11 @@ export default function AuditLogScreen() {
 
   const isSectionCollapsed = useCallback(
     (title: string) => {
-      const collapsedByDefault = title !== TODAY_SECTION_TITLE;
+      // By day only today starts open; grouped another way, every drawer does.
+      const collapsedByDefault = group === "day" && title !== TODAY_SECTION_TITLE;
       return toggledSections.has(title) ? !collapsedByDefault : collapsedByDefault;
     },
-    [toggledSections],
+    [toggledSections, group],
   );
 
   const toggleSection = useCallback((title: string) => {
@@ -440,6 +423,17 @@ export default function AuditLogScreen() {
     [handleOpen, theme],
   );
 
+  // Group by, like every list: day (the default), action, type or source.
+  const groupChoice = {
+    value: group,
+    defaultValue: "day",
+    options: GROUP_OPTIONS,
+    onChange: (v: string) => {
+      setGroup(v as AuditGroup);
+      setToggledSections(new Set());
+    },
+  };
+
   // Sort lives in the filter sheet with the filters, as on every list.
   const orderChoice = {
     value: order,
@@ -452,8 +446,7 @@ export default function AuditLogScreen() {
     <ScreenContainer padTop={false}>
       <ListToolbar
         search={{ value: searchRaw, onChangeText: setSearchRaw, placeholder: "Search merchant, account…" }}
-        dates={{ onPress: () => setDatesOpen(true), active: scope !== "7d" }}
-        filter={{ onPress: () => setShowFilters(true), activeCount: sources.size + objects.size + actions.size }}
+        filter={{ onPress: () => setShowFilters(true), activeCount: sources.size + objects.size + actions.size + (scope !== "7d" ? 1 : 0) + (group !== "day" ? 1 : 0) }}
         sort={{ ...orderChoice, inSheet: true }}
         chips={[
           ...(scope !== "7d"
@@ -473,31 +466,39 @@ export default function AuditLogScreen() {
         }}
       />
 
-      <AuditDatesSheet
-        visible={datesOpen}
-        scope={scope}
-        from={customFrom}
-        to={customTo}
-        onChoose={(next, from, to) => {
-          setCustomFrom(from);
-          setCustomTo(to);
-          setScope(next);
-          setDatesOpen(false);
-        }}
-        onClose={() => setDatesOpen(false)}
-      />
-
       <FullScreenFilter
         noun={{ one: "change", many: "changes" }}
         visible={showFilters}
         sections={[
-          ...sortGroupSections(orderChoice),
+          ...sortGroupSections(orderChoice, groupChoice),
+          // When: a quick period, or your own dates (which win when both are set).
+          {
+            key: "period",
+            label: "Period",
+            icon: "calendar-outline",
+            type: "single",
+            options: DATE_SCOPES.map((o) => ({ id: o.key, label: `Last ${o.label}` })),
+            selectedIds: scope === "custom" ? [] : [scope],
+            defaultIds: ["7d"],
+          },
+          { key: "dates", label: "Dates", icon: "calendar-number-outline", type: "dates", options: [], selectedIds: scope === "custom" ? [customFrom, customTo] : [] },
           { key: "source", label: "Source", icon: "chatbubble-outline", type: "multi", options: SOURCE_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(sources) },
           { key: "object", label: "Type", icon: "shapes-outline", type: "multi", options: OBJECT_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(objects) },
           { key: "action", label: "Action", icon: "pulse-outline", type: "multi", options: ACTION_OPTIONS.map((o) => ({ id: o.key, label: o.label })), selectedIds: Array.from(actions), searchable: true },
         ]}
         onApply={(selections) => {
-          applySortGroup(selections, orderChoice);
+          applySortGroup(selections, orderChoice, groupChoice);
+          // The choice just made wins: new dates, or a period picked while your own dates were on.
+          const [from, to] = selections.dates ?? [];
+          const period = (selections.period ?? [])[0] as QuickScope | undefined;
+          const datesChanged = !!from && !!to && (scope !== "custom" || from !== customFrom || to !== customTo);
+          if (datesChanged || (from && to && !period)) {
+            setCustomFrom(from <= to ? from : to);
+            setCustomTo(from <= to ? to : from);
+            setScope("custom");
+          } else {
+            setScope(period ?? "7d");
+          }
           setSources(new Set((selections.source ?? []) as AuditSourceType[]));
           setObjects(new Set((selections.object ?? []) as AuditObjectType[]));
           setActions(new Set((selections.action ?? []) as AuditActionType[]));
@@ -505,6 +506,8 @@ export default function AuditLogScreen() {
         onReset={() => {
           clearAll();
           setOrder("newest");
+          setGroup("day");
+          setScope("7d");
         }}
         onClose={() => setShowFilters(false)}
       />

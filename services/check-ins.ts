@@ -5,6 +5,7 @@ import { getRuleSuggestions } from "@/services/rule-suggestions";
 import { getPeopleWhoOweYou, needsNudge } from "@/services/settle-up-check";
 import { getSubscriptionCheckItems } from "@/services/subscription-check";
 import { settingsStorage } from "@/services/storage";
+import { bumpDataVersion } from "@/services/settings";
 import { logger } from "@/utils/logger";
 
 /**
@@ -56,6 +57,9 @@ const SNOOZE_PREFIX = "check_in_snoozed_until__";
 
 export function snoozeCheckIn(id: keyof CheckInCounts, now: number = Date.now()): void {
   settingsStorage.set(SNOOZE_PREFIX + id, now + SNOOZE_DAYS * 86400000);
+  // Home's Check-ins card only reloads on a change (hooks/use-data-refresh.ts): without this it
+  // kept showing a skipped check-in until Arth was restarted.
+  bumpDataVersion();
 }
 
 export function isCheckInSnoozed(id: keyof CheckInCounts, now: number = Date.now()): boolean {

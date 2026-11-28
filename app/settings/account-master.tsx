@@ -1,7 +1,8 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { DEFAULT_USER_ID } from "@/constants/app";
 import { View, ScrollView, Pressable } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
+import { HeaderGlobalActions } from "@/components/ui/HeaderGlobalActions";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Chip, FAB, GroupHeading, ListToolbar, ScreenContainer, Text } from "@/components/ui";
 import { tint } from "@/constants/brand";
@@ -326,6 +327,26 @@ export default function AccountMasterScreen() {
 
   return (
     <ScreenContainer padTop={false}>
+      {/* Update balances sits with Search and Hide amounts (owner, Nov 2026); it was a Settings row. */}
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <HeaderGlobalActions
+              leading={
+                <Pressable
+                  onPress={() => router.push("/settings/update-balances")}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Update balances"
+                  style={{ padding: 4 }}
+                >
+                  <Ionicons name="scale-outline" size={20} color={theme.primary} />
+                </Pressable>
+              }
+            />
+          ),
+        }}
+      />
       {loadFailed && <LoadFailedBanner onRetry={loadData} />}
       <View className="flex-1">
         <ListToolbar {...tools.toolbar} />

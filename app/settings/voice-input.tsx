@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, Switch, View } from "react-native";
-import { Card, ScreenContainer, Text } from "@/components/ui";
+import { Card, ScreenContainer, Segmented, Text } from "@/components/ui";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Speech from "expo-speech";
 import { VoiceQuality } from "expo-speech";
@@ -146,6 +146,23 @@ export default function VoiceInputSettingsScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
+        {/* Listening: which speech engine (docs/SPEED_AND_VOICE_PROPOSAL.md §2.2 A6) */}
+        <Card title="Listening" className="mb-4">
+          <Segmented
+            value={settings.engine}
+            options={[
+              { value: "online", label: "Online" },
+              { value: "device", label: "On this phone" },
+            ]}
+            onChange={(v) => updateSettings({ engine: v })}
+          />
+          <Text className="text-label text-muted-foreground mt-2 leading-5">
+            {settings.engine === "online"
+              ? "Google's online speech: usually the most accurate. Needs a connection."
+              : "Speech on the phone: works offline and nothing leaves the phone. Needs English (India) installed for offline speech in the phone's settings."}
+          </Text>
+        </Card>
+
         {/* Behaviour */}
         <Card title="Behaviour" className="mb-4">
           <View className="flex-row items-center justify-between py-1">

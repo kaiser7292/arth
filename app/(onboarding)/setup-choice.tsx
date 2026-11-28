@@ -7,7 +7,7 @@ import { DEFAULT_USER_ID } from "@/constants/app";
 import { useTheme } from "@/hooks/use-theme";
 import { getDatabase } from "@/database";
 import { aiReadingBuilt } from "@/services/ai/ai-reading";
-import { getNanoStatus } from "@/services/ai/nano";
+import { getNanoStatus, ON_DEVICE_MODEL_NAME } from "@/services/ai/nano";
 
 type Route = "local" | "ai" | "manual";
 
@@ -127,7 +127,7 @@ export default function SetupChoice() {
             value="local"
             title="On this phone"
             recommended={recommendLocal}
-            body="The AI built into your phone (Gemini Nano) files your merchants into categories. Nothing is shared. About 2 minutes."
+            body={`The AI built into your phone (${ON_DEVICE_MODEL_NAME}) files your merchants into categories. Nothing is shared. About 2 minutes.`}
             steps={["Merchants", "Review", "Income", "Budgets"]}
           />
         )}

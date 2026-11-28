@@ -10,7 +10,7 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { isAiSetupPending } from "@/services/ai-share";
 import { aiReadingBuilt, isAiReadingSwitchOn, setAiReadingSwitch } from "@/services/ai/ai-reading";
-import { getNanoStatus, type NanoStatus } from "@/services/ai/nano";
+import { getNanoStatus, ON_DEVICE_MODEL_NAME, type NanoStatus } from "@/services/ai/nano";
 import { countQueued, stopAiQueue } from "@/services/ai/reading-queue";
 import { countAiItems, loadCatchUpAiItems } from "@/services/catch-up-ai";
 
@@ -86,8 +86,8 @@ export default function AiScreen() {
               <LinkRow
                 divider={false}
                 icon="phone-portrait-outline"
-                title="Gemini Nano"
-                sub="This phone doesn't have Gemini Nano, so Arth reads messages as before."
+                title={ON_DEVICE_MODEL_NAME}
+                sub={`This phone doesn't have ${ON_DEVICE_MODEL_NAME}, so Arth works as before.`}
                 right={meta ? <StatusPill label={meta.label} color={theme[meta.tone]} /> : undefined}
               />
             ) : (
@@ -96,7 +96,7 @@ export default function AiScreen() {
                   divider={false}
                   icon="phone-portrait-outline"
                   color={theme.primary}
-                  title="Gemini Nano"
+                  title={ON_DEVICE_MODEL_NAME}
                   sub="Private and automatic. Nothing leaves the phone."
                   right={meta ? <StatusPill label={meta.label} color={theme[meta.tone]} /> : undefined}
                   onPress={go("/settings/on-device-ai")}

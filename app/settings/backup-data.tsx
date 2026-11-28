@@ -12,6 +12,8 @@ import { formatFrequency, formatLastBackupTime, getBackupScheduleSettings, getLa
 import { getDismissedDuplicateCount } from "@/services/duplicate-detection";
 import { getLastBackupAt } from "@/services/settings";
 import BackupRestoreScreen from "./backup-restore";
+import { getStartDate } from "@/services/start-date";
+import { formatDisplayDate } from "@/utils/date";
 
 /**
  * Backups and everything about removing data, together: backup status and restore, importing,
@@ -25,6 +27,7 @@ export default function BackupDataScreen() {
   const [keptDupes, setKeptDupes] = useState(0);
   const [last, setLast] = useState<string | null>(null);
   const [schedule, setSchedule] = useState(getBackupScheduleSettings);
+  const [startDate, setStartDate] = useState<string | null>(getStartDate);
 
   useDataRefresh(
     useCallback(async () => {
@@ -32,6 +35,7 @@ export default function BackupDataScreen() {
       const auto = getLastScheduledBackupAt();
       setLast(!manual ? auto : !auto ? manual : manual > auto ? manual : auto);
       setSchedule(getBackupScheduleSettings());
+      setStartDate(getStartDate());
       setKeptDupes(getDismissedDuplicateCount());
       try {
         const row = await getDatabase().getFirstAsync<{ n: number }>(
@@ -71,6 +75,12 @@ export default function BackupDataScreen() {
         <Card>
           <Row icon="download-outline" title="Import from Excel" subtitle="Bring in past transactions from a spreadsheet" onPress={() => router.push("/settings/import-excel")} first />
           <Row icon="checkmark-done-outline" title="Reconcile statements" subtitle="Match a statement against your Arth ledger" onPress={() => router.push("/settings/reconciliation")} />
+          <Row
+            icon="calendar-clear-outline"
+            title="Start date"
+            subtitle={startDate ? `Ignoring before ${formatDisplayDate(startDate)}` : "Counting everything"}
+            onPress={() => router.push("/settings/start-date")}
+          />
         </Card>
 
         <Label>Deleted and kept</Label>

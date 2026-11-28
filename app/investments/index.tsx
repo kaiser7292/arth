@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { View, ScrollView, Pressable } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { View, ScrollView, Pressable, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, EmptyState, FAB, ProgressBar, ScreenContainer, Text } from "@/components/ui";
@@ -8,7 +8,7 @@ import { StackedAreaChart, type StackedLayer } from "@/components/charts/Stacked
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { DEFAULT_USER_ID } from "@/constants/app";
-import { DATA_HEX, tint } from "@/constants/brand";
+import { DATA_HEX } from "@/constants/brand";
 import {
   batchInvestmentProducts,
   getUnifiedInvestmentValues,
@@ -29,6 +29,8 @@ import { useTheme } from "@/hooks/use-theme";
 import { consumeInvestmentsPreload } from "@/services/home-preload";
 import { Money } from "@/components/ui/Text";
 import { getPeriodTrend, TREND_PERIODS, type PeriodTrend, type TrendPeriod } from "@/services/investment-trend";
+import { averageRate, fdLadder, getIdleCash, type IdleCash } from "@/services/investments-view";
+import { FdLadderCard, GlanceTiles, IdleCashCard } from "@/components/investments/InvestmentCards";
 
 const preloaded = consumeInvestmentsPreload();
 
@@ -94,8 +96,22 @@ export default function InvestmentsListScreen() {
   /** The point under the finger while dragging along the chart; null otherwise. */
   const [scrub, setScrub] = useState<number | null>(null);
   const [lastSync, setLastSync] = useState<LastSyncRun | null>(null);
+  const [idle, setIdle] = useState<IdleCash[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
+  /** Counts loads, so an older idle-cash answer can't land over a newer one. */
+  const loadSeq = useRef(0);
+  /** A tile opens its part of the screen, from the top, where the chart shows it. */
+  const showGroup = (g: InvestmentGroup) => {
+    setFocus(g);
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
+  };
+  /** Account groups the person opened or closed (the default depends on how many accounts there are). */
+  const [opened, setOpened] = useState<Map<string, boolean>>(new Map());
+  const [accountSearch, setAccountSearch] = useState("");
+  const [groupBy, setGroupBy] = useState<"type" | "institution">("type");
 
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     const allAccounts = await getActiveAccounts(DEFAULT_USER_ID);
     const investmentLike = allAccounts.filter(
       (a) => a.account_type === "investment" || a.account_type === "demat" || a.account_type === "pension",
@@ -106,14 +122,20 @@ export default function InvestmentsListScreen() {
     const accounts = withoutFinishedInvestments(investmentLike, products);
     const [values, upcoming] = await Promise.all([
       getUnifiedInvestmentValues(DEFAULT_USER_ID, accounts, products),
-      getUpcomingFDMaturities(DEFAULT_USER_ID, 5),
+      // Every scheduled maturity, for the FD ladder (it was the next 5 when maturities were a list).
+      getUpcomingFDMaturities(DEFAULT_USER_ID, 1000),
     ]);
 
     // Only for the line under the value; never in the way of the screen.
     getLastSyncRun().then(setLastSync).catch(() => setLastSync(null));
-    setRows(buildRows(accounts, products, values));
+    const built = buildRows(accounts, products, values);
+    setRows(built);
     setMaturities(upcoming);
     setLoaded(true);
+    // Idle cash is only a card: a failure here never blanks the screen.
+    getIdleCash(built.filter((r) => r.group === "market").map((r) => r.account.id))
+      .then((v) => seq === loadSeq.current && setIdle(v))
+      .catch(() => seq === loadSeq.current && setIdle([]));
   }, []);
 
   useDataRefresh(load);
@@ -126,7 +148,19 @@ export default function InvestmentsListScreen() {
     return totals;
   }, [rows]);
 
-  const totalUpcomingInterest = maturities.reduce((sum, m) => sum + m.interestAmount, 0);
+  // The FD ladder: open FDs only (a matured or closed FD's money is back in the bank).
+  const ladder = useMemo(() => {
+    const openIds = new Set(rows.filter((r) => r.group === "fd").map((r) => r.account.id));
+    const rates = new Map(rows.filter((r) => r.product).map((r) => [r.account.id, r.product!.interest_rate_pa]));
+    return fdLadder(maturities.filter((m) => openIds.has(m.financialAccountId)), rates);
+  }, [maturities, rows]);
+  const fdRows = rows.filter((r) => r.group === "fd");
+  const fdAverage = averageRate(fdRows.map((r) => ({ principal: r.product?.principal ?? null, rate: r.product?.interest_rate_pa ?? null })));
+  const idleTotal = idle.reduce((s, i) => s + i.amount, 0);
+  const nameOf = (id: string) => {
+    const r = rows.find((x) => x.account.id === id);
+    return r ? accountName(r.account) : "Account";
+  };
 
   const activeGroups = GROUP_ORDER.filter((g) => groupTotals[g] > 0);
   // A category that's since emptied out (e.g. its only account closed) drops back to All.
@@ -215,7 +249,7 @@ export default function InvestmentsListScreen() {
 
   return (
     <ScreenContainer padTop={false}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
+      <ScrollView ref={scrollRef} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {loaded && rows.length === 0 ? (
           <EmptyState
             icon="trending-up-outline"
@@ -363,113 +397,153 @@ export default function InvestmentsListScreen() {
             </Card>
             </Appear>
 
-            {/* Upcoming maturities — the one thing that had no visibility
-                anywhere before: an FD's date was buried in its own detail screen. */}
-            {maturities.length > 0 && (
-              <Card className="mx-4 mt-3">
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">
-                    Upcoming maturities
-                  </Text>
-                  <Text className="text-label font-semibold" style={{ color: theme.success }}>
-                    +{formatAmount(totalUpcomingInterest)} interest
-                  </Text>
-                </View>
-                {maturities.map((m, i) => (
-                  <Pressable
-                    key={m.financialAccountId}
-                    onPress={() => router.push({ pathname: "/settings/account-detail", params: { accountId: m.financialAccountId } })}
-                    className="flex-row items-center py-2"
-                    style={i > 0 ? { borderTopWidth: 1, borderTopColor: theme.border } : undefined}
-                  >
-                    <View
-                      className="w-8 h-8 rounded-full items-center justify-center mr-3"
-                      style={{ backgroundColor: tint(GROUP_META.fd.color, 0.13) }}
-                    >
-                      <Ionicons name={GROUP_META.fd.icon} size={15} color={GROUP_META.fd.color} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-body font-medium text-foreground" numberOfLines={1}>{m.label}</Text>
-                      <Text className="text-label text-muted-foreground mt-0.5">Matures {formatDate(m.maturityDate)}</Text>
-                    </View>
-                    <View className="items-end">
-                      <Text className="text-body font-semibold text-foreground">{formatAmount(m.maturityAmount)}</Text>
-                      <Text className="text-label" style={{ color: theme.success }}>+{formatAmount(m.interestAmount)}</Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </Card>
+            {/* Under the chart (docs/INVESTMENTS_VIEW_PROPOSAL.md): a glance, idle cash, the FD ladder.
+                Upcoming maturities is part of the ladder now, so FDs don't show twice. */}
+            {view == null && (
+              <GlanceTiles
+                tiles={[
+                  { key: "value", label: "Value now", value: total },
+                  { key: "idle", label: "Idle cash", value: idleTotal, onPress: groupTotals.market > 0 ? () => showGroup("market") : undefined },
+                  { key: "back", label: "Back in 90 days", value: ladder.next90, onPress: groupTotals.fd > 0 ? () => showGroup("fd") : undefined },
+                  { key: "interest", label: "FD interest to come", value: ladder.interestToCome, onPress: groupTotals.fd > 0 ? () => showGroup("fd") : undefined },
+                ]}
+              />
+            )}
+            {(view == null || view === "market") && (
+              <IdleCashCard
+                items={idle}
+                nameOf={nameOf}
+                onOpen={(id) => router.push({ pathname: "/demat/snapshots/[id]", params: { id } })}
+              />
+            )}
+            {(view == null || view === "fd") && fdRows.length > 0 && (ladder.buckets.length > 0 || ladder.overdue.length > 0) && (
+              <FdLadderCard
+                ladder={ladder}
+                count={fdRows.length}
+                total={groupTotals.fd}
+                averageRate={fdAverage}
+                onOpen={(accountId) => router.push({ pathname: "/settings/account-detail", params: { accountId } })}
+              />
             )}
 
-            {/* Accounts, grouped by the three investment forms. */}
-            {GROUP_ORDER.map((group) => {
-              if (view && group !== view) return null;
-              const groupRows = rows.filter((r) => r.group === group);
-              if (groupRows.length === 0) return null;
-              const meta = GROUP_META[group];
+            {/* Accounts: groups fold (folded by default past 5 accounts), with their count and total;
+                search and Group by once there are 8 or more. */}
+            {(() => {
+              const many = rows.length >= 8;
+              const q = accountSearch.trim().toLowerCase();
+              const shownRows = rows
+                .filter((r) => !view || r.group === view)
+                .filter((r) => !q || accountName(r.account).toLowerCase().includes(q) || (r.account.bank_name ?? "").toLowerCase().includes(q));
+              const groups: { key: string; label: string; color: string; icon: keyof typeof Ionicons.glyphMap; rows: InvestmentRow[] }[] =
+                groupBy === "institution" && many
+                  ? [...new Set(shownRows.map((r) => r.account.bank_name || "Other"))]
+                      .map((bank) => ({
+                        key: `bank:${bank}`,
+                        label: bank,
+                        color: theme.mutedForeground,
+                        icon: "business-outline" as const,
+                        rows: shownRows.filter((r) => (r.account.bank_name || "Other") === bank),
+                      }))
+                      .sort((a, b) => b.rows.reduce((s2, r) => s2 + r.value, 0) - a.rows.reduce((s2, r) => s2 + r.value, 0))
+                  : GROUP_ORDER.map((g) => ({ key: g, label: GROUP_META[g].label, color: GROUP_META[g].color, icon: GROUP_META[g].icon, rows: shownRows.filter((r) => r.group === g) }));
+              // A search shows every match; otherwise what you chose, else folded once there are 6+.
+              const isOpen = (key: string) => (q ? true : opened.get(key) ?? rows.length <= 5);
               return (
-                <View key={group}>
-                  <View className="mx-4 mt-4 mb-2 flex-row items-center">
-                    <View className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: meta.color }} />
-                    <Text className="text-label font-semibold uppercase tracking-wider text-faint-foreground flex-1">
-                      {meta.label} · {groupRows.length}
+                <>
+                  <View className="mx-4 mt-5 mb-2 flex-row items-center" style={{ gap: 8 }}>
+                    <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground flex-1">
+                      Accounts · {shownRows.length}
                     </Text>
-                    <Text className="text-label font-semibold text-muted-foreground">
-                      {formatAmount(groupTotals[group])}
-                    </Text>
+                    {many && (
+                      <Pressable
+                        onPress={() => setGroupBy((g) => (g === "type" ? "institution" : "type"))}
+                        className="rounded-control border border-border bg-card px-3 py-1.5"
+                        accessibilityRole="button"
+                        accessibilityLabel={`Group by ${groupBy === "type" ? "type" : "institution"}. Tap to change`}
+                      >
+                        <Text className="text-label font-semibold text-foreground">Group: {groupBy === "type" ? "Type" : "Institution"}</Text>
+                      </Pressable>
+                    )}
                   </View>
-
-                  {groupRows.map((row) => {
-                    const { account, product } = row;
-                    const name = accountName(account);
-                    const instrument = product?.instrument;
-                    const instrumentLabel = instrument
-                      ? (INSTRUMENT_LABELS[instrument] ?? instrument)
-                      : group === "market"
-                        ? "Demat"
-                        : group === "pension"
-                          ? "Pension"
-                          : "Deposit";
-                    const valuationLine = group === "market"
-                      ? "Market value"
-                      : group === "pension"
-                        ? "Contributions"
-                        : product && isFDIncomplete(product)
-                          ? "Rate & maturity not set"
-                          : product?.status === "matured"
-                            ? "Matured"
-                            : product?.status === "closed"
-                              ? "Closed"
-                              : product?.maturity_date
-                                ? `Matures ${formatDate(product.maturity_date)}`
-                                : null;
+                  {many && (
+                    <View className="mx-4 mb-2 flex-row items-center rounded-control border border-border bg-card px-3" style={{ gap: 8 }}>
+                      <Ionicons name="search-outline" size={16} color={theme.mutedForeground} />
+                      <TextInput
+                        value={accountSearch}
+                        onChangeText={setAccountSearch}
+                        placeholder="Search accounts"
+                        placeholderTextColor={theme.mutedForeground}
+                        className="flex-1 py-2 text-body text-foreground"
+                        accessibilityLabel="Search accounts"
+                      />
+                    </View>
+                  )}
+                  {groups.map((grp) => {
+                    if (grp.rows.length === 0) return null;
+                    const sum = grp.rows.reduce((s2, r) => s2 + r.value, 0);
+                    const open = isOpen(grp.key);
                     return (
-                      <PressableScale key={account.id} onPress={() => handlePress(row)} className="mx-4" accessibilityRole="button" accessibilityLabel={name}>
-                        <Card className="mb-2">
-                          <View className="flex-row items-center">
-                            <View
-                              className="w-9 h-9 rounded-full items-center justify-center mr-3"
-                              style={{ backgroundColor: tint(meta.color, 0.13) }}
-                            >
-                              <Ionicons name={meta.icon} size={18} color={meta.color} />
-                            </View>
-                            <View className="flex-1">
-                              <Text className="text-body font-semibold text-foreground">{name}</Text>
-                              <Text className="text-label text-muted-foreground mt-0.5">
-                                {instrumentLabel}
-                                {valuationLine ? ` · ${valuationLine}` : ""}
-                              </Text>
-                            </View>
-                            <Text className="text-body font-bold text-foreground">{formatAmount(row.value)}</Text>
-                            <Ionicons name="chevron-forward" size={16} color={theme.mutedForeground} style={{ marginLeft: 6 }} />
+                      <Card key={grp.key} className="mx-4 mb-2 py-1">
+                        <Pressable
+                          onPress={() => setOpened((prev) => new Map(prev).set(grp.key, !open))}
+                          className="flex-row items-center py-2.5"
+                          style={{ gap: 10 }}
+                          accessibilityRole="button"
+                          accessibilityState={{ expanded: open }}
+                          accessibilityLabel={`${grp.label}, ${grp.rows.length} account${grp.rows.length === 1 ? "" : "s"}, ${formatAmount(Math.round(sum))}`}
+                        >
+                          <View className="w-2.5 h-2.5 rounded-pill" style={{ backgroundColor: grp.color }} />
+                          <View className="flex-1">
+                            <Text className="text-body font-semibold text-foreground" numberOfLines={1}>{grp.label}</Text>
+                            <Text className="text-label text-muted-foreground">
+                              {grp.rows.length} account{grp.rows.length === 1 ? "" : "s"}
+                              {total > 0 ? ` · ${pct(sum, total)}%` : ""}
+                            </Text>
                           </View>
-                        </Card>
-                      </PressableScale>
+                          <Text className="text-body font-bold text-foreground">{formatAmount(Math.round(sum))}</Text>
+                          <Ionicons name={open ? "chevron-up" : "chevron-down"} size={14} color={theme.mutedForeground} />
+                        </Pressable>
+                        {open &&
+                          [...grp.rows].sort((a, b) => b.value - a.value).map((row) => {
+                            const { account, product } = row;
+                            const name = accountName(account);
+                            const sub =
+                              row.group === "fd"
+                                ? product && isFDIncomplete(product)
+                                  ? "Rate & maturity not set"
+                                  : product?.maturity_date
+                                    ? `Matures ${formatDate(product.maturity_date)}`
+                                    : product?.instrument
+                                      ? INSTRUMENT_LABELS[product.instrument] ?? product.instrument
+                                      : null
+                                : null;
+                            return (
+                              <Pressable
+                                key={account.id}
+                                onPress={() => handlePress(row)}
+                                className="flex-row items-center py-2.5"
+                                style={{ borderTopWidth: 1, borderTopColor: theme.border, paddingLeft: 20, gap: 8 }}
+                                accessibilityRole="button"
+                                accessibilityLabel={`${name}, ${formatAmount(Math.round(row.value))}`}
+                              >
+                                <View className="flex-1">
+                                  <Text className="text-body text-foreground" numberOfLines={1}>{name}</Text>
+                                  {sub && <Text className="text-label text-muted-foreground">{sub}</Text>}
+                                </View>
+                                <Text className="text-body font-semibold text-foreground">{formatAmount(Math.round(row.value))}</Text>
+                                <Ionicons name="chevron-forward" size={14} color={theme.mutedForeground} />
+                              </Pressable>
+                            );
+                          })}
+                      </Card>
                     );
                   })}
-                </View>
+                  {q && shownRows.length === 0 && (
+                    <Text className="text-meta text-muted-foreground mx-4 mt-2">No account matches “{accountSearch.trim()}”.</Text>
+                  )}
+                </>
               );
-            })}
+            })()}
           </>
         )}
       </ScrollView>

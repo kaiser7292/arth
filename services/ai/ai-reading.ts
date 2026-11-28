@@ -17,9 +17,9 @@ import { isNanoModulePresent } from "../../modules/arth-nano";
 
 const ENABLED_KEY = "ai_nano_enabled";
 
-/** The build can do on-device AI at all (flag on, Android, module present). */
+/** The build can do on-device AI at all (flag on, Android or iPhone, module present). */
 export function aiReadingBuilt(): boolean {
-  return getFlag("ai_nano") && Platform.OS === "android" && isNanoModulePresent;
+  return getFlag("ai_nano") && (Platform.OS === "android" || Platform.OS === "ios") && isNanoModulePresent;
 }
 
 /** The person's switch. On until they turn it off. */

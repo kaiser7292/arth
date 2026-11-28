@@ -91,6 +91,8 @@ export default function BackupRestoreScreen({ header, footer }: { header?: React
   // Scheduled backup state
   const [schedSettings, setSchedSettings] = useState<BackupScheduleSettings>(() => getBackupScheduleSettings());
   const [schedBackups, setSchedBackups] = useState<ScheduledBackupInfo[]>([]);
+  /** The stored backups list starts folded away. */
+  const [showStored, setShowStored] = useState(false);
   const [restoringScheduled, setRestoringScheduled] = useState<string | null>(null);
 
   const reloadSchedBackups = useCallback(() => {
@@ -398,10 +400,18 @@ export default function BackupRestoreScreen({ header, footer }: { header?: React
               {/* Stored backups list */}
               {schedBackups.length > 0 && (
                 <>
-                  <Text className="text-label text-muted-foreground mb-2">
-                    {schedBackups.length} stored backup{schedBackups.length !== 1 ? "s" : ""} · newest first
-                  </Text>
-                  {schedBackups.map((b) => (
+                  <Pressable
+                    onPress={() => setShowStored((v) => !v)}
+                    className="flex-row items-center py-1 mb-2"
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: showStored }}
+                  >
+                    <Text className="text-label text-muted-foreground flex-1">
+                      {schedBackups.length} stored backup{schedBackups.length !== 1 ? "s" : ""} · newest first, the newest 3 are kept
+                    </Text>
+                    <Ionicons name={showStored ? "chevron-up" : "chevron-down"} size={16} color={theme.mutedForeground} />
+                  </Pressable>
+                  {showStored && schedBackups.map((b) => (
                     <View
                       key={b.filePath}
                       className="flex-row items-center p-3 mb-2 rounded-control border border-border"

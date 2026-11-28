@@ -23,7 +23,8 @@ const KEY_FREQ_HOURS = "scheduled_backup_frequency_hours";
 const KEY_LAST_RUN = "scheduled_backup_last_run_at";
 export const NOTIF_ID = "artha_scheduled_backup";
 const BACKUP_SUBDIR = "scheduled-backups";
-const MAX_BACKUPS = 10;
+/** Automatic backups kept on the phone: the newest 3 (owner, Nov 2026; was 10). */
+const MAX_BACKUPS = 3;
 
 // ---------------------------------------------------------------------------
 // Types

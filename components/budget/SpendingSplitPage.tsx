@@ -6,7 +6,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Card, ProgressBar, Text } from "@/components/ui";
 import { AnimatedNumber, Appear, Chevron, Collapse, PressableScale } from "@/components/motion";
 import { DonutChart } from "@/components/charts/DonutChart";
-import { getMonthSplit, type MonthEmis } from "@/services/month-split";
+import { getMonthSplit, getRangeSplit, type MonthEmis } from "@/services/month-split";
+import type { BudgetSpan } from "@/utils/budget-span";
 import { formatAmount } from "@/utils/expense-validation";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -52,6 +53,8 @@ const ORDER: SplitBucket[] = ["unavoidable", "discretionary", "unclassified"];
 
 interface SpendingSplitPageProps {
   month: string;
+  /** The Budget tab's 3M · 6M · FY: the split for that stretch instead of the month. */
+  span?: BudgetSpan;
 }
 
 /**
@@ -65,7 +68,7 @@ interface SpendingSplitPageProps {
  * every amount here adds up to the month's spending and each group's list matches the number on
  * it. Tap a group to see its categories; tap a category for its transactions in that group.
  */
-export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
+export function SpendingSplitPage({ month, span }: SpendingSplitPageProps) {
   const router = useRouter();
   const { colors } = useColorScheme();
   const theme = useTheme();
@@ -80,17 +83,22 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
 
   const [loadFailed, setLoadFailed] = useState(false);
   const [emis, setEmis] = useState<MonthEmis | null>(null);
+  /** Counts loads, so a slower one for an earlier month or span can't overwrite a newer one. */
+  const loadSeq = useRef(0);
   const loadData = useCallback(async () => {
+    const seq = ++loadSeq.current;
     try {
-      const m = await getMonthSplit(month);
+      const m = span ? await getRangeSplit(span.months, span.startDate, span.endDate) : await getMonthSplit(month);
+      if (seq !== loadSeq.current) return;
       setSplit(m.split);
       setEmis(m.emis);
       setLoadFailed(false);
     } catch {
+      if (seq !== loadSeq.current) return;
       setLoadFailed(true);
       // DB not ready
     }
-  }, [month]);
+  }, [month, span]);
 
   useDataRefresh(loadData);
 
@@ -99,7 +107,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
     router.push({
       pathname: "/budget/transactions",
       params: {
-        filterMonth: month,
+        ...(span ? { filterStartDate: span.startDate, filterEndDate: span.endDate } : { filterMonth: month }),
         filterAvoidability: meta.avoidability,
         ...(categoryId !== undefined ? { categoryId: categoryId ?? "none" } : {}),
         title: name ? `${name} · ${meta.title}` : meta.title,
@@ -150,7 +158,7 @@ export function SpendingSplitPage({ month }: SpendingSplitPageProps) {
                   separatorColor={theme.card}
                 />
                 <View className="flex-1 ml-4">
-                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">Spent this month</Text>
+                  <Text className="text-label font-semibold uppercase tracking-wider text-muted-foreground">{span ? `Spent ${span.phrase}` : "Spent this month"}</Text>
                   <AnimatedNumber value={split.totalSpent} className="text-title font-bold text-foreground mt-0.5 mb-2" />
                   {visible.map((b) => (
                     <Pressable

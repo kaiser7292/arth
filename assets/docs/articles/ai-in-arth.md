@@ -21,13 +21,13 @@ Arth has two kinds of AI. Both live in **Settings → AI**, and each has the sam
 
 ## On this phone
 
-Gemini Nano, the AI built into some newer Android phones. It works by itself and **nothing leaves the phone**.
+The AI built into some newer phones: Gemini Nano on Android, Apple Intelligence on iPhone (iPhone 15 Pro or later, iOS 26). It works by itself and **nothing leaves the phone**.
 
 - It reads the bank messages Arth's own patterns don't know.
 - It also suggests categories, spots names that are one place, learns message formats and more. Each has its own switch.
 - Everything it finds waits for you in **Catch Up** before it counts.
 
-On phones without Gemini Nano, Settings → AI says so in one line. See **On-device AI (Gemini Nano)** for the details.
+On phones without either, Settings → AI says so in one line. See **On-device AI (Gemini Nano, Apple Intelligence)** for the details.
 
 ## With your AI assistant
 
