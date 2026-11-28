@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Platform, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer, StatusPill, Text } from "@/components/ui";
 import { Toggle } from "@/components/ui/Toggle";
@@ -10,14 +10,15 @@ import { useDataRefresh } from "@/hooks/use-data-refresh";
 import { useTheme } from "@/hooks/use-theme";
 import { isAiSetupPending } from "@/services/ai-share";
 import { aiReadingBuilt, isAiReadingSwitchOn, setAiReadingSwitch } from "@/services/ai/ai-reading";
-import { getNanoStatus, ON_DEVICE_MODEL_NAME, type NanoStatus } from "@/services/ai/nano";
+import { getNanoStatus, getOnDeviceReason, ON_DEVICE_MODEL_NAME, onDeviceReasonText, type NanoStatus, type OnDeviceReason } from "@/services/ai/nano";
 import { countQueued, stopAiQueue } from "@/services/ai/reading-queue";
 import { countAiItems, loadCatchUpAiItems } from "@/services/catch-up-ai";
 
 const STATUS: Record<NanoStatus, { label: string; tone: "success" | "warning" | "mutedForeground" }> = {
   available: { label: "Ready", tone: "success" },
-  downloadable: { label: "Needs a download", tone: "warning" },
-  downloading: { label: "Downloading", tone: "warning" },
+  // On iPhone the person turns Apple Intelligence on in Settings, and the iPhone fetches it.
+  downloadable: { label: Platform.OS === "ios" ? "Turned off" : "Needs a download", tone: "warning" },
+  downloading: { label: Platform.OS === "ios" ? "Getting ready" : "Downloading", tone: "warning" },
   unavailable: { label: "Not on this phone", tone: "mutedForeground" },
 };
 
@@ -32,6 +33,8 @@ export default function AiScreen() {
   const theme = useTheme();
   const built = aiReadingBuilt();
   const [status, setStatus] = useState<NanoStatus | null>(built ? null : "unavailable");
+  /** iPhone: why Apple Intelligence isn't available, exactly; null on Android. */
+  const [reason, setReason] = useState<OnDeviceReason | null>(null);
   const [reading, setReading] = useState(isAiReadingSwitchOn);
   const [queued, setQueued] = useState<number | null>(null);
   const [waiting, setWaiting] = useState(0);
@@ -49,6 +52,9 @@ export default function AiScreen() {
       setStatus(s);
       setQueued(q);
       setWaiting(countAiItems(items));
+      // With on-device AI switched off in Arth, only a build missing the module has a reason to give.
+      const r = await getOnDeviceReason();
+      setReason(built || r === "not-in-build" ? r : null);
     }, [built]),
   );
 
@@ -87,7 +93,11 @@ export default function AiScreen() {
                 divider={false}
                 icon="phone-portrait-outline"
                 title={ON_DEVICE_MODEL_NAME}
-                sub={`This phone doesn't have ${ON_DEVICE_MODEL_NAME}, so Arth works as before.`}
+                sub={
+                  reason && reason !== "ready"
+                    ? onDeviceReasonText(reason)
+                    : `This phone doesn't have ${ON_DEVICE_MODEL_NAME}, so Arth works as before.`
+                }
                 right={meta ? <StatusPill label={meta.label} color={theme[meta.tone]} /> : undefined}
               />
             ) : (
@@ -97,7 +107,11 @@ export default function AiScreen() {
                   icon="phone-portrait-outline"
                   color={theme.primary}
                   title={ON_DEVICE_MODEL_NAME}
-                  sub="Private and automatic. Nothing leaves the phone."
+                  sub={
+                    reason && reason !== "ready" && status !== "available"
+                      ? onDeviceReasonText(reason)
+                      : "Private and automatic. Nothing leaves the phone."
+                  }
                   right={meta ? <StatusPill label={meta.label} color={theme[meta.tone]} /> : undefined}
                   onPress={go("/settings/on-device-ai")}
                 />

@@ -6,7 +6,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, Card, ScreenContainer, Text } from "@/components/ui";
 import { useTheme } from "@/hooks/use-theme";
 import { isAiReadingSwitchOn, setAiReadingSwitch } from "@/services/ai/ai-reading";
-import { downloadNano, getNanoStatus, ON_DEVICE_MODEL_NAME, type NanoStatus } from "@/services/ai/nano";
+import { downloadNano, getNanoStatus, getOnDeviceReason, ON_DEVICE_MODEL_NAME, onDeviceReasonText, type NanoStatus, type OnDeviceReason } from "@/services/ai/nano";
 import {
   countOlderUnread,
   countQueued,
@@ -59,6 +59,7 @@ export default function OnDeviceAiScreen() {
   const run = useSyncExternalStore(subscribeAiQueue, getAiQueueState);
   const [on, setOn] = useState(isAiReadingSwitchOn);
   const [status, setStatus] = useState<NanoStatus | null>(null);
+  const [reason, setReason] = useState<OnDeviceReason | null>(null);
   const [queued, setQueued] = useState<number | null>(null);
   const [older, setOlder] = useState(0);
   const [downloaded, setDownloaded] = useState<number | null>(null);
@@ -74,6 +75,7 @@ export default function OnDeviceAiScreen() {
     setStatus(s);
     setQueued(q);
     setOlder(o);
+    setReason(await getOnDeviceReason());
   }, []);
 
   useFocusEffect(
@@ -147,7 +149,8 @@ export default function OnDeviceAiScreen() {
             )}
           </View>
           <Text className="text-sm text-muted-foreground mt-2 leading-5">
-            {meta ? meta.note : "Checking this phone…"}
+            {/* iPhone: the exact reason replaces the general note, so the two never disagree. */}
+            {IOS && reason && reason !== "ready" && status !== "available" ? onDeviceReasonText(reason) : meta ? meta.note : "Checking this phone…"}
             {downloaded != null && downloaded > 0 ? ` ${(downloaded / (1024 * 1024)).toFixed(0)} MB so far.` : ""}
           </Text>
           {status === "downloadable" && !IOS && <Button title="Download the model" onPress={() => void download()} className="mt-3" />}
