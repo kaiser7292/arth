@@ -13,6 +13,7 @@
 
 import { AppState, Platform } from "react-native";
 import {
+  checkNanoReason,
   checkNanoStatus,
   downloadNano,
   generateWithNano,
@@ -49,6 +50,53 @@ export async function getNanoStatus(): Promise<NanoStatus> {
 }
 
 export { downloadNano, warmupNano };
+
+/** Why on-device AI isn't ready on this iPhone, exactly (Settings shows it). */
+export type OnDeviceReason =
+  | "ready"
+  | "not-in-build"
+  | "built-without-sdk"
+  | "ios-too-old"
+  | "device-not-eligible"
+  | "turned-off"
+  | "getting-ready"
+  | "unknown";
+
+const REASONS: OnDeviceReason[] = ["ready", "not-in-build", "built-without-sdk", "ios-too-old", "device-not-eligible", "turned-off", "getting-ready", "unknown"];
+
+/** iPhone only: the exact reason, or null on Android (its status says enough). Never throws. */
+export async function getOnDeviceReason(): Promise<OnDeviceReason | null> {
+  if (Platform.OS !== "ios") return null;
+  if (!isNanoModulePresent) return "not-in-build";
+  try {
+    const r = await checkNanoReason();
+    return r && (REASONS as string[]).includes(r) ? (r as OnDeviceReason) : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+/** The reason in words, for Settings → AI and Settings → On-device AI. Pure. */
+export function onDeviceReasonText(reason: OnDeviceReason): string {
+  switch (reason) {
+    case "ready":
+      return "Apple Intelligence is ready.";
+    case "not-in-build":
+      return "This copy of Arth was built without the Apple Intelligence part. On the Mac, run npx expo prebuild --platform ios, then build again.";
+    case "built-without-sdk":
+      return "This copy of Arth was built with an Xcode older than 26, which can't include Apple Intelligence. Build it with Xcode 26 or later.";
+    case "ios-too-old":
+      return "Needs iOS 26 or later. Update the iPhone in Settings → General → Software Update.";
+    case "device-not-eligible":
+      return "This iPhone can't run Apple Intelligence (it needs an iPhone 15 Pro or later), so Arth works as before.";
+    case "turned-off":
+      return "Turn on Apple Intelligence in Settings → Apple Intelligence & Siri, and keep Siri on (Hey Siri or Press Side Button). The iPhone's language and Siri's must be ones Apple Intelligence supports.";
+    case "getting-ready":
+      return "The iPhone is still downloading Apple Intelligence. Keep it on Wi-Fi and charging, then check again later.";
+    default:
+      return "Apple didn't say why. Restart the iPhone and check again.";
+  }
+}
 
 function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve, reject) => {

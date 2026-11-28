@@ -10,6 +10,8 @@ export interface NanoAnswer {
 
 interface NativeNano {
   checkStatus(): Promise<NanoStatus>;
+  /** iPhone only (missing on Android and on older builds): why it isn't ready, in one word. */
+  statusReason?(): Promise<string>;
   download(): Promise<boolean>;
   warmup(): Promise<boolean>;
   generate(prompt: string, temperature: number, maxOutputTokens: number): Promise<NanoAnswer>;
@@ -23,6 +25,12 @@ export const isNanoModulePresent = Native != null;
 
 export async function checkNanoStatus(): Promise<NanoStatus> {
   return Native ? Native.checkStatus() : "unavailable";
+}
+
+/** iPhone: why the model isn't ready ("turned-off", "ios-too-old"…); null where the build can't say. */
+export async function checkNanoReason(): Promise<string | null> {
+  if (!Native || typeof Native.statusReason !== "function") return null;
+  return Native.statusReason();
 }
 
 /** Ask Android to fetch the model. Resolves when done; throws if the download fails. */

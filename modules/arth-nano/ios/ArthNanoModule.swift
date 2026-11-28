@@ -41,6 +41,32 @@ public class ArthNanoModule: Module {
       return "unavailable"
     }
 
+    // Why it isn't available, for Settings to say exactly (statusReason in services/ai/nano.ts).
+    AsyncFunction("statusReason") { () -> String in
+      #if canImport(FoundationModels)
+      if #available(iOS 26.0, *) {
+        switch SystemLanguageModel.default.availability {
+        case .available:
+          return "ready"
+        case .unavailable(let reason):
+          switch reason {
+          case .deviceNotEligible:
+            return "device-not-eligible"
+          case .appleIntelligenceNotEnabled:
+            return "turned-off"
+          case .modelNotReady:
+            return "getting-ready"
+          default:
+            return "unknown"
+          }
+        }
+      }
+      return "ios-too-old"
+      #else
+      return "built-without-sdk"
+      #endif
+    }
+
     AsyncFunction("download") { () -> Bool in
       // Apple Intelligence is switched on in Settings → Apple Intelligence & Siri, not by apps.
       return false
